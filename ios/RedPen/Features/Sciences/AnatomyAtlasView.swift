@@ -438,15 +438,21 @@ final class AtlasModel: NSObject, ObservableObject {
             // physically based: the tissue's colour and how rough it is, never metal
             m.lightingModel = .physicallyBased
             m.diffuse.contents = UIColor(red: c.red, green: c.green, blue: c.blue, alpha: 1)
+            // muscle's colour as a texture, so its shader gets the bundles' texture coordinates
+            if tissue == .muscle, let image = swatch(c) { m.diffuse.contents = image }
             m.roughness.contents = NSNumber(value: tissue.roughness)
             m.metalness.contents = NSNumber(value: 0.0)
             // bone and muscle with their own surface, fixed to the body so it
-            // has no seams (AtlasShaders); a muscle's fibres are set per muscle
+            // has no seams (AtlasShaders); a muscle's bundles' width is set per muscle
             if let surface = AtlasLight.surface(tissue) {
                 m.shaderModifiers = [.surface: surface]
                 m.setValue(NSNumber(value: 0.0), forKey: "rpProbe")
                 m.setValue(detail, forKey: "rpDetail")
-                if tissue == .muscle { m.setValue(NSValue(scnVector3: SCNVector3(0, 1, 0)), forKey: "rpFibre") }
+                if tissue == .muscle {
+                    let tendon: SIMD3<Float> = AnatomyStripes.tendonRatio(muscle: c)
+                    m.setValue(NSNumber(value: 0.0), forKey: "rpBundle")
+                    m.setValue(NSValue(scnVector3: SCNVector3(tendon.x, tendon.y, tendon.z)), forKey: "rpTendon")
+                }
             }
             // both faces of what is solid, so an open end (a vessel cut where
             // the organ set stops) shows its inside rather than a hole
@@ -466,12 +472,19 @@ final class AtlasModel: NSObject, ObservableObject {
             // line shows; its hollows a little darker, read from the same surface
             let normals: [[Float]] = AnatomyMesh.normals(welding: meshes)
             let bends: [[Float]] = AnatomyMesh.curvature(welding: meshes)
-            let made: [SCNNode] = zip(part.structures, zip(meshes, zip(normals, bends))).map { structure, shaded in
+            // a part of muscles: their bundles, as the build laid them along the fibres
+            var stripes: [AnatomyStripes?] = Array(repeating: nil, count: meshes.count)
+            if let fibres = part.fibres, let url = AnatomyAtlas.file(fibres.file), let data = try? Data(contentsOf: url),
+               let read = try? AnatomyAtlas.stripes(of: part, meshes: meshes, from: data) {
+                stripes = read
+            }
+            let made: [SCNNode] = zip(part.structures, zip(meshes, zip(normals, bends))).enumerated().map { k, item in
+                let (structure, shaded) = item
                 var surface: SCNMaterial = material(structure.tissue)
-                // each muscle streaked along its own length
-                if structure.tissue == .muscle, let own = surface.copy() as? SCNMaterial {
-                    let axis: SIMD3<Float> = shaded.0.longAxis()
-                    own.setValue(NSValue(scnVector3: SCNVector3(axis.x, axis.y, axis.z)), forKey: "rpFibre")
+                // each muscle's bundles their own width
+                let bundles: AnatomyStripes? = structure.tissue == .muscle ? stripes[k] : nil
+                if let bundles, let own = surface.copy() as? SCNMaterial {
+                    own.setValue(NSNumber(value: bundles.bundle), forKey: "rpBundle")
                     surface = own
                 }
                 // the relief's shade as a vertex colour, which SceneKit multiplies
@@ -480,7 +493,8 @@ final class AtlasModel: NSObject, ObservableObject {
                     let shade: SIMD3<Float> = AtlasRelief.shade(bend)
                     return [shade.x, shade.y, shade.z]
                 }
-                let node = SCNNode(geometry: geometry(shaded.0, normals: shaded.1.0, relief: relief, surface))
+                let node = SCNNode(geometry: geometry(shaded.0, normals: shaded.1.0, relief: relief,
+                                                      coordinates: bundles?.coordinates(), surface))
                 node.name = part.id + "/" + structure.node
                 // the see-through skin is drawn after what it covers
                 if structure.tissue == .skin { node.renderingOrder = 10 }
@@ -490,8 +504,23 @@ final class AtlasModel: NSObject, ObservableObject {
         }
     }
 
+    /// A 4 by 4 image of one colour (sRGB), a muscle's diffuse: SceneKit hands
+    /// a surface modifier texture coordinates only from a property holding a
+    /// texture (as GraphNodeShaders.blackImage), and the muscle's bundles ride
+    /// on them.
+    nonisolated private static func swatch(_ c: (red: Double, green: Double, blue: Double)) -> CGImage? {
+        guard let space = CGColorSpace(name: CGColorSpace.sRGB),
+              let context = CGContext(data: nil, width: 4, height: 4, bitsPerComponent: 8, bytesPerRow: 16, space: space,
+                                      bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue),
+              let colour = CGColor(colorSpace: space, components: [CGFloat(c.red), CGFloat(c.green), CGFloat(c.blue), 1])
+        else { return nil }
+        context.setFillColor(colour)
+        context.fill(CGRect(x: 0, y: 0, width: 4, height: 4))
+        return context.makeImage()
+    }
+
     nonisolated private static func geometry(_ mesh: AnatomyMesh, normals unit: [Float], relief: [Float]?,
-                                             _ material: SCNMaterial) -> SCNGeometry {
+                                             coordinates: [Float]? = nil, _ material: SCNMaterial) -> SCNGeometry {
         let positions: Data = mesh.positions.withUnsafeBufferPointer { Data(buffer: $0) }
         let normals: Data = unit.withUnsafeBufferPointer { Data(buffer: $0) }
         let indices: Data = mesh.indices.withUnsafeBufferPointer { Data(buffer: $0) }
@@ -510,6 +539,14 @@ final class AtlasModel: NSObject, ObservableObject {
             sources.append(SCNGeometrySource(data: shades, semantic: .color, vectorCount: mesh.vertexCount,
                                              usesFloatComponents: true, componentsPerVector: 3,
                                              bytesPerComponent: MemoryLayout<Float>.size, dataOffset: 0, dataStride: stride))
+        }
+        // a muscle's bundles: where each vertex lies across them, and tendon (AtlasShaders.muscle)
+        if let coordinates, coordinates.count == mesh.vertexCount * 2 {
+            let pairs: Data = coordinates.withUnsafeBufferPointer { Data(buffer: $0) }
+            sources.append(SCNGeometrySource(data: pairs, semantic: .texcoord, vectorCount: mesh.vertexCount,
+                                             usesFloatComponents: true, componentsPerVector: 2,
+                                             bytesPerComponent: MemoryLayout<Float>.size, dataOffset: 0,
+                                             dataStride: MemoryLayout<Float>.size * 2))
         }
         let geometry = SCNGeometry(sources: sources, elements: [element])
         geometry.materials = [material]

@@ -85,7 +85,7 @@ for body in manifest.bodies {
     }
     check("\(body.name): every structure has the triangles the manifest says", mismatched.isEmpty, mismatched.prefix(5).joined(separator: ", "))
     let total: Int = parts.map(\.triangles).reduce(0, +)
-    check("\(body.name): between 530,000 and 600,000 triangles", (530_000...600_000).contains(total), "\(total)")
+    check("\(body.name): between 650,000 and 750,000 triangles", (650_000...750_000).contains(total), "\(total)")
     let empty = parts.flatMap { p in zip(p.structures, meshes[p.file] ?? []).filter { $0.1.triangleCount == 0 }.map { $0.0.node } }
     check("\(body.name): no structure is empty", empty.isEmpty, empty.joined(separator: ", "))
     let outside: [String] = parts.compactMap { part in
@@ -439,6 +439,118 @@ check("a file with bytes left over is refused", {
 check("a part read against another's manifest entry is refused", {
     do { _ = try AnatomyAtlas.meshes(of: male.part("brain")!, from: first); return false } catch { return true }
 }())
+
+// MARK: the muscles' bundles (tools/anatomy_fibres.py)
+
+let notSkeletal = ["papillary", "ciliary", "smooth_muscle", "gyrus"]
+for body in manifest.bodies {
+    var problems: [String] = []
+    var laid: Int = 0
+    var widths: [Float] = []
+    var crossing: [Float] = []
+    var spacing: [Float] = []
+    for part in body.parts where part.system == .muscular {
+        guard let fibres = part.fibres else { problems.append("\(part.id): no bundles listed"); continue }
+        if fibres.file != "\(body.id.rawValue)-\(part.id).fibres" { problems.append("\(part.id): file \(fibres.file)") }
+        guard let data = try? Data(contentsOf: folder.appendingPathComponent(fibres.file)) else {
+            problems.append("\(fibres.file): missing"); continue
+        }
+        if data.count != fibres.bytes { problems.append("\(fibres.file): \(data.count) bytes, manifest \(fibres.bytes)") }
+        guard let ms = meshes[part.file], let stripes = try? AnatomyAtlas.stripes(of: part, meshes: ms, from: data) else {
+            problems.append("\(fibres.file): unreadable"); continue
+        }
+        for ((structure, mesh), bundles) in zip(zip(part.structures, ms), stripes) {
+            let skeletal = structure.tissue == .muscle && !notSkeletal.contains { structure.node.contains($0) }
+            guard let b = bundles else {
+                if skeletal { problems.append("\(structure.node): no bundles") }
+                continue
+            }
+            if !skeletal { problems.append("\(structure.node): bundles, not a skeletal muscle") }
+            laid += 1
+            widths.append(b.bundle)
+            if !b.across.allSatisfy({ $0.isFinite }) { problems.append("\(structure.node): across not finite") }
+            if !b.tendon.allSatisfy({ $0 == -1 || (0...1).contains($0) }) { problems.append("\(structure.node): tendon out of range") }
+            // how the coordinate runs over each triangle that is not a fork: across the muscle's
+            // long axis, a unit a bundle's width (the long, straight rectus femoris)
+            guard structure.node.contains("rectus_femoris") else { continue }
+            let axis = mesh.longAxis()
+            for t in 0..<mesh.triangleCount {
+                let i = (0..<3).map { Int(mesh.indices[3 * t + $0]) }
+                if i.contains(where: { b.tendon[$0] < 0 || b.tendon[$0] > 0.2 }) { continue }
+                let p = i.map { mesh.position($0) }
+                let e1 = p[1] - p[0], e2 = p[2] - p[0]
+                let n = SIMD3<Float>(e1.y * e2.z - e1.z * e2.y, e1.z * e2.x - e1.x * e2.z, e1.x * e2.y - e1.y * e2.x)
+                let area2 = (n * n).sum()
+                guard area2 > 1e-14 else { continue }
+                let d1 = b.across[i[1]] - b.across[i[0]], d2 = b.across[i[2]] - b.across[i[0]]
+                // the gradient on the triangle's plane: (d1 (e2 x n) + d2 (n x e1)) / |n|^2
+                func cross(_ a: SIMD3<Float>, _ c: SIMD3<Float>) -> SIMD3<Float> {
+                    SIMD3(a.y * c.z - a.z * c.y, a.z * c.x - a.x * c.z, a.x * c.y - a.y * c.x)
+                }
+                let g = (cross(e2, n) * d1 + cross(n, e1) * d2) / area2
+                let length = (g * g).sum().squareRoot()
+                guard length > 0 else { continue }
+                crossing.append(abs((g * axis).sum()) / length)
+                spacing.append(length * b.bundle)
+            }
+        }
+    }
+    check("\(body.name): every muscular part lists its bundles' file, there, its size as listed, and reads whole",
+          problems.isEmpty, problems.prefix(6).joined(separator: "; "))
+    check("\(body.name): every skeletal muscle has its bundles (\(laid))", laid == (body.id == .male ? 34 : 24), "\(laid)")
+    check("\(body.name): bundles 1.5 to 6 mm wide", widths.allSatisfy { (0.0015...0.006).contains($0) },
+          "\(widths.min() ?? 0)...\(widths.max() ?? 0)")
+    let crossingMedian: Float = crossing.sorted()[crossing.count / 2]
+    check("\(body.name): the rectus femoris's bundles run down it: the coordinate changes across the muscle, not along it (median cosine \(String(format: "%.2f", crossingMedian)))",
+          crossing.count > 1000 && crossingMedian < 0.35)
+    let spacingMedian: Float = spacing.sorted()[spacing.count / 2]
+    check("\(body.name): and a bundle a bundle's width (median \(String(format: "%.2f", spacingMedian)) widths a unit)",
+          (0.8...1.25).contains(spacingMedian))
+}
+
+func saf(_ entries: [(across: [Float], tendon: [Float], bundle: Float)?]) -> Data {
+    var d = Data("SAF1".utf8)
+    func u32(_ v: UInt32) { withUnsafeBytes(of: v.littleEndian) { d.append(contentsOf: $0) } }
+    u32(UInt32(entries.count))
+    for e in entries {
+        guard let e = e else { u32(0); u32(0); continue }
+        u32(UInt32(e.across.count)); u32(e.bundle.bitPattern)
+        for a in e.across { u32(a.bitPattern) }
+        for t in e.tendon { u32(t.bitPattern) }
+    }
+    return d
+}
+let twoBundles = saf([nil, (across: [0, 0.5, 1.25], tendon: [0, 0.25, -1], bundle: 0.004)])
+let readBack = try? AnatomyAtlas.stripes(from: twoBundles)
+check("a bundles file reads back: a structure without, then one with three corners",
+      readBack?.count == 2 && readBack?[0] == nil && readBack?[1]?.across == [0, 0.5, 1.25]
+        && readBack?[1]?.tendon == [0, 0.25, -1] && readBack?[1]?.bundle == 0.004)
+check("its texture coordinates interleave across and tendon",
+      readBack?[1]?.coordinates() == [0, 0, 0.5, 0.25, 1.25, -1])
+check("a cut-off bundles file is refused", {
+    do { _ = try AnatomyAtlas.stripes(from: twoBundles.prefix(twoBundles.count - 4)); return false }
+    catch AnatomyAtlas.ReadError.truncated { return true } catch { return false }
+}())
+check("a bundles file with bytes left over is refused", {
+    do { _ = try AnatomyAtlas.stripes(from: twoBundles + Data([0, 0, 0, 0])); return false }
+    catch AnatomyAtlas.ReadError.leftover { return true } catch { return false }
+}())
+check("a mesh file is not a bundles file", (try? AnatomyAtlas.stripes(from: first)) == nil)
+if let hip = male.part("hip-muscles"), let fibres = hip.fibres, let ms = meshes[hip.file],
+   let data = try? Data(contentsOf: folder.appendingPathComponent(fibres.file)) {
+    let shuffled = Array(ms.reversed())
+    let kept = (try? AnatomyAtlas.stripes(of: hip, meshes: shuffled, from: data))?.compactMap { $0 }.count
+    check("bundles read against meshes they do not fit are dropped, not drawn wrong (\(kept ?? -1) of \(ms.count) kept)",
+          kept != nil && kept! < ms.count)
+    check("bundles read against another part's structures are refused",
+          (try? AnatomyAtlas.stripes(of: male.part("eye-muscles")!, meshes: ms, from: data)) == nil)
+} else {
+    check("the man's hip muscles have their bundles", false)
+}
+let muscleRed = AnatomyTissue.muscle.colour
+let ratio = AnatomyStripes.tendonRatio(muscle: muscleRed)
+check("tendon is paler than muscle in every channel, most in green and blue",
+      ratio.x > 1 && ratio.y > ratio.x && ratio.z > ratio.x)
 
 // MARK: the parts the organ sets lack (tools/anatomy_gaps.py)
 

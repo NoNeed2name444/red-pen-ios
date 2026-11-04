@@ -3040,11 +3040,31 @@ for screenshots.
       cartilages follow their ribs' ends. Long bones (femur, tibia,
       fibula, radius) bow within the normal range; the clavicles' lengths
       now match (161 and 164 mm).
-    - Muscle as fibre: the shader's streaks lie in the colour alone, fade
-      at a normal distance and follow one axis per muscle. Next: fascicle
-      ridges in the normal (bump), coarser grooves that hold at a normal
-      distance, each vertex's own fibre direction (origin to insertion),
-      and tendon at the ends.
+    - Muscle as fibre: the shader's streaks lay in the colour alone, faded
+      at a normal distance and followed one axis per muscle.
+      - [x] Bundles laid in the build (tools/anatomy_fibres.py): each
+        skeletal muscle made finer (edges about 4.5 mm), its fibres along a
+        harmonic length from the bones it arises from to those it inserts
+        on (or its tips), tendon where it narrows near an end, and stripes
+        a bundle wide along the fibres (Knoeppel et al. 2015's stripe
+        patterns), forking where the muscle narrows; the triangles holding
+        a fork split twice so its plain patch is too small to see. Per
+        vertex the place across the bundles and the tendon share, in a
+        <body>-<part>.fibres file beside the part (SAF1; 58 muscles, 34 in
+        the man, 24 in the woman; the meshes from 551,512 and 564,764
+        triangles to 696,267 and 707,545).
+      - [x] The shader draws each bundle as a rounded cord in the normal
+        (a bump across the bundles, its direction from how the coordinate
+        changes between pixels), dark seams, finer fibres close up, a
+        little wavering, seams deeper in some patches than others, each
+        bundle a little unlike its neighbours, tendon white and glossy.
+        Judged on Gray's plates (public domain) in the Linux lab.
+      - [x] The atlas suite reads every bundles file: every skeletal
+        muscle has its bundles, 1.5 to 6 mm wide, the rectus femoris's
+        across the thigh a bundle a unit; cut-off, padded and mismatched
+        files refused.
+      - [ ] Mac: screenshots of the hip and thigh close up; check the
+        bundles on the device.
     - Whole model: bones rigid, soft tissue fitted round them, every part
       checked against every other, judged on whole-body renders; split
       into parts at the end.

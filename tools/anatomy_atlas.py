@@ -40,6 +40,10 @@ column):
                    the structures' meshes, simplified to the part's triangle
                    budget, positions quantised to 16 bits over the file's
                    bounds (format below; read by Shared/Sciences/AnatomyAtlas.swift)
+    <body>-<part>.fibres
+                   for a part of muscles, each skeletal muscle's fibres laid
+                   in bundles, last of all, by tools/anatomy_fibres.py (which
+                   makes those muscles finer first; its header has the format)
     anatomy.json   the manifest: the sources and their licences, and per body
                    its parts, their structures with label, UBERON id, tissue
                    and layer
@@ -215,7 +219,7 @@ TISSUE_BY_NAME = [
     ("nerve", r"nerve|spinal_cord|dura_mater"),
     ("ligament", r"ligament|tendon|mesosalpinx|mesovarium"),
     ("cartilage", r"cartilage|meniscus|disk|nucleus_pulposus|epiglott|carina"),
-    ("muscle", r"muscle|rectus|oblique|vocalis|arytenoid$|cricothyroid|cricoarytenoid|thyroarytenoid|thyroepiglottideus"),
+    ("muscle", r"muscle|(?<!gyrus_)rectus|oblique|vocalis|arytenoid$|cricothyroid|cricoarytenoid|thyroarytenoid|thyroepiglottideus"),
     ("fluid", r"humor"),
     ("duct", r"duct|lactiferous|ampulla|papilla_of|sphincter|calyx|renal_pelvis|ureter|urethra|vas_deferens"),
     ("gland", r"gland|thymus|tonsil|ovary|mammary_lobes"),
@@ -667,7 +671,7 @@ def main():
     os.makedirs(a.out, exist_ok=True)
     # the files of the one-body atlas (format 1), and parts no longer made
     for old in os.listdir(a.out):
-        if old.endswith(".atlas"):
+        if old.endswith((".atlas", ".fibres")):
             os.remove(os.path.join(a.out, old))
     ct = dict(anatomy_gaps.CT_SOURCE, sha256=hashlib.sha256("".join(
         f"{s} {anatomy_gaps.CT_SHA256[s]}\n" for s in sorted(anatomy_gaps.CT_SHA256)).encode()).hexdigest())
@@ -683,6 +687,9 @@ def main():
         "bodies": [write_body(sex, bodies[sex], a.out) for sex in BOTH],
     }
     json.dump(manifest, open(os.path.join(a.out, "anatomy.json"), "w"), indent=1, ensure_ascii=False)
+    # the skeletal muscles' fibres, in bundles: last, as it rewrites the muscles' files
+    import anatomy_fibres
+    anatomy_fibres.annotate(a.out, quiet=True)
 
 
 if __name__ == "__main__":

@@ -27,8 +27,8 @@ static float3 v3(float x, float y, float z) { return mk_float3(x, y, z); }
 static float3 nrm(float3 a) { float l = length(a); return l > 0 ? a / l : a; }
 
 struct Mesh {
-    float3 colour; float rough; int surface; float3 axis; std::string name;
-    std::vector<float3> p, n, relief; std::vector<uint32_t> idx;
+    float3 colour; float rough; int surface; float3 axis; float bundle; float3 tendon; std::string name;
+    std::vector<float3> p, n, relief; std::vector<float2> tc; std::vector<uint32_t> idx;
 };
 
 static std::vector<Mesh> load(const char *path) {
@@ -36,7 +36,7 @@ static std::vector<Mesh> load(const char *path) {
     FILE *f = std::fopen(path, "rb");
     if (!f) { std::perror(path); std::exit(2); }
     char magic[4];
-    if (std::fread(magic, 1, 4, f) != 4 || std::memcmp(magic, "ATL2", 4) != 0) { std::fprintf(stderr, "not a dump\n"); std::exit(2); }
+    if (std::fread(magic, 1, 4, f) != 4 || std::memcmp(magic, "ATL3", 4) != 0) { std::fprintf(stderr, "not a dump\n"); std::exit(2); }
     auto u32 = [&]() { uint32_t v = 0; if (std::fread(&v, 4, 1, f) != 1) std::exit(3); return v; };
     auto f32 = [&]() { float v = 0; if (std::fread(&v, 4, 1, f) != 1) std::exit(3); return v; };
     uint32_t count = u32();
@@ -45,7 +45,9 @@ static std::vector<Mesh> load(const char *path) {
         float r = f32(), g = f32(), b = f32();
         m.colour = v3(r, g, b); m.rough = f32(); m.surface = (int)u32();
         float ax = f32(), ay = f32(), az = f32();
-        m.axis = v3(ax, ay, az);
+        m.axis = v3(ax, ay, az); m.bundle = f32();
+        float tr = f32(), tg = f32(), tb = f32();
+        m.tendon = v3(tr, tg, tb);
         uint32_t nl = u32(); m.name.resize(nl);
         if (nl && std::fread(&m.name[0], 1, nl, f) != nl) std::exit(3);
         uint32_t nv = u32(), nt = u32();
@@ -56,6 +58,8 @@ static std::vector<Mesh> load(const char *path) {
         for (uint32_t i = 0; i < nv; i++) m.n.push_back(v3(buf[3 * i], buf[3 * i + 1], buf[3 * i + 2]));
         if (nv && std::fread(buf.data(), 4, nv * 3, f) != nv * 3) std::exit(3);
         for (uint32_t i = 0; i < nv; i++) m.relief.push_back(v3(buf[3 * i], buf[3 * i + 1], buf[3 * i + 2]));
+        if (nv && std::fread(buf.data(), 4, nv * 2, f) != nv * 2) std::exit(3);
+        for (uint32_t i = 0; i < nv; i++) m.tc.push_back(mk_float2(buf[2 * i], buf[2 * i + 1]));
         m.idx.resize(nt * 3);
         if (nt && std::fread(m.idx.data(), 4, nt * 3, f) != nt * 3) std::exit(3);
         out.push_back(std::move(m));
@@ -236,8 +240,11 @@ int main(int argc, char **argv) {
     std::vector<float> depth(SW * SH, 1e9f);
     std::vector<int> id(SW * SH, -1);
     std::vector<float3> pos(SW * SH), nor(SW * SH), rel(SW * SH);
+    std::vector<float2> tcs(SW * SH);
     // LAB_RELIEF=0 draws without the relief's shade (AtlasRelief)
     const char *reliefEnv = std::getenv("LAB_RELIEF");
+    const char *fibreEnv = std::getenv("LAB_FIBRES");
+    bool fibreDebug = fibreEnv && std::atoi(fibreEnv) != 0;
     bool relief = !(reliefEnv && std::atoi(reliefEnv) == 0);
     float sx = SW / (2 * half * aspect), sy = SH / (2 * half);
     for (size_t mi = 0; mi < meshes.size(); mi++) {
@@ -267,6 +274,7 @@ int main(int argc, char **argv) {
                 depth[k] = z; id[k] = (int)mi;
                 pos[k] = (A * (w0 / -A.z) + B * (w1 / -B.z) + C * (w2 / -C.z)) * z;
                 rel[k] = relief ? (m.relief[ia] * (w0 / -A.z) + m.relief[ib] * (w1 / -B.z) + m.relief[ic] * (w2 / -C.z)) * z : mk_float3(1.0f);
+                tcs[k] = (m.tc[ia] * (w0 / -A.z) + m.tc[ib] * (w1 / -B.z) + m.tc[ic] * (w2 / -C.z)) * z;
                 float3 n = nrm((vn[ia] * (w0 / -A.z) + vn[ib] * (w1 / -B.z) + vn[ic] * (w2 / -C.z)) * z);
                 // both faces drawn: a face turned away shows its inside, lit as facing the eye
                 if (dot(n, pos[k]) > 0) n = n * -1.0f;
@@ -324,11 +332,12 @@ int main(int argc, char **argv) {
     // shading
     sh_atlasBone::rpProbe = 0; sh_atlasBone::rpDetail = detail;
     sh_atlasMuscle::rpProbe = 0; sh_atlasMuscle::rpDetail = detail;
-    auto surfaceAt = [&](int x, int y, int mi, const float3 &p0, const float3 &n0, const float3 &r0) {
+    auto surfaceAt = [&](int x, int y, int mi, const float3 &p0, const float3 &n0, const float3 &r0, const float2 &t0) {
         SCNShaderSurface s{};
         float3 p, n;
+        float2 tc = t0;
         int k = y * SW + x;
-        if (x >= 0 && y >= 0 && x < SW && y < SH && id[k] == mi) { p = pos[k]; n = nor[k]; }
+        if (x >= 0 && y >= 0 && x < SW && y < SH && id[k] == mi) { p = pos[k]; n = nor[k]; tc = tcs[k]; }
         else {
             // off the structure: where this pixel's ray meets the plane of the first
             float3 d = nrm(v3((x + 0.5f - SW / 2.0f) / sx, -(y + 0.5f - SH / 2.0f) / sy, -1));
@@ -336,7 +345,7 @@ int main(int argc, char **argv) {
             p = std::fabs(dn) > 1e-6f ? d * (dot(p0, n0) / dn) : p0; n = n0;
         }
         const Mesh &m = meshes[mi];
-        s.position = p; s.normal = n; s.geometryNormal = n; s.view = nrm(p * -1.0f);
+        s.position = p; s.normal = n; s.geometryNormal = n; s.view = nrm(p * -1.0f); s.diffuseTexcoord = tc;
         // the relief's shade, a vertex colour, multiplies the material's (as SceneKit has it)
         s.diffuse = mk_float4(m.colour * r0, 1.0f); s.roughness = m.rough; s.metalness = 0; s.ambientOcclusion = 1;
         return s;
@@ -348,19 +357,27 @@ int main(int argc, char **argv) {
         int k = y * SW + x, mi = id[k];
         if (mi < 0) { col[k] = background; continue; }
         const Mesh &m = meshes[mi];
-        SCNShaderSurface s = surfaceAt(x, y, mi, pos[k], nor[k], rel[k]);
+        SCNShaderSurface s = surfaceAt(x, y, mi, pos[k], nor[k], rel[k], tcs[k]);
         if (m.surface && !plain) {
-            if (m.surface == 2) sh_atlasMuscle::rpFibre = m.axis;
+            if (m.surface == 2) { sh_atlasMuscle::rpBundle = m.bundle; sh_atlasMuscle::rpTendon = m.tendon; }
             DREC[0].clear(); DREC[1].clear();
-            SCNShaderSurface sxs = surfaceAt(x + SS, y, mi, pos[k], nor[k], rel[k]);
+            SCNShaderSurface sxs = surfaceAt(x + SS, y, mi, pos[k], nor[k], rel[k], tcs[k]);
             DPASS = 1; DIDX[0] = DIDX[1] = 0; runShader(m.surface, sxs, nb, fb);
-            SCNShaderSurface sys = surfaceAt(x, y + SS, mi, pos[k], nor[k], rel[k]);
+            SCNShaderSurface sys = surfaceAt(x, y + SS, mi, pos[k], nor[k], rel[k], tcs[k]);
             DPASS = 2; DIDX[0] = DIDX[1] = 0; runShader(m.surface, sys, nb, fb);
             DPASS = 0; DIDX[0] = DIDX[1] = 0; runShader(m.surface, s, nb, fb);
         }
         float3 wn = toWorld(s.normal), v = nrm(s.view);
         float3 r = s.normal * (2 * dot(s.normal, v)) - v;
         col[k] = light(s, wn, toWorld(r), ao[k]);
+        // LAB_FIBRES=1 paints a muscle by its bundles (hue: where it lies across them, a turn every ten), tendon
+        // white and forks black
+        if (m.surface == 2 && fibreDebug) {
+            float2 t = tcs[k]; float a = t.x * 0.6283185f;
+            float3 hue = v3(0.5f + 0.5f * std::cos(a), 0.5f + 0.5f * std::cos(a - 2.094f), 0.5f + 0.5f * std::cos(a + 2.094f));
+            float tend = std::max(0.0f, std::min(1.0f, t.y));
+            col[k] = t.y < -0.5f ? v3(0, 0, 0) : (hue * (1 - tend) + v3(1, 1, 1) * tend) * 0.6f;
+        }
         if (m.surface == 1) { bonePixels++; boneLum += 0.2126f * col[k].x + 0.7152f * col[k].y + 0.0722f * col[k].z; }
     }
     std::vector<unsigned char> img(W * H * 3);

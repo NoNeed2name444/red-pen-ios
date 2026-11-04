@@ -100,6 +100,16 @@ struct AtlasPart: Decodable, Hashable, Identifiable {
     /// min x, y, z, max x, y, z in metres.
     let bounds: [Float]
     let structures: [AnatomyStructure]
+    /// For a part of muscles, the file of their bundles (tools/anatomy_fibres.py):
+    /// AnatomyAtlas.stripes reads it.
+    let fibres: AtlasFile?
+}
+
+/// A file of the atlas, as the manifest lists it.
+struct AtlasFile: Decodable, Hashable {
+    let file: String
+    let bytes: Int
+    let sha256: String
 }
 
 struct AnatomyStructure: Decodable, Hashable {
@@ -516,6 +526,40 @@ struct AnatomyMesh: Hashable {
     }
 }
 
+/// A muscle's bundles of fibres over its surface, as tools/anatomy_fibres.py
+/// lays them along the way its fibres run: per vertex, where it lies across
+/// the bundles (one bundle a unit, the seams between bundles at whole
+/// numbers) and how far it is tendon rather than belly (0 to 1; -1 in the
+/// few triangles where bundles fork, which the shader leaves plain); and the
+/// bundles' width in metres.
+struct AnatomyStripes: Hashable {
+    var across: [Float]
+    var tendon: [Float]
+    var bundle: Float
+
+    /// Per vertex, the two numbers the muscle's shader (AtlasShaders.muscle)
+    /// reads as its texture coordinates: across, then tendon.
+    func coordinates() -> [Float] {
+        var out: [Float] = []
+        out.reserveCapacity(across.count * 2)
+        for (a, t) in zip(across, tendon) { out.append(a); out.append(t) }
+        return out
+    }
+
+    /// Tendon's colour (sRGB): the white of a fresh tendon, a little warm.
+    static let tendonColour: (red: Double, green: Double, blue: Double) = (0.93, 0.89, 0.82)
+
+    /// Tendon's linear colour over a muscle's (sRGB `muscle`), per channel:
+    /// what the muscle's shader multiplies its colour by where it is tendon.
+    static func tendonRatio(muscle: (red: Double, green: Double, blue: Double)) -> SIMD3<Float> {
+        func linear(_ c: Double) -> Double { c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4) }
+        let t = tendonColour
+        return SIMD3(Float(linear(t.red) / max(linear(muscle.red), 1e-4)),
+                     Float(linear(t.green) / max(linear(muscle.green), 1e-4)),
+                     Float(linear(t.blue) / max(linear(muscle.blue), 1e-4)))
+    }
+}
+
 /// The atlas's shading of a surface's hollows: a foramen, a groove, a
 /// fossa's floor or the crease where two bulges meet catches less of the
 /// light round it, as it does in an anatomist's drawing, and in bone a
@@ -607,6 +651,51 @@ enum AnatomyAtlas {
             throw ReadError.structureCount(file: meshes.count, manifest: part.structures.count)
         }
         return meshes
+    }
+
+    /// Every structure's bundles in one .fibres file, in the manifest's
+    /// order (nil for a structure that is not a skeletal muscle):
+    /// "SAF1", u32 count, then per structure u32 vertices (0: none), f32 the
+    /// bundles' width, f32 across per vertex, f32 tendon per vertex.
+    static func stripes(from data: Data) throws -> [AnatomyStripes?] {
+        let bytes: [UInt8] = Array(data)
+        var at: Int = 0
+        func need(_ n: Int) throws {
+            if at + n > bytes.count { throw ReadError.truncated(at: at) }
+        }
+        func u32() -> UInt32 {
+            let v = UInt32(bytes[at]) | UInt32(bytes[at + 1]) << 8 | UInt32(bytes[at + 2]) << 16 | UInt32(bytes[at + 3]) << 24
+            at += 4; return v
+        }
+        func f32() -> Float { Float(bitPattern: u32()) }
+        try need(8)
+        guard bytes[0] == 0x53, bytes[1] == 0x41, bytes[2] == 0x46, bytes[3] == 0x31 else { throw ReadError.notAnAtlas }
+        at = 4
+        let count = Int(u32())
+        var out: [AnatomyStripes?] = []
+        out.reserveCapacity(count)
+        for _ in 0..<count {
+            try need(8)
+            let vertices = Int(u32())
+            let bundle = f32()
+            guard vertices > 0 else { out.append(nil); continue }
+            try need(vertices * 8)
+            let across: [Float] = (0..<vertices).map { _ in f32() }
+            let tendon: [Float] = (0..<vertices).map { _ in f32() }
+            out.append(AnatomyStripes(across: across, tendon: tendon, bundle: bundle))
+        }
+        if at != bytes.count { throw ReadError.leftover(bytes: bytes.count - at) }
+        return out
+    }
+
+    /// A part's bundles, checked against its structures and their meshes:
+    /// a structure whose bundles do not match its mesh's vertices gets none.
+    static func stripes(of part: AtlasPart, meshes: [AnatomyMesh], from data: Data) throws -> [AnatomyStripes?] {
+        let stripes = try stripes(from: data)
+        guard stripes.count == part.structures.count else {
+            throw ReadError.structureCount(file: stripes.count, manifest: part.structures.count)
+        }
+        return zip(stripes, meshes).map { s, m in s.flatMap { $0.across.count == m.vertexCount ? $0 : nil } }
     }
 
     /// Structures in one body whose label holds every word of `query`,

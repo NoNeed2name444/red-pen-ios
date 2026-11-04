@@ -726,7 +726,7 @@
        "node": "Allen_gyrus_rectus_straight_gyrus_L",
        "label": "left gyrus rectus",
        "uberon": "UBERON:0004671",
-       "tissue": "muscle",
+       "tissue": "brain",
        "group": "left cerebral hemisphere",
        "inner": false,
        "triangles": 152
@@ -1923,7 +1923,7 @@
        "node": "Allen_gyrus_rectus_straight_gyrus_R",
        "label": "right gyrus rectus",
        "uberon": "UBERON:0004671",
-       "tissue": "muscle",
+       "tissue": "brain",
        "group": "right cerebral hemisphere",
        "inner": false,
        "triangles": 152
@@ -9757,16 +9757,16 @@
      "name": "Muscles of the eye",
      "system": "muscular",
      "file": "male-eye-muscles.atlas",
-     "bytes": 27144,
-     "sha256": "275cabcc6164a8b6bdeefa2d6519039c9a39f36f4cc5f2073ee50447c43751a5",
-     "triangles": 2984,
+     "bytes": 108308,
+     "sha256": "046dbeb400242ea0dba5acf2a7bce18c65ba1e6c71ccaa753693243882f58c68",
+     "triangles": 9842,
      "bounds": [
       -0.04791,
       0.7954,
       0.04294,
       0.04973,
-      0.82567,
-      0.09132
+      0.82525,
+      0.09096
      ],
      "structures": [
       {
@@ -9776,7 +9776,7 @@
        "tissue": "muscle",
        "group": "left eye muscles",
        "inner": false,
-       "triangles": 70
+       "triangles": 998
       },
       {
        "node": "VH_M_inferior_rectus_extraocular_muscle_L",
@@ -9785,7 +9785,7 @@
        "tissue": "muscle",
        "group": "left eye muscles",
        "inner": false,
-       "triangles": 400
+       "triangles": 738
       },
       {
        "node": "VH_M_superior_rectus_extraocular_muscle_L",
@@ -9794,7 +9794,7 @@
        "tissue": "muscle",
        "group": "left eye muscles",
        "inner": false,
-       "triangles": 78
+       "triangles": 676
       },
       {
        "node": "VH_M_inferior_oblique_extraocular_muscle_L",
@@ -9803,7 +9803,7 @@
        "tissue": "muscle",
        "group": "left eye muscles",
        "inner": false,
-       "triangles": 410
+       "triangles": 862
       },
       {
        "node": "VH_M_lateral_rectus_extraocular_muscle_L",
@@ -9812,7 +9812,7 @@
        "tissue": "muscle",
        "group": "left eye muscles",
        "inner": false,
-       "triangles": 444
+       "triangles": 858
       },
       {
        "node": "VH_M_superior_oblique_extraocular_muscle_L",
@@ -9821,7 +9821,7 @@
        "tissue": "muscle",
        "group": "left eye muscles",
        "inner": false,
-       "triangles": 90
+       "triangles": 1070
       },
       {
        "node": "VH_M_superior_rectus_extraocular_muscle_R",
@@ -9830,7 +9830,7 @@
        "tissue": "muscle",
        "group": "right eye muscles",
        "inner": false,
-       "triangles": 78
+       "triangles": 578
       },
       {
        "node": "VH_M_medial_rectus_extraocular_muscle_R",
@@ -9839,7 +9839,7 @@
        "tissue": "muscle",
        "group": "right eye muscles",
        "inner": false,
-       "triangles": 70
+       "triangles": 780
       },
       {
        "node": "VH_M_inferior_rectus_extraocular_muscle_R",
@@ -9848,7 +9848,7 @@
        "tissue": "muscle",
        "group": "right eye muscles",
        "inner": false,
-       "triangles": 400
+       "triangles": 652
       },
       {
        "node": "VH_M_inferior_oblique_extraocular_muscle_R",
@@ -9857,7 +9857,7 @@
        "tissue": "muscle",
        "group": "right eye muscles",
        "inner": false,
-       "triangles": 410
+       "triangles": 816
       },
       {
        "node": "VH_M_lateral_rectus_extraocular_muscle_R",
@@ -9866,7 +9866,7 @@
        "tissue": "muscle",
        "group": "right eye muscles",
        "inner": false,
-       "triangles": 444
+       "triangles": 838
       },
       {
        "node": "VH_M_superior_oblique_extraocular_muscle_R",
@@ -9875,18 +9875,23 @@
        "tissue": "muscle",
        "group": "right eye muscles",
        "inner": false,
-       "triangles": 90
+       "triangles": 976
       }
-     ]
+     ],
+     "fibres": {
+      "file": "male-eye-muscles.fibres",
+      "bytes": 65592,
+      "sha256": "e574a959e93e658f2791d96063234a8f690abef1a57e690a765ffe882dd6517a"
+     }
     },
     {
      "id": "larynx-muscles",
      "name": "Muscles of the larynx",
      "system": "muscular",
      "file": "male-larynx-muscles.atlas",
-     "bytes": 22624,
-     "sha256": "819eeb0d0afa20caa4b6e8737c25079e8e802bd1f9ee70a95a2e02670a324ed2",
-     "triangles": 2481,
+     "bytes": 88456,
+     "sha256": "1611753a69d46b36b055f20f58394f4d9edbb05b92c9828b9e4a5ccff38fa66f",
+     "triangles": 7829,
      "bounds": [
       -0.02001,
       0.62973,
@@ -9912,7 +9917,7 @@
        "tissue": "muscle",
        "group": "muscle of larynx",
        "inner": false,
-       "triangles": 170
+       "triangles": 806
       },
       {
        "node": "VH_M_posterior_cricoarytenoid_L",
@@ -9921,7 +9926,7 @@
        "tissue": "muscle",
        "group": "crico-arytenoid muscle",
        "inner": false,
-       "triangles": 272
+       "triangles": 778
       },
       {
        "node": "VH_M_posterior_cricoarytenoid_R",
@@ -9930,7 +9935,7 @@
        "tissue": "muscle",
        "group": "crico-arytenoid muscle",
        "inner": false,
-       "triangles": 296
+       "triangles": 776
       },
       {
        "node": "VH_M_lateral_cricoarytenoid_R",
@@ -9939,7 +9944,7 @@
        "tissue": "muscle",
        "group": "muscle fasciculus of lateral crico-arytenoid",
        "inner": false,
-       "triangles": 224
+       "triangles": 586
       },
       {
        "node": "VH_M_lateral_cricoarytenoid_L",
@@ -9948,7 +9953,7 @@
        "tissue": "muscle",
        "group": "muscle fasciculus of lateral crico-arytenoid",
        "inner": false,
-       "triangles": 202
+       "triangles": 640
       },
       {
        "node": "VH_M_cricothyroid_R",
@@ -9957,7 +9962,7 @@
        "tissue": "muscle",
        "group": "cricothyroid muscle",
        "inner": false,
-       "triangles": 220
+       "triangles": 672
       },
       {
        "node": "VH_M_cricothyroid_L",
@@ -9966,7 +9971,7 @@
        "tissue": "muscle",
        "group": "cricothyroid muscle",
        "inner": false,
-       "triangles": 244
+       "triangles": 690
       },
       {
        "node": "VH_M_thyroarytenoid_L",
@@ -9975,7 +9980,7 @@
        "tissue": "muscle",
        "group": "thyro-arytenoid",
        "inner": false,
-       "triangles": 201
+       "triangles": 901
       },
       {
        "node": "VH_M_thyroarytenoid_R",
@@ -9984,7 +9989,7 @@
        "tissue": "muscle",
        "group": "thyro-arytenoid",
        "inner": false,
-       "triangles": 202
+       "triangles": 974
       },
       {
        "node": "VH_M_arytenoid",
@@ -9993,25 +9998,30 @@
        "tissue": "muscle",
        "group": "muscle of larynx",
        "inner": false,
-       "triangles": 292
+       "triangles": 848
       }
-     ]
+     ],
+     "fibres": {
+      "file": "male-larynx-muscles.fibres",
+      "bytes": 54584,
+      "sha256": "392775bd07cc5cc52117589eca9e0de3a39d45aa037f8170b76e746a6a3e0e01"
+     }
     },
     {
      "id": "knee-muscles",
      "name": "Quadriceps at the knee",
      "system": "muscular",
      "file": "male-knee-muscles.atlas",
-     "bytes": 27376,
-     "sha256": "8598033b409eea22be9485459042b7edd1fc08384150912c6706c2b3a925cb01",
-     "triangles": 2996,
+     "bytes": 426684,
+     "sha256": "b06b6f0a60b10cb9a666334c323a82e0f13de0a27ed874e42426a8562703574d",
+     "triangles": 42775,
      "bounds": [
       -0.16189,
       -0.37544,
-      0.02178,
+      0.02179,
       0.16714,
-      0.08084,
-      0.09797
+      0.08068,
+      0.09788
      ],
      "structures": [
       {
@@ -10021,7 +10031,7 @@
        "tissue": "muscle",
        "group": "left muscles of knee",
        "inner": false,
-       "triangles": 1057
+       "triangles": 20823
       },
       {
        "node": "VH_M_tendon_of_quadriceps_femoris_L",
@@ -10039,7 +10049,7 @@
        "tissue": "muscle",
        "group": "right muscles of knee",
        "inner": false,
-       "triangles": 1057
+       "triangles": 21070
       },
       {
        "node": "VH_M_tendon_of_quadriceps_femoris_R",
@@ -10050,23 +10060,28 @@
        "inner": false,
        "triangles": 441
       }
-     ]
+     ],
+     "fibres": {
+      "file": "male-knee-muscles.fibres",
+      "bytes": 222904,
+      "sha256": "50301cbfaaeac96bb56e948f439d788975519937d748fa4788f22dc47d3535a7"
+     }
     },
     {
      "id": "hip-muscles",
      "name": "Hip muscles",
      "system": "muscular",
      "file": "male-hip-muscles.atlas",
-     "bytes": 135096,
-     "sha256": "879c763521d4f924385d28e5d7518110a883a20577357b07adc3553015a90e93",
-     "triangles": 14988,
+     "bytes": 855648,
+     "sha256": "f3eb89410e597e2c82e7c95e6470495abde11acc8a2987dc38a13c97263d7972",
+     "triangles": 83412,
      "bounds": [
-      -0.15621,
-      -0.09435,
-      -0.12365,
-      0.1681,
-      0.34877,
-      0.04959
+      -0.15618,
+      -0.09414,
+      -0.12312,
+      0.16776,
+      0.34832,
+      0.04945
      ],
      "structures": [
       {
@@ -10076,7 +10091,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 2498
+       "triangles": 12320
       },
       {
        "node": "TS_gluteus_maximus_R",
@@ -10085,7 +10100,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 2498
+       "triangles": 12094
       },
       {
        "node": "TS_gluteus_medius_L",
@@ -10094,7 +10109,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 1800
+       "triangles": 10014
       },
       {
        "node": "TS_gluteus_medius_R",
@@ -10103,7 +10118,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 1800
+       "triangles": 9158
       },
       {
        "node": "TS_gluteus_minimus_L",
@@ -10112,7 +10127,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 1198
+       "triangles": 7520
       },
       {
        "node": "TS_gluteus_minimus_R",
@@ -10121,7 +10136,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 1198
+       "triangles": 8568
       },
       {
        "node": "TS_iliopsoas_L",
@@ -10130,7 +10145,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 1998
+       "triangles": 12058
       },
       {
        "node": "TS_iliopsoas_R",
@@ -10139,25 +10154,30 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 1998
+       "triangles": 11680
       }
-     ]
+     ],
+     "fibres": {
+      "file": "male-hip-muscles.fibres",
+      "bytes": 473504,
+      "sha256": "303c31bca1c5170a5b4dc46b7dc9841c7c093e2883d67a0fb0125d63b44022bf"
+     }
     },
     {
      "id": "back-muscles",
      "name": "Deep back muscles",
      "system": "muscular",
      "file": "male-back-muscles.atlas",
-     "bytes": 63040,
-     "sha256": "f52fe102a0cc9ccc536388c0b6c48dd5e21fe5a63e1c767ce267597e34984ff1",
-     "triangles": 6996,
+     "bytes": 304064,
+     "sha256": "2c81e1209a6e82d1a2c82d8aa1722be1e949457dcb8c9aa089172d4b7b4cc61c",
+     "triangles": 31342,
      "bounds": [
-      -0.09213,
-      0.09127,
-      -0.12707,
-      0.09223,
-      0.66854,
-      -0.0256
+      -0.09199,
+      0.09206,
+      -0.12681,
+      0.09191,
+      0.66822,
+      -0.02598
      ],
      "structures": [
       {
@@ -10167,7 +10187,7 @@
        "tissue": "muscle",
        "group": "Deep back muscles",
        "inner": false,
-       "triangles": 3498
+       "triangles": 15528
       },
       {
        "node": "TS_deep_back_muscles_R",
@@ -10176,9 +10196,14 @@
        "tissue": "muscle",
        "group": "Deep back muscles",
        "inner": false,
-       "triangles": 3498
+       "triangles": 15814
       }
-     ]
+     ],
+     "fibres": {
+      "file": "male-back-muscles.fibres",
+      "bytes": 154640,
+      "sha256": "93f465c8d5c997530f8707be28dbbd808972cb96fd94431bbcc88ee9d704b1fc"
+     }
     }
    ]
   },
@@ -11012,7 +11037,7 @@
        "node": "Allen_gyrus_rectus_straight_gyrus_L",
        "label": "left gyrus rectus",
        "uberon": "UBERON:0004671",
-       "tissue": "muscle",
+       "tissue": "brain",
        "group": "left cerebral hemisphere",
        "inner": false,
        "triangles": 152
@@ -12209,7 +12234,7 @@
        "node": "Allen_gyrus_rectus_straight_gyrus_R",
        "label": "right gyrus rectus",
        "uberon": "UBERON:0004671",
-       "tissue": "muscle",
+       "tissue": "brain",
        "group": "right cerebral hemisphere",
        "inner": false,
        "triangles": 152
@@ -20314,16 +20339,16 @@
      "name": "Muscles of the eye",
      "system": "muscular",
      "file": "female-eye-muscles.atlas",
-     "bytes": 27112,
-     "sha256": "2cc6fb05824eeba67db99007a360c0e31c4505792b8378fc26ac784129350c53",
-     "triangles": 2980,
+     "bytes": 110468,
+     "sha256": "5220aaca2119d56d6722b215950074afbfbdf7b584df9bbbd24c37e425eb17d4",
+     "triangles": 10038,
      "bounds": [
       -0.05448,
       0.74929,
       -0.0205,
       0.04493,
-      0.7791,
-      0.02804
+      0.77872,
+      0.02791
      ],
      "structures": [
       {
@@ -20333,7 +20358,7 @@
        "tissue": "muscle",
        "group": "left ocular muscle",
        "inner": false,
-       "triangles": 70
+       "triangles": 900
       },
       {
        "node": "VH_F_inferior_rectus_extraocular_muscle_L",
@@ -20342,7 +20367,7 @@
        "tissue": "muscle",
        "group": "left ocular muscle",
        "inner": false,
-       "triangles": 400
+       "triangles": 768
       },
       {
        "node": "VH_F_superior_rectus_extraocular_muscle_L",
@@ -20351,7 +20376,7 @@
        "tissue": "muscle",
        "group": "left ocular muscle",
        "inner": false,
-       "triangles": 78
+       "triangles": 682
       },
       {
        "node": "VH_F_inferior_oblique_extraocular_muscle_L",
@@ -20360,7 +20385,7 @@
        "tissue": "muscle",
        "group": "left ocular muscle",
        "inner": false,
-       "triangles": 410
+       "triangles": 896
       },
       {
        "node": "VH_F_lateral_rectus_extraocular_muscle_L",
@@ -20369,7 +20394,7 @@
        "tissue": "muscle",
        "group": "left ocular muscle",
        "inner": false,
-       "triangles": 442
+       "triangles": 990
       },
       {
        "node": "VH_F_superior_oblique_extraocular_muscle_L",
@@ -20378,7 +20403,7 @@
        "tissue": "muscle",
        "group": "left ocular muscle",
        "inner": false,
-       "triangles": 90
+       "triangles": 1100
       },
       {
        "node": "VH_F_medial_rectus_extraocular_muscle_R",
@@ -20387,7 +20412,7 @@
        "tissue": "muscle",
        "group": "right ocular muscles",
        "inner": false,
-       "triangles": 70
+       "triangles": 780
       },
       {
        "node": "VH_F_inferior_rectus_extraocular_muscle_R",
@@ -20396,7 +20421,7 @@
        "tissue": "muscle",
        "group": "right ocular muscles",
        "inner": false,
-       "triangles": 400
+       "triangles": 676
       },
       {
        "node": "VH_F_superior_rectus_extraocular_muscle_R",
@@ -20405,7 +20430,7 @@
        "tissue": "muscle",
        "group": "right ocular muscles",
        "inner": false,
-       "triangles": 78
+       "triangles": 578
       },
       {
        "node": "VH_F_inferior_oblique_extraocular_muscle_R",
@@ -20414,7 +20439,7 @@
        "tissue": "muscle",
        "group": "right ocular muscles",
        "inner": false,
-       "triangles": 410
+       "triangles": 888
       },
       {
        "node": "VH_F_lateral_rectus_extraocular_muscle_R",
@@ -20423,7 +20448,7 @@
        "tissue": "muscle",
        "group": "right ocular muscles",
        "inner": false,
-       "triangles": 442
+       "triangles": 804
       },
       {
        "node": "VH_F_superior_oblique_extraocular_muscle_R",
@@ -20432,25 +20457,30 @@
        "tissue": "muscle",
        "group": "right ocular muscles",
        "inner": false,
-       "triangles": 90
+       "triangles": 976
       }
-     ]
+     ],
+     "fibres": {
+      "file": "female-eye-muscles.fibres",
+      "bytes": 66904,
+      "sha256": "5c49866e2951d68bbd8328c11efe51ecc47a8887db327718a810d41235e2c698"
+     }
     },
     {
      "id": "knee-muscles",
      "name": "Quadriceps at the knee",
      "system": "muscular",
      "file": "female-knee-muscles.atlas",
-     "bytes": 27480,
-     "sha256": "62a8bb51554166bd420732b4b9cdfb6d72dce41f678324e7498a819a7d447346",
-     "triangles": 2992,
+     "bytes": 473644,
+     "sha256": "8a332e77433eeffbd3657c2220879c52cd0fee7b82ab3eb54b61fe536b2ba5ee",
+     "triangles": 47727,
      "bounds": [
-      -0.18827,
+      -0.18821,
       -0.34087,
-      -0.02622,
-      0.1674,
-      0.06265,
-      0.0246
+      -0.02616,
+      0.16737,
+      0.06263,
+      0.02458
      ],
      "structures": [
       {
@@ -20460,7 +20490,7 @@
        "tissue": "muscle",
        "group": "left muscles of knee",
        "inner": false,
-       "triangles": 1230
+       "triangles": 23364
       },
       {
        "node": "VH_F_tendon_of_quadriceps_femoris_L",
@@ -20478,7 +20508,7 @@
        "tissue": "muscle",
        "group": "right muscles of knee",
        "inner": false,
-       "triangles": 1230
+       "triangles": 23831
       },
       {
        "node": "VH_F_tendon_of_quadriceps_femoris_R",
@@ -20489,23 +20519,28 @@
        "inner": false,
        "triangles": 266
       }
-     ]
+     ],
+     "fibres": {
+      "file": "female-knee-muscles.fibres",
+      "bytes": 247208,
+      "sha256": "03ede31945b5964c4b9dae280c49feed521fa19514969948daf492adbbd3cc4c"
+     }
     },
     {
      "id": "hip-muscles",
      "name": "Hip muscles",
      "system": "muscular",
      "file": "female-hip-muscles.atlas",
-     "bytes": 135132,
-     "sha256": "ec29e5e34e29887fcf79a5fdea7058681cb903be3879ba1eb38e6d2f26d476c3",
-     "triangles": 14994,
+     "bytes": 829100,
+     "sha256": "2fdf2b8981a0f334129c2a8f4819a8f541fa83cc73086690df1a22297b2800d7",
+     "triangles": 81306,
      "bounds": [
-      -0.17283,
-      -0.10675,
-      -0.17761,
-      0.17753,
-      0.29438,
-      -0.00784
+      -0.17282,
+      -0.10538,
+      -0.1776,
+      0.17705,
+      0.29406,
+      -0.00806
      ],
      "structures": [
       {
@@ -20515,7 +20550,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 2500
+       "triangles": 12076
       },
       {
        "node": "TS_gluteus_maximus_R",
@@ -20524,7 +20559,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 2500
+       "triangles": 12416
       },
       {
        "node": "TS_gluteus_medius_L",
@@ -20533,7 +20568,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 1800
+       "triangles": 9538
       },
       {
        "node": "TS_gluteus_medius_R",
@@ -20542,7 +20577,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 1800
+       "triangles": 10280
       },
       {
        "node": "TS_gluteus_minimus_L",
@@ -20551,7 +20586,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 1198
+       "triangles": 6284
       },
       {
        "node": "TS_gluteus_minimus_R",
@@ -20560,7 +20595,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 1200
+       "triangles": 8748
       },
       {
        "node": "TS_iliopsoas_L",
@@ -20569,7 +20604,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 1998
+       "triangles": 11204
       },
       {
        "node": "TS_iliopsoas_R",
@@ -20578,25 +20613,30 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 1998
+       "triangles": 10760
       }
-     ]
+     ],
+     "fibres": {
+      "file": "female-hip-muscles.fibres",
+      "bytes": 454960,
+      "sha256": "79197ba52f27e7e84bf4277da58e4189bd4fe20445ddcae675fe948507dae49a"
+     }
     },
     {
      "id": "back-muscles",
      "name": "Deep back muscles",
      "system": "muscular",
      "file": "female-back-muscles.atlas",
-     "bytes": 63056,
-     "sha256": "fdcfc9f4137edc65a195e90e30de3a4c820521d5389d27e3f35748309b3dc150",
-     "triangles": 6998,
+     "bytes": 307372,
+     "sha256": "769d7bcfbb8dda776bb0d4b5a5ad329768145fba0e0d61719b1779667fb9571f",
+     "triangles": 31674,
      "bounds": [
-      -0.10674,
-      0.10042,
-      -0.18299,
-      0.07472,
-      0.62667,
-      -0.10136
+      -0.10651,
+      0.10074,
+      -0.18293,
+      0.0745,
+      0.62682,
+      -0.10122
      ],
      "structures": [
       {
@@ -20606,7 +20646,7 @@
        "tissue": "muscle",
        "group": "Deep back muscles",
        "inner": false,
-       "triangles": 3500
+       "triangles": 15894
       },
       {
        "node": "TS_deep_back_muscles_R",
@@ -20615,9 +20655,14 @@
        "tissue": "muscle",
        "group": "Deep back muscles",
        "inner": false,
-       "triangles": 3498
+       "triangles": 15780
       }
-     ]
+     ],
+     "fibres": {
+      "file": "female-back-muscles.fibres",
+      "bytes": 156392,
+      "sha256": "a6192b0f6846d9a179cab99f61b1494c577949147b6fccd1e5d1719d1cb22f1f"
+     }
     }
    ]
   }
