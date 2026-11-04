@@ -180,8 +180,8 @@ object CloudJobCollector {
                 // The replies could not be made into a set (or its recipe could
                 // not be read): kept as text rather than thrown away with the
                 // generation that paid for them.
-                val meant = recipe?.kind?.cloudNoun ?: "a set"
-                body = "Kept as text — it could not be turned into $meant."
+                val meant = recipe?.kind?.cloudPhrase ?: "a set"
+                body = "Saved as text. It couldn't be made into $meant."
                 made = text
             }
         }

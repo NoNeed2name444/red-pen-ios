@@ -93,3 +93,9 @@ internal val StudySetKind.cloudNoun: String get() = when (this) {
     StudySetKind.NARRATE -> "lecture"
     StudySetKind.CASES -> "cases"
 }
+
+/** The same noun as it reads after "made into" in a sentence: the two singular kinds take "a". */
+internal val StudySetKind.cloudPhrase: String get() = when (this) {
+    StudySetKind.BOOK, StudySetKind.NARRATE -> "a $cloudNoun"
+    else -> cloudNoun
+}

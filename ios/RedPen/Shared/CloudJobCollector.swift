@@ -75,6 +75,15 @@ private extension StudySetKind {
         case .cases: return "cases"
         }
     }
+
+    /// The same noun as it reads after "made into" in a sentence: the two
+    /// singular kinds take "a".
+    var cloudPhrase: String {
+        switch self {
+        case .book, .narrate: return "a \(cloudNoun)"
+        default: return cloudNoun
+        }
+    }
 }
 
 /// Jobs the server finished while the app was closed become sets in the
@@ -177,8 +186,8 @@ enum CloudJobCollector {
             // The replies could not be made into a set (or its recipe could
             // not be read). Kept as text rather than thrown away with the
             // generation that paid for them.
-            let meant: String = recipe.map { $0.kind.cloudNoun } ?? "a set"
-            body = "Kept as text \u{2014} it could not be turned into \(meant)."
+            let meant: String = recipe.map { $0.kind.cloudPhrase } ?? "a set"
+            body = "Saved as text. It couldn't be made into \(meant)."
             made = kept
         }
         if let made {

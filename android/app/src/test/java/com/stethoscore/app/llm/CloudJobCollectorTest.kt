@@ -178,7 +178,17 @@ class CloudJobCollectorTest {
         assertEquals("Writing 2 questions (as written)", set.name)
         assertEquals(StudySetKind.BOOK, set.kind)
         assertEquals("Not JSON at all.", set.bookMarkdown)
-        assertEquals("Writing 2 questions (as written) is ready|Kept as text — it could not be turned into questions.", said.single())
+        assertEquals("Writing 2 questions (as written) is ready|Saved as text. It couldn't be made into questions.", said.single())
+    }
+
+    @Test fun theKeptTextNoteReadsAsASentenceForEveryKind() {
+        val said = StudySetKind.values().associateWith { "It couldn't be made into ${it.cloudPhrase}." }
+        assertEquals("It couldn't be made into a textbook.", said[StudySetKind.BOOK])
+        assertEquals("It couldn't be made into a lecture.", said[StudySetKind.NARRATE])
+        assertEquals("It couldn't be made into questions.", said[StudySetKind.MCQ])
+        assertEquals("It couldn't be made into OSCE stations.", said[StudySetKind.OSCE])
+        assertEquals("It couldn't be made into cards.", said[StudySetKind.ANKI])
+        assertEquals("It couldn't be made into cases.", said[StudySetKind.CASES])
     }
 
     @Test fun theDeliveryKeepsAFinishedJobUntilTheScreenIsDone() = runBlocking {
