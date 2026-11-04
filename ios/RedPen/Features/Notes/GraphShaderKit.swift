@@ -125,7 +125,96 @@ nonisolated enum GraphShaderKit {
         """
     }
 
+    /// Metal: value noise like `noise`, but each corner hashed from its
+    /// integer coordinates with integer arithmetic (a multiply-xorshift
+    /// mix), so it stays exact however far from the origin `p` is: the sine
+    /// hash wants arguments of a few hundred at most, and a pattern a
+    /// millimetre across over a body two metres long needs thousands of
+    /// cells. Into a new float `out` (0...1).
+    static func lattice(_ out: String, _ p: String) -> String {
+        """
+        float3 \(out)_p = \(p);
+        float3 \(out)_i = floor(\(out)_p);
+        float3 \(out)_f = \(out)_p - \(out)_i;
+        float3 \(out)_u = \(out)_f * \(out)_f * (3.0 - 2.0 * \(out)_f);
+        int3 \(out)_c = int3(\(out)_i);
+        float \(out) = 0.0;
+        for (int \(out)_k = 0; \(out)_k < 8; \(out)_k++) {
+        int3 \(out)_o = int3(\(out)_k & 1, (\(out)_k >> 1) & 1, (\(out)_k >> 2) & 1);
+        int3 \(out)_g = \(out)_c + \(out)_o;
+        uint \(out)_h = uint(\(out)_g.x) * 0x8da6b343u + uint(\(out)_g.y) * 0xd8163841u + uint(\(out)_g.z) * 0xcb1ab31fu;
+        \(out)_h = (\(out)_h ^ (\(out)_h >> 16)) * 0x7feb352du;
+        \(out)_h = (\(out)_h ^ (\(out)_h >> 15)) * 0x846ca68bu;
+        \(out)_h = \(out)_h ^ (\(out)_h >> 16);
+        float3 \(out)_w = mix(float3(1.0) - \(out)_u, \(out)_u, float3(\(out)_o));
+        \(out) = \(out) + float(\(out)_h >> 8) * (1.0 / 16777216.0) * \(out)_w.x * \(out)_w.y * \(out)_w.z;
+        }
+
+        """
+    }
+
+    /// Metal: `octaves` of `lattice` noise at `p`, summed as `fbm` sums
+    /// them, into a new float `out` (0...1).
+    static func latticeFbm(_ out: String, _ p: String, octaves: String) -> String {
+        """
+        float \(out) = 0.0;
+        float \(out)_wt = 0.5;
+        float \(out)_sum = 0.0;
+        float3 \(out)_x = \(p);
+        for (int \(out)_o = 0; \(out)_o < \(octaves); \(out)_o++) {
+
+        """ + lattice(out + "_v", out + "_x") + """
+        \(out) = \(out) + \(out)_v * \(out)_wt;
+        \(out)_sum = \(out)_sum + \(out)_wt;
+        \(out)_x = \(out)_x * 2.03 + float3(1.7, 9.2, 3.1);
+        \(out)_wt = \(out)_wt * 0.5;
+        }
+        \(out) = \(out) / max(\(out)_sum, 0.0001);
+
+        """
+    }
+
     // MARK: the same maths on the CPU
+
+    /// `lattice`'s hash of one corner, 0..<1, as the GPU computes it.
+    static func latticeHash(_ x: Int32, _ y: Int32, _ z: Int32) -> Float {
+        var h: UInt32 = UInt32(bitPattern: x) &* 0x8da6_b343 &+ UInt32(bitPattern: y) &* 0xd816_3841
+            &+ UInt32(bitPattern: z) &* 0xcb1a_b31f
+        h = (h ^ (h >> 16)) &* 0x7feb_352d
+        h = (h ^ (h >> 15)) &* 0x846c_a68b
+        h = h ^ (h >> 16)
+        return Float(h >> 8) * (1.0 / 16_777_216.0)
+    }
+
+    /// The `lattice` noise at `p` (0...1).
+    static func lattice(_ p: SIMD3<Float>) -> Float {
+        let i = SIMD3<Float>(p.x.rounded(.down), p.y.rounded(.down), p.z.rounded(.down))
+        let f: SIMD3<Float> = p - i
+        let u: SIMD3<Float> = f * f * (SIMD3<Float>(3, 3, 3) - f * 2)
+        var total: Float = 0
+        for k in 0..<8 {
+            let o = SIMD3<Int32>(Int32(k & 1), Int32((k >> 1) & 1), Int32((k >> 2) & 1))
+            let h: Float = latticeHash(Int32(i.x) + o.x, Int32(i.y) + o.y, Int32(i.z) + o.z)
+            let w = SIMD3<Float>(o.x == 1 ? u.x : 1 - u.x, o.y == 1 ? u.y : 1 - u.y, o.z == 1 ? u.z : 1 - u.z)
+            total += h * w.x * w.y * w.z
+        }
+        return total
+    }
+
+    /// `octaves` of `lattice` noise at `p`, as the shaders sum them.
+    static func latticeFbm(_ p: SIMD3<Float>, octaves: Int) -> Float {
+        var total: Float = 0
+        var weight: Float = 0.5
+        var sum: Float = 0
+        var x: SIMD3<Float> = p
+        for _ in 0..<max(octaves, 0) {
+            total += lattice(x) * weight
+            sum += weight
+            x = x * 2.03 + SIMD3<Float>(1.7, 9.2, 3.1)
+            weight *= 0.5
+        }
+        return total / max(sum, 0.0001)
+    }
 
     /// fract(sin(n) * 43758.5453), in Float as the GPU has it.
     static func hash(_ n: Float) -> Float {

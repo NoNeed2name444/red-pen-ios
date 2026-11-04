@@ -147,8 +147,9 @@ assert all(p in CORE2_DROP for p in STEP3_BACK), "STEP3_BACK names a path core2 
 CORE3_DROP = [p for p in CORE2_DROP if p not in STEP3_BACK]
 CHUNKS = {
     # the 3D Ideas map, ~20,000 lines of SceneKit; GraphLineStyle.swift stays
-    # (Foundation only: the Curved/Straight setting the 2D board and Settings share)
-    "graph3d": (["Features/Notes/Graph*.swift"], ["GraphLineStyle.swift"], ["graph3d.swift"]),
+    # (Foundation only: the Curved/Straight setting the 2D board and Settings share),
+    # and GraphShaderKit.swift (Foundation only: the noise the atlas's shaders use too)
+    "graph3d": (["Features/Notes/Graph*.swift"], ["GraphLineStyle.swift", "GraphShaderKit.swift"], ["graph3d.swift"]),
     "lens": (["Features/Lens", "Shared/Lens"], [], ["lens.swift"]),          # Study Lens (camera reads a question)
     "analytics": (["Features/Analytics"], [], ["analytics.swift"]),          # the Progress screen's rings and charts
     # the core shell (core/) plus the variant's own piece: stand-ins for the

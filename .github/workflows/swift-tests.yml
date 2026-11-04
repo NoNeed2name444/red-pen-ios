@@ -44,6 +44,7 @@ on:
       - 'ios/RedPen/Features/Notes/GraphNeuronMembrane.swift'
       - 'ios/RedPen/Features/Notes/GraphLinkBridge.swift'
       - 'ios/RedPen/Features/Notes/GraphShaderCatalog.swift'
+      - 'ios/RedPen/Features/Sciences/AtlasShaders.swift'
       - 'ios/RedPen/Features/Notes/GraphNeuronStates.swift'
       - 'ios/RedPen/Features/Notes/GraphAnatomy.swift'
       - 'ios/RedPen/Features/Notes/GraphLens.swift'

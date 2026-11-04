@@ -235,6 +235,173 @@ for (body, prefix, range, length) in [(male, "VH_M_", 6.0e-4...7.0e-4, Float(0.4
     check("\(body.name): smooth normals, one per vertex, unit length", normals.count == femur.positions.count && unit)
 }
 check("the mirrored brain still faces outward", volume([mesh("Allen_thalamus_L", in: male)!]) > 0)
+
+// MARK: shading a part as one surface
+
+/// A strip of a cylinder's side (radius 1, height 1) through these angles, in
+/// degrees, its triangles facing out.
+func strip(_ degrees: [Float]) -> AnatomyMesh {
+    var positions: [Float] = [], indices: [UInt32] = []
+    for z: Float in [0, 1] {
+        for d in degrees { positions += [cos(d * .pi / 180), sin(d * .pi / 180), z] }
+    }
+    let n = UInt32(degrees.count)
+    for i in 0..<(n - 1) { indices += [i, i + 1, n + i + 1, i, n + i + 1, n + i] }
+    return AnatomyMesh(positions: positions, indices: indices)
+}
+func normal(_ normals: [Float], _ v: Int) -> SIMD3<Float> { SIMD3(normals[3 * v], normals[3 * v + 1], normals[3 * v + 2]) }
+/// The angle between two unit vectors, in degrees (to about 0.02°: a Float's acos near 1).
+func degrees(between a: SIMD3<Float>, _ b: SIMD3<Float>) -> Float { acos(min(1, max(-1, (a * b).sum()))) * 180 / .pi }
+do {
+    // a quarter of the cylinder cut in two along its length at 60°
+    let whole = strip([0, 30, 60, 90]), lower = strip([0, 30, 60]), upper = strip([60, 90])
+    let welded = AnatomyMesh.normals(welding: [lower, upper])
+    let cut = degrees(between: normal(lower.normals(), 2), normal(upper.normals(), 0))
+    let error = degrees(between: normal(welded[0], 2), normal(whole.normals(), 2))
+    check("a surface cut in two shades as one: at the cut both sides take the whole's normal (apart \(Int(cut))° off)",
+          cut > 20 && error < 0.1 && degrees(between: normal(welded[0], 2), normal(welded[1], 0)) < 0.1)
+    // a thin plate's two faces, meeting at the same three places facing apart
+    let top = AnatomyMesh(positions: [0, 0, 0, 1, 0, 0, 0, 1, 0], indices: [0, 1, 2])
+    let bottom = AnatomyMesh(positions: [0, 0, 0, 1, 0, 0, 0, 1, 0], indices: [0, 2, 1])
+    let plate = AnatomyMesh.normals(welding: [top, bottom])
+    check("a thin plate's two faces keep their own normals", normal(plate[0], 0).z > 0.99 && normal(plate[1], 0).z < -0.99)
+}
+for body in manifest.bodies {
+    // the skull, cut into its named bones: wherever two bones meet, the same place on each
+    let pieces: [AnatomyMesh] = meshes[body.part("skull")!.file] ?? []
+    let own: [[Float]] = pieces.map { $0.normals() }, welded = AnatomyMesh.normals(welding: pieces)
+    struct Place: Hashable { let x, y, z: Float }
+    var at: [Place: [(piece: Int, vertex: Int)]] = [:]
+    for (k, m) in pieces.enumerated() {
+        for v in 0..<m.vertexCount {
+            let p = m.position(v)
+            at[Place(x: p.x, y: p.y, z: p.z), default: []].append((k, v))
+        }
+    }
+    var apart: [Float] = [], after: Float = 0
+    for members in at.values where Set(members.map(\.piece)).count > 1 {
+        let a = members[0], b = members.first { $0.piece != a.piece }!
+        let before = degrees(between: normal(own[a.piece], a.vertex), normal(own[b.piece], b.vertex))
+        apart.append(before)
+        if before < 70 { after = max(after, degrees(between: normal(welded[a.piece], a.vertex), normal(welded[b.piece], b.vertex))) }
+    }
+    let median: Float = apart.isEmpty ? 0 : apart.sorted()[apart.count / 2]
+    check("\(body.name): the skull's bones shade as one surface: where they meet (\(apart.count) places) their normals agree "
+          + "(largest gap \(String(format: "%.2f", after))°; shaded apart, a median of \(Int(median))°)",
+          apart.count > 100 && after < 0.5 && median > 5)
+}
+
+// MARK: the relief: how a part's surface bends
+
+/// A sphere of radius r: an icosahedron's triangles cut in four `levels`
+/// times, its points pushed out onto the sphere, its triangles facing out.
+func icosphere(_ r: Float, levels: Int) -> AnatomyMesh {
+    let g: Float = (1 + Float(5).squareRoot()) / 2
+    var points: [SIMD3<Float>] = [(-1, g, 0), (1, g, 0), (-1, -g, 0), (1, -g, 0), (0, -1, g), (0, 1, g),
+                                  (0, -1, -g), (0, 1, -g), (g, 0, -1), (g, 0, 1), (-g, 0, -1), (-g, 0, 1)]
+        .map { SIMD3<Float>($0.0, $0.1, $0.2) }
+    var faces: [[Int]] = [[0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11], [1, 5, 9], [5, 11, 4],
+                          [11, 10, 2], [10, 7, 6], [7, 1, 8], [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8],
+                          [3, 8, 9], [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1]]
+    for _ in 0..<levels {
+        var middles: [Int: Int] = [:]
+        func middle(_ a: Int, _ b: Int) -> Int {
+            let key = min(a, b) << 20 | max(a, b)
+            if let known = middles[key] { return known }
+            points.append((points[a] + points[b]) / 2)
+            middles[key] = points.count - 1
+            return points.count - 1
+        }
+        faces = faces.flatMap { f -> [[Int]] in
+            let a = middle(f[0], f[1]), b = middle(f[1], f[2]), c = middle(f[2], f[0])
+            return [[f[0], a, c], [f[1], b, a], [f[2], c, b], [a, b, c]]
+        }
+    }
+    let positions: [Float] = points.flatMap { p -> [Float] in
+        let q = p / (p * p).sum().squareRoot() * r
+        return [q.x, q.y, q.z]
+    }
+    return AnatomyMesh(positions: positions, indices: faces.flatMap { $0.map(UInt32.init) })
+}
+do {
+    // a ball 10 cm across, 642 points
+    let ball = icosphere(0.05, levels: 3)
+    let bends = AnatomyMesh.curvature(welding: [ball])[0]
+    check("a ball 10 cm across bends by 1/r, 20 per metre, at every point (\(String(format: "%.1f...%.1f", bends.min()!, bends.max()!)))",
+          volume([ball]) > 0 && bends.allSatisfy { abs($0 - 20) < 0.4 })
+    // the same ball turned inside out: a hollow
+    var inside = ball
+    for t in stride(from: 0, to: inside.indices.count, by: 3) { inside.indices.swapAt(t + 1, t + 2) }
+    let hollow = AnatomyMesh.curvature(welding: [inside])[0]
+    check("inside out, it is a hollow, -20 per metre", hollow.allSatisfy { abs($0 + 20) < 0.4 })
+    // cut in two at its equator, each half with its own copy of the points on the cut
+    var halves: [AnatomyMesh] = []
+    for north in [true, false] {
+        var positions: [Float] = [], indices: [UInt32] = [], index: [UInt32: UInt32] = [:]
+        for t in stride(from: 0, to: ball.indices.count, by: 3) {
+            let corners = ball.indices[t..<(t + 3)]
+            let z = corners.map { ball.position(Int($0)).z }.reduce(0, +)
+            guard (z > 0) == north else { continue }
+            for v in corners {
+                if index[v] == nil {
+                    index[v] = UInt32(positions.count / 3)
+                    let p = ball.position(Int(v))
+                    positions += [p.x, p.y, p.z]
+                }
+                indices.append(index[v]!)
+            }
+        }
+        halves.append(AnatomyMesh(positions: positions, indices: indices))
+    }
+    let cut = AnatomyMesh.curvature(welding: halves)
+    let whole: [SIMD3<Float>: Float] = Dictionary((0..<ball.vertexCount).map { (ball.position($0), bends[$0]) }) { a, _ in a }
+    let worst: Float = zip(halves, cut).flatMap { half, values in
+        (0..<half.vertexCount).map { abs(values[$0] - (whole[half.position($0)] ?? .infinity)) }
+    }.max() ?? .infinity
+    check("cut in two, it bends just as the whole does, on the cut too (largest difference \(String(format: "%.4f", worst)) per metre)",
+          worst < 0.001)
+    // the shade: none where the surface is flat or bulges, or hollow over a span
+    let flat = AtlasRelief.shade(0), bulge = AtlasRelief.shade(40), wide = AtlasRelief.shade(-12)
+    let groove = AtlasRelief.shade(-400), half = AtlasRelief.shade(-(AtlasRelief.start + AtlasRelief.full) / 2)
+    check("the relief leaves flat and bulging surfaces and a wide hollow their colour, darkens a tight one to its depth, warming it",
+          [flat, bulge, wide].allSatisfy { $0 == SIMD3<Float>(1, 1, 1) }
+          && abs(groove.x - AtlasRelief.depth) < 1e-6 && groove.z < groove.y && groove.y < groove.x
+          && half.x > AtlasRelief.depth && half.x < 1)
+}
+for body in manifest.bodies {
+    let pieces: [AnatomyMesh] = meshes[body.part("skull")!.file] ?? []
+    let bends: [Float] = AnatomyMesh.curvature(welding: pieces).flatMap { $0 }.sorted()
+    let median: Float = bends.isEmpty ? 0 : bends[bends.count / 2]
+    let hollows: Int = bends.filter { AtlasRelief.shade($0).x < 0.95 }.count
+    check("\(body.name): the skull bulges overall (a median of \(Int(median)) per metre) with hollows in it "
+          + "(\(hollows) of \(bends.count) points shaded), every value finite",
+          !bends.isEmpty && bends.allSatisfy(\.isFinite) && median > 5 && median < 60 && hollows > bends.count / 100)
+}
+
+// MARK: the surfaces' inputs
+
+do {
+    // a rod 10 cm long and 1 cm thick, lying along the diagonal of x and y
+    let along = SIMD3<Float>(1, 1, 0) / Float(2).squareRoot(), across = SIMD3<Float>(0, 0, 1)
+    var positions: [Float] = []
+    for k in 0..<200 {
+        let t = Float(k % 20) / 19 - 0.5, s = Float(k / 20) / 9 - 0.5
+        let p = along * (t * 0.1) + across * (s * 0.01) + SIMD3<Float>(0.3, 1.2, -0.1)
+        positions += [p.x, p.y, p.z]
+    }
+    let axis = AnatomyMesh(positions: positions, indices: []).longAxis()
+    check("a rod's long axis is found along it (\(String(format: "%.2f", degrees(between: axis, along).truncatingRemainder(dividingBy: 180)))° off)",
+          abs((axis * along).sum()) > 0.9998)
+}
+for body in manifest.bodies {
+    let prefix: String = body.id == .male ? "VH_M_" : "VH_F_"
+    let thighs: [SIMD3<Float>] = ["rectus_femoris_L", "rectus_femoris_R"].compactMap { mesh(prefix + $0, in: body)?.longAxis() }
+    check("\(body.name): the rectus femoris runs down the thigh, as its fibres do",
+          thighs.count == 2 && thighs.allSatisfy { abs($0.y) > 0.9 }, "\(thighs)")
+}
+check("every tissue has a roughness for the physically based materials: bone matte, the eye and fluid glossy",
+      AnatomyTissue.allCases.allSatisfy { (0.1...0.7).contains($0.roughness) }
+      && AnatomyTissue.bone.roughness >= 0.55 && AnatomyTissue.eye.roughness < 0.2 && AnatomyTissue.fluid.roughness < 0.2)
 for body in manifest.bodies {
     let lungs = body.part("lungs")!
     let segments = meshes[lungs.file] ?? []

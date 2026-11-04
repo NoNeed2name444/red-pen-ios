@@ -173,11 +173,12 @@ suite probememo GraphProbeMemoTests.swift $F/Notes/GraphProbeMemo.swift
 # the comet's two tails, the corona's code, each style's sparks
 suite spacestyles SpaceStyleTests.swift $F/Notes/GraphShaderKit.swift $F/Notes/GraphSpaceShaders.swift \
       $F/Notes/GraphSpaceOptics.swift
-# every shader modifier of the 3D map read as Metal's compiler would:
-# declared before use, arguments declared and used, brackets, Metal only
-# (tools/shader_check.py compiles them against a stand-in for Metal)
+# every shader modifier of the 3D map and the anatomy atlas read as Metal's
+# compiler would: declared before use, arguments declared and used,
+# brackets, Metal only (tools/shader_check.py compiles them against a
+# stand-in for Metal); the kit's noise, the sine-hashed and the exact
 suite shaders ShaderSourceTests.swift $F/Notes/GraphShaderKit.swift $F/Notes/GraphSpaceShaders.swift \
-      $F/Notes/GraphNeuronShaders.swift $F/Notes/GraphShaderCatalog.swift
+      $F/Notes/GraphNeuronShaders.swift $F/Notes/GraphShaderCatalog.swift $F/Sciences/AtlasShaders.swift
 # the Neurons theme: top folders as cells on one sheet, folders inside
 # as parts inside them, notes as vesicles and granules, insides only
 # when opened, free cells at the edge, links as processes - the ladder,

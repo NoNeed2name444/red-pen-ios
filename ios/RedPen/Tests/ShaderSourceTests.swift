@@ -221,8 +221,9 @@ func read(_ item: GraphShaderItem) -> ShaderReport {
 // MARK: S1 every shader reads clean
 
 let all: [GraphShaderItem] = GraphShaderCatalog.all
-check("S1 the catalogue lists every theme's shaders", GraphShaderCatalog.space.count >= 18
-      && GraphShaderCatalog.neurons.count >= 7, "\(all.count)")
+check("S1 the catalogue lists every theme's shaders, and the atlas's bone and muscle", GraphShaderCatalog.space.count >= 18
+      && GraphShaderCatalog.neurons.count >= 7 && GraphShaderCatalog.atlas.map(\.name) == ["atlasBone", "atlasMuscle"],
+      "\(all.count)")
 check("S1 names are unique", Set(all.map(\.name)).count == all.count)
 check("S1 entry points are SceneKit's", all.allSatisfy { $0.entry == "surface" || $0.entry == "geometry" })
 var dirty: [String] = []
@@ -330,6 +331,51 @@ let kitShader = GraphShaderItem(name: "kit", entry: "surface", source: "#pragma 
     + snippet + "_surface.diffuse = float4(float3(rp_q + rp_f + rpProbe), 1.0);")
 check("S3 the kit's Metal reads clean, used twice in one shader", read(kitShader).problems.isEmpty,
       "\(read(kitShader).problems.prefix(3))")
+
+// MARK: S4 the exact lattice noise (GraphShaderKit.lattice), on the CPU as on the GPU
+
+var latticeOutside: Int = 0
+var latticeJump: Float = 0
+var near: [Float] = [], far: [Float] = []
+for k in 0..<3000 {
+    let p = SIMD3<Float>(Float(k % 37) * 0.731 - 13, Float(k % 53) * 0.419 - 11, Float(k / 37) * 0.293 - 7)
+    // the same pattern of points a long way out, where a sine hash runs out of digits
+    let q: SIMD3<Float> = p + SIMD3<Float>(1900, -1700, 2300)
+    for (point, into) in [(p, 0), (q, 1)] {
+        let v: Float = GraphShaderKit.lattice(point)
+        if v < 0 || v > 1 { latticeOutside += 1 }
+        if into == 0 { near.append(v) } else { far.append(v) }
+        let face: Float = point.y.rounded(.down)
+        let a: Float = GraphShaderKit.lattice(SIMD3<Float>(point.x, face - 0.0005, point.z))
+        let b: Float = GraphShaderKit.lattice(SIMD3<Float>(point.x, face + 0.0005, point.z))
+        latticeJump = max(latticeJump, abs(a - b))
+    }
+}
+func spread(_ v: [Float]) -> (mean: Float, sd: Float) {
+    let m: Float = v.reduce(0, +) / Float(max(v.count, 1))
+    let d: Float = v.map { ($0 - m) * ($0 - m) }.reduce(0, +) / Float(max(v.count, 1))
+    return (m, d.squareRoot())
+}
+let (nearMean, nearSD) = spread(near), (farMean, farSD) = spread(far)
+check("S4 lattice noise stays in 0...1", latticeOutside == 0, "\(latticeOutside) outside")
+check("S4 lattice noise is continuous across cell faces", latticeJump < 0.02, "\(latticeJump)")
+check("S4 lattice noise is as varied two kilometres of cells out as at the origin (mean \(nearMean), \(farMean); sd \(nearSD), \(farSD))",
+      abs(nearMean - 0.5) < 0.08 && abs(farMean - 0.5) < 0.08 && nearSD > 0.1 && abs(nearSD - farSD) < 0.04)
+// the corners' values: neighbours along each axis share no pattern
+var repeats: Int = 0
+for x: Int32 in -500..<500 where GraphShaderKit.latticeHash(x, 7, -3) == GraphShaderKit.latticeHash(x + 1, 7, -3) { repeats += 1 }
+check("S4 neighbouring corners hash apart", repeats < 3, "\(repeats) equal pairs")
+var latticeFbmOutside: Int = 0
+for k in 0..<500 {
+    let v: Float = GraphShaderKit.latticeFbm(SIMD3<Float>(Float(k) * 0.137, Float(k % 7) * 0.71, Float(k % 11) * 0.31), octaves: 3)
+    if v < 0 || v > 1 { latticeFbmOutside += 1 }
+}
+check("S4 lattice fBm stays in 0...1", latticeFbmOutside == 0)
+let latticeSnippet: String = GraphShaderKit.lattice("rp_q", "rp_p * 2.0") + GraphShaderKit.latticeFbm("rp_f", "rp_p", octaves: "3")
+let latticeShader = GraphShaderItem(name: "lattice", entry: "surface", source: "#pragma arguments\nfloat rpProbe;\n#pragma body\nfloat3 rp_p = float3(1.0, 2.0, 3.0);\n"
+    + latticeSnippet + "_surface.diffuse = float4(float3(rp_q + rp_f + rpProbe), 1.0);")
+check("S4 the lattice noise's Metal reads clean, used twice in one shader", read(latticeShader).problems.isEmpty,
+      "\(read(latticeShader).problems.prefix(3))")
 
 print(failures.isEmpty ? "all passed" : "\(failures.count) failed")
 exit(failures.isEmpty ? 0 : 1)

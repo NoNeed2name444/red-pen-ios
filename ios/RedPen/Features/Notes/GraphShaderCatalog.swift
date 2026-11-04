@@ -1,6 +1,6 @@
 import Foundation
 
-// MARK: - Every shader modifier of the 3D map, in one list
+// MARK: - Every shader modifier of the 3D map (and the anatomy atlas), in one list
 //
 // SceneKit compiles a shader modifier only on the device, at run time, and a
 // broken one fails quietly (the probes fall back to plain looks). This list
@@ -21,7 +21,7 @@ nonisolated struct GraphShaderItem: Sendable {
 
 nonisolated enum GraphShaderCatalog {
     static var all: [GraphShaderItem] {
-        space + neurons
+        space + neurons + atlas
     }
 
     /// Geometry and surface modifiers that share one material: SceneKit
@@ -56,6 +56,14 @@ nonisolated enum GraphShaderCatalog {
             ("well", GraphStyleShaders.well)
         ]
         return surfaces.map { GraphShaderItem(name: $0.0, entry: "surface", source: $0.1) }
+    }
+
+    /// The anatomy atlas's bone and muscle (Features/Sciences/AtlasShaders.swift).
+    static var atlas: [GraphShaderItem] {
+        [
+            GraphShaderItem(name: "atlasBone", entry: "surface", source: AtlasShaders.bone),
+            GraphShaderItem(name: "atlasMuscle", entry: "surface", source: AtlasShaders.muscle)
+        ]
     }
 
     /// The Neurons theme (GraphNeuronShaders.swift).

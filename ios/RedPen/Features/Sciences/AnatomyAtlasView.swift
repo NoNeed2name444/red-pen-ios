@@ -233,6 +233,71 @@ private struct AtlasSearchResults: View {
     }
 }
 
+/// The atlas's light: a key light from above and to the left that turns
+/// with the camera, so the body's relief always shows, a faint fill from
+/// the eye, and a soft studio around it (brighter overhead, darker
+/// underfoot) for the physically based materials' ambient light and
+/// reflections. Its numbers are tools/atlas_lab's, which draws the same rig.
+enum AtlasLight {
+    /// The key light's turn from the line of sight: up and to the left.
+    static let keyPitch: Float = -0.5
+    static let keyYaw: Float = -0.45
+    static let keyIntensity: CGFloat = 850
+    static let fillIntensity: CGFloat = 120
+    static let studioIntensity: CGFloat = 0.7
+    /// The studio's sRGB greys, top to bottom.
+    static let studio: [(position: CGFloat, white: CGFloat)] = [(0, 0.66), (0.42, 0.56), (0.55, 0.46), (1, 0.2)]
+
+    static func rig(_ scene: SCNScene, camera: SCNNode) {
+        let key = SCNNode()
+        key.light = SCNLight()
+        key.light?.type = .directional
+        key.light?.intensity = keyIntensity
+        key.eulerAngles = SCNVector3(keyPitch, keyYaw, 0)
+        camera.addChildNode(key)
+        let fill = SCNNode()
+        fill.light = SCNLight()
+        fill.light?.type = .directional
+        fill.light?.intensity = fillIntensity
+        camera.addChildNode(fill)
+        scene.lightingEnvironment.contents = studioImage()
+        scene.lightingEnvironment.intensity = studioIntensity
+    }
+
+    /// Screen-space ambient occlusion, sized for a body in metres: creases
+    /// a centimetre or two across darken, the body's own shading is left.
+    static func occlusion(_ lens: SCNCamera) {
+        lens.screenSpaceAmbientOcclusionIntensity = 1.1
+        lens.screenSpaceAmbientOcclusionRadius = 0.012
+        lens.screenSpaceAmbientOcclusionBias = 0.0004
+        lens.screenSpaceAmbientOcclusionDepthThreshold = 0.03
+        lens.screenSpaceAmbientOcclusionNormalThreshold = 0.4
+    }
+
+    /// The surface modifier a tissue's material takes (AtlasShaders), if any.
+    nonisolated static func surface(_ tissue: AnatomyTissue) -> String? {
+        switch tissue {
+        case .bone: return AtlasShaders.bone
+        case .muscle: return AtlasShaders.muscle
+        default: return nil
+        }
+    }
+
+    /// The studio as an equirectangular picture: grey bands from overhead to underfoot.
+    private static func studioImage() -> UIImage {
+        let size = CGSize(width: 64, height: 32)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: size, format: format).image { context in
+            let colours: [CGColor] = studio.map { UIColor(white: $0.white, alpha: 1).cgColor }
+            let stops: [CGFloat] = studio.map(\.position)
+            guard let gradient = CGGradient(colorsSpace: CGColorSpace(name: CGColorSpace.sRGB), colors: colours as CFArray,
+                                            locations: stops) else { return }
+            context.cgContext.drawLinearGradient(gradient, start: .zero, end: CGPoint(x: 0, y: size.height), options: [])
+        }
+    }
+}
+
 /// The SCNView the model owns, in SwiftUI.
 private struct AtlasSceneView: UIViewRepresentable {
     let model: AtlasModel
@@ -284,18 +349,11 @@ final class AtlasModel: NSObject, ObservableObject {
         lens.zNear = 0.01
         lens.zFar = 20
         lens.fieldOfView = 35
+        // soft shadow in the creases (a fossa, a foramen, where one bone
+        // sits in another), where the Graphics budget can spend it
+        if GraphQuality.current.msaa >= 4 { AtlasLight.occlusion(lens) }
         camera.camera = lens
-        // a light that rides with the camera, and a soft fill
-        let headlight = SCNNode()
-        headlight.light = SCNLight()
-        headlight.light?.type = .directional
-        headlight.light?.intensity = 900
-        camera.addChildNode(headlight)
-        let fill = SCNNode()
-        fill.light = SCNLight()
-        fill.light?.type = .ambient
-        fill.light?.intensity = 350
-        scene.rootNode.addChildNode(fill)
+        AtlasLight.rig(scene, camera: camera)
         scene.rootNode.addChildNode(camera)
 
         view.scene = scene
@@ -371,15 +429,25 @@ final class AtlasModel: NSObject, ObservableObject {
 
     /// Every part's nodes, built off the main thread.
     nonisolated private static func build(_ parts: [AtlasPart]) -> [(part: AtlasPart, nodes: [SCNNode])] {
+        let detail = NSNumber(value: GraphQuality.current.shaderDetail)
         var materials: [AnatomyTissue: SCNMaterial] = [:]
         func material(_ tissue: AnatomyTissue) -> SCNMaterial {
             if let made = materials[tissue] { return made }
             let c = tissue.colour
             let m = SCNMaterial()
+            // physically based: the tissue's colour and how rough it is, never metal
+            m.lightingModel = .physicallyBased
             m.diffuse.contents = UIColor(red: c.red, green: c.green, blue: c.blue, alpha: 1)
-            m.specular.contents = UIColor(white: 0.25, alpha: 1)
-            m.shininess = 0.3
-            m.lightingModel = .blinn
+            m.roughness.contents = NSNumber(value: tissue.roughness)
+            m.metalness.contents = NSNumber(value: 0.0)
+            // bone and muscle with their own surface, fixed to the body so it
+            // has no seams (AtlasShaders); a muscle's fibres are set per muscle
+            if let surface = AtlasLight.surface(tissue) {
+                m.shaderModifiers = [.surface: surface]
+                m.setValue(NSNumber(value: 0.0), forKey: "rpProbe")
+                m.setValue(detail, forKey: "rpDetail")
+                if tissue == .muscle { m.setValue(NSValue(scnVector3: SCNVector3(0, 1, 0)), forKey: "rpFibre") }
+            }
             // both faces of what is solid, so an open end (a vessel cut where
             // the organ set stops) shows its inside rather than a hole
             m.isDoubleSided = tissue.opacity == 1
@@ -394,8 +462,25 @@ final class AtlasModel: NSObject, ObservableObject {
         return parts.compactMap { part in
             guard let url = AnatomyAtlas.file(part.file), let data = try? Data(contentsOf: url),
                   let meshes = try? AnatomyAtlas.meshes(of: part, from: data) else { return nil }
-            let made: [SCNNode] = zip(part.structures, meshes).map { structure, mesh in
-                let node = SCNNode(geometry: geometry(mesh, material(structure.tissue)))
+            // shaded as one surface, so where a bone is cut into named pieces no
+            // line shows; its hollows a little darker, read from the same surface
+            let normals: [[Float]] = AnatomyMesh.normals(welding: meshes)
+            let bends: [[Float]] = AnatomyMesh.curvature(welding: meshes)
+            let made: [SCNNode] = zip(part.structures, zip(meshes, zip(normals, bends))).map { structure, shaded in
+                var surface: SCNMaterial = material(structure.tissue)
+                // each muscle streaked along its own length
+                if structure.tissue == .muscle, let own = surface.copy() as? SCNMaterial {
+                    let axis: SIMD3<Float> = shaded.0.longAxis()
+                    own.setValue(NSValue(scnVector3: SCNVector3(axis.x, axis.y, axis.z)), forKey: "rpFibre")
+                    surface = own
+                }
+                // the relief's shade as a vertex colour, which SceneKit multiplies
+                // into the material's (the see-through skin and fat left even)
+                let relief: [Float]? = structure.tissue.opacity < 1 ? nil : shaded.1.1.flatMap { bend -> [Float] in
+                    let shade: SIMD3<Float> = AtlasRelief.shade(bend)
+                    return [shade.x, shade.y, shade.z]
+                }
+                let node = SCNNode(geometry: geometry(shaded.0, normals: shaded.1.0, relief: relief, surface))
                 node.name = part.id + "/" + structure.node
                 // the see-through skin is drawn after what it covers
                 if structure.tissue == .skin { node.renderingOrder = 10 }
@@ -405,9 +490,10 @@ final class AtlasModel: NSObject, ObservableObject {
         }
     }
 
-    nonisolated private static func geometry(_ mesh: AnatomyMesh, _ material: SCNMaterial) -> SCNGeometry {
+    nonisolated private static func geometry(_ mesh: AnatomyMesh, normals unit: [Float], relief: [Float]?,
+                                             _ material: SCNMaterial) -> SCNGeometry {
         let positions: Data = mesh.positions.withUnsafeBufferPointer { Data(buffer: $0) }
-        let normals: Data = mesh.normals().withUnsafeBufferPointer { Data(buffer: $0) }
+        let normals: Data = unit.withUnsafeBufferPointer { Data(buffer: $0) }
         let indices: Data = mesh.indices.withUnsafeBufferPointer { Data(buffer: $0) }
         let stride: Int = MemoryLayout<Float>.size * 3
         let vertexSource = SCNGeometrySource(data: positions, semantic: .vertex, vectorCount: mesh.vertexCount,
@@ -418,7 +504,14 @@ final class AtlasModel: NSObject, ObservableObject {
                                              bytesPerComponent: MemoryLayout<Float>.size, dataOffset: 0, dataStride: stride)
         let element = SCNGeometryElement(data: indices, primitiveType: .triangles, primitiveCount: mesh.triangleCount,
                                          bytesPerIndex: MemoryLayout<UInt32>.size)
-        let geometry = SCNGeometry(sources: [vertexSource, normalSource], elements: [element])
+        var sources: [SCNGeometrySource] = [vertexSource, normalSource]
+        if let relief {
+            let shades: Data = relief.withUnsafeBufferPointer { Data(buffer: $0) }
+            sources.append(SCNGeometrySource(data: shades, semantic: .color, vectorCount: mesh.vertexCount,
+                                             usesFloatComponents: true, componentsPerVector: 3,
+                                             bytesPerComponent: MemoryLayout<Float>.size, dataOffset: 0, dataStride: stride))
+        }
+        let geometry = SCNGeometry(sources: sources, elements: [element])
         geometry.materials = [material]
         return geometry
     }

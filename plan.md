@@ -2923,6 +2923,28 @@ for screenshots.
     CT's thick bone. Still to do: the rebuild with --vhct, the audits and
     renders, then the atlas, the suite, the credits and SOURCES.md in one
     commit.
+  - [x] S3j. The atlas's look (the owner, 4 Nov: "the texture is too
+    artificial and artifacty and isn't seamless and has sharp borders that
+    don't exist in real bones"). Each part's structures are shaded as one
+    surface (AnatomyMesh.normals(welding:)): where a bone is cut into named
+    pieces, the vertices at one place take the normals of every piece
+    round them that face within 70 degrees, so the cut no longer shows as
+    a line (it had: a median of 29 degrees between the skull's bones, 19 to
+    21 between the kidneys', spleen's and vessels' pieces). Physically
+    based materials, a roughness per tissue; a key light from above left
+    that turns with the camera, a faint fill, a grey studio for ambient
+    light and reflections, screen-space occlusion at High (AtlasLight).
+    Bone and muscle have their own surface modifiers (AtlasShaders, in
+    GraphShaderCatalog): a faint mottling and, close up, a fine grain for
+    bone; streaks along each muscle's own long axis for muscle; fixed to
+    the body (its own frame, not texture coordinates), so it runs on
+    unbroken across a cut, on GraphShaderKit's new lattice noise, exact at
+    a body's coordinates. The hollows (foramina, grooves, a fossa's floor)
+    are a little darker and warmer, from the surface's own curvature read
+    across the part (AnatomyMesh.curvature, AtlasRelief, a vertex colour).
+    Bone is warmer (DDD1B6). tools/atlas_lab draws the atlas on Linux with
+    the real shader sources under a stand-in for the light, which is where
+    the numbers come from; the Mac screenshots confirm them.
 - [x] S4. The catalog, Shared/Sciences/ScienceCatalog.swift: nine subjects,
   ten body systems, 29 tools and 75 topics, each a short note written for
   the app with points, its tools and its atlas parts; every system has
