@@ -51,7 +51,14 @@ object MedicalGenerate {
                 },
                 perReply = perCall,
             )
-            return collectQuestions(CloudJobs.run(spec, cloud, store, pause, onProgress), count)
+            // the recipe goes with the job, so a run the app is closed on is
+            // collected as these questions (CloudJobCollector), as iOS's screens set it
+            val outer = coroutineContext[CloudJobs.Context]
+            val recipe = outer?.recipe ?: CloudRecipe(com.stethoscore.app.data.StudySetKind.MCQ, "", subject, count, exam = exam.target?.id).json()
+            val replies = kotlinx.coroutines.withContext(CloudJobs.Context(recipe, outer?.delivery)) {
+                CloudJobs.run(spec, cloud, store, pause, onProgress)
+            }
+            return collectQuestions(replies, count)
         }
         val perCall = if (using.isOnDevice) 3 else MCQPrompt.maxQuestionsPerCall
         val collected = mutableListOf<MCQQuestion>()

@@ -7,6 +7,10 @@ import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.network.BackendClient
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -38,12 +42,24 @@ object CloudJobCollector {
 
     private val collecting = AtomicBoolean(false)
 
+    private val _delivered = MutableStateFlow(0)
+
+    /**
+     * How many sets the collector has put in the library while the app has
+     * run: the library screens redraw when it moves, as iOS's do on the
+     * store's change (StethoscoreApp).
+     */
+    val delivered: StateFlow<Int> get() = _delivered
+
+    /** The app's own scope, not an activity's: a recreated activity neither cancels a collection nor strands its guard. */
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     /**
      * At app start: the jobs are kept on disk from now on, and every job an
      * earlier run of the app started is collected (iOS RedPenApp's
      * `.task { await CloudJobCollector.collect(into: store) }`).
      */
-    fun start(context: Context, library: StudyStore, scope: CoroutineScope) {
+    fun start(context: Context, library: StudyStore, scope: CoroutineScope = appScope) {
         val app = context.applicationContext
         CloudJobs.store = CloudJobs.FileStore(File(app.filesDir, "cloud-jobs"))
         val llm = LLMService.from(app)
@@ -156,6 +172,7 @@ object CloudJobCollector {
             // on disk before the server's copy is forgotten below: this is the
             // only copy; not on disk, the job stays to be collected again
             if (!library.add(set)) return null
+            _delivered.value += 1
             announce?.ready("${set.name} is ready", body, set.id)
         }
         store.remove(pending.id)

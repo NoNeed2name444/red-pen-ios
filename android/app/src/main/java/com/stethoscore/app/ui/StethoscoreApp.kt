@@ -108,6 +108,8 @@ import com.stethoscore.app.ui.library.LibraryEtch
     DisposableEffect(store) { store.onSaveError={ message -> notice=message;revision++ };onDispose { store.onSaveError=null } }
     com.stethoscore.app.ui.learn.LearnHostEffects(store)
     fun refresh() { revision++ }
+    // a set the cloud finished while the app was closed, collected after the first frame
+    LaunchedEffect(Unit) { com.stethoscore.app.llm.CloudJobCollector.delivered.collect { if (it > 0) revision++ } }
     /** Library changes the person asked for; a failed save is shown, never a crash. */
     fun change(action:()->Unit) { runCatching(action).onFailure { notice=it.message ?: "Could not save your library." };refresh() }
     fun goHome() { screen="home";newPreset=null;newStep=com.stethoscore.app.ui.library.NewSetStep.KIND;refresh() }

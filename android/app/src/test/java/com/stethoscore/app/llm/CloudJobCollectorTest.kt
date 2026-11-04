@@ -10,7 +10,9 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.After
+import kotlinx.coroutines.async
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -233,5 +235,66 @@ class CloudJobCollectorTest {
         } finally {
             folder.deleteRecursively()
         }
+    }
+    @Test fun aDeliveredSetSignalsTheLibraryToRedraw() = runBlocking {
+        val before = CloudJobCollector.delivered.value
+        val store = CloudJobs.MemoryStore().also { it.save(earlier()) }
+        collect(store, worker("running"), Shelf())
+        assertEquals(before, CloudJobCollector.delivered.value)
+        collect(store, worker("done"), Shelf())
+        assertEquals(before + 1, CloudJobCollector.delivered.value)
+    }
+
+    @Test fun aQuestionRunTheAppWasClosedOnIsCollectedAsQuestions() = runBlocking {
+        var running = true
+        val server = FakeServer { request ->
+            when {
+                request.method == "POST" && request.path == "/jobs" ->
+                    FakeServer.ok(JSONObject().put("job", JSONObject().put("id", id).put("status", "queued")))
+                // the connection is lost while it writes: the run hands the job over
+                running -> BackendClient.Reply(500, "{}")
+                else -> worker("done").send(request.method, request.url, null, request.bearer, 0)
+            }
+        }
+        val llm = LLMService(FakeServer.standInKey(), { null }, FakeServer.BASE, server)
+        val store = CloudJobs.MemoryStore()
+        val lost = runCatching { MedicalGenerate.mcq("Hypertension lecture.", 2, "Cardiology", false, llm.backend()!!, store = store, pause = {}) }
+        assertTrue(lost.exceptionOrNull() is LLMError.NotReady)
+        val record = store.all().single()
+        assertNull(record.launch)
+        val recipe = CloudRecipe.of(record.recipe)
+        assertNotNull(recipe)
+        recipe!!
+        assertEquals(StudySetKind.MCQ, recipe.kind)
+        assertEquals("Cardiology", recipe.subject)
+        assertEquals(2, recipe.count)
+        running = false
+        val shelf = Shelf()
+        CloudJobCollector.collect(store, shelf, llm::cloudBearer, server::client)
+        val set = shelf.sets.single()
+        assertEquals(StudySetKind.MCQ, set.kind)
+        assertEquals("Cardiology \u2013 questions", set.name)
+        assertEquals(2, set.questions.size)
+    }
+
+    @Test fun twoCollectionsAtOnceMakeOneSet() = runBlocking {
+        CloudJobs.io = Dispatchers.IO
+        val asked = java.util.concurrent.CountDownLatch(1)
+        val release = java.util.concurrent.CountDownLatch(1)
+        val done = worker("done")
+        val server = FakeServer { request ->
+            if (request.path == "/jobs/$id") { asked.countDown(); release.await(10, java.util.concurrent.TimeUnit.SECONDS) }
+            done.send(request.method, request.url, null, request.bearer, 0)
+        }
+        val store = CloudJobs.MemoryStore().also { it.save(earlier()) }
+        val shelf = Shelf()
+        val first = async(Dispatchers.IO) { collect(store, server, shelf) }
+        assertTrue(asked.await(10, java.util.concurrent.TimeUnit.SECONDS))
+        // the first is still asking the server: the second finds it collecting
+        assertTrue(collect(store, server, shelf).isEmpty())
+        release.countDown()
+        assertEquals(1, first.await().size)
+        assertEquals(1, shelf.sets.size)
+        assertTrue(store.all().isEmpty())
     }
 }
