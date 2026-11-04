@@ -580,7 +580,7 @@ private struct PopOutDebugLabel: View {
         let source: String = motion.source.rawValue
         let line: String = "\(style)  x \(x)  y \(y)  \(source)"
         Text(line)
-            .font(.caption2.monospaced())
+            .font(WardType.face(.caption2, weight: .regular).monospaced())
             .padding(6)
             .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: WardRadius.icon))
             .foregroundStyle(.white)

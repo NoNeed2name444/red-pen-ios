@@ -68,10 +68,10 @@ struct MockPaperView: View {
             : MockFormat.partOf(min(save.section + 1, save.specs.count), save.specs.count)
         return VStack(alignment: .leading, spacing: 10) {
             Text("\(save.title), unfinished")
-                .font(.headline)
+                .font(WardType.headline)
                 .foregroundStyle(Color.wardInk)
             Text("\(save.answered) of \(save.total) answered, \(part). The clock waits until you go back.")
-                .font(.subheadline)
+                .font(WardType.face(.subheadline, weight: .regular))
                 .foregroundStyle(Color.wardInkSecondary)
             HStack(spacing: 12) {
                 Button {
@@ -112,10 +112,10 @@ struct MockPaperView: View {
         let exam: String = target?.name ?? (track == .general ? "General revision" : track.title)
         return VStack(alignment: .leading, spacing: 6) {
             Text(exam)
-                .font(.subheadline.weight(.semibold))
+                .font(WardType.face(.subheadline, weight: .semibold))
                 .foregroundStyle(Color.wardInk)
             Text("Timed like the real paper. Answers are marked at the end.")
-                .font(.body)
+                .font(WardType.body)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentCard()
@@ -133,7 +133,7 @@ struct MockPaperView: View {
                 .pickerStyle(.menu)
                 .labelsHidden()
             } else {
-                Text(paper.title).font(.headline)
+                Text(paper.title).font(WardType.headline)
             }
             if let target, target.sitsBlockwise {
                 let per: Int = target.sections.first?.questions ?? 40
@@ -153,7 +153,7 @@ struct MockPaperView: View {
                 .font(.system(.subheadline, design: .monospaced).weight(.semibold))
                 .monospacedDigit()
             Text(paper.note)
-                .font(.subheadline)
+                .font(WardType.face(.subheadline, weight: .regular))
                 .foregroundStyle(Color.wardInkSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -171,7 +171,7 @@ struct MockPaperView: View {
             let sections: [MockSectionSpec] = MockAssembler.fitted(paper.sections, to: available)
             Label(MockAssembler.shortfall(have: available, spec: paper, sections: sections),
                   systemImage: "info.circle")
-                .font(.subheadline)
+                .font(WardType.face(.subheadline, weight: .regular))
                 .foregroundStyle(Color.wardInkSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentCard()
@@ -179,7 +179,7 @@ struct MockPaperView: View {
             let spread: String = target.map { "weighted by the \($0.shortName) blueprint" } ?? "spread across your subjects"
             Label("Drawn from \(available) questions in your library, \(spread).",
                   systemImage: "checkmark.circle")
-                .font(.subheadline)
+                .font(WardType.face(.subheadline, weight: .regular))
                 .foregroundStyle(Color.wardInkSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentCard()
@@ -191,7 +191,7 @@ struct MockPaperView: View {
         return VStack(alignment: .leading, spacing: 8) {
             ForEach(lines, id: \.self) { line in
                 Label(line, systemImage: "checkmark")
-                    .font(.subheadline)
+                    .font(WardType.face(.subheadline, weight: .regular))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -216,8 +216,8 @@ struct MockPaperView: View {
         let detail: String = "\(record.correct) of \(record.total) \u{00B7} \(when)"
         return HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(record.title).font(.body).foregroundStyle(Color.wardInk)
-                Text(detail).font(.caption).foregroundStyle(Color.wardInkSecondary)
+                Text(record.title).font(WardType.body).foregroundStyle(Color.wardInk)
+                Text(detail).font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
             }
             Spacer(minLength: 8)
             let tone: Color = passed ? Color.wardSuccess : Color.wardWarning

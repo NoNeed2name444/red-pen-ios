@@ -164,11 +164,11 @@ struct DrawRecallView: View {
     private var promptText: some View {
         if showTitle || comparing {
             Text(figure.title.isEmpty ? "Untitled figure" : figure.title)
-                .font(.subheadline.weight(.semibold))
+                .font(WardType.face(.subheadline, weight: .semibold))
                 .foregroundStyle(Color.wardInk)
         } else {
             Text("Draw it as you remember it, labels and all.")
-                .font(.subheadline)
+                .font(WardType.face(.subheadline, weight: .regular))
                 .foregroundStyle(Color.wardInkSecondary)
         }
     }
@@ -314,11 +314,11 @@ struct DrawRecallView: View {
     private var labelsPart: some View {
         if figure.labels.isEmpty {
             Text("No labels are saved with this figure, so judge it by eye: shape, position, what connects to what.")
-                .font(.caption)
+                .font(WardType.caption)
                 .foregroundStyle(Color.wardInkSecondary)
         } else {
             Text("Tick the labels you got \u{2014} \(got.count) of \(figure.labels.count)")
-                .font(.caption.weight(.semibold))
+                .font(WardType.face(.caption, weight: .semibold))
                 .foregroundStyle(Color.wardInk)
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
@@ -344,7 +344,7 @@ struct DrawRecallView: View {
                     Spacer(minLength: 8)
                     Text("Original")
                 }
-                .font(.caption.weight(.semibold))
+                .font(WardType.face(.caption, weight: .semibold))
                 .foregroundStyle(Color.wardInkSecondary)
                 .accessibilityHidden(true)
             }
@@ -390,7 +390,7 @@ struct DrawRecallView: View {
             .overlay(RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous).strokeBorder(edge, lineWidth: 2))
             .wardInset(in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous), lift: .low, fill: Color.wardBackground)
             Text(attempt.date.formatted(.dateTime.day().month(.abbreviated)))
-                .font(.caption2)
+                .font(WardType.face(.caption2, weight: .regular))
                 .foregroundStyle(Color.wardInkSecondary)
             if attempt.labelCount > 0 {
                 Text("\(attempt.got.count)/\(attempt.labelCount)")
@@ -592,7 +592,7 @@ private struct RecallLabelTick: View {
         let ink: Color = ticked ? Color.wardSuccess : Color.wardInk
         Button(action: toggle) {
             Label(label, systemImage: symbol)
-                .font(.subheadline)
+                .font(WardType.face(.subheadline, weight: .regular))
                 .foregroundStyle(ink)
                 .frame(minHeight: 44, alignment: .leading)
                 .contentShape(Rectangle())
@@ -812,7 +812,7 @@ struct DrawFromMemoryButton: View {
             figure = RecallFigure(set: set, index: imageIndex, caption: caption, library: store.library)
         } label: {
             Label("Draw it from memory", systemImage: "pencil.and.scribble")
-                .font(.caption.weight(.semibold))
+                .font(WardType.face(.caption, weight: .semibold))
                 .labelStyle(WardGlyphLabelStyle(glyph: Color.wardPrimaryInk)).foregroundStyle(Color.wardInk)
                 // a whole finger's worth of target, not just the words
                 .frame(minHeight: 44)

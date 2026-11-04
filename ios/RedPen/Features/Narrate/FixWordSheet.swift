@@ -31,7 +31,7 @@ struct FixWordSheet: View {
             VStack(alignment: .leading, spacing: 18) {
                 field("Heard as") {
                     Text(target.heard)
-                        .font(.title3.weight(.semibold))
+                        .font(WardType.face(.title3, weight: .semibold))
                         .foregroundStyle(Color.wardInk)
                         .underline(true, color: Color.wardDanger.opacity(0.5))
                         .textSelection(.enabled)
@@ -49,7 +49,7 @@ struct FixWordSheet: View {
                 // more of the transcript than the word they tapped.
                 Label("Every other word that sounds the same is fixed too, and remembered for next time.",
                       systemImage: "wand.and.sparkles")
-                    .font(.footnote)
+                    .font(WardType.face(.footnote, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
                     .labelStyle(.titleAndIcon)
                 Spacer(minLength: 0)
@@ -118,7 +118,7 @@ struct FixReport: View {
                 .foregroundStyle(Color.wardSuccess)
                 .accessibilityHidden(true)
             Text(summary)
-                .font(.subheadline.weight(.medium))
+                .font(WardType.face(.subheadline, weight: .medium))
                 .foregroundStyle(Color.wardInk)
             Spacer(minLength: 0)
             Button("Undo", action: onUndo)

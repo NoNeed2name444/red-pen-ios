@@ -20,7 +20,7 @@ struct GuessFirstView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             if questions.isEmpty {
-                Text("Nothing to ask from this one yet.").font(.body).foregroundStyle(Color.wardInkSecondary)
+                Text("Nothing to ask from this one yet.").font(WardType.body).foregroundStyle(Color.wardInkSecondary)
             } else if !started {
                 intro
             } else if index < questions.count {
@@ -44,12 +44,12 @@ struct GuessFirstView: View {
 
     private var intro: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Take a guess").font(.largeTitle.weight(.bold)).foregroundStyle(Color.wardInk)
+            Text("Take a guess").font(WardType.face(.largeTitle, weight: .bold)).foregroundStyle(Color.wardInk)
             Text("\(questions.count) quick questions on \(set.name), before you read it. It\u{2019}s fine to be wrong.")
-                .font(.body)
+                .font(WardType.body)
                 .foregroundStyle(Color.wardInk)
             Text(Pretest.why)
-                .font(.subheadline)
+                .font(WardType.face(.subheadline, weight: .regular))
                 .foregroundStyle(Color.wardInkSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -61,14 +61,14 @@ struct GuessFirstView: View {
                 .font(.system(.caption, design: .monospaced).weight(.semibold))
                 .monospacedDigit()
                 .foregroundStyle(Color.wardInkSecondary)
-            Text(q.stem).font(.title3.weight(.semibold)).foregroundStyle(Color.wardInk)
+            Text(q.stem).font(WardType.face(.title3, weight: .semibold)).foregroundStyle(Color.wardInk)
                 .fixedSize(horizontal: false, vertical: true)
             ForEach(Array(q.options.enumerated()), id: \.offset) { item in
                 optionButton(q, item.offset, item.element)
             }
             if picked != nil {
                 Text(q.explanation)
-                    .font(.subheadline)
+                    .font(WardType.face(.subheadline, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                     .wardCard()
@@ -104,7 +104,7 @@ struct GuessFirstView: View {
             announce(q, rightPick: isRight)
         } label: {
             HStack(spacing: 12) {
-                Image(systemName: symbol).foregroundStyle(tint).font(.title3).accessibilityHidden(true)
+                Image(systemName: symbol).foregroundStyle(tint).font(WardType.face(.title3, weight: .regular)).accessibilityHidden(true)
                 Text(text).foregroundStyle(Color.wardInk).multilineTextAlignment(.leading)
                 Spacer(minLength: 0)
             }
@@ -129,7 +129,7 @@ struct GuessFirstView: View {
                 .monospacedDigit()
                 .foregroundStyle(Color.wardInk)
             Text("Whatever the score, you now know what to look out for. Watch for these as you read.")
-                .font(.body)
+                .font(WardType.body)
                 .foregroundStyle(Color.wardInk)
                 .fixedSize(horizontal: false, vertical: true)
         }

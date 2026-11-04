@@ -265,9 +265,9 @@ struct SettingsPage: View {
                            step: GraphLinkLength.step) {
                         Text("Link length")
                     } minimumValueLabel: {
-                        Text("Shorter").font(.caption)
+                        Text("Shorter").font(WardType.caption)
                     } maximumValueLabel: {
-                        Text("Longer").font(.caption)
+                        Text("Longer").font(WardType.caption)
                     }
                     .accessibilityValue(GraphLinkLength.spoken(linkLength))
                     .accessibilityIdentifier("linkLengthSlider")
@@ -351,7 +351,7 @@ struct SettingsPage: View {
                         Text(ExamChoice.current?.shortName ?? "Choose")
                             .foregroundStyle(Color.wardInkSecondary)
                         Image(systemName: "chevron.right")
-                            .font(.footnote.weight(.semibold))
+                            .font(WardType.face(.footnote, weight: .semibold))
                             .foregroundStyle(Color.wardPrimaryInk)
                             .accessibilityHidden(true)
                     }
@@ -425,7 +425,7 @@ struct SettingsPage: View {
                         Label("Crash and failure reports", systemImage: "stethoscope")
                         Spacer()
                         Image(systemName: "chevron.right")
-                            .font(.footnote.weight(.semibold))
+                            .font(WardType.face(.footnote, weight: .semibold))
                             .foregroundStyle(Color.wardPrimaryInk)
                             .accessibilityHidden(true)
                     }
@@ -486,7 +486,7 @@ struct AccuracyEngineSection: View {
             }
             LabeledContent("Accuracy model", value: accuracy.weights.version)
             if let reason = accuracy.pausedReason {
-                Text(reason).font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                Text(reason).font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             }
         } header: {
             Text("Accuracy engine")
@@ -539,7 +539,7 @@ struct HelpPage: View {
     private var introSection: some View {
         Section {
             Text("Put your material in once, then study it in whichever shape suits the exam you are sitting.")
-                .font(.callout)
+                .font(WardType.face(.callout, weight: .regular))
         }
         .wardRowBackground()
     }
@@ -631,7 +631,7 @@ private struct HelpBullet: View {
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
             Text("\u{2022}").foregroundStyle(Color.wardInkSecondary)
-            Text(text).font(.footnote)
+            Text(text).font(WardType.face(.footnote, weight: .regular))
         }
     }
 }
@@ -643,11 +643,11 @@ private struct HelpQuestionRow: View {
     var body: some View {
         DisclosureGroup {
             Text(answer)
-                .font(.footnote)
+                .font(WardType.face(.footnote, weight: .regular))
                 .foregroundStyle(Color.wardInkSecondary)
                 .padding(.top, WardSpace.xs)
         } label: {
-            Text(question).font(.subheadline.weight(.semibold))
+            Text(question).font(WardType.face(.subheadline, weight: .semibold))
         }
     }
 }

@@ -43,7 +43,7 @@ extension LibraryView {
                         tileGrid(rest)
                     } label: {
                         Text("More ways to practise")
-                            .font(.footnote.weight(.semibold))
+                            .font(WardType.face(.footnote, weight: .semibold))
                             .frame(minHeight: 44, alignment: .leading)
                             .launchEntrance(inOpening: true)
                     }
@@ -170,12 +170,12 @@ extension LibraryView {
     var emptyCategoryRow: some View {
         HStack(spacing: WardSpace.m) {
             Image(systemName: category.symbol)
-                .font(.title3)
+                .font(WardType.face(.title3, weight: .regular))
                 .foregroundStyle(Color.wardPrimaryInk)
                 .frame(width: 40)
                 .accessibilityHidden(true)
             Text(category.emptySets)
-                .font(.subheadline)
+                .font(WardType.face(.subheadline, weight: .regular))
                 .foregroundStyle(Color.wardInkSecondary)
             Spacer(minLength: WardSpace.s)
             Button("Make one") { newSetKind = category.mainKind }
@@ -256,8 +256,8 @@ private struct HomeCategoryRowLabel: View {
                 .wardRaised(in: square, lift: .low)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: WardSpace.xs) {
-                Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(Color.wardInk)
-                Text(detail).font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                Text(title).font(WardType.face(.subheadline, weight: .semibold)).foregroundStyle(Color.wardInk)
+                Text(detail).font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             }
         }
         .padding(.vertical, WardSpace.xs)

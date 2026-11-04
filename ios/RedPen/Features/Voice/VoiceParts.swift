@@ -8,10 +8,10 @@ struct VoicePermissionNote: View {
         let shape = RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous)
         VStack(alignment: .leading, spacing: 2) {
             Label(message, systemImage: "mic.slash")
-                .font(.footnote)
+                .font(WardType.face(.footnote, weight: .regular))
                 .foregroundStyle(Color.wardInkSecondary)
             Button("Open Settings") { VoiceAccess.openSettings() }
-                .font(.footnote.weight(.semibold))
+                .font(WardType.face(.footnote, weight: .semibold))
                 .foregroundStyle(Color.wardInk)
                 .buttonStyle(.borderless)
                 // a whole finger's worth of target, not just the words

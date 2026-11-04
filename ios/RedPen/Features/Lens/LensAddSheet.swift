@@ -98,7 +98,7 @@ struct LensAddSheet: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(d.title).foregroundStyle(Color.wardInk)
                             Text(usable ? d.detail : "Not enough in this answer to make one")
-                                .font(.caption)
+                                .font(WardType.caption)
                                 .foregroundStyle(Color.wardInkSecondary)
                         }
                         Spacer(minLength: 0)

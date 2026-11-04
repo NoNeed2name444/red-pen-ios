@@ -27,7 +27,7 @@ struct ReadinessCard: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
                 Label("Readiness estimate", systemImage: "gauge.with.dots.needle.50percent")
-                    .font(.subheadline.weight(.semibold))
+                    .font(WardType.face(.subheadline, weight: .semibold))
                     .foregroundStyle(Color.wardInk)
                 Spacer(minLength: 8)
                 if includesExamples {
@@ -47,7 +47,7 @@ struct ReadinessCard: View {
         let needed = Readiness.minimumAnswers
         return VStack(alignment: .leading, spacing: 8) {
             Text("Answer at least \(needed) questions and an estimated score will show here.")
-                .font(.subheadline).foregroundStyle(Color.wardInkSecondary)
+                .font(WardType.face(.subheadline, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             EcgStrip(progress: Double(min(answered, needed)) / Double(needed))
             Text("\(min(answered, needed)) of \(needed)")
                 .font(.system(.caption, design: .monospaced)).foregroundStyle(Color.wardInkSecondary)
@@ -66,7 +66,7 @@ struct ReadinessCard: View {
                 Text("likely \(Self.percent(e.low))\u{2013}\(Self.percent(e.high))")
                     .font(.system(.subheadline, design: .monospaced).weight(.medium))
                     .foregroundStyle(Color.wardInk)
-                Text(verdict(e)).font(.caption).foregroundStyle(Color.wardInkSecondary)
+                Text(verdict(e)).font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
             }
         }
         .accessibilityElement(children: .combine)
@@ -76,10 +76,10 @@ struct ReadinessCard: View {
         let exam: String = track == .general ? "" : " for " + track.rawValue.uppercased()
         let passLine: String = "Typical pass mark\(exam): \(Self.percent(e.passMark)) \u{00B7} approximate"
         Text(passLine)
-            .font(.caption).monospacedDigit().foregroundStyle(Color.wardInkSecondary)
+            .font(WardType.caption).monospacedDigit().foregroundStyle(Color.wardInkSecondary)
 
         Text(basis(e))
-            .font(.caption).foregroundStyle(Color.wardInkSecondary)
+            .font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
             .fixedSize(horizontal: false, vertical: true)
 
         if !e.levers.isEmpty {
@@ -90,12 +90,12 @@ struct ReadinessCard: View {
                     HStack(spacing: 10) {
                         Image(systemName: "scope").foregroundStyle(Color.wardPrimaryInk)
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(lever.subject).font(.subheadline.weight(.semibold)).foregroundStyle(Color.wardInk)
-                            Text(leverLine(lever)).font(.caption).monospacedDigit()
+                            Text(lever.subject).font(WardType.face(.subheadline, weight: .semibold)).foregroundStyle(Color.wardInk)
+                            Text(leverLine(lever)).font(WardType.caption).monospacedDigit()
                                 .foregroundStyle(Color.wardInkSecondary)
                         }
                         Spacer(minLength: 0)
-                        Image(systemName: "chevron.right").font(.caption).foregroundStyle(Color.wardInkSecondary)
+                        Image(systemName: "chevron.right").font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
                     }
                     // the whole 44 points answer a tap, not just the words
                     .frame(minHeight: 44)
@@ -221,7 +221,7 @@ struct InsightQuestionList: View {
             if let tip {
                 Section {
                     Label(tip, systemImage: "lightbulb")
-                        .font(.subheadline)
+                        .font(WardType.face(.subheadline, weight: .regular))
                         .foregroundStyle(Color.wardInk)
                 }
                 .wardRowBackground()
@@ -288,22 +288,22 @@ private struct InsightQuestionRow: View {
             VStack(alignment: .leading, spacing: 6) {
                 if hasAnswer {
                     WardInkLabel(q.options[q.correctIndex], systemImage: "checkmark.circle", glyph: Color.wardPrimaryInk)
-                        .font(.subheadline.weight(.semibold))
+                        .font(WardType.face(.subheadline, weight: .semibold))
                 }
                 if !q.explanation.isEmpty {
                     Text(q.explanation)
-                        .font(.caption).foregroundStyle(Color.wardInkSecondary)
+                        .font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
                 }
             }
             .padding(.vertical, 4)
         } label: {
             VStack(alignment: .leading, spacing: 2) {
                 Text(q.stem)
-                    .font(.subheadline)
+                    .font(WardType.face(.subheadline, weight: .regular))
                     .foregroundStyle(Color.wardInk)
                     .lineLimit(3)
                 Text(Store.subjectName(pick.set))
-                    .font(.caption).foregroundStyle(Color.wardInkSecondary)
+                    .font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
             }
         }
         .hoverEffect(.highlight)

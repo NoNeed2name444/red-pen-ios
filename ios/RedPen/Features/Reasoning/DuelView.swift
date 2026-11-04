@@ -14,7 +14,7 @@ struct DuelsView: View {
         List {
             Section {
                 Text("Features appear one at a time. Say whose each one is \u{2014} the first condition, the second, or both.")
-                    .font(.subheadline)
+                    .font(WardType.face(.subheadline, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
             }
             .wardRowBackground()
@@ -66,7 +66,7 @@ struct DuelsView: View {
         let title: String = "\(pair.a) vs \(pair.b)"
         let fresh: String = "\(pair.features.count) features \u{00B7} not played"
         return VStack(alignment: .leading, spacing: 3) {
-            Text(title).font(.body.weight(.medium)).foregroundStyle(Color.wardInk)
+            Text(title).font(WardType.face(.body, weight: .medium)).foregroundStyle(Color.wardInk)
             if let last = reasoning.lastDuel(of: pair.id) {
                 Text("Last time \(last.right) of \(last.total)")
                     .font(.system(.caption, design: .monospaced))
@@ -74,7 +74,7 @@ struct DuelsView: View {
                     .foregroundStyle(Color.wardInkSecondary)
             } else {
                 Text(fresh)
-                    .font(.caption)
+                    .font(WardType.caption)
                     .foregroundStyle(Color.wardInkSecondary)
             }
         }
@@ -146,7 +146,7 @@ struct DuelView: View {
             ScrollView {
                 VStack(spacing: 18) {
                     Text("\(pair.a) vs \(pair.b)")
-                        .font(.subheadline.weight(.semibold))
+                        .font(WardType.face(.subheadline, weight: .semibold))
                         .foregroundStyle(Color.wardInkSecondary)
                         .multilineTextAlignment(.center)
                     if index > 0 { feedback(order[index - 1]).transition(.identity) }
@@ -154,7 +154,7 @@ struct DuelView: View {
                         card(order[index])
                     }
                     Text("Swipe left for \(pair.a), right for \(pair.b), up for both.")
-                        .font(.caption)
+                        .font(WardType.caption)
                         .foregroundStyle(Color.wardInkSecondary)
                         .multilineTextAlignment(.center)
                 }
@@ -169,7 +169,7 @@ struct DuelView: View {
         let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         let turn: Double = Double(drag.width) / 20
         return Text(feature.text)
-            .font(.title3.weight(.semibold))
+            .font(WardType.face(.title3, weight: .semibold))
             .foregroundStyle(Color.wardInk)
             .multilineTextAlignment(.center)
             .padding(24)
@@ -180,7 +180,7 @@ struct DuelView: View {
             .overlay(alignment: .top) {
                 if let leaning = leaning {
                     Text(name(leaning))
-                        .font(.caption.weight(.bold))
+                        .font(WardType.face(.caption, weight: .bold))
                         .foregroundStyle(Color.wardInk)
                         .padding(.horizontal, 10).padding(.vertical, 4)
                         .wardInset(in: Capsule())
@@ -256,10 +256,10 @@ struct DuelView: View {
                 .contentTransition(.identity)
                 .accessibilityLabel(ok ? "Right" : "Wrong")
             VStack(alignment: .leading, spacing: 2) {
-                Text(line).font(.footnote.weight(.semibold)).foregroundStyle(Color.wardInk)
+                Text(line).font(WardType.face(.footnote, weight: .semibold)).foregroundStyle(Color.wardInk)
                     .contentTransition(.identity)
                 if !feature.why.isEmpty {
-                    Text(feature.why).font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                    Text(feature.why).font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                         .contentTransition(.identity)
                         .transition(.identity)
                 }
@@ -325,9 +325,9 @@ struct DuelView: View {
                     .font(.system(.largeTitle, design: .monospaced).weight(.bold))
                     .monospacedDigit()
                     .foregroundStyle(Color.wardInk)
-                Text(verdict).font(.subheadline).foregroundStyle(Color.wardInkSecondary)
+                Text(verdict).font(WardType.face(.subheadline, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                 Text("\(pair.a) vs \(pair.b)")
-                    .font(.footnote)
+                    .font(WardType.face(.footnote, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
             }
             .multilineTextAlignment(.center)
@@ -380,12 +380,12 @@ private struct DuelFeatureResult: View {
                 .foregroundStyle(colour)
                 .accessibilityLabel(ok ? "Right" : "Wrong")
             VStack(alignment: .leading, spacing: 2) {
-                Text(feature.text).font(.subheadline.weight(.medium)).foregroundStyle(Color.wardInk)
+                Text(feature.text).font(WardType.face(.subheadline, weight: .medium)).foregroundStyle(Color.wardInk)
                 Text(answerLine)
-                    .font(.caption.weight(.semibold))
+                    .font(WardType.face(.caption, weight: .semibold))
                     .foregroundStyle(Color.wardInk)
                 if !feature.why.isEmpty {
-                    Text(feature.why).font(.caption).foregroundStyle(Color.wardInkSecondary)
+                    Text(feature.why).font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
                 }
             }
             Spacer(minLength: 0)
@@ -408,8 +408,8 @@ struct ComparisonTableView: View {
             VStack(alignment: .leading, spacing: 16) {
                 Grid(alignment: .topLeading, horizontalSpacing: 12, verticalSpacing: 10) {
                     GridRow {
-                        Text(pair.a).font(.headline)
-                        Text(pair.b).font(.headline)
+                        Text(pair.a).font(WardType.headline)
+                        Text(pair.b).font(WardType.headline)
                     }
                     WardEtch().gridCellColumns(2)
                     ForEach(0..<rows, id: \.self) { row in
@@ -422,7 +422,7 @@ struct ComparisonTableView: View {
                         WardEtch().gridCellColumns(2)
                         GridRow {
                             Text("Both \u{2014} these do not tell them apart")
-                                .font(.subheadline.weight(.semibold))
+                                .font(WardType.face(.subheadline, weight: .semibold))
                                 .foregroundStyle(Color.wardInkSecondary)
                                 .gridCellColumns(2)
                         }
@@ -465,9 +465,9 @@ struct ComparisonTableView: View {
     private func cell(_ feature: LookalikeFeature?) -> some View {
         if let feature {
             VStack(alignment: .leading, spacing: 2) {
-                Text(feature.text).font(.subheadline).foregroundStyle(Color.wardInk)
+                Text(feature.text).font(WardType.face(.subheadline, weight: .regular)).foregroundStyle(Color.wardInk)
                 if !feature.why.isEmpty {
-                    Text(feature.why).font(.caption).foregroundStyle(Color.wardInkSecondary)
+                    Text(feature.why).font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

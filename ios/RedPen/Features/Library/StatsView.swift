@@ -57,7 +57,7 @@ struct StatsView: View {
             } footer: {
                 if let weakest = tried.first {
                     Text(Self.drillNote(weakest.subject))
-                        .font(.caption)
+                        .font(WardType.caption)
                 }
             }
             .wardRowBackground()
@@ -74,7 +74,7 @@ struct StatsView: View {
                         Spacer(minLength: 8)
                         if !store.ruleSheet.isEmpty {
                             Text("\(store.ruleSheet.count)")
-                                .font(.subheadline.monospacedDigit()).foregroundStyle(Color.wardInkSecondary)
+                                .font(WardType.face(.subheadline, weight: .regular).monospacedDigit()).foregroundStyle(Color.wardInkSecondary)
                         }
                     }
                 }
@@ -86,7 +86,7 @@ struct StatsView: View {
             if stats.isEmpty {
                 Section {
                     Text("Make an MCQ set and answer a few questions, and how you are doing in each subject will show here.")
-                        .font(.subheadline).foregroundStyle(Color.wardInkSecondary)
+                        .font(WardType.face(.subheadline, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                 }
                 .wardRowBackground()
             } else {
@@ -170,20 +170,20 @@ struct StatsView: View {
         Section {
             if rows.isEmpty {
                 Text("Pick Sure, Maybe or Guess before checking an answer, and how often each is right will show here.")
-                    .font(.subheadline).foregroundStyle(Color.wardInkSecondary)
+                    .font(WardType.face(.subheadline, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             } else {
                 ForEach(rows) { row in
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(alignment: .firstTextBaseline) {
-                            Text(row.confidence.title).font(.body.weight(.semibold))
+                            Text(row.confidence.title).font(WardType.face(.body, weight: .semibold))
                             Spacer(minLength: 8)
                             Text("\(Self.percent(row.accuracy)) right")
-                                .font(.body.weight(.semibold).monospacedDigit())
+                                .font(WardType.face(.body, weight: .semibold).monospacedDigit())
                                 .foregroundStyle(Color.wardInk)
                         }
                         AccuracyBar(fraction: row.accuracy, color: Color.wardPrimaryInk)
                         Text(Self.counted(row.answered, "answer"))
-                            .font(.caption).foregroundStyle(Color.wardInkSecondary)
+                            .font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
                     }
                     .padding(.vertical, 2)
                     .accessibilityElement(children: .combine)
@@ -200,7 +200,7 @@ struct StatsView: View {
                         Label("Confident but wrong", systemImage: "exclamationmark.triangle.fill")
                         Spacer(minLength: 8)
                         Text("\(confidentWrong.count)")
-                            .font(.subheadline.monospacedDigit()).foregroundStyle(Color.wardInkSecondary)
+                            .font(WardType.face(.subheadline, weight: .regular).monospacedDigit()).foregroundStyle(Color.wardInkSecondary)
                     }
                 }
                 Button {
@@ -227,7 +227,7 @@ struct StatsView: View {
         Section {
             if shares.isEmpty {
                 Text("After a wrong answer, tap why you think you lost the mark. The reasons you give show here with something to do about each.")
-                    .font(.subheadline).foregroundStyle(Color.wardInkSecondary)
+                    .font(WardType.face(.subheadline, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             } else {
                 ForEach(shares) { share in
                     reasonRow(share)
@@ -247,10 +247,10 @@ struct StatsView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
                 Label(share.reason.title, systemImage: share.reason.symbol)
-                    .font(.body.weight(.semibold))
+                    .font(WardType.face(.body, weight: .semibold))
                 Spacer(minLength: 8)
                 Text(Self.percent(share.share))
-                    .font(.body.weight(.semibold).monospacedDigit())
+                    .font(WardType.face(.body, weight: .semibold).monospacedDigit())
                     .foregroundStyle(Color.wardInk)
             }
             AccuracyBar(fraction: share.share, color: Color.wardPrimaryInk)
@@ -269,7 +269,7 @@ struct StatsView: View {
                 startQuiz(store.reasonQuiz(.didntKnow, named: "Practise these"))
             } label: {
                 Label("Practise these \u{00B7} \(questions)", systemImage: "arrow.right.circle")
-                    .font(.subheadline)
+                    .font(WardType.face(.subheadline, weight: .regular))
             }
             .buttonStyle(.borderless)
         case .misread:
@@ -277,7 +277,7 @@ struct StatsView: View {
                 startQuiz(store.reasonQuiz(.misread, named: "Slow reading drill"), minReadSeconds: 15)
             } label: {
                 Label("Slow reading drill \u{00B7} key words marked, 15 s a question", systemImage: "arrow.right.circle")
-                    .font(.subheadline)
+                    .font(WardType.face(.subheadline, weight: .regular))
             }
             .buttonStyle(.borderless)
         case .changedAnswer:
@@ -287,7 +287,7 @@ struct StatsView: View {
                     tip: "Change an answer only when you find a clue in the stem you missed the first time, not because a second option starts to look good. Your first answer was right here.",
                     picks: store.picks(for: .changedAnswer))
             } label: {
-                Text("A tip, and the \(questions)").font(.subheadline).foregroundStyle(Color.wardInk)
+                Text("A tip, and the \(questions)").font(WardType.face(.subheadline, weight: .regular)).foregroundStyle(Color.wardInk)
             }
         case .outOfTime:
             Button {
@@ -295,7 +295,7 @@ struct StatsView: View {
             } label: {
                 Label("Timed drill \u{00B7} 10 questions at \(ExamTrack.current.secondsPerQuestion) s each",
                       systemImage: "arrow.right.circle")
-                    .font(.subheadline)
+                    .font(WardType.face(.subheadline, weight: .regular))
             }
             .buttonStyle(.borderless)
         case .lookalikes:
@@ -305,7 +305,7 @@ struct StatsView: View {
                     tip: "For each, name the one feature that tells the right answer from the option you chose.",
                     picks: store.picks(for: .lookalikes))
             } label: {
-                Text("See the \(questions)").font(.subheadline).foregroundStyle(Color.wardInk)
+                Text("See the \(questions)").font(WardType.face(.subheadline, weight: .regular)).foregroundStyle(Color.wardInk)
             }
         }
     }
@@ -327,9 +327,9 @@ struct StatsView: View {
 
     private func figure(_ value: String, _ caption: String, symbol: String, color: Color) -> some View {
         VStack(spacing: 3) {
-            Image(systemName: symbol).font(.caption).foregroundStyle(color)
-            Text(value).font(.title2.weight(.bold).monospacedDigit())
-            Text(caption).font(.caption2).foregroundStyle(Color.wardInkSecondary)
+            Image(systemName: symbol).font(WardType.caption).foregroundStyle(color)
+            Text(value).font(WardType.face(.title2, weight: .bold).monospacedDigit())
+            Text(caption).font(WardType.face(.caption2, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                 .lineLimit(1).minimumScaleFactor(0.8)
         }
         .frame(maxWidth: .infinity)
@@ -344,15 +344,15 @@ struct StatsView: View {
         let line: String = "\(s.answered) answered \u{00B7} \(questions)"
         return VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
-                Text(s.subject).font(.body.weight(.semibold)).lineLimit(1)
+                Text(s.subject).font(WardType.face(.body, weight: .semibold)).lineLimit(1)
                 Spacer(minLength: 8)
                 Text(percent)
-                    .font(.body.weight(.semibold).monospacedDigit())
+                    .font(WardType.face(.body, weight: .semibold).monospacedDigit())
                     .foregroundStyle(color)
             }
             AccuracyBar(fraction: fraction, color: color)
             Text(line)
-                .font(.caption).foregroundStyle(Color.wardInkSecondary)
+                .font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
         }
         .padding(.vertical, 4)
         .accessibilityElement(children: .combine)

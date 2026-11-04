@@ -91,7 +91,7 @@ struct MCQSummaryView: View {
         if let added = rulesAdded, added > 0 {
             let plural: String = added == 1 ? "" : "s"
             Label("\(added) rule\(plural) added to your rule sheet", systemImage: "checkmark")
-                .font(.subheadline.weight(.semibold))
+                .font(WardType.face(.subheadline, weight: .semibold))
                 .foregroundStyle(Color.wardInkSecondary)
                 .transition(.identity)
         }
@@ -237,13 +237,13 @@ struct MCQSummaryView: View {
         VStack(spacing: 12) {
             if isUnsaved && saved.wrappedValue {
                 Label("Saved to library", systemImage: "checkmark")
-                    .font(.subheadline.weight(.semibold))
+                    .font(WardType.face(.subheadline, weight: .semibold))
                     .foregroundStyle(Color.wardInkSecondary)
                     .transition(.identity)
             }
             if mistakesSaved {
                 Label("In your library as \u{201C}Mistakes\u{201D}", systemImage: "checkmark")
-                    .font(.subheadline.weight(.semibold))
+                    .font(WardType.face(.subheadline, weight: .semibold))
                     .foregroundStyle(Color.wardInkSecondary)
                     .transition(.identity)
             }
@@ -299,13 +299,13 @@ struct MCQSummaryView: View {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
                     .foregroundStyle(correct ? Color.wardPrimaryInk : Color.wardDanger)
-                    .font(.title3)
+                    .font(WardType.face(.title3, weight: .regular))
                     .accessibilityLabel(correct ? "Right" : "Wrong")
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(q.stem).font(.body).lineSpacing(2).foregroundStyle(Color.wardInk)
+                    Text(q.stem).font(WardType.body).lineSpacing(2).foregroundStyle(Color.wardInk)
                     if !correct, q.options.indices.contains(q.correctIndex) {
                         Text("Answer: \(q.options[q.correctIndex])")
-                            .font(.subheadline.weight(.medium))
+                            .font(WardType.face(.subheadline, weight: .medium))
                             .foregroundStyle(Color.wardInk)
                     }
                 }

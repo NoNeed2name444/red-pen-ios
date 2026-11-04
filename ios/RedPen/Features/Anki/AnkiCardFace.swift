@@ -32,7 +32,7 @@ struct AnkiCardFace: View {
                 // as Anki shows it: the sentence stays where it is, and the
                 // answer appears in the gap it was hidden in
                 Text(Self.clozeSentence(card.clozeText, revealed: revealed))
-                    .font(.title3.weight(.semibold))
+                    .font(WardType.face(.title3, weight: .semibold))
                     .foregroundStyle(Color.wardInk)
                     .fixedSize(horizontal: false, vertical: true)
                     // the answer is in the gap at once: it never fades in
@@ -40,7 +40,7 @@ struct AnkiCardFace: View {
                     .accessibilityLabel(Self.clozeSpoken(card.clozeText, revealed: revealed))
             } else {
                 Text(front)
-                    .font(.title3.weight(.semibold))
+                    .font(WardType.face(.title3, weight: .semibold))
                     .foregroundStyle(Color.wardInk)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -103,7 +103,7 @@ struct AnkiCardFace: View {
                     openSource(found.source, found.page)
                 } label: {
                     Label(label, systemImage: "doc.text.magnifyingglass")
-                        .font(.footnote)
+                        .font(WardType.face(.footnote, weight: .regular))
                         .frame(minHeight: 44, alignment: .leading)
                 }
                 .buttonStyle(.plain)
@@ -111,7 +111,7 @@ struct AnkiCardFace: View {
                 .accessibilityHint("Opens the lecture at \(found.source.kind.pageNoun.lowercased()) \(found.page)")
             } else {
                 Text(label)
-                    .font(.footnote)
+                    .font(WardType.face(.footnote, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
             }
         }
@@ -212,7 +212,7 @@ struct AnkiCardFace: View {
             // the mask simply disappears from the picture above; the answer is
             // the label it was covering, which is now readable
             if let answer = card.bullets.first {
-                Text(Self.highlighted(answer)).font(.body.weight(.medium))
+                Text(Self.highlighted(answer)).font(WardType.face(.body, weight: .medium))
             }
         }
     }
@@ -220,7 +220,7 @@ struct AnkiCardFace: View {
     private var why: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Why / how").wardSmallCaps().accessibilityAddTraits(.isHeader)
-            Text(card.why).font(.body).lineSpacing(2).foregroundStyle(Color.wardInk)
+            Text(card.why).font(WardType.body).lineSpacing(2).foregroundStyle(Color.wardInk)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -390,7 +390,7 @@ struct AnkiRatingBar: View {
         VStack(spacing: 12) {
             if hints {
                 Text("How well did you remember it?")
-                    .font(.subheadline.weight(.semibold))
+                    .font(WardType.face(.subheadline, weight: .semibold))
                     .foregroundStyle(Color.wardInkSecondary)
                     // every line it wraps to, whole: the deck is offered
                     // less height than it asks for at AX sizes, and the

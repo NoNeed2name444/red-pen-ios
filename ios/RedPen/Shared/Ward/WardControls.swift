@@ -308,9 +308,9 @@ private struct WardButtonFace: View {
     }
     private var font: Font {
         switch kind {
-        case .primary: return .headline.weight(.bold)
-        case .secondary, .destructive: return .headline
-        case .compact, .quiet: return .subheadline.weight(.semibold)
+        case .primary: return WardType.face(.headline, weight: .bold)
+        case .secondary, .destructive: return WardType.headline
+        case .compact, .quiet: return WardType.face(.subheadline, weight: .semibold)
         }
     }
     private var small: Bool { kind == .compact || kind == .quiet }
@@ -436,7 +436,7 @@ private struct WardChipButtonFace: View {
         let down: Bool = on || held
         label
             .labelStyle(WardGlyphLabelStyle(glyph: ink))
-            .font(.subheadline.weight(.semibold))
+            .font(WardType.face(.subheadline, weight: .semibold))
             .foregroundStyle(ink)
             .padding(.horizontal, WardSpace.m)
             .padding(.vertical, WardSpace.s)
@@ -578,7 +578,7 @@ private struct WardCircleButtonFace: View {
         // chosen stays pressed in, disabled too
         let down: Bool = on || held
         label
-            .font(.body.weight(.semibold))
+            .font(WardType.face(.body, weight: .semibold))
             .foregroundStyle(ink)
             .frame(minWidth: 44, minHeight: 44)
             .background {
@@ -617,7 +617,7 @@ struct WardChip: View {
             Text(text)
                 .modifier(OneLineLabel())
         }
-        .font(.caption.weight(.semibold))
+        .font(WardType.face(.caption, weight: .semibold))
         // words are ink (the owner, 23 Oct, D1); the tone is on the glyph
         .foregroundStyle(Color.wardInk)
         .padding(.horizontal, WardSpace.s)
@@ -644,7 +644,7 @@ struct WardPill: View {
                 // at the largest sizes would otherwise cut it to one
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .font(.subheadline.weight(.bold))
+        .font(WardType.face(.subheadline, weight: .bold))
         // words are ink (the owner, 23 Oct, D1); the amber is on the clock
         .foregroundStyle(Color.wardInk)
         .padding(.horizontal, WardSpace.m)
@@ -813,7 +813,7 @@ struct WardProgressViewStyle: ProgressViewStyle {
                 configuration.label
                 WardGroove(fraction: fraction)
                 configuration.currentValueLabel
-                    .font(.caption)
+                    .font(WardType.caption)
                     .foregroundStyle(Color.wardInkSecondary)
             }
             .accessibilityRepresentation {
@@ -888,7 +888,7 @@ private struct WardSegmentFace: View {
         // chosen stays pressed in, disabled too
         let down: Bool = chosen || held
         label
-            .font(.subheadline.weight(chosen ? .semibold : .regular))
+            .font(WardType.face(.subheadline, weight: chosen ? .semibold : .regular))
             .contentTransition(.identity)
             .foregroundStyle(ink)
             .lineLimit(1)
@@ -924,7 +924,7 @@ struct WardSectionLabel<Trailing: View>: View {
             Spacer()
             // a link's words in ink (the owner, 23 Oct, D1), its glyph in the accent
             trailing.labelStyle(WardGlyphLabelStyle(glyph: .wardPrimaryInk))
-                .font(.subheadline.weight(.semibold)).foregroundStyle(Color.wardInk)
+                .font(WardType.face(.subheadline, weight: .semibold)).foregroundStyle(Color.wardInk)
         }
     }
 }
@@ -987,15 +987,15 @@ struct WardRow: View {
         // have to end above New set
         VStack(alignment: .leading, spacing: 2) {
             if let overline { Text(overline).wardSmallCaps() }
-            Text(title).font(.body.weight(.semibold)).foregroundStyle(Color.wardInk)
-            if let detail { Text(detail).font(.subheadline).foregroundStyle(Color.wardInkSecondary) }
+            Text(title).font(WardType.face(.body, weight: .semibold)).foregroundStyle(Color.wardInk)
+            if let detail { Text(detail).font(WardType.face(.subheadline, weight: .regular)).foregroundStyle(Color.wardInkSecondary) }
         }
         .multilineTextAlignment(.leading)
     }
 
     private var chevronMark: some View {
         Image(systemName: "chevron.right")
-            .font(.footnote.weight(.semibold))
+            .font(WardType.face(.footnote, weight: .semibold))
             .foregroundStyle(Color.wardInkSecondary)
             .accessibilityHidden(true)
     }

@@ -127,13 +127,13 @@ struct CardsEditorView: View {
     private func cardRow(_ card: AnkiCard) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(card.type == .cloze ? card.clozeText : card.displayFront)
-                .font(.subheadline).lineLimit(2)
+                .font(WardType.face(.subheadline, weight: .regular)).lineLimit(2)
                 .foregroundStyle(Color.wardInk)
             HStack(spacing: 6) {
-                Text(card.type.rawValue).font(.caption2.weight(.semibold))
+                Text(card.type.rawValue).font(WardType.face(.caption2, weight: .semibold))
                     .foregroundStyle(Color.wardInk)
                 if let source = card.source, !source.isEmpty {
-                    Text(source).font(.caption2).foregroundStyle(Color.wardInkSecondary)
+                    Text(source).font(WardType.face(.caption2, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                 }
                 TagLine(tags: card.tags)
             }
@@ -143,16 +143,16 @@ struct CardsEditorView: View {
 
     private func questionRow(_ question: MCQQuestion) -> some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(question.stem).font(.subheadline).lineLimit(2)
+            Text(question.stem).font(WardType.face(.subheadline, weight: .regular)).lineLimit(2)
                 .foregroundStyle(Color.wardInk)
             HStack(spacing: 6) {
                 if question.options.indices.contains(question.correctIndex) {
                     WardInkLabel(question.options[question.correctIndex], systemImage: "checkmark", glyph: Color.wardPrimaryInk)
-                        .font(.caption2).lineLimit(1)
+                        .font(WardType.face(.caption2, weight: .regular)).lineLimit(1)
                         .accessibilityLabel("Answer: \(question.options[question.correctIndex])")
                 }
                 if let source = question.source, !source.isEmpty {
-                    Text(source).font(.caption2).foregroundStyle(Color.wardInkSecondary)
+                    Text(source).font(WardType.face(.caption2, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                 }
                 TagLine(tags: question.tags)
             }

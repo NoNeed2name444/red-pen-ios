@@ -68,7 +68,7 @@ struct LinkDeviceView: View {
     private var joinSection: some View {
         Section {
             TextField("Code", text: $typed)
-                .font(.title3.monospaced())
+                .font(WardType.face(.title3, weight: .regular).monospaced())
                 .textInputAutocapitalization(.characters)
                 .autocorrectionDisabled()
                 .submitLabel(.join)

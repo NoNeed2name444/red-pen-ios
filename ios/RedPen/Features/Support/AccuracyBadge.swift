@@ -72,7 +72,7 @@ struct AccuracySetMark: View {
         if let summary = accuracy.summary(for: set), summary.checked > 0 {
             let grade: AccuracyGrade = summary.grade
             Image(systemName: grade.symbol)
-                .font(.caption)
+                .font(WardType.caption)
                 .foregroundStyle(grade.color)
                 .accessibilityLabel("Accuracy: " + (summary.line ?? grade.title))
         }
@@ -139,7 +139,7 @@ struct AccuracyWhySheet: View {
         let percent: Int = Int((a.probability * 100).rounded())
         return Section {
             AccuracyBadgeFace(grade: a.grade, checking: accuracy.isChecking(item))
-            Text(explanation(a, percent: percent)).font(.footnote)
+            Text(explanation(a, percent: percent)).font(WardType.face(.footnote, weight: .regular))
             if a.grade == .unchecked && !accuracy.isChecking(item) {
                 Button {
                     Task { await checkNow() }
@@ -148,7 +148,7 @@ struct AccuracyWhySheet: View {
                 }
                 .disabled(working)
             }
-            if let message { Text(message).font(.footnote).foregroundStyle(Color.wardInkSecondary) }
+            if let message { Text(message).font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary) }
         } header: {
             Text("Result")
         } footer: {
@@ -175,9 +175,9 @@ struct AccuracyWhySheet: View {
             ForEach(assessment.rules, id: \.self) { hit in
                 VStack(alignment: .leading, spacing: 2) {
                     Label(Self.ruleTitle(hit.rule), systemImage: "exclamationmark.triangle.fill")
-                        .font(.caption.weight(.semibold))
+                        .font(WardType.face(.caption, weight: .semibold))
                         .labelStyle(WardGlyphLabelStyle(glyph: hit.isSevere ? Color.wardDanger : Color.wardWarning)).foregroundStyle(Color.wardInk)
-                    Text(hit.detail).font(.footnote)
+                    Text(hit.detail).font(WardType.face(.footnote, weight: .regular))
                 }
             }
         }
@@ -189,19 +189,19 @@ struct AccuracyWhySheet: View {
             ForEach(votes, id: \.self) { vote in
                 VStack(alignment: .leading, spacing: 3) {
                     HStack {
-                        Text(vote.model).font(.caption.weight(.semibold))
+                        Text(vote.model).font(WardType.face(.caption, weight: .semibold))
                         Spacer()
                         WardChip(text: Self.riskWords(vote.risk), tone: vote.risk >= 3 ? .danger : .green,
                                  symbol: vote.risk >= 3 ? "xmark.circle.fill" : "checkmark.circle.fill")
                     }
                     if let answer = vote.answer, item.kind == .mcq {
-                        Text("Its own answer: " + answer).font(.caption).foregroundStyle(Color.wardInkSecondary)
+                        Text("Its own answer: " + answer).font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
                     }
                     ForEach(vote.issues, id: \.self) { issue in
-                        Text(issue).font(.footnote)
+                        Text(issue).font(WardType.face(.footnote, weight: .regular))
                     }
                     if !vote.cites.isEmpty {
-                        Text("Cites " + vote.cites.joined(separator: ", ")).font(.caption2).foregroundStyle(Color.wardInkSecondary)
+                        Text("Cites " + vote.cites.joined(separator: ", ")).font(WardType.face(.caption2, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                     }
                 }
             }
@@ -215,8 +215,8 @@ struct AccuracyWhySheet: View {
                 if let url = URL(string: e.url) {
                     Link(destination: url) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("[" + e.id + "] " + e.source).font(.caption.weight(.semibold))
-                            Text(e.title).font(.footnote).lineLimit(3)
+                            Text("[" + e.id + "] " + e.source).font(WardType.face(.caption, weight: .semibold))
+                            Text(e.title).font(WardType.face(.footnote, weight: .regular)).lineLimit(3)
                         }
                     }
                 }
@@ -234,7 +234,7 @@ struct AccuracyWhySheet: View {
 
     private func fixSection(_ fix: AccuracySuggestion) -> some View {
         Section {
-            Text(Self.fixWords(fix)).font(.footnote)
+            Text(Self.fixWords(fix)).font(WardType.face(.footnote, weight: .regular))
             Button {
                 accept(fix)
             } label: {

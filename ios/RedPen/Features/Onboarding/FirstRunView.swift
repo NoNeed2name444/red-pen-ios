@@ -225,16 +225,16 @@ private struct FirstRunExamplesPage: View {
         Button(action: action) {
             HStack(alignment: .top, spacing: WardSpace.m) {
                 Image(systemName: symbol)
-                    .font(.title2)
+                    .font(WardType.face(.title2, weight: .regular))
                     .foregroundStyle(.tint)
                     .frame(width: 32)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: WardSpace.xs) {
                     Text(title)
-                        .font(.body.weight(.semibold))
+                        .font(WardType.face(.body, weight: .semibold))
                         .foregroundStyle(Color.wardInk)
                     Text(detail)
-                        .font(.caption)
+                        .font(WardType.caption)
                         .foregroundStyle(Color.wardInkSecondary)
                 }
                 Spacer(minLength: 0)
@@ -292,11 +292,11 @@ private struct FirstRunHeading: View {
                 .foregroundStyle(.tint)
                 .accessibilityHidden(true)
             Text(title)
-                .font(.largeTitle.bold())
+                .font(WardType.face(.largeTitle, weight: .bold))
                 .foregroundStyle(Color.wardInk)
                 .accessibilityAddTraits(.isHeader)
             Text(detail)
-                .font(.subheadline)
+                .font(WardType.face(.subheadline, weight: .regular))
                 .foregroundStyle(Color.wardInkSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -310,7 +310,7 @@ private extension View {
                         next: @escaping () -> Void, skip: @escaping () -> Void) -> some View {
         let bar = StudyActionBar(folds: false) {
             Button(action: next) {
-                Text(nextTitle).font(.headline)
+                Text(nextTitle).font(WardType.headline)
                     .contentTransition(.identity)
             }
             .buttonStyle(.bigPrimary)

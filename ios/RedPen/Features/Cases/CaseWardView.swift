@@ -127,7 +127,7 @@ struct CaseWardView: View {
                     .accessibilityLabel("\(file.patient.spoken), seen in \(file.setting.label)")
                     if !file.patient.about.isEmpty {
                         Text(file.patient.about)
-                            .font(.footnote)
+                            .font(WardType.face(.footnote, weight: .regular))
                             .foregroundStyle(CaseInk.biro)
                     }
                 }
@@ -139,7 +139,7 @@ struct CaseWardView: View {
                 CaseVitalsGrid(obs: file.arrival)
             }
             Text("\u{201C}" + file.complaint + "\u{201D}")
-                .font(arriving ? .title3 : .body)
+                .font(arriving ? WardType.face(.title3, weight: .regular) : WardType.body)
                 .italic()
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityLabel("The patient says: " + file.complaint)
@@ -173,10 +173,10 @@ struct CaseWardView: View {
             ForEach(Array(file.clerking.parts.enumerated()), id: \.offset) { _, part in
                 VStack(alignment: .leading, spacing: WardSpace.xs) {
                     Text(part.label)
-                        .font(.footnote.weight(.semibold))
+                        .font(WardType.face(.footnote, weight: .semibold))
                         .foregroundStyle(CaseInk.biro)
                     Text(part.text)
-                        .font(.subheadline)
+                        .font(WardType.face(.subheadline, weight: .regular))
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .accessibilityElement(children: .combine)
@@ -188,7 +188,7 @@ struct CaseWardView: View {
         VStack(alignment: .leading, spacing: 8) {
             CaseLabel("Your shift")
             Text("You have \(file.budgetMinutes) minutes. Every examination and test costs time. Keep a ranked differential as you go, then decide the diagnosis and the next step.")
-                .font(.subheadline)
+                .font(WardType.face(.subheadline, weight: .regular))
                 .foregroundStyle(Color.wardInk)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -224,7 +224,7 @@ struct CaseWardView: View {
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: WardSpace.xs) {
                     Text(step.label)
-                        .font(.subheadline.weight(.semibold))
+                        .font(WardType.face(.subheadline, weight: .semibold))
                         .foregroundStyle(done ? CaseInk.biro : Color.wardInk)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
@@ -253,7 +253,7 @@ struct CaseWardView: View {
             CaseLabel("Clinical note")
             if run.taken.isEmpty {
                 Text("Findings appear here as you ask, examine and test.")
-                    .font(.subheadline)
+                    .font(WardType.face(.subheadline, weight: .regular))
                     .foregroundStyle(CaseInk.biro)
                     .transition(.identity)
             }
@@ -271,7 +271,7 @@ struct CaseWardView: View {
         VStack(alignment: .leading, spacing: WardSpace.s) {
             HStack(alignment: .firstTextBaseline) {
                 Text(step.group.label + " \u{00B7} " + step.label)
-                    .font(.footnote.weight(.semibold))
+                    .font(WardType.face(.footnote, weight: .semibold))
                     .foregroundStyle(CaseInk.biro)
                 Spacer(minLength: 8)
                 Text("\(at) min")
@@ -279,7 +279,7 @@ struct CaseWardView: View {
                     .foregroundStyle(CaseInk.biro)
             }
             Text(step.finding)
-                .font(.body)
+                .font(WardType.body)
                 .fixedSize(horizontal: false, vertical: true)
             if !step.results.isEmpty {
                 CaseResultsTable(results: step.results)
@@ -369,7 +369,7 @@ struct CaseLadderPanel: View {
                 CaseLabel("Your ladder")
                 if run.ladder.isEmpty {
                     Text("Up to three working diagnoses, the most likely first. Change them whenever you like.")
-                        .font(.subheadline)
+                        .font(WardType.face(.subheadline, weight: .regular))
                         .foregroundStyle(CaseInk.biro)
                         .fixedSize(horizontal: false, vertical: true)
                         .transition(.identity)
@@ -391,7 +391,7 @@ struct CaseLadderPanel: View {
                 }
                 if run.ladder.count >= CaseRun.rungs {
                     Text("The ladder is full: a new diagnosis takes the bottom rung.")
-                        .font(.caption)
+                        .font(WardType.caption)
                         .foregroundStyle(CaseInk.biro)
                         .transition(.identity)
                 }
@@ -399,7 +399,7 @@ struct CaseLadderPanel: View {
                     ForEach(pickable, id: \.self) { name in
                         Button { add(name) } label: {
                             Text(name)
-                                .font(.subheadline)
+                                .font(WardType.face(.subheadline, weight: .regular))
                                 .multilineTextAlignment(.leading)
                                 .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                                 .padding(.horizontal, WardSpace.m)
@@ -431,7 +431,7 @@ struct CaseLadderPanel: View {
                 .wardInset(in: Circle())
                 .accessibilityHidden(true)
             Text(name)
-                .font(.body.weight(leading ? .semibold : .regular))
+                .font(WardType.face(.body, weight: leading ? .semibold : .regular))
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityLabel("Rung \(index + 1) of \(run.ladder.count): \(name)" + (leading ? ", leading" : ""))
             iconButton("chevron.up", "Move up", enabled: index > 0) { change { $0.move(name, up: true) } }
@@ -445,7 +445,7 @@ struct CaseLadderPanel: View {
                             action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.subheadline.weight(.semibold))
+                .font(WardType.face(.subheadline, weight: .semibold))
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
         }

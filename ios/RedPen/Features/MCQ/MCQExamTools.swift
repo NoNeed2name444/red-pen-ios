@@ -79,7 +79,7 @@ struct HighlightableStem: View {
         VStack(alignment: .leading, spacing: 4) {
             if prompt {
                 Label("Tap a phrase to highlight it", systemImage: "highlighter")
-                    .font(.caption.weight(.semibold))
+                    .font(WardType.face(.caption, weight: .semibold))
                     .foregroundStyle(Color.wardInkSecondary)
             }
             ForEach(Array(pieces.enumerated()), id: \.offset) { index, piece in
@@ -129,11 +129,11 @@ struct AttendingHintCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Label("Attending\u{2019}s hint", systemImage: "stethoscope")
-                .font(.subheadline.weight(.semibold))
+                .font(WardType.face(.subheadline, weight: .semibold))
                 .labelStyle(WardGlyphLabelStyle(glyph: Color.wardPrimaryInk)).foregroundStyle(Color.wardInk)
             if let text {
                 Text(text)
-                    .font(.body)
+                    .font(WardType.body)
                     .foregroundStyle(Color.wardInk)
                     .fixedSize(horizontal: false, vertical: true)
                     .transition(.identity)
@@ -222,7 +222,7 @@ struct LabRangesSections: View {
         let found: [LabRange] = LabRanges.search(query)
         Section {
             Text(LabRanges.caveat)
-                .font(.footnote)
+                .font(WardType.face(.footnote, weight: .regular))
                 .foregroundStyle(Color.wardInkSecondary)
         }
         .wardRowBackground()
@@ -245,7 +245,7 @@ struct LabRangesSections: View {
             Text(row.name)
             Spacer(minLength: 8)
             Text(value)
-                .font(.body.monospacedDigit())
+                .font(WardType.body.monospacedDigit())
                 .foregroundStyle(Color.wardInkSecondary)
                 .multilineTextAlignment(.trailing)
         }

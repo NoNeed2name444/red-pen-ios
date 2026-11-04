@@ -68,7 +68,7 @@ struct LensAnswerSheet: View {
         HStack(spacing: 8) {
             WardChip(text: question.type.chipLabel, tone: .blue, symbol: question.type.symbol)
             if let number = question.number {
-                Text("Question " + number).font(.caption).foregroundStyle(Color.wardInkSecondary)
+                Text("Question " + number).font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
             }
             Spacer(minLength: 0)
         }
@@ -78,7 +78,7 @@ struct LensAnswerSheet: View {
     private var questionCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(question.stem)
-                .font(.body)
+                .font(WardType.body)
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
                 .foregroundStyle(Color.wardInk)
@@ -103,7 +103,7 @@ struct LensAnswerSheet: View {
             if !a.answeredBy.isEmpty {
                 Label("Answered by " + a.answeredBy + ". Check anything that matters against your notes.",
                       systemImage: "cpu")
-                    .font(.caption)
+                    .font(WardType.caption)
                     .foregroundStyle(Color.wardInkSecondary)
             }
         case .failed(let why):
@@ -112,7 +112,7 @@ struct LensAnswerSheet: View {
             // the one "working" trace (EcgLoader), still under Reduce Motion
             HStack(spacing: WardSpace.s) {
                 EcgLoader()
-                Text("Answering\u{2026}").font(.caption).foregroundStyle(Color.wardInkSecondary)
+                Text("Answering\u{2026}").font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .wardCard()
@@ -210,7 +210,7 @@ struct LensAnswerBody: View {
         return VStack(alignment: .leading, spacing: 12) {
             WardInkLabel(isTrue ? "True" : "False", systemImage: isTrue ? "checkmark.circle.fill" : "xmark.circle.fill",
                          glyph: colour)
-                .font(.title2.weight(.bold))
+                .font(WardType.face(.title2, weight: .bold))
                 .padding(.horizontal, WardSpace.gutter).padding(.vertical, 10)
                 .wardInset(in: Capsule())
             if !answer.correction.isEmpty {
@@ -256,7 +256,7 @@ struct LensAnswerBody: View {
     private var osce: some View {
         VStack(alignment: .leading, spacing: 12) {
             if !answer.answer.isEmpty {
-                Text(answer.answer).font(.headline)
+                Text(answer.answer).font(WardType.headline)
             }
             section("Checklist, in order") { numbered(answer.steps) }
             explanation(title: "What examiners look for")
@@ -270,7 +270,7 @@ struct LensAnswerBody: View {
             if question.type == .imageLabel {
                 Label("Answered from the question\u{2019}s words only; the picture itself is not sent.",
                       systemImage: "photo")
-                    .font(.caption)
+                    .font(WardType.caption)
                     .foregroundStyle(Color.wardInkSecondary)
             }
             explanation(title: "Why")
@@ -307,7 +307,7 @@ struct LensAnswerBody: View {
                 .wardSmallCaps()
                 .accessibilityAddTraits(.isHeader)
             content()
-                .font(.body)
+                .font(WardType.body)
                 .foregroundStyle(Color.wardInk)
                 .fixedSize(horizontal: false, vertical: true)
                 .textSelection(.enabled)
@@ -319,7 +319,7 @@ struct LensAnswerBody: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title).wardSmallCaps()
             Text(value)
-                .font(.title3.weight(.bold))
+                .font(WardType.face(.title3, weight: .bold))
                 .foregroundStyle(Color.wardInk)
                 .fixedSize(horizontal: false, vertical: true)
                 .textSelection(.enabled)
@@ -381,12 +381,12 @@ struct LensOptionRow: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 12) {
                 Text(letter)
-                    .font(.body.weight(.bold).monospaced())
+                    .font(WardType.face(.body, weight: .bold).monospaced())
                     .foregroundStyle(letterInk)
                     .frame(width: 32, height: 32)
                     .accessibilityHidden(true)
                 Text(text)
-                    .font(.body)
+                    .font(WardType.body)
                     .foregroundStyle(wrong ? Color.wardFadedInk : Color.wardInk)
                     .strikethrough(wrong, color: Color.wardFadedInk)
                     .fixedSize(horizontal: false, vertical: true)
@@ -394,12 +394,12 @@ struct LensOptionRow: View {
                 if right {
                     Image(systemName: "checkmark.circle.fill").foregroundStyle(Color.wardPrimaryInk)
                 } else if wrong {
-                    Image(systemName: "xmark").foregroundStyle(Color.wardFadedInk).font(.caption.weight(.bold))
+                    Image(systemName: "xmark").foregroundStyle(Color.wardFadedInk).font(WardType.face(.caption, weight: .bold))
                 }
             }
             if !note.isEmpty {
                 Text(note)
-                    .font(.callout)
+                    .font(WardType.face(.callout, weight: .regular))
                     .foregroundStyle(wrong ? Color.wardFadedInk : Color.wardInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.leading, 44)
@@ -466,7 +466,7 @@ struct LensAccuracyRow: View {
                     }
                 }
                 if let message {
-                    Text(message).font(.caption).foregroundStyle(Color.wardInkSecondary)
+                    Text(message).font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
                 }
                 ForEach(evidence.prefix(4), id: \.id) { ref in
                     evidenceLink(ref)
@@ -484,10 +484,10 @@ struct LensAccuracyRow: View {
         let label: String = (ref.source.isEmpty ? "" : ref.source + ": ") + (ref.title.isEmpty ? ref.url : ref.title)
         if let url = URL(string: ref.url), !ref.url.isEmpty {
             Link(destination: url) {
-                Label(label, systemImage: "doc.text.magnifyingglass").font(.caption)
+                Label(label, systemImage: "doc.text.magnifyingglass").font(WardType.caption)
             }
         } else {
-            Label(label, systemImage: "doc.text").font(.caption)
+            Label(label, systemImage: "doc.text").font(WardType.caption)
         }
     }
 

@@ -286,7 +286,7 @@ struct MockSittingView: View {
             }
             HighlightableStem(stem: q.stem, plain: AttributedString(q.stem), marked: marked,
                               highlighting: highlighting)
-                .font(.title3.weight(.semibold))
+                .font(WardType.face(.title3, weight: .semibold))
                 .foregroundStyle(Color.wardInk)
                 .lineSpacing(3)
             if let image = questionImage {
@@ -466,7 +466,7 @@ struct MockSittingView: View {
                     .overlay(shape.strokeBorder(here ? Color.wardInk : Color.clear, lineWidth: 2))
                 if marked {
                     Image(systemName: "flag.fill")
-                        .font(.caption2)
+                        .font(WardType.face(.caption2, weight: .regular))
                         .foregroundStyle(Color.wardWarning)
                         .padding(4)
                 }

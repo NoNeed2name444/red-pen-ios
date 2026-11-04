@@ -225,7 +225,7 @@ struct ScoreRing: View {
                 Text(label).scaledFont(38, relativeTo: .largeTitle, weight: .semibold, design: .monospaced, maxSize: 52)
                     .monospacedDigit()
                     .contentTransition(.numericText())
-                Text(sublabel).font(.footnote.weight(.medium)).foregroundStyle(Color.wardInkSecondary)
+                Text(sublabel).font(WardType.face(.footnote, weight: .medium)).foregroundStyle(Color.wardInkSecondary)
             }
         }
         .frame(width: 168, height: 168)
@@ -546,7 +546,7 @@ private struct DeckFoldBand: View {
                 // Grows with the text up to the largest size its measured
                 // 44 by 28 pill holds, on every deck; past that the Large
                 // Content Viewer shows it. The band's hit target is 44 pt.
-                .font(.body.weight(.semibold))
+                .font(WardType.face(.body, weight: .semibold))
                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 .foregroundStyle(Color.wardInk)
                 .frame(width: 44, height: 28)
@@ -697,13 +697,13 @@ extension StudyProgressHeader {
     private var words: some View {
         VStack(alignment: .leading, spacing: WardSpace.xs) {
             Text(status)
-                .font(.headline)
+                .font(WardType.headline)
                 .monospacedDigit()
                 .contentTransition(.numericText())
                 .fixedSize(horizontal: false, vertical: true)
             if let detail {
                 Text(detail)
-                    .font(.subheadline)
+                    .font(WardType.face(.subheadline, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
                     .monospacedDigit()
                     .contentTransition(.numericText())
@@ -765,12 +765,12 @@ struct FinishHero<Graphic: View>: View {
             graphic
                 .popOut(.raised, in: Circle(), cues: [.lean, .edge])
             Text(title)
-                .font(.title.weight(.bold))
+                .font(WardType.face(.title, weight: .bold))
                 .multilineTextAlignment(.center)
                 .accessibilityAddTraits(.isHeader)
             if !message.isEmpty {
                 Text(message)
-                    .font(.body)
+                    .font(WardType.body)
                     .foregroundStyle(Color.wardInkSecondary)
                     .multilineTextAlignment(.center)
             }

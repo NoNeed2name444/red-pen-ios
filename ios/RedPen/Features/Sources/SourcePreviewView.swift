@@ -227,12 +227,12 @@ struct SourcePageList: View {
                 .frame(minWidth: 22, alignment: .trailing)
             VStack(alignment: .leading, spacing: 2) {
                 Text(firstLine(page))
-                    .font(.subheadline)
+                    .font(WardType.face(.subheadline, weight: .regular))
                     .foregroundStyle(page.isBlank ? Color.wardInkSecondary : Color.wardInk)
                     .lineLimit(2)
                 if page.recognised {
                     Label("Recognised", systemImage: "text.viewfinder")
-                        .font(.caption2)
+                        .font(WardType.face(.caption2, weight: .regular))
                         .foregroundStyle(Color.wardInkSecondary)
                 }
             }
@@ -289,10 +289,10 @@ struct SourceResultsList: View {
     private func row(_ hit: SourceSearch.Hit) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("\(source.kind.pageNoun) \(hit.page)")
-                .font(.caption.weight(.semibold))
+                .font(WardType.face(.caption, weight: .semibold))
                 .foregroundStyle(Color.wardInk)
             marked(hit)
-                .font(.subheadline)
+                .font(WardType.face(.subheadline, weight: .regular))
                 .foregroundStyle(Color.wardInk)
                 .lineLimit(3)
         }

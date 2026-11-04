@@ -89,7 +89,7 @@ struct CardEditSheet: View {
                 }
                 if let source = working.source, !source.isEmpty {
                     Section("From") {
-                        Text(source).font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                        Text(source).font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                     }
                     .wardRowBackground()
                 }
@@ -179,7 +179,7 @@ struct QuestionEditSheet: View {
                 }
                 if let source = working.source, !source.isEmpty {
                     Section("From") {
-                        Text(source).font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                        Text(source).font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                     }
                     .wardRowBackground()
                 }
@@ -215,7 +215,7 @@ struct QuestionEditSheet: View {
             // plain buttons, so in a Form row each takes only its own tap
             Button { working.correctIndex = index } label: {
                 Image(systemName: mark)
-                    .font(.title3)
+                    .font(WardType.face(.title3, weight: .regular))
                     .foregroundStyle(ink)
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
@@ -236,7 +236,7 @@ struct QuestionEditSheet: View {
                 .popField()
             Button { removeOption(index) } label: {
                 Image(systemName: "minus.circle.fill")
-                    .font(.title3)
+                    .font(WardType.face(.title3, weight: .regular))
                     .foregroundStyle(Color.wardDanger)
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())

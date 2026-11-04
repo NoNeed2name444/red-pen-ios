@@ -227,7 +227,7 @@ struct IdeasView: View {
             Section(heading) {
                 if here.isEmpty {
                     Text(emptyText(inFolder: current != nil))
-                        .font(.footnote)
+                        .font(WardType.face(.footnote, weight: .regular))
                         .foregroundStyle(Color.wardInkSecondary)
                         .wardRowBackground()
                 } else {
@@ -298,7 +298,7 @@ struct IdeasView: View {
                     .monospacedDigit()
                     .foregroundStyle(Color.wardInkSecondary)
                 Image(systemName: "chevron.forward")
-                    .font(.caption.weight(.semibold))
+                    .font(WardType.face(.caption, weight: .semibold))
                     .foregroundStyle(Color.wardInkSecondary)
             }
             .contentShape(Rectangle())
@@ -341,13 +341,13 @@ struct IdeasView: View {
                         .lineLimit(2)
                     if !preview.isEmpty {
                         Text(preview)
-                            .font(.caption)
+                            .font(WardType.caption)
                             .foregroundStyle(Color.wardInkSecondary)
                             .lineLimit(1)
                     }
                     if links > 0 {
                         Label(linked, systemImage: "point.3.connected.trianglepath.dotted")
-                            .font(.caption2)
+                            .font(WardType.face(.caption2, weight: .regular))
                             .foregroundStyle(Color.wardInkSecondary)
                     }
                 }
@@ -450,7 +450,7 @@ private struct IdeasChrome: ViewModifier {
 struct IdeasTitlePill: View {
     var body: some View {
         Text("Ideas")
-            .font(.headline)
+            .font(WardType.headline)
             .foregroundStyle(Color.wardInk)
             .padding(.horizontal, 18)
             .padding(.vertical, 9)
