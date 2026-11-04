@@ -16,6 +16,7 @@ import com.stethoscore.app.ui.StethoscoreApp
 import com.stethoscore.app.ui.WardGroundDrawable
 import com.stethoscore.app.ui.library.IncomingFiles
 import com.stethoscore.app.ui.ward.WardGround
+import java.io.File
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -27,7 +28,8 @@ class MainActivity : ComponentActivity() {
         // changes when home draws over it.
         val dark = getSharedPreferences("appearance", Context.MODE_PRIVATE).getBoolean("dark", false)
         showGround(this, dark)
-        val store = StudyStore(filesDir)
+        // the process's one library: a recreated activity (a rotation) shares it
+        val store = ProcessStore.get(this)
         // a table or a backup opened from another app waits for the library to show it
         if (savedInstanceState == null) IncomingFiles.take(intent)
         // cloud jobs finished while the app was closed become sets (iOS RedPenApp)
@@ -59,4 +61,22 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+}
+
+/**
+ * Holds the process's one [StudyStore]. Two stores over the same files would
+ * overwrite each other's saves, so every activity, and the cloud collector it
+ * starts, uses this one.
+ */
+object ProcessStore {
+    @Volatile private var store: StudyStore? = null
+
+    fun get(context: Context): StudyStore = get(context.applicationContext.filesDir)
+
+    /** The store over [directory], made on the first call only. */
+    internal fun get(directory: File): StudyStore =
+        store ?: synchronized(this) { store ?: StudyStore(directory).also { store = it } }
+
+    /** Lets a test start from no store. */
+    internal fun forget() { synchronized(this) { store = null } }
 }
