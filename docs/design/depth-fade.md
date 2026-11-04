@@ -92,7 +92,7 @@ colour, until they are gone. Nothing pops in or out.
 
 - Frame time and draw calls before and after, on the same Mac run and the
   same scene (each theme's largest preview library), at each Graphics
-  level, given as numbers (74-depth-numbers; its Space ablation takes,
+  level, given as numbers (74-depth-numbers-space, -neurons and -pixel since T0164; its Space ablation takes,
   `-graphDepthPerPixel`, now measure the plain fade, as Space has no
   per-pixel shader since the merge).
 - Stills near and far (70-* pose-matched pairs with -stillSky -graphFreeze -graphDepthMeter),

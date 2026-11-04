@@ -54,7 +54,7 @@ jobs:
       #   happens (a plain grep in a pipe holds its output in a block, and on
       #   23 Oct the cancel threw that block away: no Test Case line at all);
       # - XCTest's own limit per test, 16 minutes (the longest passing test,
-      #   testDepthMeasure, took 12.6; the million proof tests wait up to 15
+      #   testDepthMeasure, took 12.6 before T0164 split it in three; the million proof tests wait up to 15
       #   for their map and then fail by name), so a test that hangs is
       #   stopped and named and the suite goes on;
       # - this step's limit is under the job's, so the summary and the
