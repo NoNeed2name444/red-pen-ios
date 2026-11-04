@@ -1,5 +1,5 @@
 {
-  "comment": "The owner, 22 Oct 2026, about 3:44 AM Cairo, after being shown that the exact colours fail the readability checks: \"STOP IMPROVISING DONT CHANGE THE COLORS I GAVE U\". So every colour is the owner's hex as given (docs/design/palette-2026-10-21.md), white words on the fills included, and every ground is the plain base (#E9EDF2 by day, #171C24 at night), as it was before the section wash of 21 Oct. Each entry below is one exact case a check falls short on only because of that, keyed by the check's label (and, in brackets, the tier, token, kind, frame or section it fell short on), with its measured value: a contrast ratio, or an OKLab distance for the 'told apart', 'unique' and 'value of its own' checks, or a luminance for the deck's darker shade. The suite it is filed under passes that check only on a listed case measured within 0.01 of its value; a case not listed fails, and so does a listed case the suite no longer measures short. The node test's and tools/ward_accents.py --check's cases are in tests/ward/owner-accepted.json. Owner 22 Oct, wells and sheets one tone: asked later that day whether wells (fields, tracks, a chosen segment, a chip's well) and sheets take the page colour too, the owner said yes, so a well is the plain base as well, shown as a well by its inset shade alone; the cases on a well (and a chosen segment's face) are measured on it, and the ones it lifts past their check are gone from the list. Owner 4 Nov, a wash of each mode's earlier colour behind its screens, randomly tinted and a bit stronger (plan.md 12e): the 'mode wash' cases are measured at the strongest point a screen's mesh can have (the cap, 0.40). The accents by day already fell short on the plain base; the cases named under \"pending the owner's word\" (Biro Grey by day, Cards' accent at night) pass on the plain base and fall short only on the wash, so they are not owner-accepted: they are listed with their values to keep the suite measuring them, until the owner says.",
+  "comment": "The owner, 22 Oct 2026, about 3:44 AM Cairo, after being shown that the exact colours fail the readability checks: \"STOP IMPROVISING DONT CHANGE THE COLORS I GAVE U\". So every colour is the owner's hex as given (docs/design/palette-2026-10-21.md), white words on the fills included, and every ground is the plain base (#E9EDF2 by day, #171C24 at night), as it was before the section wash of 21 Oct. Each entry below is one exact case a check falls short on only because of that, keyed by the check's label (and, in brackets, the tier, token, kind, frame or section it fell short on), with its measured value: a contrast ratio, or an OKLab distance for the 'told apart', 'unique' and 'value of its own' checks, or a luminance for the deck's darker shade. The suite it is filed under passes that check only on a listed case measured within 0.01 of its value; a case not listed fails, and so does a listed case the suite no longer measures short. The node test's and tools/ward_accents.py --check's cases are in tests/ward/owner-accepted.json. Owner 22 Oct, wells and sheets one tone: asked later that day whether wells (fields, tracks, a chosen segment, a chip's well) and sheets take the page colour too, the owner said yes, so a well is the plain base as well, shown as a well by its inset shade alone; the cases on a well (and a chosen segment's face) are measured on it, and the ones it lifts past their check are gone from the list. Owner 4 Nov, a wash of each mode's earlier colour behind its screens, randomly tinted (plan.md 12e): each mode's wash is capped so that every pair that reads on the plain base reads at the mesh's strongest possible point, so none falls short there that does not on the base; the 'mode wash' cases are the accents by day, already short on the plain base, re-measured at that point.",
   "WardLookTests.swift": {
     "light questions: a control's edge reads 3:1 on the background": 2.106,
     "light questions: a control's edge reads 3:1 on the surface": 2.106,
@@ -93,19 +93,12 @@
     "light osce: its accent keeps 4.5:1 on its wash": 1.282,
     "light audio: its accent keeps 4.5:1 on its wash": 2.315,
     "light ideas: its accent keeps 4.5:1 on its wash": 2.253,
-    "light questions: its accent keeps 4.5:1 on its mode wash": 1.341,
-    "light cards: its accent keeps 4.5:1 on its mode wash": 1.89,
-    "light textbook: its accent keeps 4.5:1 on its mode wash": 1.337,
-    "light cases: its accent keeps 4.5:1 on its mode wash": 1.16,
-    "light osce: its accent keeps 4.5:1 on its mode wash": 1.18,
-    "light audio: its accent keeps 4.5:1 on its mode wash": 1.413,
-    "dark cards: its accent keeps 4.5:1 on its mode wash": 3.45,
-    "light questions: Biro Grey keeps 4.5:1 on its mode wash": 3.06,
-    "light cards: Biro Grey keeps 4.5:1 on its mode wash": 3.255,
-    "light textbook: Biro Grey keeps 4.5:1 on its mode wash": 3.402,
-    "light cases: Biro Grey keeps 4.5:1 on its mode wash": 3.671,
-    "light osce: Biro Grey keeps 4.5:1 on its mode wash": 3.56,
-    "light audio: Biro Grey keeps 4.5:1 on its mode wash": 3.289,
+    "light questions: its accent keeps 4.5:1 on its mode wash": 1.975,
+    "light cards: its accent keeps 4.5:1 on its mode wash": 3.02,
+    "light textbook: its accent keeps 4.5:1 on its mode wash": 1.783,
+    "light cases: its accent keeps 4.5:1 on its mode wash": 1.427,
+    "light osce: its accent keeps 4.5:1 on its mode wash": 1.073,
+    "light audio: its accent keeps 4.5:1 on its mode wash": 1.941,
     "light cards: wash is unique among sections [as questions's]": 0.0,
     "light textbook: wash is unique among sections [as questions's]": 0.0,
     "light cases: wash is unique among sections [as questions's]": 0.0,
@@ -350,16 +343,5 @@
     "every mode's words read 5:1 on the paper [osce]": 1.508,
     "every mode's words read 5:1 on the paper [narrate]": 2.721,
     "every mode's words read 5:1 on the paper [cases]": 2.001
-  },
-  "pending the owner's word": {
-    "WardLookTests.swift": [
-      "dark cards: its accent keeps 4.5:1 on its mode wash",
-      "light questions: Biro Grey keeps 4.5:1 on its mode wash",
-      "light cards: Biro Grey keeps 4.5:1 on its mode wash",
-      "light textbook: Biro Grey keeps 4.5:1 on its mode wash",
-      "light cases: Biro Grey keeps 4.5:1 on its mode wash",
-      "light osce: Biro Grey keeps 4.5:1 on its mode wash",
-      "light audio: Biro Grey keeps 4.5:1 on its mode wash"
-    ]
   }
 }

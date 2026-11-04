@@ -29,16 +29,10 @@ object OwnerAccepted {
 
     /**
      * Cases on the list that pass on the plain base and fall short only on a mode's
-     * wash: pending the owner's word, not owner-accepted. They stay on the list with
-     * their measured values so the suite keeps measuring them, until the owner says.
+     * wash: pending the owner's word, not owner-accepted. None since each mode's wash
+     * is capped where every such pair still reads.
      */
-    val pending: Set<OwnerCase> by lazy {
-        val wash = "WardGroundTest.eachModesWash"
-        setOf(OwnerCase(wash, "its accent keeps 4.5:1 on its mode wash", "accent", "cards", "dark", "its mode wash")) +
-            listOf("questions", "cards", "textbook", "cases", "osce", "audio").map {
-                OwnerCase(wash, "Biro Grey keeps 4.5:1 on its mode wash", "Biro Grey", it, "light", "its mode wash")
-            }
-    }
+    val pending: Set<OwnerCase> = emptySet()
 
     /** Every case the owner accepted, with the value it measures. */
     val cases: Map<OwnerCase, Double> = Cases().apply {
@@ -67,25 +61,16 @@ object OwnerAccepted {
             case("accent", "audio", "light", "its wash", 2.315)
             case("accent", "ideas", "light", "its wash", 2.253)
         }
-        // the owner, 4 Nov: a wash of each mode's earlier colour behind its screens, randomly
-        // tinted and a bit stronger (plan.md 12e), measured at the strongest point a mesh can
-        // have (the cap); the accents by day already fell short on the plain base
+        // the owner, 4 Nov: a wash of each mode's earlier colour behind its screens, randomly tinted
+        // (plan.md 12e), capped so every pair that reads on the plain base reads at the mesh's
+        // strongest possible point; the accents by day, already short on the base, re-measured there
         accept("WardGroundTest.eachModesWash", "its accent keeps 4.5:1 on its mode wash") {
-            case("accent", "questions", "light", "its mode wash", 1.341)
-            case("accent", "cards", "light", "its mode wash", 1.890)
-            case("accent", "textbook", "light", "its mode wash", 1.337)
-            case("accent", "cases", "light", "its mode wash", 1.160)
-            case("accent", "osce", "light", "its mode wash", 1.180)
-            case("accent", "audio", "light", "its mode wash", 1.413)
-            case("accent", "cards", "dark", "its mode wash", 3.450)
-        }
-        accept("WardGroundTest.eachModesWash", "Biro Grey keeps 4.5:1 on its mode wash") {
-            case("Biro Grey", "questions", "light", "its mode wash", 3.060)
-            case("Biro Grey", "cards", "light", "its mode wash", 3.255)
-            case("Biro Grey", "textbook", "light", "its mode wash", 3.402)
-            case("Biro Grey", "cases", "light", "its mode wash", 3.671)
-            case("Biro Grey", "osce", "light", "its mode wash", 3.560)
-            case("Biro Grey", "audio", "light", "its mode wash", 3.289)
+            case("accent", "questions", "light", "its mode wash", 1.975)
+            case("accent", "cards", "light", "its mode wash", 3.020)
+            case("accent", "textbook", "light", "its mode wash", 1.783)
+            case("accent", "cases", "light", "its mode wash", 1.427)
+            case("accent", "osce", "light", "its mode wash", 1.073)
+            case("accent", "audio", "light", "its mode wash", 1.941)
         }
         accept("WardLookTest.sections", "a control's edge reads 3:1") {
             case("a control's edge", "questions", "light", "background", 2.106)

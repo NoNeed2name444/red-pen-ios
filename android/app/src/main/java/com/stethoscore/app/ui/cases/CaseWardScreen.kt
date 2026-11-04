@@ -354,7 +354,7 @@ internal fun CaseLadderPanel(file: CaseFile, run: CaseRun, modifier: Modifier = 
             for (name in pickable) {
                 val shape = RoundedCornerShape(WardRadius.field.wardDp)
                 Box(
-                    Modifier.minimumInteractiveComponentSize().widthIn(min = 140.dp).heightIn(min = 44.dp).background(wardColor(WardToken.surface), shape).border(1.dp, wardColor(WardToken.hairline), shape)
+                    Modifier.minimumInteractiveComponentSize().widthIn(min = 140.dp).heightIn(min = 44.dp).background(com.stethoscore.app.ui.ward.wardPanelFill(), shape).border(1.dp, wardColor(WardToken.hairline), shape)
                         .clickable(role = Role.Button, onClickLabel = "Adds it to your ladder") { add(name) }.padding(horizontal = WardSpace.m.wardDp),
                     contentAlignment = Alignment.CenterStart,
                 ) { Text(name, style = WardTextStyle.subheadline.textStyle()) }

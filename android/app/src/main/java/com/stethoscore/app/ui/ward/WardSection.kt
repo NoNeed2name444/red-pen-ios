@@ -104,11 +104,14 @@ enum class WardSection {
  * the screenshots", "stronger a bit"; iOS WardModeWash, the same numbers): the
  * earlier backdrop's uneven 3x3 mesh on the base, each point mixed toward the mode's
  * earlier colour, which serves the wash alone (buttons, words and glyphs keep the
- * section's accent). Each screen draws its own from a seed it keeps while shown:
- * every point's strength moves a little, and the inner points move a little along
- * their edge or, in the middle, both ways; then all are made a quarter stronger, to
- * a cap. The colour is pulled toward grey first, and at night the mix is weaker.
- * Ideas has none. Mixed in plain sRGB components.
+ * section's accent). Each screen draws its own from a seed it keeps while shown: the
+ * pattern is turned a quarter at a time and may be mirrored, so its strongest corner
+ * lands anywhere; its pale middle may trade places with an edge's middle; every
+ * point's strength moves, and the inner points move along their edge or, in the
+ * middle, both ways; then all are made a quarter stronger, to [top]. A mode's colour
+ * is pulled toward grey first, and the mesh is scaled so its strongest possible point
+ * is that mode's cap, by day and at night: as strong as it can be while every colour
+ * that reads on the plain base still reads on it. Ideas has none. Plain sRGB mixing.
  */
 object WardModeWash {
     /** Each mode's earlier colour, 0xRRGGBB. */
@@ -125,22 +128,33 @@ object WardModeWash {
     val strengths: List<Double> = listOf(0.30, 0.18, 0.26, 0.16, 0.05, 0.18, 0.24, 0.16, 0.30)
 
     /** How far a seed moves each point's strength, either way. */
-    const val strengthJitter = 0.08
+    const val strengthJitter = 0.12
 
     /** How far a seed moves an inner point (in the unit square), either way. */
     const val pointJitter = 0.12
 
-    /** Every strength is made this much stronger after the jitter, to [cap]. */
+    /** Every strength is made this much stronger after the jitter, to [top]. */
     const val boost = 1.25
-    const val cap = 0.40
+    const val top = 0.40
 
-    /** The night's share of each mix. */
-    const val night = 0.7
+    /**
+     * Each mode's mix at the mesh's strongest possible point, (day, night): the most
+     * that keeps every pair that reads on the plain base reading (Chart Ink, Biro Grey
+     * and the meaning colours at 4.5:1, the beam at 3:1, the section's accent at 4.5:1
+     * as words and 3:1 as glyphs).
+     */
+    val cap: Map<WardSection, Pair<Double, Double>> = mapOf(
+        WardSection.questions to (0.135 to 0.340), WardSection.cards to (0.030 to 0.030), WardSection.textbook to (0.160 to 0.255),
+        WardSection.cases to (0.190 to 0.215), WardSection.osce to (0.180 to 0.230), WardSection.audio to (0.150 to 0.275),
+    )
 
     /** The points a seed moves, and which way: the edges' middles along their edge, the middle both ways. */
     val moved: List<Triple<Int, Boolean, Boolean>> = listOf(
         Triple(1, true, false), Triple(3, false, true), Triple(4, true, true), Triple(5, false, true), Triple(7, true, false),
     )
+
+    /** The edges' middles the pale middle may trade places with. */
+    val paleSpots: List<Int> = listOf(1, 3, 5, 7)
 
     /** One screen's mesh: nine strengths and points, row by row. */
     data class Mesh(val strengths: List<Double>, val x: List<Double>, val y: List<Double>)
@@ -156,7 +170,19 @@ object WardModeWash {
             z = z xor (z ushr 31)
             return (z ushr 11).toDouble() * (1.0 / 9007199254740992.0)
         }
-        val s = strengths.map { minOf(cap, maxOf(0.0, (it + strengthJitter * (2 * unit() - 1)) * boost)) }
+        val turns = minOf(3, (unit() * 4).toInt())
+        val mirrored = unit() < 0.5
+        val pale = minOf(4, (unit() * 5).toInt())
+        var g = strengths
+        repeat(turns) { val o = g; g = List(9) { o[(2 - it % 3) * 3 + it / 3] } }
+        if (mirrored) { val o = g; g = List(9) { o[(it / 3) * 3 + 2 - it % 3] } }
+        if (pale > 0) {
+            val m = g.toMutableList()
+            val j = paleSpots[pale - 1]
+            m[4] = g[j]; m[j] = g[4]
+            g = m
+        }
+        val s = g.map { minOf(top, maxOf(0.0, (it + strengthJitter * (2 * unit() - 1)) * boost)) }
         val x = mutableListOf(0.0, 0.5, 1.0, 0.0, 0.5, 1.0, 0.0, 0.5, 1.0)
         val y = mutableListOf(0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 1.0, 1.0, 1.0)
         for ((i, mx, my) in moved) {
@@ -166,21 +192,24 @@ object WardModeWash {
         return Mesh(s, x, y)
     }
 
-    /** The wash's colour at [mix] (before the night's share), or null where the section has none. */
+    /** The wash's colour at [mix] (the share of the mode's colour), or null where the section has none. */
     fun hex(section: WardSection, dark: Boolean, mix: Double): Int? {
         val old = colour[section] ?: return null
         val o = WardPalette.rgb(old)
         val hue = WardRgb(o.r + (grey.r - o.r) * greyPull, o.g + (grey.g - o.g) * greyPull, o.b + (grey.b - o.b) * greyPull)
         val base = WardPalette.rgb(WardPalette.hex(WardToken.background, dark))
-        val t = mix * (if (dark) night else 1.0)
-        fun channel(b: Double, to: Double): Int = WardPalette.round((b + (to - b) * t).coerceIn(0.0, 1.0) * 255)
+        fun channel(b: Double, to: Double): Int = WardPalette.round((b + (to - b) * mix).coerceIn(0.0, 1.0) * 255)
         return (channel(base.r, hue.r) shl 16) or (channel(base.g, hue.g) shl 8) or channel(base.b, hue.b)
     }
+
+    /** The mix a mesh [strength] draws at: scaled so [top] is the cap. */
+    fun mix(section: WardSection, dark: Boolean, strength: Double): Double? =
+        cap[section]?.let { (if (dark) it.second else it.first) * minOf(top, maxOf(0.0, strength)) / top }
 
     /** The mesh's nine colours as 0xRRGGBB, or null for no wash. */
     fun colours(section: WardSection, dark: Boolean, mesh: Mesh): List<Int>? {
         if (section !in colour) return null
-        return mesh.strengths.map { hex(section, dark, it)!! }
+        return mesh.strengths.map { hex(section, dark, mix(section, dark, it)!!)!! }
     }
 
     /**
@@ -206,18 +235,18 @@ object WardModeWash {
         return IntArray(width * height) { k ->
             val px = (k % width + 0.5) / width
             val py = (k / width + 0.5) / height
-            hex(section, dark, strength(mesh, px, py))!! or (0xFF shl 24)
+            hex(section, dark, mix(section, dark, strength(mesh, px, py))!!)!! or (0xFF shl 24)
         }
     }
 
     /** A solid bar's colour over the wash: the mean of its edge's row. */
     fun edge(section: WardSection, dark: Boolean, mesh: Mesh, bottom: Boolean): Int? {
         val row = if (bottom) mesh.strengths.subList(6, 9) else mesh.strengths.subList(0, 3)
-        return hex(section, dark, row.sum() / 3)
+        return mix(section, dark, row.sum() / 3)?.let { hex(section, dark, it) }
     }
 
     /** The wash at its strongest possible point, the cap, where contrast is least. */
-    fun strongest(section: WardSection, dark: Boolean): Int? = hex(section, dark, cap)
+    fun strongest(section: WardSection, dark: Boolean): Int? = mix(section, dark, top)?.let { hex(section, dark, it) }
 }
 
 /** The wash behind the word being spoken in Audio: the section's fill at this strength, under Chart Ink words. */

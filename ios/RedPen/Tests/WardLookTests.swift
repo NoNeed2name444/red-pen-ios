@@ -585,9 +585,10 @@ do {
 // earlier backdrop's 3x3 mesh, each screen's from its own seed; the accents
 // stay the section's. The same seeds give the same mesh on Android
 // (WardGroundTest.eachModesWash pins these numbers too). Measured at the
-// strongest point a mesh can have, the cap, since cards and wells are
-// see-through over it (one tone). Ideas has none, and home's ground stays
-// the base.
+// strongest point a mesh can have, each mode's cap by day and at night,
+// since cards and wells are see-through over it (one tone): every pair that
+// reads on the plain base reads there too. Ideas has none, and home's
+// ground stays the base.
 let modeWashColours: [WardSection: UInt32] = [
     .questions: 0xC72929, .cards: 0x4F5CDB, .textbook: 0x1A8C80,
     .cases: 0xE67D21, .osce: 0x339E59, .audio: 0x8C52CC,
@@ -595,36 +596,42 @@ let modeWashColours: [WardSection: UInt32] = [
 check("each mode's wash colour is its earlier colour", WardModeWash.colour == modeWashColours)
 check("Ideas has no wash", WardModeWash.colours(.ideas, dark: false, mesh: WardModeWash.mesh(seed: 1)) == nil
       && WardModeWash.strongest(.ideas, dark: true) == nil)
-check("the wash's rule: the earlier mesh's strengths, moved 0.08 and 0.12, a quarter stronger to 0.40, 0.7 at night, 35% to grey",
+check("the wash's rule: the earlier mesh's strengths, turned, mirrored, moved 0.12 and 0.12, a quarter stronger to 0.40, 35% to grey",
       WardModeWash.strengths == [0.30, 0.18, 0.26, 0.16, 0.05, 0.18, 0.24, 0.16, 0.30]
-      && WardModeWash.strengthJitter == 0.08 && WardModeWash.pointJitter == 0.12 && WardModeWash.boost == 1.25
-      && WardModeWash.cap == 0.40 && WardModeWash.night == 0.7 && WardModeWash.greyPull == 0.35)
+      && WardModeWash.strengthJitter == 0.12 && WardModeWash.pointJitter == 0.12 && WardModeWash.boost == 1.25
+      && WardModeWash.top == 0.40 && WardModeWash.greyPull == 0.35 && WardModeWash.paleSpots == [1, 3, 5, 7])
+let modeWashCaps: [WardSection: (day: Double, night: Double)] = [
+    .questions: (0.135, 0.340), .cards: (0.030, 0.030), .textbook: (0.160, 0.255),
+    .cases: (0.190, 0.215), .osce: (0.180, 0.230), .audio: (0.150, 0.275),
+]
+check("each mode's cap, by day and at night", Set(WardModeWash.cap.keys) == Set(modeWashCaps.keys)
+      && modeWashCaps.allSatisfy { WardModeWash.cap[$0.key]!.day == $0.value.day && WardModeWash.cap[$0.key]!.night == $0.value.night })
 struct MeshPin {
     let seed: UInt64
     let strengths: [Double]
     let x: [Double]   // points 1, 4, 7
     let y: [Double]   // points 3, 4, 5
     let questionsLight: [UInt32]
-    let cardsDark: [UInt32]
+    let questionsDark: [UInt32]
     let edges: (top: UInt32, bottom: UInt32)
     let sample: Double
 }
 let meshPins: [MeshPin] = [
-    MeshPin(seed: 1, strengths: [0.3883, 0.2742, 0.4000, 0.1889, 0.0514, 0.2776, 0.3755, 0.2046, 0.3321],
-            x: [0.5706, 0.5253, 0.4846], y: [0.4770, 0.4892, 0.5072],
-            questionsLight: [0xD2ADB0, 0xD9C0C4, 0xD1ABAE, 0xDECED2, 0xE6E4E9, 0xD9BFC3, 0xD3AFB3, 0xDDCBCF, 0xD5B6BA],
-            cardsDark: [0x2B314E, 0x252B41, 0x2B314F, 0x212638, 0x1A1F29, 0x252B42, 0x2A304C, 0x21273A, 0x282E48],
-            edges: (0xD4B2B6, 0xD7BBBF), sample: 0.242218),
-    MeshPin(seed: 42, strengths: [0.4000, 0.1570, 0.2807, 0.1688, 0.0000, 0.2986, 0.2437, 0.2601, 0.3430],
-            x: [0.5284, 0.4983, 0.5396], y: [0.4292, 0.5032, 0.5048],
-            questionsLight: [0xD1ABAE, 0xE0D3D7, 0xD8BEC3, 0xDFD1D5, 0xE9EDF2, 0xD7BCC0, 0xDBC5C9, 0xDAC2C6, 0xD5B4B8],
-            cardsDark: [0x2B314F, 0x1F2435, 0x252B42, 0x202536, 0x171C24, 0x262C44, 0x23293E, 0x242A40, 0x292E49],
-            edges: (0xD9BFC3, 0xD8BEC2), sample: 0.198770),
-    MeshPin(seed: 20261104, strengths: [0.3475, 0.2451, 0.4000, 0.1471, 0.1585, 0.3057, 0.3070, 0.1889, 0.3504],
-            x: [0.5277, 0.4752, 0.5134], y: [0.4483, 0.5525, 0.4536],
-            questionsLight: [0xD4B3B7, 0xDBC4C9, 0xD1ABAE, 0xE0D5D9, 0xE0D3D7, 0xD7BABE, 0xD7BABE, 0xDECED2, 0xD4B3B7],
-            cardsDark: [0x292F49, 0x24293E, 0x2B314F, 0x1F2434, 0x1F2435, 0x272C45, 0x272C45, 0x212638, 0x292F49],
-            edges: (0xD5B6BA, 0xD8BEC2), sample: 0.237478),
+    MeshPin(seed: 1, strengths: [0.3583, 0.1833, 0.3789, 0.3382, 0.2319, 0.1357, 0.4000, 0.0337, 0.4000],
+            x: [0.4892, 0.4846, 0.5757], y: [0.5072, 0.4201, 0.5349],
+            questionsLight: [0xE2D9DE, 0xE5E3E8, 0xE1D8DC, 0xE2DADF, 0xE4E0E5, 0xE6E5EA, 0xE1D7DB, 0xE8EBF0, 0xE1D7DB],
+            questionsDark: [0x45292F, 0x2F232A, 0x482A30, 0x42282F, 0x35252B, 0x282128, 0x4A2B31, 0x1B1D25, 0x4A2B31],
+            edges: (0xE3DCE1, 0xE3DDE2), sample: 0.269869),
+    MeshPin(seed: 42, strengths: [0.2533, 0.0000, 0.4000, 0.1155, 0.2902, 0.1770, 0.4000, 0.1365, 0.3229],
+            x: [0.5032, 0.5396, 0.4989], y: [0.5048, 0.4288, 0.4049],
+            questionsLight: [0xE4DFE4, 0xE9EDF2, 0xE1D7DB, 0xE7E7EB, 0xE3DDE1, 0xE5E3E8, 0xE1D7DB, 0xE6E5EA, 0xE3DBE0],
+            questionsDark: [0x38252C, 0x171C24, 0x4A2B31, 0x262028, 0x3C272D, 0x2E232A, 0x4A2B31, 0x292128, 0x40282E],
+            edges: (0xE5E1E6, 0xE3DDE2), sample: 0.189192),
+    MeshPin(seed: 20261104, strengths: [0.2207, 0.3440, 0.4000, 0.2104, 0.2084, 0.1881, 0.4000, 0.0000, 0.2940],
+            x: [0.5525, 0.5134, 0.4834], y: [0.4536, 0.5804, 0.4787],
+            questionsLight: [0xE5E1E5, 0xE2DADE, 0xE1D7DB, 0xE5E1E6, 0xE5E1E6, 0xE5E2E7, 0xE1D7DB, 0xE9EDF2, 0xE3DDE1],
+            questionsDark: [0x33242B, 0x43292F, 0x4A2B31, 0x32242B, 0x32242B, 0x2F232A, 0x4A2B31, 0x171C24, 0x3D272D],
+            edges: (0xE3DBE0, 0xE4E0E5), sample: 0.243941),
 ]
 func near(_ a: [Double], _ b: [Double]) -> Bool { a.count == b.count && zip(a, b).allSatisfy { abs($0 - $1) < 5e-5 } }
 for pin in meshPins {
@@ -635,7 +642,7 @@ for pin in meshPins {
           && [0, 1, 2, 6, 7, 8].allSatisfy { mesh.y[$0] == [0.0, 0.5, 1.0][$0 / 3] })
     check("seed \(pin.seed): the same seed, the same mesh", WardModeWash.mesh(seed: pin.seed) == mesh)
     check("seed \(pin.seed): Questions by day", WardModeWash.colours(.questions, dark: false, mesh: mesh) == pin.questionsLight)
-    check("seed \(pin.seed): Cards at night", WardModeWash.colours(.cards, dark: true, mesh: mesh) == pin.cardsDark)
+    check("seed \(pin.seed): Questions at night", WardModeWash.colours(.questions, dark: true, mesh: mesh) == pin.questionsDark)
     check("seed \(pin.seed): the bars' colours, the rows' means",
           WardModeWash.edge(.questions, dark: false, mesh: mesh, bottom: false) == pin.edges.top
           && WardModeWash.edge(.questions, dark: false, mesh: mesh, bottom: true) == pin.edges.bottom)
@@ -649,18 +656,32 @@ do {
         let mesh = WardModeWash.mesh(seed: seed)
         top = max(top, mesh.strengths.max()!, WardModeWash.strength(mesh, x: 0.3, y: 0.7))
     }
-    check("no mesh is stronger than the cap", top <= WardModeWash.cap, f(top))
+    check("no mesh is stronger than the top", top <= WardModeWash.top, f(top))
+    // the strongest corner and the pale spot land in different places from seed to seed
+    var strongestAt: Set<Int> = [], palestAt: Set<Int> = []
+    for seed in UInt64(0)..<400 {
+        let s = WardModeWash.mesh(seed: seed).strengths
+        strongestAt.insert(s.indices.max { s[$0] < s[$1] }!)
+        palestAt.insert(s.indices.min { s[$0] < s[$1] }!)
+    }
+    check("the strongest point lands in every corner", Set([0, 2, 6, 8]).isSubset(of: strongestAt), "\(strongestAt.sorted())")
+    check("the pale spot moves off the middle", palestAt.count >= 4, "\(palestAt.sorted())")
 }
 let strongestPossible: [String: UInt32] = [
-    "light questions": 0xD1ABAE, "light cards": 0xB2B8DD, "light textbook": 0xA4C4C5,
-    "light cases": 0xD9C1AC, "light osce": 0xABC9BB, "light audio": 0xC2B5D9,
-    "dark questions": 0x41282E, "dark cards": 0x2B314F, "dark textbook": 0x223A3E,
-    "dark cases": 0x47372D, "dark osce": 0x263D37, "dark audio": 0x37304C,
+    "light questions": 0xE1D7DB, "light cards": 0xE5E9F0, "light textbook": 0xCEDDE0,
+    "light cases": 0xE2D8D1, "light osce": 0xCDDDD9, "light audio": 0xDAD8E9,
+    "dark questions": 0x4A2B31, "dark cards": 0x191E29, "dark textbook": 0x21373C,
+    "dark cases": 0x3C312B, "dark osce": 0x243734, "dark audio": 0x362F4B,
+]
+// what each pair is held to on the base (WardPalette's promises): words
+// 4.5:1, the beam and the accent's glyphs 3:1
+let washPairs: [(name: String, token: WardToken?, ratio: Double)] = [
+    ("Chart Ink", .ink, 4.5), ("Biro Grey", .inkSecondary, 4.5), ("ECG red", .ecg, 4.5), ("Discharge green", .success, 4.5),
+    ("Caution amber", .warning, 4.5), ("Resus red", .danger, 4.5), ("the beam", .beam, 3),
+    ("its accent as words", nil, 4.5), ("its accent as glyphs", nil, 3),
 ]
 for dark in [false, true] {
     let mode = dark ? "dark" : "light"
-    let chartInk = WardPalette.hex(.ink, dark: dark)
-    let biroGrey = WardPalette.hex(.inkSecondary, dark: dark)
     let base = WardPalette.hex(.background, dark: dark)
     for s in sections where s != .ideas {
         guard let strongest = WardModeWash.strongest(s, dark: dark) else {
@@ -668,11 +689,13 @@ for dark in [false, true] {
         }
         check("\(mode) \(s): the strongest possible point is as measured", strongest == strongestPossible["\(mode) \(s)"], h(strongest))
         check("\(mode) \(s): home's ground stays the plain base", WardGround.home(s, dark: dark).base == base)
-        let cChart = WardPalette.contrast(chartInk, strongest)
-        check("\(mode) \(s): Chart Ink keeps 4.5:1 on its mode wash", cChart >= 4.5, "\(h(strongest)) \(f(cChart))")
-        let cBiro = WardPalette.contrast(biroGrey, strongest)
-        let biroOnWash = "\(mode) \(s): Biro Grey keeps 4.5:1 on its mode wash"
-        check(biroOnWash, cBiro >= 4.5 || owner(biroOnWash, cBiro), "\(h(strongest)) \(f(cBiro))")
+        for pair in washPairs {
+            let ink = pair.token.map { WardPalette.hex($0, dark: dark) } ?? s.accent(dark: dark)
+            let onBase = WardPalette.contrast(ink, base), onWash = WardPalette.contrast(ink, strongest)
+            check("\(mode) \(s): \(pair.name) reads on its mode wash wherever it reads on the base",
+                  onBase < pair.ratio || onWash >= pair.ratio, "\(h(strongest)) \(f(onWash)), base \(f(onBase))")
+        }
+        // the accents the owner's colours keep short on the base stay on the owner's list, re-measured here
         let cAccent = WardPalette.contrast(s.accent(dark: dark), strongest)
         let onWash = "\(mode) \(s): its accent keeps 4.5:1 on its mode wash"
         check(onWash, cAccent >= 4.5 || owner(onWash, cAccent), "\(h(strongest)) \(f(cAccent))")
@@ -812,7 +835,7 @@ let pendingFile: [String] = {
           let mine = pending["WardLookTests.swift"] as? [String] else { return [] }
     return mine
 }()
-check("the cases pending the owner's word are read", !pendingFile.isEmpty)
+check("no case is pending the owner's word", pendingFile.isEmpty, pendingFile.joined(separator: "; "))
 let pendingStray = pendingFile.filter { ownerList[$0] == nil || !ownerSeen.contains($0) }
 check("every case pending the owner's word is on the list and measured short here", pendingStray.isEmpty,
       pendingStray.joined(separator: "; "))

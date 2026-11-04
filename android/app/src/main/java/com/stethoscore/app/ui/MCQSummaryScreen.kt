@@ -119,7 +119,7 @@ fun QuizSummaryScreen(
         }
 
         // the bar: the one main button, and Done beside it whenever that is not Done already
-        Row(Modifier.fillMaxWidth().background(wardColor(WardToken.raised)).padding(horizontal = WardSpace.l.wardDp, vertical = WardSpace.m.wardDp),
+        Row(Modifier.fillMaxWidth().background(com.stethoscore.app.ui.ward.wardBarFill()).padding(horizontal = WardSpace.l.wardDp, vertical = WardSpace.m.wardDp),
             horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
             if (next != QuizSummary.Next.done) QuizBigButton("Done", null, QuizButtonKind.companion, onClick = onDone)
             when (next) {

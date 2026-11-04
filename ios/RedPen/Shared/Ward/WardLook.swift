@@ -116,11 +116,15 @@ enum WardWash {
 /// uneven 3x3 mesh on the base, each point mixed toward the mode's earlier
 /// colour, which serves the wash alone (buttons, words and glyphs keep the
 /// section's accent). Each screen draws its own from a seed it keeps while
-/// shown: every point's strength moves a little, and the inner points move
-/// a little along their edge or, in the middle, both ways; then all are made
-/// a quarter stronger, to a cap. The colour is pulled toward grey first, and
-/// at night the mix is weaker. Ideas has none. Mixed in plain sRGB
-/// components, as the earlier backdrop mixed it.
+/// shown: the pattern is turned a quarter at a time and may be mirrored, so
+/// its strongest corner lands anywhere; its pale middle may trade places
+/// with an edge's middle; every point's strength moves, and the inner points
+/// move along their edge or, in the middle, both ways; then all are made a
+/// quarter stronger, to `top`. A mode's colour is pulled toward grey first,
+/// and the mesh is scaled so its strongest possible point is that mode's
+/// cap, by day and at night: as strong as it can be while every colour that
+/// reads on the plain base still reads on it. Ideas has none. Mixed in plain
+/// sRGB components, as the earlier backdrop mixed it.
 enum WardModeWash {
     /// Each mode's earlier colour, 0xRRGGBB.
     static let colour: [WardSection: UInt32] = [
@@ -133,18 +137,26 @@ enum WardModeWash {
     /// The earlier backdrop's strengths, row by row from the top left.
     static let strengths: [Double] = [0.30, 0.18, 0.26, 0.16, 0.05, 0.18, 0.24, 0.16, 0.30]
     /// How far a seed moves each point's strength, either way.
-    static let strengthJitter = 0.08
+    static let strengthJitter = 0.12
     /// How far a seed moves an inner point (in the unit square), either way.
     static let pointJitter = 0.12
-    /// Every strength is made this much stronger after the jitter, to `cap`.
+    /// Every strength is made this much stronger after the jitter, to `top`.
     static let boost = 1.25
-    static let cap = 0.40
-    /// The night's share of each mix.
-    static let night = 0.7
+    static let top = 0.40
+    /// Each mode's mix at the mesh's strongest possible point, (day, night):
+    /// the most that keeps every pair that reads on the plain base reading
+    /// (Chart Ink, Biro Grey and the meaning colours at 4.5:1, the beam at
+    /// 3:1, the section's accent at 4.5:1 as words and 3:1 as glyphs).
+    static let cap: [WardSection: (day: Double, night: Double)] = [
+        .questions: (0.135, 0.340), .cards: (0.030, 0.030), .textbook: (0.160, 0.255),
+        .cases: (0.190, 0.215), .osce: (0.180, 0.230), .audio: (0.150, 0.275),
+    ]
     /// The points a seed moves, and which way: the edges' middles along
     /// their edge, the middle both ways; the corners stay put.
     static let moved: [(index: Int, x: Bool, y: Bool)] = [(1, true, false), (3, false, true), (4, true, true),
                                                           (5, false, true), (7, true, false)]
+    /// The edges' middles the pale middle may trade places with.
+    static let paleSpots = [1, 3, 5, 7]
 
     /// One screen's mesh: nine strengths and points, row by row.
     struct Mesh: Equatable, Sendable {
@@ -164,7 +176,14 @@ enum WardModeWash {
             z = z ^ (z >> 31)
             return Double(z >> 11) * 0x1p-53
         }
-        let s = strengths.map { min(cap, max(0, ($0 + strengthJitter * (2 * unit() - 1)) * boost)) }
+        let turns = min(3, Int(unit() * 4))
+        let mirrored = unit() < 0.5
+        let pale = min(4, Int(unit() * 5))
+        var g = strengths
+        for _ in 0..<turns { g = (0..<9).map { g[(2 - $0 % 3) * 3 + $0 / 3] } }
+        if mirrored { g = (0..<9).map { g[($0 / 3) * 3 + 2 - $0 % 3] } }
+        if pale > 0 { g.swapAt(4, paleSpots[pale - 1]) }
+        let s = g.map { min(top, max(0, ($0 + strengthJitter * (2 * unit() - 1)) * boost)) }
         var x: [Double] = [0, 0.5, 1, 0, 0.5, 1, 0, 0.5, 1]
         var y: [Double] = [0, 0, 0, 0.5, 0.5, 0.5, 1, 1, 1]
         for m in moved {
@@ -174,24 +193,28 @@ enum WardModeWash {
         return Mesh(strengths: s, x: x, y: y)
     }
 
-    /// The wash's colour at `mix` (before the night's share), or nil
+    /// The wash's colour at `mix` (the share of the mode's colour), or nil
     /// where the section has no wash.
     static func hex(_ section: WardSection, dark: Bool, mix: Double) -> UInt32? {
         guard let old = colour[section] else { return nil }
         let (r, g, b) = WardPalette.rgb(old)
         let hue = (r + (grey.r - r) * greyPull, g + (grey.g - g) * greyPull, b + (grey.b - b) * greyPull)
         let (br, bg, bb) = WardPalette.rgb(WardPalette.hex(.background, dark: dark))
-        let t = mix * (dark ? night : 1)
         func channel(_ base: Double, _ to: Double) -> UInt32 {
-            UInt32((min(1, max(0, base + (to - base) * t)) * 255).rounded())
+            UInt32((min(1, max(0, base + (to - base) * mix)) * 255).rounded())
         }
         return channel(br, hue.0) << 16 | channel(bg, hue.1) << 8 | channel(bb, hue.2)
+    }
+
+    /// The mix a mesh `strength` draws at: scaled so `top` is the cap.
+    static func mix(_ section: WardSection, dark: Bool, strength: Double) -> Double? {
+        cap[section].map { (dark ? $0.night : $0.day) * min(top, max(0, strength)) / top }
     }
 
     /// The mesh's nine colours as 0xRRGGBB, or nil for no wash.
     static func colours(_ section: WardSection, dark: Bool, mesh: Mesh) -> [UInt32]? {
         guard colour[section] != nil else { return nil }
-        return mesh.strengths.map { hex(section, dark: dark, mix: $0)! }
+        return mesh.strengths.map { hex(section, dark: dark, mix: mix(section, dark: dark, strength: $0)!)! }
     }
 
     /// The strength at (x, y) in the unit square, blended from the nine
@@ -211,13 +234,15 @@ enum WardModeWash {
     /// A solid bar's colour over the wash: the mean of its edge's row.
     static func edge(_ section: WardSection, dark: Bool, mesh: Mesh, bottom: Bool) -> UInt32? {
         let row = bottom ? mesh.strengths[6...8] : mesh.strengths[0...2]
-        return hex(section, dark: dark, mix: row.reduce(0, +) / 3)
+        guard let m = mix(section, dark: dark, strength: row.reduce(0, +) / 3) else { return nil }
+        return hex(section, dark: dark, mix: m)
     }
 
     /// The wash at its strongest possible point, the cap, where contrast
     /// is least.
     static func strongest(_ section: WardSection, dark: Bool) -> UInt32? {
-        hex(section, dark: dark, mix: cap)
+        guard let m = mix(section, dark: dark, strength: top) else { return nil }
+        return hex(section, dark: dark, mix: m)
     }
 }
 

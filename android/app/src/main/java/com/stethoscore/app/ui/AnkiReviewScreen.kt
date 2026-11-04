@@ -266,7 +266,7 @@ private fun cardAsk(card: AnkiCard): AccuracyAsk =
 @Composable private fun ProgressHeader(header: CardReview.Header) {
     Box(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 8.dp), contentAlignment = Alignment.TopCenter) {
         Column(Modifier.widthIn(max = 700.dp).fillMaxWidth().wardRaised(WardRadius.bar, lift = com.stethoscore.app.ui.ward.WardLift.low)
-            .background(wardColor(WardToken.surface), RoundedCornerShape(WardRadius.bar.wardDp)).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            .background(com.stethoscore.app.ui.ward.wardPanelFill(), RoundedCornerShape(WardRadius.bar.wardDp)).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(Modifier.semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(header.status, style = WardType.headline.textStyle(), color = wardColor(WardToken.ink))
                 // no detail line, and so no gap for one, when there is no count to show (iOS: detail nil)
@@ -283,7 +283,7 @@ private fun cardAsk(card: AnkiCard): AccuracyAsk =
 
 /** A card standing on the base: raised, a shade off it. */
 @Composable private fun ContentCard(spacing: androidx.compose.ui.unit.Dp = 0.dp, content: @Composable ColumnScope.() -> Unit) {
-    Column(Modifier.widthIn(max = 700.dp).fillMaxWidth().wardRaised(WardRadius.card).background(wardColor(WardToken.surface), RoundedCornerShape(WardRadius.card.wardDp)).padding(16.dp),
+    Column(Modifier.widthIn(max = 700.dp).fillMaxWidth().wardRaised(WardRadius.card).background(com.stethoscore.app.ui.ward.wardPanelFill(), RoundedCornerShape(WardRadius.card.wardDp)).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(spacing), content = content)
 }
 
@@ -293,7 +293,7 @@ private fun cardAsk(card: AnkiCard): AccuracyAsk =
 /** The end of a sitting: the done seal on a raised disc, large, and a line saying what happened. */
 @Composable private fun FinishHero(icon: ImageVector, title: String, message: String) {
     Column(Modifier.fillMaxWidth().padding(vertical = 24.dp, horizontal = 16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Box(Modifier.size(96.dp).wardRaised(48.0).background(wardColor(WardToken.surface), CircleShape), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(96.dp).wardRaised(48.0).background(com.stethoscore.app.ui.ward.wardPanelFill(), CircleShape), contentAlignment = Alignment.Center) {
             Icon(icon, null, Modifier.size(48.dp), tint = wardColor(WardToken.success))
         }
         Text(title, style = WardTextStyle.title.textStyle(WardWeight.bold), textAlign = TextAlign.Center, color = wardColor(WardToken.ink), modifier = Modifier.semantics { heading() })
@@ -310,7 +310,7 @@ private fun cardAsk(card: AnkiCard): AccuracyAsk =
 
 /** The quieter button beside it: raised, its words in the primary's ink. */
 @Composable internal fun CardsCompanionButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Box(modifier.heightIn(min = 56.dp).wardRelief(RoundedCornerShape(50)).background(wardColor(WardToken.surface), RoundedCornerShape(50))
+    Box(modifier.heightIn(min = 56.dp).wardRelief(RoundedCornerShape(50)).background(com.stethoscore.app.ui.ward.wardPanelFill(), RoundedCornerShape(50))
         .clickable(role = Role.Button, onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
         Text(text, style = WardType.headline.textStyle(), color = wardColor(WardToken.ink), textAlign = TextAlign.Center)
     }

@@ -2898,15 +2898,23 @@ with the marks on the screens last.
   - Shape: the owner, 4 Nov, on the first faint vertical wash: "they should be randomly tinted like the screenshots … also make them stronger a bit". So the wash is AppBackdrop's uneven 3x3 mesh again, without its drift (WardModeWash, the same numbers on both platforms):
     - The strengths, row by row: 0.30 0.18 0.26 / 0.16 0.05 0.18 / 0.24 0.16 0.30.
     - Each screen draws its own mesh from a seed it keeps while shown (iOS @State, Android rememberSaveable per screen and set), so a redraw, a turn or a change of mode does not change it.
-    - The seed (SplitMix64) moves each strength by up to 0.08 either way, the edges' middle points along their edge and the middle point both ways by up to 0.12; the corners stay put.
-    - Then every strength is multiplied by 1.25, to a cap of 0.40.
-    - Each colour is pulled 35% toward grey (0.5 0.5 0.52) and mixed into the base in plain sRGB, at night 0.7 of that.
+    - The seed (SplitMix64) does five things, in order:
+      1. Turns the pattern 0 to 3 quarters and may mirror it, so the strongest corner lands in any corner.
+      2. May trade the pale middle with an edge's middle.
+      3. Moves each strength by up to 0.12 either way.
+      4. Moves the edges' middle points along their edge, and the middle point both ways, by up to 0.12; the corners stay put.
+      5. Multiplies every strength by 1.25, up to 0.40.
+    - Each colour is pulled 35% toward grey (0.5 0.5 0.52) and mixed into the base in plain sRGB.
+    - The mesh is scaled so its strongest possible point (0.40) sits at the mode's cap.
     - iOS draws a MeshGradient. Android has no mesh, so it blends the nine points by inverse squared distance into a 48x48 picture, drawn once and stretched smooth.
+  - Caps: the owner's default (4 Nov, option 2), "lower the cap just enough". Each mode, by day and at night, takes the largest mix (in steps of 0.005) at which every pair that reads on the plain base still reads at the strongest point: Chart Ink, Biro Grey and the meaning colours at 4.5:1, the beam at 3:1, and the section's accent at 4.5:1 as words and 3:1 as glyphs. A cap per mode and scheme keeps the most wash, and it replaces the night factor.
+    - Day / night: Questions 0.135 / 0.340, Cards 0.030 / 0.030, Textbook 0.160 / 0.255, Cases 0.190 / 0.215, OSCE 0.180 / 0.230, Audio 0.150 / 0.275.
+    - Biro Grey binds by day. At night the danger red binds, or the accent for Questions and Cards.
+    - Cards is held almost to the base: its blue accent keeps 3:1 as a glyph by day (3.128 on the base) and 4.5:1 as words at night (4.650) only up to 0.03.
   - Bars: the solid bars take the mean of their edge's row (the masthead and navigation bar the top row; the bottom strip, the deck's slab and the Cases bottom bars the bottom row).
-  - One tone (12c stands): cards, wells, sheets' faces and the chart panels in the base's tone are see-through over the wash. They have no fill, and their lights fall only outside a raised face and inside a pressed one, so no new surface colour is added. What floats over a page (unlit faces, Android's learning sheet and ward-round chip) keeps its fill.
-  - Checks: WardLookTests and WardGroundTest pin three seeds' meshes, colours, bar colours and blend identically, and measure at the strongest possible point (the cap). Chart Ink passes everywhere. The day accents, which already fell short, fall further ("mode wash" cases on the owner's lists). Pending the owner's word (on the lists with their values, named apart as pending, not owner-accepted): Biro Grey by day on every mode's wash, 3.06 to 3.67, and Cards' accent at night, 3.450 (4.650 on the base).
+  - One tone (12c stands): cards, wells, sheets' faces and the chart panels in the base's tone are see-through over the wash. On Android this includes the Anki header, cards and buttons and the review card's bar, which painted the base over their face. They have no fill, and their lights fall only outside a raised face and inside a pressed one, so no new surface colour is added. What floats over a page (unlit faces, Android's learning sheet and ward-round chip) keeps its fill.
+  - Checks: WardLookTests and WardGroundTest pin the same values on both platforms: three seeds' meshes, colours, bar colours and blend, plus each cap. They check that the strongest point lands in every corner and the pale spot moves. At the strongest possible point every pair that reads on the base still reads. The day accents, which already fell short on the base, stay on the owner's lists re-measured (1.07 to 3.02). No case is pending.
   - [ ] Mac run: the app build and a look at a quiz, a case and the reader by day and at night. iOS draws the see-through faces live, not from the light images.
-  - [ ] The owner's word on the pending cases: Biro Grey by day and Cards' accent at night on the wash.
 - 12d. Motion on iPhone (22 Oct; task T0121, UX Waves 3-4, the motion rows of the iOS consistency sweep). Canon: platform.md, 200 to 320 ms with an ease-out, no bounce, nothing fades, nothing loops but the trace; Motion.gentle and .slideIn / .growIn (AccessibilitySupport.swift).
   - [x] Reduce Motion everywhere: the 86 withAnimation, .animation and animated bindings in 39 files that ignored it go through Motion.gentle, so nothing moves under Reduce Motion. A bare withAnimation keeps the system's default curve.
   - [x] Bare .snappy (0.5 s) as .snappy(duration: 0.25): 57 sites in 23 files.

@@ -57,27 +57,28 @@ class WardGroundTest {
     // "randomly tinted like the screenshots", "stronger a bit" (iOS WardLookTests
     // "Each mode's wash", the same seeds and numbers): the earlier backdrop's 3x3
     // mesh, each screen's from its own seed. Measured at the strongest point a mesh
-    // can have, the cap, since cards and wells are see-through over it. Ideas has
-    // none, and home's ground stays the plain base.
+    // can have, each mode's cap by day and at night, since cards and wells are
+    // see-through over it: every pair that reads on the plain base reads there too.
+    // Ideas has none, and home's ground stays the plain base.
     private class MeshPin(val seed: Long, val strengths: List<Double>, val x: List<Double>, val y: List<Double>,
-                          val questionsLight: List<Int>, val cardsDark: List<Int>, val top: Int, val bottom: Int, val sample: Double)
+                          val questionsLight: List<Int>, val questionsDark: List<Int>, val top: Int, val bottom: Int, val sample: Double)
 
     private val meshPins = listOf(
-        MeshPin(1, listOf(0.3883, 0.2742, 0.4000, 0.1889, 0.0514, 0.2776, 0.3755, 0.2046, 0.3321),
-            listOf(0.5706, 0.5253, 0.4846), listOf(0.4770, 0.4892, 0.5072),
-            listOf(0xD2ADB0, 0xD9C0C4, 0xD1ABAE, 0xDECED2, 0xE6E4E9, 0xD9BFC3, 0xD3AFB3, 0xDDCBCF, 0xD5B6BA),
-            listOf(0x2B314E, 0x252B41, 0x2B314F, 0x212638, 0x1A1F29, 0x252B42, 0x2A304C, 0x21273A, 0x282E48),
-            0xD4B2B6, 0xD7BBBF, 0.242218),
-        MeshPin(42, listOf(0.4000, 0.1570, 0.2807, 0.1688, 0.0000, 0.2986, 0.2437, 0.2601, 0.3430),
-            listOf(0.5284, 0.4983, 0.5396), listOf(0.4292, 0.5032, 0.5048),
-            listOf(0xD1ABAE, 0xE0D3D7, 0xD8BEC3, 0xDFD1D5, 0xE9EDF2, 0xD7BCC0, 0xDBC5C9, 0xDAC2C6, 0xD5B4B8),
-            listOf(0x2B314F, 0x1F2435, 0x252B42, 0x202536, 0x171C24, 0x262C44, 0x23293E, 0x242A40, 0x292E49),
-            0xD9BFC3, 0xD8BEC2, 0.198770),
-        MeshPin(20261104, listOf(0.3475, 0.2451, 0.4000, 0.1471, 0.1585, 0.3057, 0.3070, 0.1889, 0.3504),
-            listOf(0.5277, 0.4752, 0.5134), listOf(0.4483, 0.5525, 0.4536),
-            listOf(0xD4B3B7, 0xDBC4C9, 0xD1ABAE, 0xE0D5D9, 0xE0D3D7, 0xD7BABE, 0xD7BABE, 0xDECED2, 0xD4B3B7),
-            listOf(0x292F49, 0x24293E, 0x2B314F, 0x1F2434, 0x1F2435, 0x272C45, 0x272C45, 0x212638, 0x292F49),
-            0xD5B6BA, 0xD8BEC2, 0.237478),
+        MeshPin(1, listOf(0.3583, 0.1833, 0.3789, 0.3382, 0.2319, 0.1357, 0.4000, 0.0337, 0.4000),
+            listOf(0.4892, 0.4846, 0.5757), listOf(0.5072, 0.4201, 0.5349),
+            listOf(0xE2D9DE, 0xE5E3E8, 0xE1D8DC, 0xE2DADF, 0xE4E0E5, 0xE6E5EA, 0xE1D7DB, 0xE8EBF0, 0xE1D7DB),
+            listOf(0x45292F, 0x2F232A, 0x482A30, 0x42282F, 0x35252B, 0x282128, 0x4A2B31, 0x1B1D25, 0x4A2B31),
+            0xE3DCE1, 0xE3DDE2, 0.269869),
+        MeshPin(42, listOf(0.2533, 0.0000, 0.4000, 0.1155, 0.2902, 0.1770, 0.4000, 0.1365, 0.3229),
+            listOf(0.5032, 0.5396, 0.4989), listOf(0.5048, 0.4288, 0.4049),
+            listOf(0xE4DFE4, 0xE9EDF2, 0xE1D7DB, 0xE7E7EB, 0xE3DDE1, 0xE5E3E8, 0xE1D7DB, 0xE6E5EA, 0xE3DBE0),
+            listOf(0x38252C, 0x171C24, 0x4A2B31, 0x262028, 0x3C272D, 0x2E232A, 0x4A2B31, 0x292128, 0x40282E),
+            0xE5E1E6, 0xE3DDE2, 0.189192),
+        MeshPin(20261104, listOf(0.2207, 0.3440, 0.4000, 0.2104, 0.2084, 0.1881, 0.4000, 0.0000, 0.2940),
+            listOf(0.5525, 0.5134, 0.4834), listOf(0.4536, 0.5804, 0.4787),
+            listOf(0xE5E1E5, 0xE2DADE, 0xE1D7DB, 0xE5E1E6, 0xE5E1E6, 0xE5E2E7, 0xE1D7DB, 0xE9EDF2, 0xE3DDE1),
+            listOf(0x33242B, 0x43292F, 0x4A2B31, 0x32242B, 0x32242B, 0x2F232A, 0x4A2B31, 0x171C24, 0x3D272D),
+            0xE3DBE0, 0xE4E0E5, 0.243941),
     )
 
     private fun near(a: List<Double>, b: List<Double>) = a.size == b.size && a.zip(b).all { (p, q) -> kotlin.math.abs(p - q) < 5e-5 }
@@ -91,10 +92,13 @@ class WardGroundTest {
         check("each mode's wash colour is its earlier colour", WardModeWash.colour == colours)
         check("Ideas has no wash", WardModeWash.colours(WardSection.ideas, false, WardModeWash.mesh(1)) == null &&
             WardModeWash.strongest(WardSection.ideas, true) == null)
-        check("the wash's rule: the earlier mesh's strengths, moved 0.08 and 0.12, a quarter stronger to 0.40, 0.7 at night, 35% to grey",
+        check("the wash's rule: the earlier mesh's strengths, turned, mirrored, moved 0.12 and 0.12, a quarter stronger to 0.40, 35% to grey",
             WardModeWash.strengths == listOf(0.30, 0.18, 0.26, 0.16, 0.05, 0.18, 0.24, 0.16, 0.30) &&
-                WardModeWash.strengthJitter == 0.08 && WardModeWash.pointJitter == 0.12 && WardModeWash.boost == 1.25 &&
-                WardModeWash.cap == 0.40 && WardModeWash.night == 0.7 && WardModeWash.greyPull == 0.35)
+                WardModeWash.strengthJitter == 0.12 && WardModeWash.pointJitter == 0.12 && WardModeWash.boost == 1.25 &&
+                WardModeWash.top == 0.40 && WardModeWash.greyPull == 0.35 && WardModeWash.paleSpots == listOf(1, 3, 5, 7))
+        check("each mode's cap, by day and at night", WardModeWash.cap == mapOf(
+            WardSection.questions to (0.135 to 0.340), WardSection.cards to (0.030 to 0.030), WardSection.textbook to (0.160 to 0.255),
+            WardSection.cases to (0.190 to 0.215), WardSection.osce to (0.180 to 0.230), WardSection.audio to (0.150 to 0.275)))
         for (pin in meshPins) {
             val mesh = WardModeWash.mesh(pin.seed)
             check("seed ${pin.seed}: the mesh's strengths", near(mesh.strengths, pin.strengths), mesh.strengths.toString())
@@ -104,7 +108,7 @@ class WardGroundTest {
                     listOf(0, 1, 2, 6, 7, 8).all { mesh.y[it] == listOf(0.0, 0.5, 1.0)[it / 3] })
             check("seed ${pin.seed}: the same seed, the same mesh", WardModeWash.mesh(pin.seed) == mesh)
             check("seed ${pin.seed}: Questions by day", WardModeWash.colours(WardSection.questions, false, mesh) == pin.questionsLight)
-            check("seed ${pin.seed}: Cards at night", WardModeWash.colours(WardSection.cards, true, mesh) == pin.cardsDark)
+            check("seed ${pin.seed}: Questions at night", WardModeWash.colours(WardSection.questions, true, mesh) == pin.questionsDark)
             check("seed ${pin.seed}: the bars' colours, the rows' means",
                 WardModeWash.edge(WardSection.questions, false, mesh, bottom = false) == pin.top &&
                     WardModeWash.edge(WardSection.questions, false, mesh, bottom = true) == pin.bottom)
@@ -114,23 +118,38 @@ class WardGroundTest {
             val px = WardModeWash.pixels(WardSection.questions, false, mesh, 4, 4)
             check("seed ${pin.seed}: the drawn picture is the blend, opaque",
                 px != null && px.size == 16 && px.all { (it ushr 24) == 0xFF } &&
-                    px[5] == (0xFF000000.toInt() or WardModeWash.hex(WardSection.questions, false, WardModeWash.strength(mesh, 0.375, 0.375))!!))
+                    px[5] == (0xFF000000.toInt() or WardModeWash.hex(WardSection.questions, false,
+                        WardModeWash.mix(WardSection.questions, false, WardModeWash.strength(mesh, 0.375, 0.375))!!)!!))
         }
         var top = 0.0
         for (seed in 0L until 2000L) {
             val mesh = WardModeWash.mesh(seed)
             top = maxOf(top, mesh.strengths.max(), WardModeWash.strength(mesh, 0.3, 0.7))
         }
-        check("no mesh is stronger than the cap", top <= WardModeWash.cap, f2(top))
+        check("no mesh is stronger than the top", top <= WardModeWash.top, f2(top))
+        // the strongest corner and the pale spot land in different places from seed to seed
+        val strongestAt = mutableSetOf<Int>()
+        val palestAt = mutableSetOf<Int>()
+        for (seed in 0L until 400L) {
+            val st = WardModeWash.mesh(seed).strengths
+            strongestAt += st.indices.maxBy { st[it] }
+            palestAt += st.indices.minBy { st[it] }
+        }
+        check("the strongest point lands in every corner", strongestAt.containsAll(listOf(0, 2, 6, 8)), strongestAt.sorted().toString())
+        check("the pale spot moves off the middle", palestAt.size >= 4, palestAt.sorted().toString())
         val strongestPossible = mapOf(
-            "light questions" to 0xD1ABAE, "light cards" to 0xB2B8DD, "light textbook" to 0xA4C4C5,
-            "light cases" to 0xD9C1AC, "light osce" to 0xABC9BB, "light audio" to 0xC2B5D9,
-            "dark questions" to 0x41282E, "dark cards" to 0x2B314F, "dark textbook" to 0x223A3E,
-            "dark cases" to 0x47372D, "dark osce" to 0x263D37, "dark audio" to 0x37304C,
+            "light questions" to 0xE1D7DB, "light cards" to 0xE5E9F0, "light textbook" to 0xCEDDE0,
+            "light cases" to 0xE2D8D1, "light osce" to 0xCDDDD9, "light audio" to 0xDAD8E9,
+            "dark questions" to 0x4A2B31, "dark cards" to 0x191E29, "dark textbook" to 0x21373C,
+            "dark cases" to 0x3C312B, "dark osce" to 0x243734, "dark audio" to 0x362F4B,
+        )
+        // what each pair is held to on the base (WardPalette's promises): words 4.5:1, the beam and the accent's glyphs 3:1
+        val pairs = listOf(
+            Triple("Chart Ink", WardToken.ink, 4.5), Triple("Biro Grey", WardToken.inkSecondary, 4.5), Triple("ECG red", WardToken.ecg, 4.5),
+            Triple("Discharge green", WardToken.success, 4.5), Triple("Caution amber", WardToken.warning, 4.5), Triple("Resus red", WardToken.danger, 4.5),
+            Triple("the beam", WardToken.beam, 3.0), Triple("its accent as words", null, 4.5), Triple("its accent as glyphs", null, 3.0),
         )
         for (dark in modes) {
-            val chartInk = WardPalette.hex(WardToken.ink, dark)
-            val biroGrey = WardPalette.hex(WardToken.inkSecondary, dark)
             val base = plainBase.of(dark)
             for (s in WardSection.entries.filter { it != WardSection.ideas }) {
                 val strongest = WardModeWash.strongest(s, dark)
@@ -138,17 +157,20 @@ class WardGroundTest {
                     strongest == strongestPossible["${mode(dark)} $s"], strongest?.let(::hx) ?: "none")
                 check("${mode(dark)} $s: home's ground stays the plain base", WardGround.home(s, dark).base == base)
                 if (strongest == null) continue
-                val cChart = WardPalette.contrast(chartInk, strongest)
-                check("${mode(dark)} $s: Chart Ink keeps 4.5:1 on its mode wash", cChart >= 4.5, "${hx(strongest)} ${f2(cChart)}")
-                val cBiro = WardPalette.contrast(biroGrey, strongest)
-                check("${mode(dark)} $s: Biro Grey keeps 4.5:1 on its mode wash", cBiro >= 4.5, "${hx(strongest)} ${f2(cBiro)}",
-                    OwnerCase(test, "Biro Grey keeps 4.5:1 on its mode wash", "Biro Grey", "$s", mode(dark), "its mode wash"), cBiro)
+                for ((name, token, ratio) in pairs) {
+                    val ink = token?.let { WardPalette.hex(it, dark) } ?: s.accent(dark)
+                    val onBase = WardPalette.contrast(ink, base)
+                    val onWash = WardPalette.contrast(ink, strongest)
+                    check("${mode(dark)} $s: $name reads on its mode wash wherever it reads on the base",
+                        onBase < ratio || onWash >= ratio, "${hx(strongest)} ${f2(onWash)}, base ${f2(onBase)}")
+                }
+                // the accents the owner's colours keep short on the base stay on the owner's list, re-measured here
                 val cAccent = WardPalette.contrast(s.accent(dark), strongest)
                 check("${mode(dark)} $s: its accent keeps 4.5:1 on its mode wash", cAccent >= 4.5, "${hx(strongest)} ${f2(cAccent)}",
                     OwnerCase(test, "its accent keeps 4.5:1 on its mode wash", "accent", "$s", mode(dark), "its mode wash"), cAccent)
             }
         }
-        check("every case pending the owner's word is on the list", OwnerAccepted.pending.all { it in OwnerAccepted.cases })
+        check("no case is pending the owner's word", OwnerAccepted.pending.isEmpty())
         val app = File("src/main/java/com/stethoscore/app/ui/StethoscoreApp.kt").takeIf { it.exists() }?.readText() ?: ""
         check("the wash stands behind the mode's screens only, not home, settings, Sources or Ideas",
             app.contains("val washed=screen in modeWashScreens && section in com.stethoscore.app.ui.ward.WardModeWash.colour") &&
