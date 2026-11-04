@@ -18,6 +18,13 @@ func check(_ label: String, _ ok: Bool, _ detail: String = "") {
     if !ok { failures.append(label) }
 }
 
+/// This process's own CPU time, in seconds.
+func cpuSeconds() -> Double {
+    var now = timespec()
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &now)
+    return Double(now.tv_sec) + Double(now.tv_nsec) / 1e9
+}
+
 func dot(_ a: SIMD3<Float>, _ b: SIMD3<Float>) -> Float { a.x * b.x + a.y * b.y + a.z * b.z }
 func length(_ a: SIMD3<Float>) -> Float { dot(a, a).squareRoot() }
 func cross(_ a: SIMD3<Float>, _ b: SIMD3<Float>) -> SIMD3<Float> {
@@ -59,9 +66,17 @@ let h: Float = NeuronMembrane.step
 for (name, count, seed) in [("six", 6, UInt64(7)), ("seven", 7, UInt64(0x9E37_79B9 &+ 7)), ("six b", 6, UInt64(41))] {
     let branches: [NeuronBranch] = crown(count, seed: seed)
     let field = NeuronMembraneField(branches)
-    let began = Date()
-    let membrane: NeuronMembrane = NeuronMembrane.make(branches)
-    let took: Double = Date().timeIntervalSince(began)
+    // The fastest of three makes, in this process's CPU time (the mesher runs
+    // on one thread): waiting for a core while preflight runs eight suites
+    // at once is not the make's cost, nor is a loaded machine's slower CPU.
+    var made: NeuronMembrane? = nil
+    var took: Double = .infinity
+    for _ in 0..<3 {
+        let began: Double = cpuSeconds()
+        made = NeuronMembrane.make(branches)
+        took = min(took, cpuSeconds() - began)
+    }
+    let membrane: NeuronMembrane = made!
     let points: [SIMD3<Float>] = membrane.points
     let tris: Int = membrane.indices.count / 3
     print("  \(name): \(points.count) vertices, \(tris) triangles, \(String(format: "%.0f", took * 1000)) ms")

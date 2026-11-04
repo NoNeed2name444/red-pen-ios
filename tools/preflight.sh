@@ -18,7 +18,13 @@ fail=0
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 echo "== Swift suites touched since $base"
 if command -v swiftc >/dev/null; then
-  python3 tools/swift_suites.py --affected "$base" --platform linux -j 8 | tail -n 25 || fail=1
+  # Kept whole, so a failing suite is named even when it falls outside the
+  # last 25 lines; the status is the script's own, not the pipe's.
+  python3 tools/swift_suites.py --affected "$base" --platform linux -j 8 > "$tmp/suites.log" 2>&1 || fail=1
+  tail -n 25 "$tmp/suites.log"
+  if grep -Ev '^PASS |^[0-9]+/[0-9]+ suites passed$|^no suites to run$' "$tmp/suites.log" > "$tmp/suites.bad"; then
+    echo "-- every suite line that is not PASS:"; cat "$tmp/suites.bad"
+  fi
 else
   echo "no Swift toolchain here (install: see tools/README or skip); CI will run them"
 fi
