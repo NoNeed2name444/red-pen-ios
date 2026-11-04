@@ -1061,7 +1061,7 @@ struct SetRow: View {
             EcgStrip(progress: value)
                 .frame(maxWidth: 160)
             Text("\(percent)%")
-                .font(.system(.caption2, design: .monospaced).weight(.semibold))
+                .font(WardType.mono(.caption2, weight: .semibold))
                 .foregroundStyle(Color.wardInkSecondary)
                 .accessibilityLabel("\(percent) percent done")
         }

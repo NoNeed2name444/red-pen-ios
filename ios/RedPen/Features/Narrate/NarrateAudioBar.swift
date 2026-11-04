@@ -53,7 +53,7 @@ struct NarrateAudioBar: View {
                 Spacer()
                 Text(LectureAudio.clock(player.duration, locale: L10n.locale))
             }
-            .font(.system(.subheadline, design: .monospaced))
+            .font(WardType.mono(.subheadline, weight: .regular))
             .monospacedDigit()
             .foregroundStyle(Color.wardInkSecondary)
             .accessibilityHidden(true)
@@ -105,7 +105,7 @@ struct NarrateAudioBar: View {
             }
         } label: {
             Text(shown)
-                .font(.system(.subheadline, design: .monospaced).weight(.semibold))
+                .font(WardType.mono(.subheadline, weight: .semibold))
                 .monospacedDigit()
         }
         .buttonStyle(.bigCompanion)

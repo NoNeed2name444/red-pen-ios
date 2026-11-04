@@ -77,7 +77,7 @@ struct ImportPreviewSheet: View {
                 .foregroundStyle(Color.wardPrimaryInk)
                 .accessibilityHidden(true)
             Text(fact.value)
-                .font(.system(.title3, design: .monospaced).weight(.bold))
+                .font(WardType.mono(.title3, weight: .bold))
                 .monospacedDigit()
                 .foregroundStyle(Color.wardInk)
                 .lineLimit(1)
@@ -137,7 +137,7 @@ struct ImportPreviewSheet: View {
             }
             Spacer(minLength: 8)
             Text("\(count.formatted()) \(noun)")
-                .font(.system(.caption, design: .monospaced).weight(.semibold))
+                .font(WardType.mono(.caption, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(Color.wardInkSecondary)
         }

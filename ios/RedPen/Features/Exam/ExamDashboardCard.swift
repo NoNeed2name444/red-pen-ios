@@ -106,7 +106,7 @@ struct ExamDashboardCard: View {
                      tone: above ? .green : .warning,
                      symbol: above ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
             Text(line)
-                .font(.system(.caption, design: .monospaced))
+                .font(WardType.mono(.caption, weight: .regular))
                 .foregroundStyle(Color.wardInkSecondary)
         }
         .accessibilityElement(children: .combine)
@@ -213,8 +213,8 @@ struct BlueprintBar: View {
             HStack {
                 Text(standing.area.title).font(WardType.caption).lineLimit(1).foregroundStyle(Color.wardInk)
                 Spacer(minLength: 6)
-                Text(ready).font(.system(.caption2, design: .monospaced)).foregroundStyle(readyTone.color)
-                Text(share).font(.system(.caption, design: .monospaced)).foregroundStyle(Color.wardInkSecondary)
+                Text(ready).font(WardType.mono(.caption2, weight: .regular)).foregroundStyle(readyTone.color)
+                Text(share).font(WardType.mono(.caption, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             }
             WardProgressBar(value: standing.coverage, label: standing.area.title)
         }

@@ -229,7 +229,7 @@ struct CaseWardView: View {
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                     Text("\(step.minutes) min")
-                        .font(.system(.caption, design: .monospaced))
+                        .font(WardType.mono(.caption, weight: .regular))
                         .foregroundStyle(CaseInk.biro)
                 }
                 Spacer(minLength: 0)
@@ -275,7 +275,7 @@ struct CaseWardView: View {
                     .foregroundStyle(CaseInk.biro)
                 Spacer(minLength: 8)
                 Text("\(at) min")
-                    .font(.system(.caption, design: .monospaced))
+                    .font(WardType.mono(.caption, weight: .regular))
                     .foregroundStyle(CaseInk.biro)
             }
             Text(step.finding)
@@ -425,7 +425,7 @@ struct CaseLadderPanel: View {
         let leading: Bool = index == 0
         return HStack(spacing: 8) {
             Text("\(index + 1)")
-                .font(.system(.headline, design: .monospaced))
+                .font(WardType.mono(.headline, weight: .regular))
                 .foregroundStyle(leading ? Color.wardInk : Color.wardInkSecondary)
                 .frame(width: 32, height: 32)
                 .wardInset(in: Circle())

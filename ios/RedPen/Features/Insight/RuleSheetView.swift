@@ -247,7 +247,7 @@ private struct RuleWritingProgress: View {
             HStack(spacing: 10) {
                 EcgLoader()
                 Text(status)
-                    .font(.system(.subheadline, design: .monospaced).weight(.semibold))
+                    .font(WardType.mono(.subheadline, weight: .semibold))
                     .foregroundStyle(Color.wardInk)
             }
             EcgStrip(progress: fraction)

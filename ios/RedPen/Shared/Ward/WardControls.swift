@@ -680,7 +680,7 @@ struct WardTimerPill: View {
         let symbol: String = onFill && low ? "exclamationmark.triangle.fill" : "timer"
         let label = Label(text, systemImage: symbol)
             .labelStyle(WardGlyphLabelStyle(glyph: glyph))
-            .font(.system(.subheadline, design: .monospaced).weight(onFill && low ? .bold : .semibold))
+            .font(WardType.mono(.subheadline, weight: onFill && low ? .bold : .semibold))
             .monospacedDigit()
             .foregroundStyle(words)
         if well {

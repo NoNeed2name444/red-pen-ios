@@ -117,7 +117,7 @@ private struct ReaderPager: View {
             ReaderPagerArrow(symbol: "chevron.backward", label: before, key: .leftArrow,
                              enabled: !atStart) { turn(-1) }
             Text(place)
-                .font(.system(.footnote, design: .monospaced).weight(.semibold))
+                .font(WardType.mono(.footnote, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(Color.wardInk)
                 .lineLimit(1)

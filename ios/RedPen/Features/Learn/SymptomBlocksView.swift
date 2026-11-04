@@ -66,7 +66,7 @@ struct SymptomBlocksView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(p.blockTitle).font(WardType.face(.body, weight: .semibold)).foregroundStyle(Color.wardInk)
                     Text("\(shown) questions \u{00B7} \(block.causes) different answers")
-                        .font(.system(.caption, design: .monospaced)).foregroundStyle(Color.wardInkSecondary)
+                        .font(WardType.mono(.caption, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                     Text(lookalikes + "\u{2026}")
                         .font(WardType.caption).foregroundStyle(Color.wardInkSecondary).lineLimit(1)
                 }
@@ -87,7 +87,7 @@ struct SymptomBlocksView: View {
             WardIconSquare(symbol: p.symbol, tone: .grey, size: 32)
             Text(p.name).foregroundStyle(Color.wardInk)
             Spacer(minLength: 0)
-            Text("\(block.ids.count) question\(plural)").font(.system(.caption, design: .monospaced))
+            Text("\(block.ids.count) question\(plural)").font(WardType.mono(.caption, weight: .regular))
                 .foregroundStyle(Color.wardInkSecondary)
         }
         .frame(minHeight: 44)
@@ -104,7 +104,7 @@ struct SymptomBlocksView: View {
             let right: Int = events.filter(\.correct).count
             Section {
                 Text("\(right) of \(events.count) right")
-                    .font(.system(.subheadline, design: .monospaced).weight(.semibold))
+                    .font(WardType.mono(.subheadline, weight: .semibold))
                     .foregroundStyle(Color.wardInk)
                 if rows.isEmpty {
                     Text("No mix-ups this time.").font(WardType.face(.subheadline, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
@@ -137,7 +137,7 @@ struct SymptomBlocksView: View {
             Text(row.actual).fontWeight(.semibold).foregroundStyle(Color.wardInk)
             Spacer(minLength: 0)
             if row.count > 1 {
-                Text("\u{00D7}\(row.count)").font(.system(.caption, design: .monospaced)).foregroundStyle(Color.wardInkSecondary)
+                Text("\u{00D7}\(row.count)").font(WardType.mono(.caption, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             }
         }
         .font(WardType.face(.subheadline, weight: .regular))

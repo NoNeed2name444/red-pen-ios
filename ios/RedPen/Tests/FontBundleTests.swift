@@ -96,8 +96,9 @@ for (face, style, weight) in [("display", "largeTitle", "bold"), ("title", "titl
     check("\(face) is \(style) \(weight)", tokens.contains("static let \(face) = face(.\(style), weight: .\(weight))"))
 }
 check("observations stay in the system mono",
-      tokens.contains("static let obs = Font.system(.body, design: .monospaced)")
-        && tokens.contains("static let obsLarge = Font.system(.title2, design: .monospaced).weight(.semibold)"))
+      tokens.contains("Font.system(style, design: .monospaced).weight(weight)")
+        && tokens.contains("static let obs = mono(.body, weight: .regular)")
+        && tokens.contains("static let obsLarge = mono(.title2, weight: .semibold)"))
 let app = read("ios/RedPen/RedPenApp.swift")
 check("both windows default to WardType.body", app.components(separatedBy: ".font(WardType.body)").count - 1 == 2)
 

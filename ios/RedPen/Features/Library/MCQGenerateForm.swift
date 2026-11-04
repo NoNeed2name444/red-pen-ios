@@ -58,7 +58,7 @@ struct MCQGenerateForm: View {
                 Section {
                     TextEditor(text: $sourceText)
                         .frame(minHeight: 160)
-                        .font(.system(.footnote, design: .monospaced))
+                        .font(WardType.mono(.footnote, weight: .regular))
                         .popEditorRow()
                         .disabled(isGenerating)
                 } header: {

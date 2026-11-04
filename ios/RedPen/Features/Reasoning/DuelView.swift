@@ -69,7 +69,7 @@ struct DuelsView: View {
             Text(title).font(WardType.face(.body, weight: .medium)).foregroundStyle(Color.wardInk)
             if let last = reasoning.lastDuel(of: pair.id) {
                 Text("Last time \(last.right) of \(last.total)")
-                    .font(.system(.caption, design: .monospaced))
+                    .font(WardType.mono(.caption, weight: .regular))
                     .monospacedDigit()
                     .foregroundStyle(Color.wardInkSecondary)
             } else {
@@ -322,7 +322,7 @@ struct DuelView: View {
         return VStack(alignment: .leading, spacing: 16) {
             VStack(spacing: 4) {
                 Text(score)
-                    .font(.system(.largeTitle, design: .monospaced).weight(.bold))
+                    .font(WardType.mono(.largeTitle, weight: .bold))
                     .monospacedDigit()
                     .foregroundStyle(Color.wardInk)
                 Text(verdict).font(WardType.face(.subheadline, weight: .regular)).foregroundStyle(Color.wardInkSecondary)

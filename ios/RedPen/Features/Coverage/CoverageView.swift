@@ -351,7 +351,7 @@ struct CoverageView: View {
                     Text(area.area.name)
                     Spacer()
                     Text(tally)
-                        .font(.system(.caption, design: .monospaced))
+                        .font(WardType.mono(.caption, weight: .regular))
                         .textCase(nil)
                 }
             }
@@ -508,7 +508,7 @@ private struct CoverageCheckProgress: View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(status)
-                    .font(.system(.subheadline, design: .monospaced).weight(.semibold))
+                    .font(WardType.mono(.subheadline, weight: .semibold))
                     .foregroundStyle(Color.wardInk)
                 EcgStrip(progress: fraction)
             }

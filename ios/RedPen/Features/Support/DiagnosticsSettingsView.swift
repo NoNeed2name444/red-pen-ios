@@ -102,7 +102,7 @@ struct DiagnosticsSettingsView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(DiagFingerprint.title(event, binary: event.device?.binary ?? "RedPen"))
                             .font(WardType.face(.footnote, weight: .semibold))
-                        Text(detail(event)).font(.system(.caption2, design: .monospaced)).foregroundStyle(Color.wardInkSecondary)
+                        Text(detail(event)).font(WardType.mono(.caption2, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                     }
                 }
             }

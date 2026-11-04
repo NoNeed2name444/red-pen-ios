@@ -419,6 +419,14 @@ enum WardType {
         Font.custom(family, size: largeSize(style), relativeTo: style).weight(weight)
     }
 
+    /// The observation mono at `style`, scaled with it. Nunito and Baloo
+    /// Bhaijaan 2 have no monospaced cut, so this is the system's monospaced
+    /// design at the text style, which Dynamic Type scales as it scales any
+    /// system text style.
+    static func mono(_ style: Font.TextStyle, weight: Font.Weight) -> Font {
+        Font.system(style, design: .monospaced).weight(weight)
+    }
+
     /// Each text style's size at the default (Large) Dynamic Type size,
     /// as Android's WardTextStyle has them.
     static func largeSize(_ style: Font.TextStyle) -> CGFloat {
@@ -444,8 +452,8 @@ enum WardType {
     static let body = face(.body, weight: .regular)
     static let caption = face(.caption, weight: .regular)
     /// Observations: BP 128/82
-    static let obs = Font.system(.body, design: .monospaced)
-    static let obsLarge = Font.system(.title2, design: .monospaced).weight(.semibold)
+    static let obs = mono(.body, weight: .regular)
+    static let obsLarge = mono(.title2, weight: .semibold)
 }
 
 /// Gaps and padding, every one a step of WardScale (4, 8, 12, 16, 24, 32).

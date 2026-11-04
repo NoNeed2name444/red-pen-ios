@@ -202,7 +202,7 @@ struct RingCentre: View {
     var body: some View {
         VStack(spacing: 0) {
             Text(value)
-                .font(.system(.subheadline, design: .monospaced).weight(.bold).monospacedDigit())
+                .font(WardType.mono(.subheadline, weight: .bold).monospacedDigit())
                 .lineLimit(1).minimumScaleFactor(0.6)
             if let caption {
                 Text(caption).scaledFont(9, relativeTo: .caption2).foregroundStyle(Color.wardInkSecondary)
@@ -273,7 +273,7 @@ struct ReasonDonut: View {
                     }
                 }
                 VStack(spacing: 0) {
-                    Text("\(total)").font(.system(.title3, design: .monospaced).weight(.bold).monospacedDigit())
+                    Text("\(total)").font(WardType.mono(.title3, weight: .bold).monospacedDigit())
                     Text(total == 1 ? "reason" : "reasons").font(WardType.face(.caption2, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                 }
             }
@@ -286,7 +286,7 @@ struct ReasonDonut: View {
                         .font(WardType.caption)
                     Spacer(minLength: WardSpace.s)
                     Text("\(Int((share.share * 100).rounded()))%")
-                        .font(.system(.caption, design: .monospaced).monospacedDigit()).foregroundStyle(Color.wardInkSecondary)
+                        .font(WardType.mono(.caption, weight: .regular).monospacedDigit()).foregroundStyle(Color.wardInkSecondary)
                 }
             }
         }

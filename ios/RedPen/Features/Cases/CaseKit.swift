@@ -64,7 +64,7 @@ struct CaseClockPill: View {
 
     var body: some View {
         Label(used == 0 ? "\(budget) min" : "\(used) / \(budget) min", systemImage: over ? "exclamationmark.circle.fill" : "clock")
-            .font(.system(.subheadline, design: .monospaced).weight(.semibold))
+            .font(WardType.mono(.subheadline, weight: .semibold))
             .monospacedDigit()
             .contentTransition(.identity)
             .labelStyle(WardGlyphLabelStyle(glyph: over ? Color.wardDanger : Color.wardInk)).foregroundStyle(Color.wardInk)

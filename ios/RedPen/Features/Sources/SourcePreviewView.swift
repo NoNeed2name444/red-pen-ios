@@ -221,7 +221,7 @@ struct SourcePageList: View {
     private func row(_ page: SourceDoc.Page) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
             Text("\(page.number)")
-                .font(.system(.caption, design: .monospaced))
+                .font(WardType.mono(.caption, weight: .regular))
                 .monospacedDigit()
                 .foregroundStyle(page.number == selected ? Color.wardInk : Color.wardInkSecondary)
                 .frame(minWidth: 22, alignment: .trailing)

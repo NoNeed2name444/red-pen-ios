@@ -146,7 +146,7 @@ private struct FirstRunGoalPage: View {
             withAnimation(Motion.gentle(.snappy(duration: 0.25))) { goal = value }
         } label: {
             Text("\(value)")
-                .font(.system(.subheadline, design: .monospaced).weight(.semibold).monospacedDigit())
+                .font(WardType.mono(.subheadline, weight: .semibold).monospacedDigit())
                 .foregroundStyle(ink)
                 .frame(maxWidth: .infinity, minHeight: 44)
         }

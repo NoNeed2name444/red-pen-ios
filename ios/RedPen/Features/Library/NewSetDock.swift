@@ -145,7 +145,7 @@ struct NewSetStepDot: View {
                         .foregroundStyle(ink)
                 } else {
                     Text("\(one.rawValue)")
-                        .font(.system(.subheadline, design: .monospaced).weight(.bold))
+                        .font(WardType.mono(.subheadline, weight: .bold))
                         .foregroundStyle(ink)
                 }
             }

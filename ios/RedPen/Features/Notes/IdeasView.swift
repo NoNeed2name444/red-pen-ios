@@ -294,7 +294,7 @@ struct IdeasView: View {
                     .foregroundStyle(Color.wardInk)
                 Spacer(minLength: 8)
                 Text(count)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(WardType.mono(.caption, weight: .regular))
                     .monospacedDigit()
                     .foregroundStyle(Color.wardInkSecondary)
                 Image(systemName: "chevron.forward")

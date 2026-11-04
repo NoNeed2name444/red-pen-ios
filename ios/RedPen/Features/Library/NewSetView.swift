@@ -726,7 +726,7 @@ struct NewSetView: View {
             }
             TextEditor(text: $bodyText)
                 .frame(minHeight: 180)
-                .font(.system(.footnote, design: .monospaced))
+                .font(WardType.mono(.footnote, weight: .regular))
                 .popEditor()
         } header: {
             WardSectionLabel(title)

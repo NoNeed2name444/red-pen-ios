@@ -50,7 +50,7 @@ struct ReadinessCard: View {
                 .font(WardType.face(.subheadline, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             EcgStrip(progress: Double(min(answered, needed)) / Double(needed))
             Text("\(min(answered, needed)) of \(needed)")
-                .font(.system(.caption, design: .monospaced)).foregroundStyle(Color.wardInkSecondary)
+                .font(WardType.mono(.caption, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
         }
     }
 
@@ -64,7 +64,7 @@ struct ReadinessCard: View {
                 .foregroundStyle(Color.wardInk)
             VStack(alignment: .leading, spacing: 1) {
                 Text("likely \(Self.percent(e.low))\u{2013}\(Self.percent(e.high))")
-                    .font(.system(.subheadline, design: .monospaced).weight(.medium))
+                    .font(WardType.mono(.subheadline, weight: .medium))
                     .foregroundStyle(Color.wardInk)
                 Text(verdict(e)).font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
             }

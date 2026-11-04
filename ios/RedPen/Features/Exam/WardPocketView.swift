@@ -498,7 +498,7 @@ struct WardScoreView: View {
                     Text(choice.label)
                     Spacer(minLength: WardSpace.s)
                     Text(WardScores.points(choice.points))
-                        .font(.system(.subheadline, design: .monospaced))
+                        .font(WardType.mono(.subheadline, weight: .regular))
                         .foregroundStyle(Color.wardInkSecondary)
                 }
                 .tag(index)
@@ -516,7 +516,7 @@ struct WardScoreView: View {
                 Text(item.label).fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: WardSpace.s)
                 Text(points)
-                    .font(.system(.subheadline, design: .monospaced))
+                    .font(WardType.mono(.subheadline, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
             }
         }
@@ -528,7 +528,7 @@ struct WardScoreView: View {
         let range: String = band.low == band.high ? low : low + "\u{2013}" + high
         return HStack(alignment: .firstTextBaseline, spacing: WardSpace.m) {
             Text(range)
-                .font(.system(.subheadline, design: .monospaced).weight(.semibold))
+                .font(WardType.mono(.subheadline, weight: .semibold))
                 .frame(minWidth: 44, alignment: .leading)
             VStack(alignment: .leading, spacing: WardSpace.xs) {
                 Text(band.title).font(WardType.face(.subheadline, weight: .semibold))

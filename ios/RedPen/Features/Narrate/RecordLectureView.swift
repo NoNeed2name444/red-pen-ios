@@ -111,7 +111,7 @@ struct RecordLectureView: View {
         VStack(spacing: WardSpace.l) {
             Spacer(minLength: 0)
             Text(L10nFormat.clock(seconds: shownSeconds, locale: L10n.locale))
-                .font(.system(.largeTitle, design: .monospaced))
+                .font(WardType.mono(.largeTitle, weight: .regular))
                 .monospacedDigit()
                 .foregroundStyle(Color.wardInk)
                 .accessibilityLabel(words(stateLine))

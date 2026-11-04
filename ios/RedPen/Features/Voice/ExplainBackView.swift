@@ -444,7 +444,7 @@ private struct ExplainBoxHeader: View {
                 .wardSmallCaps()
             Spacer(minLength: 8)
             Text(count)
-                .font(.system(.footnote, design: .monospaced))
+                .font(WardType.mono(.footnote, weight: .regular))
                 .monospacedDigit()
         }
         .foregroundStyle(Color.wardInkSecondary)
@@ -556,7 +556,7 @@ private struct ExplainAttemptLabel: View {
             }
             Spacer()
             Text("\(score)")
-                .font(.system(.headline, design: .monospaced))
+                .font(WardType.mono(.headline, weight: .regular))
                 .monospacedDigit()
                 .foregroundStyle(ExplainResultView.scoreColor(score))
         }
@@ -582,7 +582,7 @@ struct ExplainResultView: View {
                         .monospacedDigit()
                         .foregroundStyle(Self.scoreColor(attempt.result.score))
                     Text("/ 100")
-                        .font(.system(.title3, design: .monospaced))
+                        .font(WardType.mono(.title3, weight: .regular))
                         .foregroundStyle(Color.wardInkSecondary)
                     Spacer()
                     if attempt.isExample { VoiceExampleTag() }

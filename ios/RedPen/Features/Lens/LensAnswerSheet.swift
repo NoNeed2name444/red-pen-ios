@@ -338,7 +338,7 @@ struct LensAnswerBody: View {
             ForEach(Array(items.enumerated()), id: \.offset) { pair in
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
                     Text("\(pair.offset + 1)")
-                        .font(.system(.callout, design: .monospaced).weight(.bold))
+                        .font(WardType.mono(.callout, weight: .bold))
                         .monospacedDigit()
                         .foregroundStyle(Color.wardInk)
                         .frame(minWidth: 22, alignment: .trailing)

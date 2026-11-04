@@ -140,7 +140,7 @@ struct ChartLabsTable: View {
         Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: WardSpace.m, verticalSpacing: WardSpace.s) {
             ForEach(labs.indices, id: \.self) { i in row(labs[i]) }
         }
-        .font(.system(.subheadline, design: .monospaced))
+        .font(WardType.mono(.subheadline, weight: .regular))
         .padding(WardSpace.m)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.wardBackground, in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))

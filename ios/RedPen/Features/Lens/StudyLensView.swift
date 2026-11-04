@@ -240,7 +240,7 @@ struct StudyLensView: View {
                 .disabled(still.page <= 0)
                 .accessibilityLabel("Previous page")
             Text("Page \(still.page + 1) of \(still.pageCount)")
-                .font(.system(.footnote, design: .monospaced))
+                .font(WardType.mono(.footnote, weight: .regular))
                 .monospacedDigit()
                 .foregroundStyle(.white)
             Button { showPage(still.page + 1) } label: { Image(systemName: "chevron.right") }

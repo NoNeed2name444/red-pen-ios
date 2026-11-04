@@ -221,7 +221,7 @@ private struct PairingCodeSlab: View {
                 .accessibilityLabel(PairingCodeSlab.spoken(code))
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 Text(PairingCodeSlab.countdown(until: expires, now: context.date))
-                    .font(.system(.footnote, design: .monospaced))
+                    .font(WardType.mono(.footnote, weight: .regular))
                     .monospacedDigit()
                     .foregroundStyle(Color.wardInkSecondary)
             }

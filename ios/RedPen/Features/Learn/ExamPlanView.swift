@@ -243,7 +243,7 @@ private struct DueBars: View {
             HStack {
                 Text("Today").font(WardType.face(.caption2, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                 Spacer()
-                Text("+13 days").font(.system(.caption2, design: .monospaced)).foregroundStyle(Color.wardInkSecondary)
+                Text("+13 days").font(WardType.mono(.caption2, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             }
         }
         .padding(.vertical, 4)
@@ -316,13 +316,13 @@ private struct SubjectRing: View {
                     .rotationEffect(.degrees(-90))
                     .fillsFromLeading()
                 Text(RetentionForecast.percent(secured))
-                    .font(.system(.caption, design: .monospaced).weight(.bold))
+                    .font(WardType.mono(.caption, weight: .bold))
                     .monospacedDigit()
                     .foregroundStyle(Color.wardInk)
             }
             .frame(width: min(side, 120), height: min(side, 120))
             Text(ring.subject).font(WardType.caption).lineLimit(3).multilineTextAlignment(.center).foregroundStyle(Color.wardInk)
-            Text("\(ring.secured)/\(ring.total)").font(.system(.caption2, design: .monospaced))
+            Text("\(ring.secured)/\(ring.total)").font(WardType.mono(.caption2, weight: .regular))
                 .monospacedDigit().foregroundStyle(Color.wardInkSecondary)
         }
         .accessibilityElement(children: .ignore)

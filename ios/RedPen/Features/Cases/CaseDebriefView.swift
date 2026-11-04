@@ -169,7 +169,7 @@ struct CaseDebriefView: View {
                 CaseLabel("Key findings")
                 Spacer()
                 Text("\(debrief.keyFound) of \(debrief.keyFindings.count) found")
-                    .font(.system(.subheadline, design: .monospaced))
+                    .font(WardType.mono(.subheadline, weight: .regular))
             }
             .accessibilityElement(children: .combine)
             ForEach(debrief.keyFindings, id: \.step.id) { item in
@@ -214,7 +214,7 @@ struct CaseDebriefView: View {
                 let right: Bool = file.isDiagnosis(lead)
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text("\(taken.at) min")
-                        .font(.system(.caption, design: .monospaced))
+                        .font(WardType.mono(.caption, weight: .regular))
                         .foregroundStyle(CaseInk.biro)
                         .frame(minWidth: 48, alignment: .leading)
                     Text(file.step(taken.stepID)?.label ?? "")
@@ -269,7 +269,7 @@ struct CaseDebriefView: View {
             ForEach(Array(file.teaching.enumerated()), id: \.offset) { index, point in
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text("\(index + 1).")
-                        .font(.system(.subheadline, design: .monospaced).weight(.semibold))
+                        .font(WardType.mono(.subheadline, weight: .semibold))
                         .foregroundStyle(CaseInk.biro)
                         .accessibilityHidden(true)
                     Text(point)

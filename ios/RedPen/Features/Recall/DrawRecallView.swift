@@ -394,7 +394,7 @@ struct DrawRecallView: View {
                 .foregroundStyle(Color.wardInkSecondary)
             if attempt.labelCount > 0 {
                 Text("\(attempt.got.count)/\(attempt.labelCount)")
-                    .font(.system(.caption2, design: .monospaced))
+                    .font(WardType.mono(.caption2, weight: .regular))
                     .monospacedDigit()
                     .foregroundStyle(Color.wardInkSecondary)
             }

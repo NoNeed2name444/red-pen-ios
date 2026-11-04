@@ -109,7 +109,7 @@ struct WardRoundTile: View {
                 HStack(spacing: WardSpace.m) {
                     WardRoundMiniRing(round: round, now: now, width: 4, size: 40)
                     Text(round.caption(at: now))
-                        .font(.system(.subheadline, design: .monospaced).weight(.semibold))
+                        .font(WardType.mono(.subheadline, weight: .semibold))
                         .monospacedDigit()
                         .foregroundStyle(Color.wardInk)
                         .lineLimit(2)
@@ -143,7 +143,7 @@ struct WardRoundChip: View {
             HStack(spacing: WardSpace.s) {
                 WardRoundMiniRing(round: round, now: now)
                 Text(notice ?? words(at: now))
-                    .font(.system(.subheadline, design: .monospaced).weight(.semibold))
+                    .font(WardType.mono(.subheadline, weight: .semibold))
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
@@ -237,7 +237,7 @@ struct WardRoundPanel: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(round.caption(at: now))
             Text(tally)
-                .font(.system(.subheadline, design: .monospaced))
+                .font(WardType.mono(.subheadline, weight: .regular))
                 .foregroundStyle(Color.wardInkSecondary)
                 .monospacedDigit()
         }
@@ -345,7 +345,7 @@ struct DailyGoalRing: View {
             }
             .frame(width: 18, height: 18)
             Text(progress.label)
-                .font(.system(.caption, design: .monospaced).weight(.semibold))
+                .font(WardType.mono(.caption, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(Color.wardInkSecondary)
                 .lineLimit(1)

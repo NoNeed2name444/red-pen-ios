@@ -75,7 +75,7 @@ struct ReasoningView: View {
                 Text(set.subject).lineLimit(1)
                 if anyMade {
                     Text(counts)
-                        .font(.system(.caption, design: .monospaced))
+                        .font(WardType.mono(.caption, weight: .regular))
                         .monospacedDigit()
                 }
             }
@@ -277,7 +277,7 @@ struct ReasoningWriteBar: View {
                     .lineLimit(1)
                 EcgStrip(progress: job.fraction)
                 Text(done)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(WardType.mono(.caption, weight: .regular))
                     .monospacedDigit()
                     .foregroundStyle(Color.wardInkSecondary)
             }

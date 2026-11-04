@@ -99,7 +99,7 @@ struct MockResultsView: View {
                 Text(row.subject).font(WardType.body).foregroundStyle(Color.wardInk)
                 Spacer(minLength: 8)
                 Text(line + " \u{00B7} \(share)%")
-                    .font(.system(.subheadline, design: .monospaced))
+                    .font(WardType.mono(.subheadline, weight: .regular))
                     .monospacedDigit()
                     .foregroundStyle(Color.wardInkSecondary)
             }

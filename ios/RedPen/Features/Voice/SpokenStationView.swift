@@ -297,7 +297,7 @@ private struct StationAttemptRow: View {
                 }
                 Spacer()
                 Text(score)
-                    .font(.system(.headline, design: .monospaced))
+                    .font(WardType.mono(.headline, weight: .regular))
                     .monospacedDigit()
                     .foregroundStyle(Color.wardInk)
             }

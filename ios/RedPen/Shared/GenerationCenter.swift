@@ -193,7 +193,7 @@ private struct GenerationProgress: View {
         HStack(spacing: WardSpace.s) {
             EcgStrip(progress: fraction)
             Text(shown)
-                .font(.system(.caption, design: .monospaced).weight(.semibold))
+                .font(WardType.mono(.caption, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(Color.wardInk)
                 .contentTransition(.numericText())
@@ -235,7 +235,7 @@ private struct GenerationLines: View {
                     Text("\u{00B7} \(timeLeft)")
                 }
             }
-            .font(.system(.caption, design: .monospaced))
+            .font(WardType.mono(.caption, weight: .regular))
             .monospacedDigit()
             .foregroundStyle(Color.wardInkSecondary)
             if let phase = job.phase {

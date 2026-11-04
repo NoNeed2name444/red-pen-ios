@@ -150,7 +150,7 @@ struct MockPaperView: View {
             }
             let length: String = "\(paper.questionCount) questions \u{00B7} \(Self.hours(paper.minutes))"
             Label(length, systemImage: "timer")
-                .font(.system(.subheadline, design: .monospaced).weight(.semibold))
+                .font(WardType.mono(.subheadline, weight: .semibold))
                 .monospacedDigit()
             Text(paper.note)
                 .font(WardType.face(.subheadline, weight: .regular))

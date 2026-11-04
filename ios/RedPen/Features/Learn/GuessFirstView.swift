@@ -58,7 +58,7 @@ struct GuessFirstView: View {
     private func question(_ q: MCQQuestion) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("\(index + 1) of \(questions.count)")
-                .font(.system(.caption, design: .monospaced).weight(.semibold))
+                .font(WardType.mono(.caption, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(Color.wardInkSecondary)
             Text(q.stem).font(WardType.face(.title3, weight: .semibold)).foregroundStyle(Color.wardInk)
@@ -125,7 +125,7 @@ struct GuessFirstView: View {
     private var finish: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("\(right) of \(questions.count)")
-                .font(.system(.largeTitle, design: .monospaced).weight(.bold))
+                .font(WardType.mono(.largeTitle, weight: .bold))
                 .monospacedDigit()
                 .foregroundStyle(Color.wardInk)
             Text("Whatever the score, you now know what to look out for. Watch for these as you read.")
