@@ -142,11 +142,14 @@ check("the credit names every release the atlas's manifest pins",
        "https://doi.org/10.48539/HBM626.BRWN.943"].allSatisfy {
           anatomyManifest.contains($0) && ContentSources.hraCredit.contains($0)
       })
-check("the skull's and the scans' credits are SOURCES.md's, word for word",
-      [ContentSources.nihSkullCredit, ContentSources.totalSegmentatorCredit, ContentSources.visibleHumanCredit].allSatisfy {
+check("the skulls', the vertebrae's and the scans' credits are SOURCES.md's, word for word",
+      [ContentSources.nihSkullCredit, ContentSources.nihSkullScanCredit, ContentSources.ka25Credit,
+       ContentSources.totalSegmentatorCredit, ContentSources.visibleHumanCredit].allSatisfy {
           anatomyFlat.contains("\"" + $0 + "\"")
       }
         && ContentSources.nihSkull.attribution.hasPrefix(ContentSources.nihSkullCredit)
+        && ContentSources.nihSkullScan.attribution.hasPrefix(ContentSources.nihSkullScanCredit)
+        && ContentSources.ka25.attribution.hasPrefix(ContentSources.ka25Credit)
         && ContentSources.totalSegmentator.attribution.hasPrefix(ContentSources.totalSegmentatorCredit)
         && ContentSources.visibleHumanCT.attribution.hasPrefix(ContentSources.visibleHumanCredit))
 check("the Visible Human CT is credited as NLM asks: its words, no endorsement implied",
@@ -158,8 +161,14 @@ check("the manifest pins the skull's entry and the scans' release, and the credi
         && ContentSources.nihSkullCredit.contains("https://3d.nih.gov/entries/3DPX-020591")
         && anatomyManifest.contains("https://doi.org/10.5281/zenodo.22688904")
         && ContentSources.totalSegmentatorCredit.contains("https://doi.org/10.5281/zenodo.22688904"))
+check("the manifest pins the scanned skull's entry and the vertebrae's release, and the credits name them",
+      anatomyManifest.contains("https://3d.nih.gov/entries/3DPX-012260")
+        && ContentSources.nihSkullScanCredit.contains("https://3d.nih.gov/entries/3DPX-012260")
+        && anatomyManifest.contains("https://doi.org/10.6084/m9.figshare.11879133.v2")
+        && ContentSources.ka25Credit.contains("https://doi.org/10.6084/m9.figshare.11879133.v2"))
 check("the Sciences' sources are in Settings' list",
       [ContentSources.hraAnatomy, ContentSources.visibleHumanCT, ContentSources.nihSkull, ContentSources.totalSegmentator,
+       ContentSources.nihSkullScan, ContentSources.ka25,
        ContentSources.uberon, ContentSources.cellOntology,
        ContentSources.reactome, ContentSources.ncbiTaxonomy].allSatisfy(ContentSources.all.contains))
 

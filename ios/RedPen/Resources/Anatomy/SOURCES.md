@@ -3,25 +3,28 @@
 The anatomy atlas in the Sciences screens is drawn from these files (reader:
 `Shared/Sciences/AnatomyAtlas.swift`). It has two bodies, a man and a
 woman. Most meshes come from the Human Reference Atlas's male and female
-reference organ sets; the skull from each body's own head CT (the Visible
-Human Project, U.S. National Library of Medicine: the organ sets were made
-from the same man and woman), its bones named after, and its face and
-thinnest plates drawn from, NIH 3D's skull of the Visible Human Male; the ribs,
-shoulder girdle, arm, hand and foot bones, the woman's hip bones, the hip
-and back muscles, thyroid, adrenals, oesophagus and stomach from five
-TotalSegmentator CT scans. All are CC BY 4.0 but the Visible Human CT,
-which NLM gives under its Terms and Conditions. The files here were made
-from the downloads below by `tools/anatomy_atlas.py`,
+reference organ sets. The skull is NIH 3D's scan of the Visible Human
+Male's skull, teeth and all, fitted onto each body's own skull meshed from
+its head CT (the Visible Human Project, U.S. National Library of Medicine:
+the organ sets were made from the same man and woman), and split into the
+bones that skull's are named after, NIH 3D's skull of the Visible Human
+Male. The vertebrae, sacrum and coccyx are scans of one dry skeleton's
+(KA 25). The ribs, shoulder girdle, arm, hand and foot bones, the woman's
+hip bones, the hip and back muscles, thyroid, adrenals, oesophagus and
+stomach come from five TotalSegmentator CT scans. All are CC BY 4.0 but the
+Visible Human CT, which NLM gives under its Terms and Conditions. The
+files here were made from the downloads below by `tools/anatomy_atlas.py`,
 `tools/anatomy_gaps.py`, `tools/anatomy_skull.py`,
 `tools/anatomy_limbs.py`, `tools/anatomy_elbows.py`,
-`tools/anatomy_feet.py` and `tools/anatomy_fibres.py`, which say exactly
-how:
+`tools/anatomy_feet.py`, `tools/anatomy_bones.py` and
+`tools/anatomy_fibres.py`, which say exactly how:
 
     python3 -I tools/anatomy_atlas.py --male 3d-vh-m-united.glb \
         --female 3d-vh-f-united.glb --crosswalk asct-b-3d-models-crosswalk.csv \
         --skull 3DPX-020591.glb \
         --ct <folder holding s1803/, s1764/, s1880/, s1831/ and s1767/> \
-        --vhct <folder holding male/ and female/, the head CT's slices>
+        --vhct <folder holding male/ and female/, the head CT's slices> \
+        --vhskull vhm_skull_0-nih3d.glb --ka25 <folder holding KA 25's OBJ files>
 
 The downloads themselves are not kept in the repository. The tool checks
 each against the SHA-256 below, and the same inputs give the same bytes.
@@ -57,7 +60,8 @@ by Ellen M. Quardokus, Heidi Schlehlein, Bruce W. Herr II and Katy Börner
 (https://doi.org/10.48539/HBM626.BRWN.943), CC BY 4.0."
 
 and for what was added to them (`ContentSources.visibleHumanCredit`,
-`ContentSources.nihSkullCredit` and `ContentSources.totalSegmentatorCredit`,
+`ContentSources.nihSkullCredit`, `ContentSources.nihSkullScanCredit`,
+`ContentSources.ka25Credit` and `ContentSources.totalSegmentatorCredit`,
 kept the same by the same test):
 
 "3D skull: each body's own, meshed from the Visible Human Project's CT of
@@ -69,6 +73,16 @@ the U.S. National Library of Medicine."
 https://3d.nih.gov/entries/3DPX-020591), by kbrowne, NLM 3D: Anatomy, CC BY
 4.0, from the Visible Human Male, courtesy of the U.S. National Library of
 Medicine."
+
+"3D skull and teeth: Visible Human Male Skull (NIH 3D, 3DPX-012260,
+https://3d.nih.gov/entries/3DPX-012260), by kbrowne, NLM 3D: Anatomy, CC BY
+4.0, from the Visible Human Male, courtesy of the U.S. National Library of
+Medicine."
+
+"3D vertebrae, sacrum and coccyx: 3D model of the entire set of vertebrae
+of human vertebral column (KA 25), by Natalya Prilepskaya, Ruslan Belyaev
+and Alexander Kuznetsov, Department of Anthropology, Lomonosov Moscow State
+University (https://doi.org/10.6084/m9.figshare.11879133.v2), CC BY 4.0."
 
 "3D ribs, sternum, shoulder girdle, arm, hand and foot bones, the woman's
 hip bones, the hip and back muscles, thyroid, adrenals, oesophagus and
@@ -186,10 +200,12 @@ Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024), CC BY
   millimetre; thin specks far from the model left out. The surface
   smoothed without shrinking (Taubin's method, ten rounds), so the grid's
   steps go and the bone's own relief stays. Each surface point named by
-  the nearest of the model's bones, the CT's teeth left out (the organ
-  sets' are kept), the whole simplified to 80,000 triangles a body, and
+  the nearest of the model's bones, the CT's teeth left out (the scanned
+  skull below brings its own), the whole simplified to 80,000 triangles a body, and
   the borders between bones smoothed. Then, as before, kept under the
-  skin and the brain sized to it.
+  skin and the brain sized to it. This skull is not drawn itself: it sets
+  each body's skull's size, shape and place, and names its bones, for the
+  scan of the same man's skull that takes its place (3DPX-012260, below).
 
 ### The skull's model and names: Skull and Eyes - Visible Human Male (NIH 3D, 3DPX-020591)
 
@@ -200,7 +216,8 @@ Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024), CC BY
 - Credit: kbrowne, NLM 3D: Anatomy. Segmented from the Visible Human Male's
   CT, courtesy of the U.S. National Library of Medicine: the same man as
   the male body.
-- Changes: the eyes and teeth left out, as the bodies have their own;
+- Changes: the eyes left out, as the bodies have their own, and the
+  teeth, as the scanned skull (3DPX-012260, below) has its own;
   placed on the man by a similarity fit of its eyes and upper teeth to the
   body's, and on the woman by a smooth warp fitted on her head's skin,
   upper neck vertebrae, eyes and teeth; then bent onto each body's own CT
@@ -211,6 +228,63 @@ Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024), CC BY
   the skull would come within 2.5 mm of the skin, seen from the brain, it
   is moved in, smoothly, by at most 5 mm; where the brain still presses on
   the vault's inner table it is eased out by at most 4 mm.
+
+### The skull's bone and teeth: Visible Human Male Skull (NIH 3D, 3DPX-012260)
+
+- Page: https://3d.nih.gov/entries/3DPX-012260 (no DOI)
+- File: `vhm_skull_0-nih3d.glb` (69,588,212 bytes, SHA-256
+  `5520142d71db2fda58c6f7fb2ceefcac9f97a47aaaede40064d5741e2e363d9a`)
+- Licence: CC BY 4.0, stated on the entry.
+- Credit: kbrowne, NLM 3D: Anatomy. The 3D print file of the Visible Human
+  Male's skull, segmented from his CT, courtesy of the U.S. National
+  Library of Medicine: the same man as the male body, his skull whole and
+  closed, the teeth in their sockets.
+- Changes (`tools/anatomy_bones.py`): eight triangles of debris left out;
+  the cranium and the mandible simplified gently to 90,000 and 16,000
+  triangles; each placed on the body's own skull from its CT (above) by
+  the similarity that best lays it there (within 4.3 mm on average on the
+  man, 4.9 mm on the woman, where the CT's thin bone differs most; the
+  mandible within 1.8 and 2.5 mm); for the woman, bent onto her skull by
+  a field smooth through space (from 20 mm down to 8 mm), so her skull's
+  size and shape are taken and the scan's detail kept; turned to the
+  body's plane of symmetry, and its sides evened out by a smooth field
+  (the man's cranium's halves from 1.5 to 1.2 mm apart on average, his
+  mandible's from 2.3 to 1.1 mm; the woman's from 1.7 to 1.2 and 1.9 to
+  1.1 mm), the teeth keeping their own shapes. The teeth are
+  found by their height above each jaw's biting surface (a crown and the
+  little root a dry skull shows, by place in the arch) and put in place of
+  the organ sets' tooth rows, under the same names; the bones are split
+  along the scan's own sutures and folds into the CT skull's bones (the
+  names 3DPX-020591 gives), the two sides alike, the woman's split the
+  man's.
+
+### The vertebrae, sacrum and coccyx: KA 25 (figshare)
+
+- Page: https://doi.org/10.6084/m9.figshare.11879133.v2 (version 2,
+  published 4 Dec 2021)
+- Files: the OBJ of each bone used (C1 to C7, T1 to T6, T8 to T13, L1 to
+  L5, Sacrum, Coccyx1 and Coccyx2-4: 27 files, 1,755,781,322 bytes), each
+  checked against the MD5 the item lists (`tools/anatomy_bones.py`,
+  `KA25_MD5`); the manifest pins them by the SHA-256 of that list. The
+  textures are not used.
+- Licence: CC BY 4.0, stated on the item.
+- Credit: Natalya Prilepskaya, Ruslan Belyaev and Alexander Kuznetsov.
+  2020. *3D model of the entire set of vertebrae of human vertebral column
+  (KA 25)*. figshare. https://doi.org/10.6084/m9.figshare.11879133.v2.
+  One dry skeleton of the Department of Anthropology, Lomonosov Moscow
+  State University, scanned with an Artec Space Spider at 0.15 mm.
+- Changes (`tools/anatomy_bones.py`): each bone simplified (first to
+  60,000 triangles, then gently to a triangle per 2.5 mm² of its placed
+  surface, as the skull's, and never under 1,000) and placed on the
+  organ set's own vertebra by the similarity that best lays it there
+  (scaled by 1.04 to 1.23; within 1.4 to 2.6 mm on average, the sacrum
+  within 4.25 mm on the man and 3.55 mm on the woman). The skeleton has thirteen thoracic vertebrae, so the
+  bodies' seventh to twelfth are its eighth to thirteenth; the woman has
+  six lumbar vertebrae (the Visible Human Female's normal variant), so her
+  third and fourth are both its third. The coccyx's two pieces (its first
+  segment, and the second to fourth fused) were scanned with the sacrum,
+  in its frame, so the sacrum's similarity places them on its tip. The
+  intervertebral discs are the organ sets'.
 
 ### The rest of the skeleton, muscles and organs: TotalSegmentator dataset v3.0.0
 

@@ -19,11 +19,11 @@ guard let manifestData = try? Data(contentsOf: folder.appendingPathComponent("an
     exit(1)
 }
 check("the manifest reads, format 2, two bodies", manifest.format == 2 && manifest.bodies.map(\.id) == [.male, .female])
-check("every source is pinned, with a DOI or (the NIH 3D skull, the Visible Human CT) its page; each CC BY 4.0 but the CT, under NLM's terms",
-      manifest.sources.count == 6 && manifest.sources.allSatisfy {
+check("every source is pinned, with a DOI or (the NIH 3D skulls, the Visible Human CT) its page; each CC BY 4.0 but the CT, under NLM's terms",
+      manifest.sources.count == 8 && manifest.sources.allSatisfy {
           ($0.licence == "CC BY 4.0" || ($0.id == "nlm-visible-human-ct" && $0.licence.hasPrefix("NLM Terms and Conditions")))
             && $0.sha256.count == 64 && $0.url.hasPrefix("https://")
-            && ($0.doi?.hasPrefix("https://doi.org/") ?? ["nih3d-3dpx-020591", "nlm-visible-human-ct"].contains($0.id))
+            && ($0.doi?.hasPrefix("https://doi.org/") ?? ["nih3d-3dpx-020591", "nih3d-3dpx-012260", "nlm-visible-human-ct"].contains($0.id))
       }, manifest.sources.map(\.id).joined(separator: ", "))
 check("each body names its own source", Set(manifest.bodies.map(\.source)).count == 2
       && manifest.bodies.allSatisfy { b in manifest.sources.contains { $0.id == b.source } })
@@ -85,7 +85,7 @@ for body in manifest.bodies {
     }
     check("\(body.name): every structure has the triangles the manifest says", mismatched.isEmpty, mismatched.prefix(5).joined(separator: ", "))
     let total: Int = parts.map(\.triangles).reduce(0, +)
-    check("\(body.name): between 650,000 and 750,000 triangles", (650_000...750_000).contains(total), "\(total)")
+    check("\(body.name): between 780,000 and 880,000 triangles", (780_000...880_000).contains(total), "\(total)")
     let empty = parts.flatMap { p in zip(p.structures, meshes[p.file] ?? []).filter { $0.1.triangleCount == 0 }.map { $0.0.node } }
     check("\(body.name): no structure is empty", empty.isEmpty, empty.joined(separator: ", "))
     let outside: [String] = parts.compactMap { part in
@@ -571,9 +571,16 @@ for body in manifest.bodies {
               let ys = (1...12).compactMap { centre("TS_rib_\($0)_\(s)", in: body)?.y }
               return ys.count == 12 && zip(ys, ys.dropFirst()).allSatisfy { $0 > $1 }
           })
+    // the scanned skull (tools/anatomy_bones.py): its bones, named as the CT skull's, and its own teeth, which
+    // take the place of the organ sets' rows in the mouth under the same names
     let skull = body.part("skull")?.structures ?? []
-    check("\(body.name): the skull's thirteen bones, the paired ones left and right (20 pieces, all bone)",
-          skull.count == 20 && skull.allSatisfy { $0.tissue == .bone && $0.node.hasPrefix("NLM_") })
+    let skullBones = skull.filter { $0.tissue == .bone }, teeth = skull.filter { $0.tissue == .tooth }
+    let pre = body.id == .male ? "VH_M_" : "VH_F_"
+    check("\(body.name): the skull's thirteen bones, the paired ones left and right, and its upper and lower teeth (22 pieces)",
+          skull.count == 22 && skullBones.count == 20 && skullBones.allSatisfy { $0.node.hasPrefix("NLM_") }
+          && Set(teeth.map(\.node)) == [pre + "set_of_upper_jaw_teeth", pre + "set_of_lower_jaw_teeth"],
+          "\(skull.count) pieces, \(skullBones.count) bone, \(teeth.map(\.node))")
+    check("\(body.name): no teeth left in the mouth", body.part("mouth")?.structures.contains { $0.tissue == .tooth } == false)
     // the brain inside the skull, to within half a centimetre
     let brain = body.part("brain")!.bounds, vault = body.part("skull")!.bounds
     check("\(body.name): the brain lies within the skull",
@@ -688,6 +695,97 @@ for body in manifest.bodies {
             check("\(body.name): the \(side) adrenal and kidney are there", false)
         }
     }
+}
+
+// MARK: the scanned skull and spine (tools/anatomy_bones.py)
+
+// Points binned in cells, for the nearest-point distances below: a lookup reads the 27 cells about a point, so a
+// distance comes out exact up to the cell's size and as the cell's size beyond it
+struct GridCell: Hashable { let x, y, z: Int32 }
+struct PointGrid {
+    let size: Float
+    var cells: [GridCell: [SIMD3<Float>]] = [:]
+    init(_ points: [SIMD3<Float>], size: Float = 0.004) {
+        self.size = size
+        for p in points { cells[key(p), default: []].append(p) }
+    }
+    func key(_ p: SIMD3<Float>) -> GridCell {
+        GridCell(x: Int32((p.x / size).rounded(.down)), y: Int32((p.y / size).rounded(.down)), z: Int32((p.z / size).rounded(.down)))
+    }
+    func nearest(_ q: SIMD3<Float>) -> Float {
+        let k = key(q)
+        var best = size * size
+        for dx: Int32 in -1...1 {
+            for dy: Int32 in -1...1 {
+                for dz: Int32 in -1...1 {
+                    for p in cells[GridCell(x: k.x + dx, y: k.y + dy, z: k.z + dz)] ?? [] {
+                        let d = p - q
+                        best = min(best, (d * d).sum())
+                    }
+                }
+            }
+        }
+        return best.squareRoot()
+    }
+}
+func points(_ m: AnatomyMesh) -> [SIMD3<Float>] { (0..<m.vertexCount).map(m.position) }
+
+let kinds = ["cervical", "thoracic", "lumbar"]
+for body in manifest.bodies {
+    let pre = body.id == .male ? "VH_M_" : "VH_F_"
+    // the skull's two sides mirror each other: every 25th point, mirrored about the middle of the skull's width,
+    // lands on the skull's other side, the median within 1.3 mm (the scan stands at about 1.0 mm, after its
+    // turn to the body's plane and the mirror pass; the skull before it, at 1.7)
+    if let skull = body.part("skull"), let ms = meshes[skull.file], skull.bounds.count == 6 {
+        let all = ms.flatMap(points), x0 = (skull.bounds[0] + skull.bounds[3]) / 2
+        let grid = PointGrid(all)
+        var gaps: [Float] = stride(from: 0, to: all.count, by: 25).map { i in
+            var q = all[i]
+            q.x = 2 * x0 - q.x
+            return grid.nearest(q)
+        }
+        gaps.sort()
+        let median = gaps[gaps.count / 2] * 1000
+        check("\(body.name): the skull's sides mirror each other (median \(String(format: "%.2f", median)) mm)", median < 1.3)
+    } else {
+        check("\(body.name): the skull is there", false)
+    }
+    // the column from its scans: seven cervical vertebrae, twelve thoracic and five lumbar (the woman's set six),
+    // each with the scan's detail (at least 1,500 triangles; the organ set's had a few hundred), and every one
+    // below the one above it (the six-point check above samples the column; this takes each scanned vertebra)
+    let column = (body.part("vertebral-column")?.structures ?? []).filter { s in kinds.contains { s.node.hasPrefix(pre + $0 + "_vertebra_") } }
+    let counts = kinds.map { k in column.filter { $0.node.hasPrefix(pre + k) }.count }
+    check("\(body.name): 7 cervical, 12 thoracic and \(body.id == .male ? 5 : 6) lumbar vertebrae",
+          counts == [7, 12, body.id == .male ? 5 : 6], "\(counts)")
+    let thin = column.filter { $0.triangles < 1_500 }.map(\.node)
+    check("\(body.name): every vertebra has the scan's detail (1,500 triangles or more)", thin.isEmpty, thin.joined(separator: ", "))
+    let ordered = kinds.enumerated().flatMap { k, kind in
+        column.filter { $0.node.hasPrefix(pre + kind) }
+            .sorted { Int($0.node.split(separator: "_").last!)! < Int($1.node.split(separator: "_").last!)! }
+    }
+    let heights = ordered.compactMap { centre($0.node, in: body)?.y }
+    check("\(body.name): each vertebra sits below the one above it, from the atlas to the last lumbar",
+          heights.count == column.count && zip(heights, heights.dropFirst()).allSatisfy { $0 > $1 })
+    // the sacrum and the coccyx, scanned too; the coccyx hangs from the sacrum's tip and carries the column on
+    // straight below it: its own tip under the sacrum's (the middles of their lowest 5 mm) to within 2.5 mm
+    // across (the organ set's leaned 3 to 5 mm to one side)
+    guard let sacrum = mesh(pre + "sacrum", in: body), let coccyx = mesh(pre + "coccyx", in: body) else {
+        check("\(body.name): the sacrum and coccyx are there", false); continue
+    }
+    check("\(body.name): the sacrum and the coccyx have the scan's detail",
+          sacrum.triangleCount >= 10_000 && coccyx.triangleCount >= 1_500, "\(sacrum.triangleCount), \(coccyx.triangleCount)")
+    let sp = points(sacrum), cp = points(coccyx)
+    let sacral = PointGrid(sp)
+    let joint = cp.map(sacral.nearest).min()! * 1000
+    let sacrumLow = sp.map(\.y).min()!, coccyxTop = cp.map(\.y).max()!, coccyxLow = cp.map(\.y).min()!
+    func middle(_ ps: [SIMD3<Float>]) -> SIMD3<Float> { ps.reduce(.zero, +) / Float(ps.count) }
+    let apex = middle(sp.filter { $0.y < sacrumLow + 0.005 }), tip = middle(cp.filter { $0.y < coccyxLow + 0.005 })
+    let across = abs(tip.x - apex.x) * 1000
+    check("\(body.name): the coccyx meets the sacrum's tip (\(String(format: "%.1f", joint)) mm) and hangs straight below it (\(String(format: "%.1f", across)) mm across)",
+          joint < 1.5 && across < 2.5)
+    check("\(body.name): the coccyx carries the column on below the sacrum",
+          coccyx.centre.y < sacrum.centre.y && coccyxLow < sacrumLow - 0.01 && coccyxTop < sacrumLow + 0.015,
+          "top \(Int((coccyxTop - sacrumLow) * 1000)) mm above the sacrum's lowest point, lowest \(Int((sacrumLow - coccyxLow) * 1000)) mm below it")
 }
 
 // MARK: labels

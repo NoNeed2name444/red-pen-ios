@@ -2963,7 +2963,8 @@ for screenshots.
     Still uneven, for the next build: the girdles (the woman's left
     scapula 33 mm higher and further back than her right, mirrored; the
     man's clavicles 11 degrees apart), so the suite's mirror-image check
-    for them waits for it; and the man's left ribs (S3l).
+    for them waits for it; and the man's left ribs (S3l). The CT skull is
+    now the target the scanned skull is placed on, not drawn itself (S3m).
   - [x] S3j. The atlas's look (the owner, 4 Nov: "the texture is too
     artificial and artifacty and isn't seamless and has sharp borders that
     don't exist in real bones"). Each part's structures are shaded as one
@@ -3016,6 +3017,7 @@ for screenshots.
     PN triangles (curved patches through each triangle's normals) gained
     little for 110,000 more triangles a body, and the re-simplified result
     shades no better (measured with the old simplifier's slivers, S3i).
+    Overtaken: the column is now scanned bone (S3m).
   - [ ] S3l. The owner, 4 Nov: "use free for commercial use image
     references that u can fall back to every time u make a change. use many
     images per change. these don't look anywhere near like muscle fibers
@@ -3068,6 +3070,42 @@ for screenshots.
     - Whole model: bones rigid, soft tissue fitted round them, every part
       checked against every other, judged on whole-body renders; split
       into parts at the end.
+  - [ ] S3m. The owner, 4 Nov, on screenshots: "coccyx are bent and the
+    vertebraes look like crushed soda cans not bones ... the vertebrae
+    looks like 90s games 3d with very sharp shapes. they lack any detail.
+    the skulls don't look symmetrical". The skull, vertebrae, sacrum and
+    coccyx now come from scans of real bone, each fitted onto the bone it
+    replaces (tools/anatomy_bones.py; anatomy_atlas.py runs it after the
+    gaps and before the fibres, as the gluteus maximus and iliopsoas arise
+    on these bones).
+    - [x] Skull: NIH 3D 3DPX-012260, the Visible Human Male's own skull
+      (CC BY 4.0), placed on each body's CT skull by the best similarity
+      from 168 starts (two of the skull's axes are nearly equal, so the 24
+      axis-matched starts alone fell 33 degrees off): the man's cranium
+      within 4.3 mm on average, his mandible 1.8; the woman's 4.9 and 2.5,
+      then bent onto hers by a smooth field (to 1.3 mm). Turned to the
+      body's plane of symmetry and its sides evened by a smooth field (the
+      cranium's halves 1.5 to 1.2 mm apart); its own teeth take the organ
+      sets' rows' place, under the same names; split into the CT skull's
+      20 bones along its own sutures and folds, the woman's as the man's.
+      Suite: the skull mirrored about its middle lands within a median of
+      1.0 mm of itself (the skull before, 1.7).
+    - [x] Column: KA 25 (figshare, CC BY 4.0; one dry skeleton scanned at
+      0.15 mm): each vertebra (2,052 to 6,556 triangles; the organ sets'
+      had 280 to 864), the sacrum (about 19,000; was 2,600 to 3,900) and
+      the coccyx (2,000; was 260 to 540), each placed on the organ set's
+      own by a similarity (1.4 to 2.6 mm on average, scaled 1.04 to 1.23).
+      The skeleton has thirteen thoracic vertebrae (the bodies' seventh to
+      twelfth are its eighth to thirteenth); the woman's six lumbar take
+      its third twice. The coccyx rides on the sacrum's placement: it
+      meets the sacrum's tip within 0.6 mm and hangs straight below it
+      (its tip 0.2 and 0.9 mm across from the sacrum's; 3 to 5 mm before).
+    - [x] 816,587 triangles for the man and 832,064 for the woman (from
+      696,267 and 707,545); the skull, mouth, column, pelvis and hip
+      muscles' files change, every other file is as it was. Both sources
+      credited (SOURCES.md, ContentSources, Settings' list), the credits
+      suite holding them to SOURCES.md word for word.
+    - [ ] Mac: the tour's skull and pelvis screenshots with the scans.
 - [x] S4. The catalog, Shared/Sciences/ScienceCatalog.swift: nine subjects,
   ten body systems, 29 tools and 75 topics, each a short note written for
   the app with points, its tools and its atlas parts; every system has

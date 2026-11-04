@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
 """Make the 3D anatomy atlas (ios/RedPen/Resources/Anatomy) from the Human
 Reference Atlas's male and female reference organ sets, the Visible Human
-Project's head CT of the same man and woman, the NIH 3D skull of the Visible
-Human Male and five TotalSegmentator CT scans, the same way every time.
+Project's head CT of the same man and woman, the NIH 3D skulls of the Visible
+Human Male, five TotalSegmentator CT scans and a scanned spine (KA 25), the
+same way every time.
 
     python3 -I tools/anatomy_atlas.py \\
         --male 3d-vh-m-united.glb --female 3d-vh-f-united.glb \\
         --crosswalk asct-b-3d-models-crosswalk.csv \\
         --skull 3DPX-020591.glb --ct <folder holding s1803/, s1764/, s1880/, s1831/ and s1767/> \\
         --vhct <folder holding male/ and female/, the Visible Human CT's head slices> \\
-        [--out ios/RedPen/Resources/Anatomy]
+        --vhskull vhm_skull_0-nih3d.glb --ka25 <folder holding KA 25's OBJ files> \\
+        [--ka25-cache DIR] [--out ios/RedPen/Resources/Anatomy]
 
-Every input is CC BY 4.0 (HuBMAP Human Reference Atlas; NIH 3D 3DPX-020591;
-TotalSegmentator v3.0.0) but the Visible Human CT, which NLM gives under its
+Every input is CC BY 4.0 (HuBMAP Human Reference Atlas; NIH 3D 3DPX-020591
+and 3DPX-012260; TotalSegmentator v3.0.0; KA 25 on figshare) but the
+Visible Human CT, which NLM gives under its
 Terms and Conditions (no fees; credit "Courtesy of the U.S. National Library
 of Medicine"); where each comes from, its SHA-256 and the credit it asks for
 are in Resources/Anatomy/SOURCES.md, and the inputs themselves are not kept
@@ -23,7 +26,9 @@ skull, ribs, sternum, shoulder girdle, the bones of the arms, hands and
 feet, hip and deep back muscles, thyroid, adrenals, oesophagus, stomach) is
 added by tools/anatomy_gaps.py, tools/anatomy_skull.py,
 tools/anatomy_limbs.py, tools/anatomy_elbows.py and tools/anatomy_feet.py,
-fitted into each body and kept clear of what is already there; see their
+fitted into each body and kept clear of what is already there; then the
+skull, vertebrae, sacrum and coccyx are replaced by scans of real bone,
+each fitted onto the one it replaces, by tools/anatomy_bones.py; see their
 headers.
 
 Repairs on the way (checked by rendering the result single-sided, as the
@@ -659,6 +664,9 @@ def main():
     ap.add_argument("--skull", required=True, help="the NIH 3D 3DPX-020591 GLB (see anatomy_gaps.py)")
     ap.add_argument("--ct", required=True, help="a folder holding the TotalSegmentator scans s1803, s1764, s1880, s1831 and s1767, one folder each")
     ap.add_argument("--vhct", required=True, help="a folder holding the Visible Human CT's head slices, male/ and female/ (see anatomy_skull.py)")
+    ap.add_argument("--vhskull", required=True, help="the NIH 3D 3DPX-012260 GLB, vhm_skull_0-nih3d.glb (see anatomy_bones.py)")
+    ap.add_argument("--ka25", required=True, help="a folder holding KA 25's OBJ files, C1.obj to Coccyx2-4.obj (see anatomy_bones.py)")
+    ap.add_argument("--ka25-cache", help="a folder to keep each KA 25 file's first simplification in, for the next build")
     ap.add_argument("--out", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ios", "RedPen", "Resources", "Anatomy"))
     a = ap.parse_args()
     got = sha256(a.crosswalk)
@@ -687,6 +695,10 @@ def main():
         "bodies": [write_body(sex, bodies[sex], a.out) for sex in BOTH],
     }
     json.dump(manifest, open(os.path.join(a.out, "anatomy.json"), "w"), indent=1, ensure_ascii=False)
+    # the skull, vertebrae, sacrum and coccyx from scans of real bone: before the fibres, as the gluteus
+    # maximus and iliopsoas arise on them
+    import anatomy_bones
+    anatomy_bones.replace(a.out, a.vhskull, a.ka25, a.ka25_cache, atlas=sys.modules[__name__])
     # the skeletal muscles' fibres, in bundles: last, as it rewrites the muscles' files
     import anatomy_fibres
     anatomy_fibres.annotate(a.out, quiet=True)

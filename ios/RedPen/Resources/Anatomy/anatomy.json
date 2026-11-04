@@ -64,9 +64,30 @@
    "licenceURL": "https://www.nlm.nih.gov/databases/download/terms_and_conditions.html",
    "doi": null,
    "sha256": "7547f7d98eb3b071ecc691dd65d15b5036685d17d3e943b13efd3eda5589dab2"
+  },
+  {
+   "id": "nih3d-3dpx-012260",
+   "title": "Visible Human Male Skull (NIH 3D, 3DPX-012260)",
+   "creators": "kbrowne (NLM 3D: Anatomy)",
+   "doi": null,
+   "url": "https://3d.nih.gov/entries/3DPX-012260",
+   "licence": "CC BY 4.0",
+   "licenceURL": "https://creativecommons.org/licenses/by/4.0/",
+   "basis": "The Visible Human Male, U.S. National Library of Medicine",
+   "sha256": "5520142d71db2fda58c6f7fb2ceefcac9f97a47aaaede40064d5741e2e363d9a"
+  },
+  {
+   "id": "figshare-ka25-vertebrae",
+   "title": "3D model of the entire set of vertebrae of human vertebral column (KA 25), version 2",
+   "creators": "Natalya Prilepskaya, Ruslan Belyaev and Alexander Kuznetsov (Department of Anthropology, Lomonosov Moscow State University)",
+   "doi": "https://doi.org/10.6084/m9.figshare.11879133.v2",
+   "url": "https://figshare.com/articles/media/3D_model_of_the_entire_set_of_vertebrae_of_human_vertebral_column_KA_25_/11879133",
+   "licence": "CC BY 4.0",
+   "licenceURL": "https://creativecommons.org/licenses/by/4.0/",
+   "sha256": "df2b613e7a91f51edf52443c0fcae65956845a464b688f1e32a492d9739a8893"
   }
  ],
- "changes": "Structures simplified to a triangle budget per part, piece by piece with their open edges kept and gently first, so the triangles stay well shaped and shade smoothly; positions quantised to 16 bits; stray debris, surface patches and inner spongy bone left out, but the patches that close a hole put back (the femur's lower end, the spleen's diaphragmatic surface, the female liver's bare area); the brain mirrored left to right so each side lies where its name says, and scaled (male 0.9, female 0.9) about a point between the medulla's foot and the optic chiasm so it fits inside the skull; labels and UBERON ids from the crosswalk, corrected where wrong for the mesh (sides swapped on the renal arteries, vas deferens and thymus lobes); the female set's placenta, which sits outside the body, left out. Added: each body's own skull, meshed from the Visible Human Project's head CT of that man or woman, laid on the NIH 3D model of the man's skull (placed by its eyes and upper teeth, and carried onto the female head by a warp fitted on the head's skin, neck vertebrae, eyes and teeth, its jaw fitted on its own and the whole bent onto the CT's thick bone); the CT's bone kept where it covers the model or is 2 mm thick or more (but not beside the teeth, which would make their sockets' thin walls count as thick), the model naming its bones, standing in where the CT's bone is thin and broken into lace or missing (the orbits' walls, the sinuses'), and giving the face's bones whole (the maxillae, zygomatic, nasal, lacrimal, ethmoid and palatine bones and the vomer, too thin for a 1 mm CT); the surface smoothed without shrinking (Taubin), kept under the skin; ribs, costal cartilages, the male sternum, clavicles, scapulae, humeri, the hip and deep back muscles, thyroid, adrenals, oesophagus and stomach meshed from two TotalSegmentator CT scans and carried into each body by a warp fitted on the structures both have, each side's clavicle and scapula as one rigid piece, both sides at one scale and turned to mirror images of each other; the female set's hip bones, its ilia alone, replaced by her scan's whole ones, each fitted to her ilium and femoral head by a similarity, the two pubic bones brought together at the midline; the rib cage widened smoothly to clear the lungs and liver, each shoulder girdle settled on the trunk about its sternoclavicular joint, kept at the sternum as in the scan, under the skin, clear of the ribs and in the resting posture, the humeri laid along the arms, each head on its glenoid as the scan's sits on its own, and the rest pushed out of the organs and bones they cut into; the radius, ulna, carpus, metacarpals and phalanges found by density in the CT of one forearm and hand per body (a third scan for the man's), joined below the elbow to the humerus and upper forearm of a scan that holds the elbow whole (a fourth for the man's), that humerus in place of the body's, its shaft lengthened or shortened so the elbow sits where the scans' arm would bend, the forearm stretched to the skin's wrist and brought onto it by turning at the shoulder and bending at the elbow about its own axis, the olecranon fossa deepened to take the olecranon, then posed into the skin's hand, finger by finger, the other side their mirror image; the tarsals, metatarsals, phalanges and the great toe's sesamoids found the same way in the CT of one foot per body (a fifth scan for the man's), set on the body's tibia and fibula at the ankle and fitted into the skin's foot, toe by toe, the other side their mirror image.",
+ "changes": "Structures simplified to a triangle budget per part, piece by piece with their open edges kept and gently first, so the triangles stay well shaped and shade smoothly; positions quantised to 16 bits; stray debris, surface patches and inner spongy bone left out, but the patches that close a hole put back (the femur's lower end, the spleen's diaphragmatic surface, the female liver's bare area); the brain mirrored left to right so each side lies where its name says, and scaled (male 0.9, female 0.9) about a point between the medulla's foot and the optic chiasm so it fits inside the skull; labels and UBERON ids from the crosswalk, corrected where wrong for the mesh (sides swapped on the renal arteries, vas deferens and thymus lobes); the female set's placenta, which sits outside the body, left out. Added: each body's own skull, meshed from the Visible Human Project's head CT of that man or woman, laid on the NIH 3D model of the man's skull (placed by its eyes and upper teeth, and carried onto the female head by a warp fitted on the head's skin, neck vertebrae, eyes and teeth, its jaw fitted on its own and the whole bent onto the CT's thick bone); the CT's bone kept where it covers the model or is 2 mm thick or more (but not beside the teeth, which would make their sockets' thin walls count as thick), the model naming its bones, standing in where the CT's bone is thin and broken into lace or missing (the orbits' walls, the sinuses'), and giving the face's bones whole (the maxillae, zygomatic, nasal, lacrimal, ethmoid and palatine bones and the vomer, too thin for a 1 mm CT); the surface smoothed without shrinking (Taubin), kept under the skin; ribs, costal cartilages, the male sternum, clavicles, scapulae, humeri, the hip and deep back muscles, thyroid, adrenals, oesophagus and stomach meshed from two TotalSegmentator CT scans and carried into each body by a warp fitted on the structures both have, each side's clavicle and scapula as one rigid piece, both sides at one scale and turned to mirror images of each other; the female set's hip bones, its ilia alone, replaced by her scan's whole ones, each fitted to her ilium and femoral head by a similarity, the two pubic bones brought together at the midline; the rib cage widened smoothly to clear the lungs and liver, each shoulder girdle settled on the trunk about its sternoclavicular joint, kept at the sternum as in the scan, under the skin, clear of the ribs and in the resting posture, the humeri laid along the arms, each head on its glenoid as the scan's sits on its own, and the rest pushed out of the organs and bones they cut into; the radius, ulna, carpus, metacarpals and phalanges found by density in the CT of one forearm and hand per body (a third scan for the man's), joined below the elbow to the humerus and upper forearm of a scan that holds the elbow whole (a fourth for the man's), that humerus in place of the body's, its shaft lengthened or shortened so the elbow sits where the scans' arm would bend, the forearm stretched to the skin's wrist and brought onto it by turning at the shoulder and bending at the elbow about its own axis, the olecranon fossa deepened to take the olecranon, then posed into the skin's hand, finger by finger, the other side their mirror image; the tarsals, metatarsals, phalanges and the great toe's sesamoids found the same way in the CT of one foot per body (a fifth scan for the man's), set on the body's tibia and fibula at the ankle and fitted into the skin's foot, toe by toe, the other side their mirror image. Then the skull, vertebrae, sacrum and coccyx replaced by scans of real bone: the skull by NIH 3D's of the Visible Human Male's skull (3DPX-012260), simplified gently, placed on each body's own skull by a similarity, bent onto the woman's by a field smooth through space, turned to the body's plane of symmetry and its sides evened out by a smooth field, and split into the CT skull's bones along the scan's own sutures and folds, its teeth, found by their height above the biting surface, in place of the organ sets' tooth rows; each vertebra, the sacrum and the coccyx by the same bone of one dry skeleton scanned at 0.15 mm (KA 25, figshare), simplified to a triangle per 2.5 mm² and placed on the organ set's by a similarity, the coccyx by the sacrum's (the man's seventh to twelfth thoracic vertebrae are the scan's eighth to thirteenth; the woman's six lumbar vertebrae are its five, its third used twice).",
  "bodies": [
   {
    "id": "male",
@@ -5273,9 +5294,9 @@
      "name": "Mouth",
      "system": "digestive",
      "file": "male-mouth.atlas",
-     "bytes": 221872,
-     "sha256": "7f709f4828d010f4f849f8ea7e005c91d95f6912d4be3a1e1e4049e07c4b922e",
-     "triangles": 21439,
+     "bytes": 205336,
+     "sha256": "83e400b3d54a3354df1c8613b7824a4ebd22dea0b94008affa1940c11296c1e6",
+     "triangles": 19641,
      "bounds": [
       -0.06058,
       0.67944,
@@ -5455,24 +5476,6 @@
        "group": "soft palate",
        "inner": false,
        "triangles": 1272
-      },
-      {
-       "node": "VH_M_set_of_lower_jaw_teeth",
-       "label": "lower teeth",
-       "uberon": "UBERON:0009679",
-       "tissue": "tooth",
-       "group": "tooth row",
-       "inner": false,
-       "triangles": 894
-      },
-      {
-       "node": "VH_M_set_of_upper_jaw_teeth",
-       "label": "upper teeth",
-       "uberon": "UBERON:0009680",
-       "tissue": "tooth",
-       "group": "tooth row",
-       "inner": false,
-       "triangles": 904
       }
      ]
     },
@@ -7336,16 +7339,16 @@
      "name": "Skull",
      "system": "skeletal",
      "file": "male-skull.atlas",
-     "bytes": 750508,
-     "sha256": "03587ba8e6dc5baefd399165a233d807376b44ef5c895cd307d3cef149496601",
-     "triangles": 79992,
+     "bytes": 980404,
+     "sha256": "dfa0af06ce87513d9c85d73ff5cc16dcff2d8438efc478d21293905d3602e07c",
+     "triangles": 105998,
      "bounds": [
-      -0.07286,
-      0.67326,
-      -0.0943,
-      0.07545,
-      0.90835,
-      0.11997
+      -0.07217,
+      0.67584,
+      -0.09885,
+      0.07688,
+      0.90234,
+      0.12438
      ],
      "structures": [
       {
@@ -7355,7 +7358,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 12516
+       "triangles": 14787
       },
       {
        "node": "NLM_parietal_bone_L",
@@ -7364,7 +7367,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 5622
+       "triangles": 6601
       },
       {
        "node": "NLM_parietal_bone_R",
@@ -7373,7 +7376,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 5717
+       "triangles": 6495
       },
       {
        "node": "NLM_occipital_bone",
@@ -7382,7 +7385,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 10887
+       "triangles": 10550
       },
       {
        "node": "NLM_temporal_bone_L",
@@ -7391,7 +7394,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 8811
+       "triangles": 7411
       },
       {
        "node": "NLM_temporal_bone_R",
@@ -7400,7 +7403,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 6938
+       "triangles": 8178
       },
       {
        "node": "NLM_sphenoid_bone",
@@ -7409,7 +7412,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 8388
+       "triangles": 11882
       },
       {
        "node": "NLM_ethmoid_bone",
@@ -7418,7 +7421,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 3318
+       "triangles": 3482
       },
       {
        "node": "NLM_nasal_bone_L",
@@ -7427,7 +7430,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 254
+       "triangles": 668
       },
       {
        "node": "NLM_nasal_bone_R",
@@ -7436,7 +7439,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 203
+       "triangles": 601
       },
       {
        "node": "NLM_lacrimal_bone_L",
@@ -7445,7 +7448,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 277
+       "triangles": 230
       },
       {
        "node": "NLM_lacrimal_bone_R",
@@ -7454,7 +7457,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 145
+       "triangles": 377
       },
       {
        "node": "NLM_zygomatic_bone_L",
@@ -7463,7 +7466,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 799
+       "triangles": 1696
       },
       {
        "node": "NLM_zygomatic_bone_R",
@@ -7472,7 +7475,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 935
+       "triangles": 1798
       },
       {
        "node": "NLM_maxilla_L",
@@ -7481,7 +7484,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 3286
+       "triangles": 4406
       },
       {
        "node": "NLM_maxilla_R",
@@ -7490,7 +7493,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 3145
+       "triangles": 4542
       },
       {
        "node": "NLM_palatine_bone_L",
@@ -7499,7 +7502,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 755
+       "triangles": 611
       },
       {
        "node": "NLM_palatine_bone_R",
@@ -7508,7 +7511,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 638
+       "triangles": 569
       },
       {
        "node": "NLM_vomer",
@@ -7517,7 +7520,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 576
+       "triangles": 1147
       },
       {
        "node": "NLM_mandible",
@@ -7526,7 +7529,25 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 6782
+       "triangles": 12506
+      },
+      {
+       "node": "VH_M_set_of_lower_jaw_teeth",
+       "label": "lower teeth",
+       "uberon": "UBERON:0009679",
+       "tissue": "tooth",
+       "group": "tooth row",
+       "inner": false,
+       "triangles": 3494
+      },
+      {
+       "node": "VH_M_set_of_upper_jaw_teeth",
+       "label": "upper teeth",
+       "uberon": "UBERON:0009680",
+       "tissue": "tooth",
+       "group": "tooth row",
+       "inner": false,
+       "triangles": 3967
       }
      ]
     },
@@ -8295,16 +8316,16 @@
      "name": "Vertebral column",
      "system": "skeletal",
      "file": "male-vertebral-column.atlas",
-     "bytes": 288316,
-     "sha256": "d41bd646c551e20a97a71b52bc92c9c4c850e70032299cc9c3737a518ce7a831",
-     "triangles": 31925,
+     "bytes": 982976,
+     "sha256": "c2adaddc35932d51ff3d24dbc3e48468c088a11356ce098b81a7b2355ca9ac62",
+     "triangles": 109129,
      "bounds": [
-      -0.04959,
-      0.14717,
-      -0.11614,
-      0.06026,
-      0.76202,
-      0.01808
+      -0.04795,
+      0.14874,
+      -0.11548,
+      0.06227,
+      0.75947,
+      0.01989
      ],
      "structures": [
       {
@@ -8314,7 +8335,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 790
+       "triangles": 2326
       },
       {
        "node": "VH_M_cervical_vertebra_2",
@@ -8323,7 +8344,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 788
+       "triangles": 2632
       },
       {
        "node": "VH_M_cervical_vertebra_3",
@@ -8332,7 +8353,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 822
+       "triangles": 2052
       },
       {
        "node": "VH_M_cervical_vertebra_4",
@@ -8341,7 +8362,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 820
+       "triangles": 2098
       },
       {
        "node": "VH_M_cervical_vertebra_5",
@@ -8350,7 +8371,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 864
+       "triangles": 2202
       },
       {
        "node": "VH_M_cervical_vertebra_6",
@@ -8359,7 +8380,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 858
+       "triangles": 2364
       },
       {
        "node": "VH_M_cervical_vertebra_7",
@@ -8368,7 +8389,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 504
+       "triangles": 2516
       },
       {
        "node": "VH_M_thoracic_vertebra_1",
@@ -8377,7 +8398,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 752
+       "triangles": 3158
       },
       {
        "node": "VH_M_thoracic_vertebra_2",
@@ -8386,7 +8407,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 796
+       "triangles": 3196
       },
       {
        "node": "VH_M_thoracic_vertebra_3",
@@ -8395,7 +8416,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 796
+       "triangles": 3108
       },
       {
        "node": "VH_M_thoracic_vertebra_4",
@@ -8404,7 +8425,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 772
+       "triangles": 3514
       },
       {
        "node": "VH_M_thoracic_vertebra_5",
@@ -8413,7 +8434,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 800
+       "triangles": 3640
       },
       {
        "node": "VH_M_thoracic_vertebra_6",
@@ -8422,7 +8443,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 760
+       "triangles": 3850
       },
       {
        "node": "VH_M_thoracic_vertebra_7",
@@ -8431,7 +8452,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 766
+       "triangles": 3748
       },
       {
        "node": "VH_M_thoracic_vertebra_8",
@@ -8440,7 +8461,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 780
+       "triangles": 4026
       },
       {
        "node": "VH_M_thoracic_vertebra_9",
@@ -8449,7 +8470,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 758
+       "triangles": 4187
       },
       {
        "node": "VH_M_thoracic_vertebra_10",
@@ -8458,7 +8479,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 770
+       "triangles": 4247
       },
       {
        "node": "VH_M_thoracic_vertebra_11",
@@ -8467,7 +8488,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 802
+       "triangles": 4458
       },
       {
        "node": "VH_M_thoracic_vertebra_12",
@@ -8476,7 +8497,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 798
+       "triangles": 5112
       },
       {
        "node": "VH_M_lumbar_vertebra_5",
@@ -8485,7 +8506,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 280
+       "triangles": 6212
       },
       {
        "node": "VH_M_lumbar_vertebra_4",
@@ -8494,7 +8515,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 286
+       "triangles": 6380
       },
       {
        "node": "VH_M_lumbar_vertebra_3",
@@ -8503,7 +8524,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 282
+       "triangles": 6362
       },
       {
        "node": "VH_M_lumbar_vertebra_2",
@@ -8512,7 +8533,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 280
+       "triangles": 6300
       },
       {
        "node": "VH_M_lumbar_vertebra_1",
@@ -8521,7 +8542,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 288
+       "triangles": 5728
       },
       {
        "node": "VH_M_intervertebral_disk_of_axis",
@@ -8917,13 +8938,13 @@
      "name": "Pelvis",
      "system": "skeletal",
      "file": "male-pelvis.atlas",
-     "bytes": 89824,
-     "sha256": "159b81158cee26a7e08ff7219c40ffa8ce1485661ff46ef2abd2d6c232077e80",
-     "triangles": 9988,
+     "bytes": 251288,
+     "sha256": "6f1169bea976dadea09b75fbd8aceb8b783d08b6cdbd06815a441aa1daf24d5b",
+     "triangles": 27958,
      "bounds": [
       -0.13631,
       -0.0348,
-      -0.1189,
+      -0.11182,
       0.14708,
       0.18391,
       0.05409
@@ -8936,7 +8957,7 @@
        "tissue": "bone",
        "group": "bony pelvis",
        "inner": false,
-       "triangles": 2632
+       "triangles": 18868
       },
       {
        "node": "VH_M_coccyx",
@@ -8945,7 +8966,7 @@
        "tissue": "bone",
        "group": "bony pelvis",
        "inner": false,
-       "triangles": 264
+       "triangles": 1998
       },
       {
        "node": "VH_M_pubis_compact_bone_L",
@@ -10072,9 +10093,9 @@
      "name": "Hip muscles",
      "system": "muscular",
      "file": "male-hip-muscles.atlas",
-     "bytes": 855648,
-     "sha256": "f3eb89410e597e2c82e7c95e6470495abde11acc8a2987dc38a13c97263d7972",
-     "triangles": 83412,
+     "bytes": 866984,
+     "sha256": "9f590ace1d351266ade565dada7c0533ee1224a94b0cb3a57edb4c5f6d461a2c",
+     "triangles": 84350,
      "bounds": [
       -0.15618,
       -0.09414,
@@ -10091,7 +10112,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 12320
+       "triangles": 12296
       },
       {
        "node": "TS_gluteus_maximus_R",
@@ -10100,7 +10121,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 12094
+       "triangles": 12446
       },
       {
        "node": "TS_gluteus_medius_L",
@@ -10109,7 +10130,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 10014
+       "triangles": 9962
       },
       {
        "node": "TS_gluteus_medius_R",
@@ -10118,7 +10139,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 9158
+       "triangles": 9108
       },
       {
        "node": "TS_gluteus_minimus_L",
@@ -10136,7 +10157,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 8568
+       "triangles": 8652
       },
       {
        "node": "TS_iliopsoas_L",
@@ -10145,7 +10166,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 12058
+       "triangles": 12198
       },
       {
        "node": "TS_iliopsoas_R",
@@ -10154,13 +10175,13 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 11680
+       "triangles": 12168
       }
      ],
      "fibres": {
       "file": "male-hip-muscles.fibres",
-      "bytes": 473504,
-      "sha256": "303c31bca1c5170a5b4dc46b7dc9841c7c093e2883d67a0fb0125d63b44022bf"
+      "bytes": 481112,
+      "sha256": "18e838cafc286c2f83d8ccd2646d872eb7a3797f07d5b8074291abdc04afc559"
      }
     },
     {
@@ -15584,9 +15605,9 @@
      "name": "Mouth",
      "system": "digestive",
      "file": "female-mouth.atlas",
-     "bytes": 222496,
-     "sha256": "099831d27c71e89c9a6c77c4b7e2404381d94909f7c82b921c60226f8c7adedd",
-     "triangles": 21433,
+     "bytes": 210136,
+     "sha256": "0adbc61ce4ed3b46f984de84a2640bbe032e71593f5d8d56f1d9ceedfb678806",
+     "triangles": 20099,
      "bounds": [
       -0.07947,
       0.64508,
@@ -15766,24 +15787,6 @@
        "group": "soft palate",
        "inner": false,
        "triangles": 1456
-      },
-      {
-       "node": "VH_F_set_of_lower_jaw_teeth",
-       "label": "lower teeth",
-       "uberon": "UBERON:0009679",
-       "tissue": "tooth",
-       "group": "tooth row",
-       "inner": false,
-       "triangles": 1018
-      },
-      {
-       "node": "VH_F_set_of_upper_jaw_teeth",
-       "label": "upper teeth",
-       "uberon": "UBERON:0009680",
-       "tissue": "tooth",
-       "group": "tooth row",
-       "inner": false,
-       "triangles": 316
       }
      ]
     },
@@ -17919,16 +17922,16 @@
      "name": "Skull",
      "system": "skeletal",
      "file": "female-skull.atlas",
-     "bytes": 752924,
-     "sha256": "62b57435f09a238eeb397e89e32e31611b5bdcb44fdd296db344b0c23b94d7f4",
-     "triangles": 79985,
+     "bytes": 980404,
+     "sha256": "0c3ce53b6a63578bca1cdcbf03a8472d22ba439edbfee79a1dee99d04f2cf2b2",
+     "triangles": 105998,
      "bounds": [
-      -0.08187,
-      0.65101,
-      -0.15021,
-      0.06627,
-      0.86043,
-      0.04518
+      -0.08039,
+      0.65238,
+      -0.15182,
+      0.06429,
+      0.86055,
+      0.04658
      ],
      "structures": [
       {
@@ -17938,7 +17941,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 9437
+       "triangles": 14787
       },
       {
        "node": "NLM_parietal_bone_L",
@@ -17947,7 +17950,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 6610
+       "triangles": 6601
       },
       {
        "node": "NLM_parietal_bone_R",
@@ -17956,7 +17959,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 7656
+       "triangles": 6495
       },
       {
        "node": "NLM_occipital_bone",
@@ -17965,7 +17968,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 9590
+       "triangles": 10550
       },
       {
        "node": "NLM_temporal_bone_L",
@@ -17974,7 +17977,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 8137
+       "triangles": 7411
       },
       {
        "node": "NLM_temporal_bone_R",
@@ -17983,7 +17986,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 7162
+       "triangles": 8178
       },
       {
        "node": "NLM_sphenoid_bone",
@@ -17992,7 +17995,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 8870
+       "triangles": 11882
       },
       {
        "node": "NLM_ethmoid_bone",
@@ -18001,7 +18004,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 3383
+       "triangles": 3482
       },
       {
        "node": "NLM_nasal_bone_L",
@@ -18010,7 +18013,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 179
+       "triangles": 668
       },
       {
        "node": "NLM_nasal_bone_R",
@@ -18019,7 +18022,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 145
+       "triangles": 601
       },
       {
        "node": "NLM_lacrimal_bone_L",
@@ -18028,7 +18031,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 166
+       "triangles": 230
       },
       {
        "node": "NLM_lacrimal_bone_R",
@@ -18037,7 +18040,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 115
+       "triangles": 377
       },
       {
        "node": "NLM_zygomatic_bone_L",
@@ -18046,7 +18049,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 810
+       "triangles": 1696
       },
       {
        "node": "NLM_zygomatic_bone_R",
@@ -18055,7 +18058,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 1085
+       "triangles": 1798
       },
       {
        "node": "NLM_maxilla_L",
@@ -18064,7 +18067,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 2823
+       "triangles": 4406
       },
       {
        "node": "NLM_maxilla_R",
@@ -18073,7 +18076,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 3121
+       "triangles": 4542
       },
       {
        "node": "NLM_palatine_bone_L",
@@ -18082,7 +18085,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 615
+       "triangles": 611
       },
       {
        "node": "NLM_palatine_bone_R",
@@ -18091,7 +18094,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 575
+       "triangles": 569
       },
       {
        "node": "NLM_vomer",
@@ -18100,7 +18103,7 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 568
+       "triangles": 1147
       },
       {
        "node": "NLM_mandible",
@@ -18109,7 +18112,25 @@
        "tissue": "bone",
        "group": "Skull",
        "inner": false,
-       "triangles": 8938
+       "triangles": 12506
+      },
+      {
+       "node": "VH_F_set_of_lower_jaw_teeth",
+       "label": "lower teeth",
+       "uberon": "UBERON:0009679",
+       "tissue": "tooth",
+       "group": "tooth row",
+       "inner": false,
+       "triangles": 3494
+      },
+      {
+       "node": "VH_F_set_of_upper_jaw_teeth",
+       "label": "upper teeth",
+       "uberon": "UBERON:0009680",
+       "tissue": "tooth",
+       "group": "tooth row",
+       "inner": false,
+       "triangles": 3967
       }
      ]
     },
@@ -18887,16 +18908,16 @@
      "name": "Vertebral column",
      "system": "skeletal",
      "file": "female-vertebral-column.atlas",
-     "bytes": 288368,
-     "sha256": "5d7ed45a4003bbdddf4d17aabedf3e435590888be7de398b84d4e7a8f738167d",
-     "triangles": 31916,
+     "bytes": 1030436,
+     "sha256": "523cac1b8576fe871846219f29c710d98fbd8dc785dae79df6837891ffd75820",
+     "triangles": 114386,
      "bounds": [
-      -0.06119,
+      -0.06222,
       0.11232,
-      -0.17455,
-      0.04333,
-      0.71797,
-      -0.04107
+      -0.17804,
+      0.04497,
+      0.71462,
+      -0.03991
      ],
      "structures": [
       {
@@ -18906,7 +18927,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 462
+       "triangles": 2992
       },
       {
        "node": "VH_F_thoracic_vertebra_2",
@@ -18915,7 +18936,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 472
+       "triangles": 3052
       },
       {
        "node": "VH_F_thoracic_vertebra_3",
@@ -18924,7 +18945,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 488
+       "triangles": 3060
       },
       {
        "node": "VH_F_thoracic_vertebra_4",
@@ -18933,7 +18954,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 466
+       "triangles": 3262
       },
       {
        "node": "VH_F_thoracic_vertebra_5",
@@ -18942,7 +18963,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 480
+       "triangles": 3290
       },
       {
        "node": "VH_F_thoracic_vertebra_6",
@@ -18951,7 +18972,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 482
+       "triangles": 3412
       },
       {
        "node": "VH_F_thoracic_vertebra_7",
@@ -18960,7 +18981,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 478
+       "triangles": 3276
       },
       {
        "node": "VH_F_thoracic_vertebra_8",
@@ -18969,7 +18990,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 502
+       "triangles": 3424
       },
       {
        "node": "VH_F_thoracic_vertebra_9",
@@ -18978,7 +18999,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 492
+       "triangles": 3511
       },
       {
        "node": "VH_F_thoracic_vertebra_10",
@@ -18987,7 +19008,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 492
+       "triangles": 3773
       },
       {
        "node": "VH_F_thoracic_vertebra_11",
@@ -18996,7 +19017,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 474
+       "triangles": 3830
       },
       {
        "node": "VH_F_thoracic_vertebra_12",
@@ -19005,7 +19026,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 520
+       "triangles": 4368
       },
       {
        "node": "VH_F_cervical_vertebra_1",
@@ -19014,7 +19035,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 480
+       "triangles": 2700
       },
       {
        "node": "VH_F_cervical_vertebra_2",
@@ -19023,7 +19044,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 470
+       "triangles": 2756
       },
       {
        "node": "VH_F_cervical_vertebra_3",
@@ -19032,7 +19053,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 524
+       "triangles": 2132
       },
       {
        "node": "VH_F_cervical_vertebra_4",
@@ -19041,7 +19062,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 564
+       "triangles": 2126
       },
       {
        "node": "VH_F_cervical_vertebra_5",
@@ -19050,7 +19071,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 558
+       "triangles": 2430
       },
       {
        "node": "VH_F_cervical_vertebra_6",
@@ -19059,7 +19080,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 546
+       "triangles": 2346
       },
       {
        "node": "VH_F_cervical_vertebra_7",
@@ -19068,7 +19089,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 500
+       "triangles": 2670
       },
       {
        "node": "VH_F_lumbar_vertebra_6",
@@ -19077,7 +19098,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 524
+       "triangles": 6556
       },
       {
        "node": "VH_F_lumbar_vertebra_5",
@@ -19086,7 +19107,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 526
+       "triangles": 6254
       },
       {
        "node": "VH_F_lumbar_vertebra_4",
@@ -19095,7 +19116,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 554
+       "triangles": 6430
       },
       {
        "node": "VH_F_lumbar_vertebra_3",
@@ -19104,7 +19125,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 538
+       "triangles": 6340
       },
       {
        "node": "VH_F_lumbar_vertebra_2",
@@ -19113,7 +19134,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 518
+       "triangles": 6016
       },
       {
        "node": "VH_F_lumbar_vertebra_1",
@@ -19122,7 +19143,7 @@
        "tissue": "bone",
        "group": "vertebra",
        "inner": false,
-       "triangles": 532
+       "triangles": 5106
       },
       {
        "node": "VH_F_intervertebral_disk_of_axis",
@@ -19563,13 +19584,13 @@
      "name": "Pelvis",
      "system": "skeletal",
      "file": "female-pelvis.atlas",
-     "bytes": 112136,
-     "sha256": "11adf89bea912a4838c2db22b5eb9968a88654f4eb43a356912906e5235efa01",
-     "triangles": 12472,
+     "bytes": 270652,
+     "sha256": "899c11fd210ed7ae74d8a5a42493caf947ce090dd35cc8056c7d130d5a4b296b",
+     "triangles": 30116,
      "bounds": [
       -0.16434,
       -0.0543,
-      -0.18249,
+      -0.18068,
       0.14433,
       0.16844,
       -0.00468
@@ -19582,7 +19603,7 @@
        "tissue": "bone",
        "group": "bony pelvis",
        "inner": false,
-       "triangles": 3934
+       "triangles": 20120
       },
       {
        "node": "VH_F_coccyx",
@@ -19591,7 +19612,7 @@
        "tissue": "bone",
        "group": "bony pelvis",
        "inner": false,
-       "triangles": 540
+       "triangles": 1998
       },
       {
        "node": "TS_hip_R",
@@ -20531,9 +20552,9 @@
      "name": "Hip muscles",
      "system": "muscular",
      "file": "female-hip-muscles.atlas",
-     "bytes": 829100,
-     "sha256": "2fdf2b8981a0f334129c2a8f4819a8f541fa83cc73086690df1a22297b2800d7",
-     "triangles": 81306,
+     "bytes": 825568,
+     "sha256": "2b8ee621e002ce0047778bf24a294a0e0361a65f90f388276659d574806786dc",
+     "triangles": 81032,
      "bounds": [
       -0.17282,
       -0.10538,
@@ -20550,7 +20571,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 12076
+       "triangles": 12072
       },
       {
        "node": "TS_gluteus_maximus_R",
@@ -20559,7 +20580,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 12416
+       "triangles": 12382
       },
       {
        "node": "TS_gluteus_medius_L",
@@ -20568,7 +20589,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 9538
+       "triangles": 9374
       },
       {
        "node": "TS_gluteus_medius_R",
@@ -20595,7 +20616,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 8748
+       "triangles": 8772
       },
       {
        "node": "TS_iliopsoas_L",
@@ -20604,7 +20625,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 11204
+       "triangles": 11170
       },
       {
        "node": "TS_iliopsoas_R",
@@ -20613,13 +20634,13 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 10760
+       "triangles": 10698
       }
      ],
      "fibres": {
       "file": "female-hip-muscles.fibres",
-      "bytes": 454960,
-      "sha256": "79197ba52f27e7e84bf4277da58e4189bd4fe20445ddcae675fe948507dae49a"
+      "bytes": 452440,
+      "sha256": "2ccef626e96d1d110c72a7a56483d9497a686ed3cd79cde62de32eb9968ebf60"
      }
     },
     {

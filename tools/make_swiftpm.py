@@ -285,7 +285,7 @@ if os.path.isdir(earth):
         listed.append('.copy("Resources/Earth")')
     else:
         shutil.rmtree(earth)
-# the anatomy atlas (Resources/Anatomy, HRA meshes, CC BY 4.0, 7.5 MB) goes
+# the anatomy atlas (Resources/Anatomy, HRA meshes and scanned bone, CC BY 4.0, 18 MB) goes
 # with the Sciences screens that read it, left out where they are
 anatomy = os.path.join(root, "Resources", "Anatomy")
 if os.path.isdir(anatomy):

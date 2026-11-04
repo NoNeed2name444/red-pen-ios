@@ -133,10 +133,10 @@ enum ContentSources {
 
     static let nihSkull = ContentSource(
         id: "nih3d-skull", name: "NIH 3D skull of the Visible Human Male",
-        use: "The 3D anatomy atlas's skull model: it names the bones of each body's own skull (from the Visible Human Project CT), gives its face, and stands in where that bone is too thin to mesh",
+        use: "The 3D anatomy atlas's skull: it names the bones of each body's own skull from the Visible Human Project CT, on which the scanned skull is fitted and split, and gives that skull's face",
         licences: [ccBy4],
         attribution: nihSkullCredit + " No endorsement by the NIH or the NLM is implied.",
-        changes: "Fitted onto the male body by its eyes and upper teeth and carried onto the female's head by a smooth warp; its jaw fitted on its own and the whole bent onto each body's own CT skull, whose bones it names, whose thinnest plates (the orbits' roofs and walls, the sinuses' walls) it gives, and whose face (the maxillae, zygomatic, nasal, lacrimal, ethmoid and palatine bones and the vomer, too thin for the CT) it gives whole; split at the midline; the eyes and teeth left out, as the bodies have their own.",
+        changes: "Fitted onto the male body by its eyes and upper teeth and carried onto the female's head by a smooth warp; its jaw fitted on its own and the whole bent onto each body's own CT skull, whose bones it names, whose thinnest plates (the orbits' roofs and walls, the sinuses' walls) it gives, and whose face (the maxillae, zygomatic, nasal, lacrimal, ethmoid and palatine bones and the vomer, too thin for the CT) it gives whole; split at the midline; the eyes left out, as the bodies have their own, and the teeth, as the scanned skull has its own.",
         home: "https://3d.nih.gov/entries/3DPX-020591")
 
     /// The head CT's credit line, as the atlas's SOURCES.md gives it.
@@ -144,12 +144,34 @@ enum ContentSources {
 
     static let visibleHumanCT = ContentSource(
         id: "nlm-visible-human-ct", name: "Visible Human Project CT (NLM)",
-        use: "The skull in the 3D anatomy atlas: each body's own, from the CT of that man or woman",
+        use: "The skull in the 3D anatomy atlas: each body's own size, shape and place, from the CT of that man or woman, for the scanned skull fitted onto it",
         licences: [ContentLicence(name: "NLM Terms and Conditions: no fees or royalties, credit required",
                                   url: "https://www.nlm.nih.gov/databases/download/terms_and_conditions.html")],
         attribution: visibleHumanCredit + " No endorsement by the NLM is implied, and the meshes may not reflect the NLM's most current data.",
-        changes: "The head's slices put on one grid and its bone meshed wherever it covers the NIH 3D skull model laid on it or is thick enough to trust; the model names its bones, stands in where the bone is thin and broken into lace or missing, and gives the face whole; the surface smoothed without shrinking, simplified, and moved in by a few millimetres where it would come through the skin; the teeth left out, as the bodies have their own.",
+        changes: "The head's slices put on one grid and its bone meshed wherever it covers the NIH 3D skull model laid on it or is thick enough to trust; the model names its bones, stands in where the bone is thin and broken into lace or missing, and gives the face whole; the surface smoothed without shrinking, simplified, and moved in by a few millimetres where it would come through the skin; the teeth left out, as the scanned skull fitted onto it has its own.",
         home: "https://www.nlm.nih.gov/research/visible/visible_human.html")
+
+    /// The scanned skull's credit line, as the atlas's SOURCES.md gives it.
+    static let nihSkullScanCredit = "3D skull and teeth: Visible Human Male Skull (NIH 3D, 3DPX-012260, https://3d.nih.gov/entries/3DPX-012260), by kbrowne, NLM 3D: Anatomy, CC BY 4.0, from the Visible Human Male, courtesy of the U.S. National Library of Medicine."
+
+    static let nihSkullScan = ContentSource(
+        id: "nih3d-skull-scan", name: "NIH 3D Visible Human Male Skull",
+        use: "The skull and teeth in the 3D anatomy atlas: the same man's skull, whole, fitted onto each body's own",
+        licences: [ccBy4],
+        attribution: nihSkullScanCredit + " No endorsement by the NIH or the NLM is implied.",
+        changes: "Simplified; placed on each body's own skull from its CT, and bent onto the woman's by a smooth warp; turned to the body's midline and its two sides evened out; split along its own sutures into the bones the CT skull names; its teeth, found by their height above the bite, in place of the bodies' own tooth rows.",
+        home: "https://3d.nih.gov/entries/3DPX-012260")
+
+    /// The scanned spine's credit line, as the atlas's SOURCES.md gives it.
+    static let ka25Credit = "3D vertebrae, sacrum and coccyx: 3D model of the entire set of vertebrae of human vertebral column (KA 25), by Natalya Prilepskaya, Ruslan Belyaev and Alexander Kuznetsov, Department of Anthropology, Lomonosov Moscow State University (https://doi.org/10.6084/m9.figshare.11879133.v2), CC BY 4.0."
+
+    static let ka25 = ContentSource(
+        id: "ka25-vertebrae", name: "KA 25 scanned vertebral column (figshare)",
+        use: "The vertebrae, sacrum and coccyx in the 3D anatomy atlas",
+        licences: [ccBy4],
+        attribution: ka25Credit,
+        changes: "Each bone simplified and placed on the body's own by a similarity (one scale, a turn and a move); the skeleton's thirteenth thoracic vertebra stands in for a twelfth, so the bodies' seventh to twelfth are its eighth to thirteenth, and its third lumbar vertebra is used twice for the woman's six; the coccyx placed with the sacrum, as it was scanned.",
+        home: "https://doi.org/10.6084/m9.figshare.11879133.v2")
 
     /// The scans' credit line, as the atlas's SOURCES.md gives it.
     static let totalSegmentatorCredit = "3D ribs, sternum, shoulder girdle, arm, hand and foot bones, the woman's hip bones, the hip and back muscles, thyroid, adrenals, oesophagus and stomach: meshed from scans s1803, s1764, s1880, s1831 and s1767 of the TotalSegmentator dataset v3.0.0, by Jakob Wasserthal et al. (https://doi.org/10.5281/zenodo.22688904; Wasserthal et al., Radiology: Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024), CC BY 4.0."
@@ -197,7 +219,8 @@ enum ContentSources {
 
     /// Every source of content the app brings, for Settings.
     static let all: [ContentSource] = [medqa, medmcqa, medlinePlus, europePMC, openFDA, nasaEarth,
-                                      hraAnatomy, visibleHumanCT, nihSkull, totalSegmentator, uberon, cellOntology, reactome,
+                                      hraAnatomy, visibleHumanCT, nihSkull, nihSkullScan, ka25, totalSegmentator, uberon,
+                                      cellOntology, reactome,
                                       ncbiTaxonomy]
 
     /// The bank behind an exam's style examples (ExemplarSource's raw value).
