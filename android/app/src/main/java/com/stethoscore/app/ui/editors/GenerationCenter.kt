@@ -8,7 +8,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Text
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -43,6 +54,11 @@ import kotlin.math.roundToLong
 // instead of drawing its own spinner. Android has no continued-processing task
 // or finished notification yet, so BackgroundWork, AppNotifications and
 // stopAtExpiry are not ported.
+//
+// It lives for the process, as iOS's shared one does: a rotation recreates
+// MainActivity, and the work, its card, its status line and the set it makes
+// carry on into the new one (the work runs in [GenerationCenter.scope], not a
+// screen's; its screen is known by an owner id kept across the recreation).
 
 /** The one generation running, and its card's state (iOS GenerationCenter). */
 object GenerationCenter {
@@ -70,6 +86,31 @@ object GenerationCenter {
 
     var job: Job? by mutableStateOf(null)
         private set
+
+    /** Where generations run: the process's, so a recreated activity does not stop them (as CloudJobCollector's). */
+    val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
+    /** Each owner's line under Make once nothing is running: "Done …", "Cancelled.", a refusal or an error. */
+    private val notes = mutableStateMapOf<UUID, String>()
+    /** What a finished generation made, waiting for its owner's screen to take it. */
+    private val results = mutableStateMapOf<UUID, Any>()
+
+    /** Whether the job running was started by [owner]. */
+    fun runs(owner: UUID): Boolean = job != null && this.owner == owner
+
+    fun note(owner: UUID): String? = notes[owner]
+
+    fun note(owner: UUID, text: String?) { if (text == null) notes.remove(owner) else notes[owner] = text }
+
+    fun result(owner: UUID): Any? = results[owner]
+
+    fun deliver(owner: UUID, value: Any) { results[owner] = value }
+
+    /** The result is in its screen's hands. */
+    fun take(owner: UUID) { results.remove(owner) }
+
+    /** Its screen is gone for good: its note and any result go with it. */
+    fun forget(owner: UUID) { notes.remove(owner); results.remove(owner) }
     private var stop: (() -> Unit)? = null
     /** The screen that started the running job (New set), if any. */
     private var owner: UUID? = null
@@ -99,10 +140,11 @@ object GenerationCenter {
         job = current.copy(done = done, total = total, phase = phase)
     }
 
-    /** The job is over. */
-    @Synchronized fun end(id: UUID) {
-        if (job?.id != id) return
+    /** The job is over. False when it was no longer the current one (cancelled, or another began), so its ending leaves the screen alone (GenerationRules.endingClears). */
+    @Synchronized fun end(id: UUID): Boolean {
+        if (!GenerationRules.endingClears(id, job?.id)) return false
         clear()
+        return true
     }
 
     /** The card's Cancel: the work stops and its screen goes back to idle. */
@@ -126,6 +168,38 @@ object GenerationCenter {
 
 /** The screen that generations started under here belong to: New set gives everything in it one, so closing it stops only what it started (iOS generationOwner). */
 val LocalGenerationOwner = staticCompositionLocalOf<UUID?> { null }
+
+/**
+ * A screen's owner id, kept across a recreated activity (a rotation). When the
+ * screen goes for good, what it started stops (iOS NewSetView's onDisappear)
+ * and its note goes; when the activity is only being recreated ([changing]),
+ * the work carries on into the new one.
+ */
+@Composable fun rememberGenerationOwner(changing: () -> Boolean = activityChanging()): UUID {
+    val owner = UUID.fromString(rememberSaveable { UUID.randomUUID().toString() })
+    val isChanging by rememberUpdatedState(changing)
+    DisposableEffect(owner) {
+        onDispose {
+            if (!isChanging()) {
+                GenerationCenter.cancel(startedBy = owner)
+                GenerationCenter.forget(owner)
+            }
+        }
+    }
+    return owner
+}
+
+/** Whether this screen's activity is being recreated rather than closed. */
+@Composable private fun activityChanging(): () -> Boolean {
+    val activity = LocalContext.current.findActivity()
+    return { activity?.isChangingConfigurations == true }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
 
 /** The card's words (iOS GenerationLines and GenerationProgress). */
 internal object GenerationWords {

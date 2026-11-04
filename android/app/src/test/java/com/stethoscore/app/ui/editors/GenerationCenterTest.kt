@@ -7,6 +7,11 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import com.stethoscore.app.ui.StethoscoreTheme
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -105,5 +110,60 @@ class GenerationCenterTest {
         assertTrue(stopped)
         assertNull(GenerationCenter.job)
         compose.onNodeWithText("Writing 20 questions").assertDoesNotExist()
+    }
+
+    // R2: a rotation recreates the activity; the screen keeps its owner, and
+    // the run, its card and its progress carry on (iOS's shared center does)
+    @Test fun aRunSurvivesItsScreenBeingRecreated() {
+        var recreating = false
+        var owner: UUID? = null
+        val tester = StateRestorationTester(compose)
+        tester.setContent { StethoscoreTheme { owner = rememberGenerationOwner(changing = { recreating }); GenerationHUD() } }
+        val first = owner!!
+        var stopped = false
+        val id = GenerationCenter.begin("Writing 8 questions", 8, owner = first) { stopped = true }!!
+        GenerationCenter.update(id, 3, 8)
+        recreating = true
+        tester.emulateSavedInstanceStateRestore()
+        compose.waitForIdle()
+        assertEquals("the new screen is the same owner", first, owner)
+        assertTrue(GenerationCenter.runs(first))
+        assertEquals(id, GenerationCenter.job?.id)
+        assertTrue("nothing was stopped", !stopped)
+        compose.onNodeWithText("3 of 8 \u00B7 5 left").assertIsDisplayed()
+        // and the run goes on reporting to the recreated card
+        GenerationCenter.update(id, 4, 8)
+        compose.onNodeWithText("4 of 8 \u00B7 4 left").assertIsDisplayed()
+    }
+
+    // R3: the status under Make is read from the center, so a recreated form
+    // never shows a count from a run that is no longer going
+    @Test fun noStaleStatusOnceNothingRuns() {
+        val owner = UUID.randomUUID()
+        val tester = StateRestorationTester(compose)
+        tester.setContent {
+            StethoscoreTheme {
+                CompositionLocalProvider(LocalGenerationOwner provides owner) {
+                    var text by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("Ramipril is an ACE inhibitor.") }
+                    MCQGenerateForm(text, { text = it }, 8, {}, false, {}, null, {}, "", {}, name = "", step = LectureStep.make, onGenerated = {})
+                }
+            }
+        }
+        compose.onNodeWithText("Writing", substring = true).assertDoesNotExist()
+        val id = GenerationCenter.begin("Writing 8 questions", 8, owner = owner) {}!!
+        GenerationCenter.update(id, 3, 8)
+        compose.onNodeWithText("Writing 3 of 8 questions\u2026").assertExists()
+        tester.emulateSavedInstanceStateRestore()
+        compose.onNodeWithText("Writing 3 of 8 questions\u2026").assertExists()
+        // the run ends while the screen is away: nothing is left saying it writes
+        GenerationCenter.end(id)
+        tester.emulateSavedInstanceStateRestore()
+        compose.onNodeWithText("Writing", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("Make 8 questions").assertExists()
+        // a run's last word is the center's too, and goes with its screen
+        GenerationCenter.note(owner, "Cancelled.")
+        compose.onNodeWithText("Cancelled.").assertExists()
+        GenerationCenter.forget(owner)
+        compose.onNodeWithText("Cancelled.").assertDoesNotExist()
     }
 }

@@ -37,7 +37,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -73,6 +72,7 @@ import com.stethoscore.app.ui.editors.FloatingAction
 import com.stethoscore.app.ui.editors.GenerationCenter
 import com.stethoscore.app.ui.editors.GenerationHUD
 import com.stethoscore.app.ui.editors.LocalGenerationOwner
+import com.stethoscore.app.ui.editors.rememberGenerationOwner
 import com.stethoscore.app.ui.editors.LectureStep
 import com.stethoscore.app.ui.editors.LocalFloatingAction
 import com.stethoscore.app.ui.editors.MCQGenerateForm
@@ -154,9 +154,9 @@ import kotlinx.coroutines.withContext
     // the writers' Make, copied into the dock while it is scrolled away (iOS FloatingAction)
     val floating = remember { FloatingAction() }
     // what this screen starts is its own: closing it stops that, and not a
-    // generation started elsewhere (iOS NewSetView.generationOwner, GenerationRules.closingStops)
-    val generationOwner = remember { java.util.UUID.randomUUID() }
-    DisposableEffect(generationOwner) { onDispose { GenerationCenter.cancel(startedBy = generationOwner) } }
+    // generation started elsewhere (iOS NewSetView.generationOwner, GenerationRules.closingStops);
+    // a rotation keeps it, so the work goes on in the recreated activity
+    val generationOwner = rememberGenerationOwner()
 
     fun choose(option: StudySetKind) {
         if (option != kind) {
