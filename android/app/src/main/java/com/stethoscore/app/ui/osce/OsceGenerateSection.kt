@@ -229,7 +229,8 @@ fun OsceGenerateSection(bodyText: String, onBodyText: (String) -> Unit, subject:
         status = "Writing 0 of $wanted…"
         scope.launch {
             try {
-                val stations = OsceStations.tidy(writer.stations(text, wanted, subj))
+                // the count moves on before each call, as iOS's does
+                val stations = OsceStations.tidy(writer.stations(text, wanted, subj) { d, t -> status = "Writing $d of $t…" })
                 if (stations.isEmpty()) throw OsceReadTrouble(OsceGenerator.nothingUsable)
                 val made = stations.size
                 val written = OsceStations.format(stations)

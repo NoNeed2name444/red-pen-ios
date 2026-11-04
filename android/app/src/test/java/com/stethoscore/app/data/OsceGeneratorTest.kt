@@ -14,9 +14,10 @@ import org.junit.Test
  * The station writer (OsceGenerator.writer, the OSCE half of iOS
  * Shared/LLM/MedicalGenerate.swift) against a stand-in backend: no network,
  * no model. A reply read into stations, an unusable one giving none, a set
- * asked for two at a time and capped, the exam's kind of station in the
- * prompt, and the lecture read a window at a time. Each part collects its
- * failures and reports them all, as OsceTest does.
+ * asked for two at a time and capped, the count said before each call, the
+ * exam's kind of station in the prompt, and the lecture read a window at a
+ * time. Each part collects its failures and reports them all, as OsceTest
+ * does.
  */
 class OsceGeneratorTest {
     private class Checks {
@@ -147,6 +148,27 @@ class OsceGeneratorTest {
         ok(written.size == most, "asked for more than a set holds, a full set is written and no more")
         ok(backend.asked.size == (most + per - 1) / per, "in ceil($most / $per) calls")
         ok(backend.wanted.all { it in 1..per }, "never more than $per a call")
+    }
+
+    @Test fun theCountIsSaidBeforeEachCall() = checks {
+        // the second call writes the first two stations again, so it keeps none
+        var written = 0
+        var calls = 0
+        val backend = StandIn { count ->
+            calls += 1
+            if (calls == 2) reply(listOf(station("Station 1"), station("Station 2")))
+            else reply(List(count) { station("Station ${++written}") })
+        }
+        val said = mutableListOf<Pair<Int, Int>>()
+        val callsBefore = mutableListOf<Int>()
+        val stations = OsceGenerator.writer(backend)!!.stations("A skills lecture.", 5, "") { done, total ->
+            said += done to total
+            callsBefore += backend.asked.size
+        }
+        ok(stations.size == 5 && backend.asked.size == 4, "five stations written in four calls, one of which kept none")
+        ok(said == listOf(0 to 5, 2 to 5, 2 to 5, 4 to 5),
+            "each call starts by saying how many are written so far, of how many, a call that kept none saying it again: $said")
+        ok(callsBefore == listOf(0, 1, 2, 3), "said before each call, not after it: $callsBefore")
     }
 
     @Test fun theExamShapesTheStations() = checks {
