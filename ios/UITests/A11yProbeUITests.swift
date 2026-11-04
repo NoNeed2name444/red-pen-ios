@@ -6,7 +6,7 @@ import XCTest
 /// (as AccessibilityUITests sets it), once per way of setting the font
 /// (`-a11yProbeVariant a` to `f`, PreviewExtras' A11yProbe), runs only the
 /// Dynamic Type audit, and prints one PROBE-FLAG line for each text it
-/// flags, then PROBE-DONE. It runs only on probe/ refs (app-build.yml).
+/// flags, then PROBE-DONE. It runs in the accessibility step beside the real audit (app-build.yml).
 final class A11yProbeUITests: XCTestCase {
     func testDynamicTypeProbeDiagnostic() throws {
         for variant in ["a", "b", "c", "d", "e", "f"] {
