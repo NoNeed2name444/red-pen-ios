@@ -108,18 +108,18 @@ struct BookReaderView: View {
     /// size of a headline.
     static func headingFont(_ level: Int) -> Font {
         switch level {
-        case 1: return .title2.weight(.bold)
-        case 2: return .title3.weight(.semibold)
-        default: return .headline
+        case 1: return WardType.face(.title2, weight: .bold)
+        case 2: return WardType.face(.title3, weight: .semibold)
+        default: return WardType.headline
         }
     }
 
     /// A table cell's font: the header row bold, the first column a touch
     /// heavier than the rest.
     static func cellFont(header: Bool, first: Bool) -> Font {
-        if header { return .subheadline.weight(.bold) }
-        if first { return .subheadline.weight(.semibold) }
-        return .subheadline
+        if header { return WardType.face(.subheadline, weight: .bold) }
+        if first { return WardType.face(.subheadline, weight: .semibold) }
+        return WardType.face(.subheadline, weight: .regular)
     }
 
     @ViewBuilder
@@ -132,7 +132,7 @@ struct BookReaderView: View {
         case .bullet(let text, let marker):
             HStack(alignment: .top, spacing: 8) {
                 Text(marker ?? "\u{2022}")
-                    .font(marker == nil ? .body : .body.monospacedDigit())
+                    .font(marker == nil ? WardType.body : WardType.body.monospacedDigit())
                     .foregroundStyle(Color.wardInkSecondary)
                 Text(md(text))
             }
@@ -152,16 +152,16 @@ struct BookReaderView: View {
                 }
             }
         case .paragraph(let text):
-            Text(md(text)).font(.body).lineSpacing(3)
+            Text(md(text)).font(WardType.body).lineSpacing(3)
         case .callout(let kind, let text):
             HStack(alignment: .top, spacing: WardSpace.m) {
                 Image(systemName: Self.calloutSymbol(kind))
-                    .font(.body.weight(.semibold))
+                    .font(WardType.face(.body, weight: .semibold))
                     .foregroundStyle(Self.calloutColor(kind))
                 VStack(alignment: .leading, spacing: WardSpace.xs) {
-                    Text(kind).font(.subheadline.weight(.bold))
+                    Text(kind).font(WardType.face(.subheadline, weight: .bold))
                         .foregroundStyle(Self.calloutColor(kind))
-                    Text(md(text)).font(.body)
+                    Text(md(text)).font(WardType.body)
                 }
                 Spacer(minLength: 0)
             }
@@ -181,7 +181,7 @@ struct BookReaderView: View {
                         .wardRaised(in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous), lift: .low)
                         .accessibilityLabel(caption.isEmpty ? "Figure" : caption)
                     if !caption.isEmpty {
-                        Text(md(caption)).font(.subheadline).foregroundStyle(Color.wardInkSecondary)
+                        Text(md(caption)).font(WardType.face(.subheadline, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                     }
                     DrawFromMemoryButton(set: studySet, imageIndex: index, caption: caption)
                 }
@@ -306,7 +306,7 @@ struct FlowchartView: View {
         VStack(spacing: 4) {
             ForEach(Array(steps.enumerated()), id: \.offset) { i, step in
                 if i > 0 {
-                    Image(systemName: "arrow.down").font(.caption.weight(.bold)).foregroundStyle(Color.wardInkSecondary)
+                    Image(systemName: "arrow.down").font(WardType.face(.caption, weight: .bold)).foregroundStyle(Color.wardInkSecondary)
                         .accessibilityHidden(true)
                 }
                 box(step)
@@ -324,10 +324,10 @@ struct FlowchartView: View {
         let pieces = parts.count > 1 ? parts : step.components(separatedBy: "->").map { $0.trimmingCharacters(in: .whitespaces) }
         VStack(spacing: WardSpace.xs) {
             if branch, pieces.count > 1 {
-                Text(pieces[0]).font(.caption.weight(.semibold)).foregroundStyle(Color.wardInkSecondary)
-                Text(pieces.dropFirst().joined(separator: " \u{2192} ")).font(.subheadline.weight(.semibold))
+                Text(pieces[0]).font(WardType.face(.caption, weight: .semibold)).foregroundStyle(Color.wardInkSecondary)
+                Text(pieces.dropFirst().joined(separator: " \u{2192} ")).font(WardType.face(.subheadline, weight: .semibold))
             } else {
-                Text(step).font(.subheadline.weight(.semibold))
+                Text(step).font(WardType.face(.subheadline, weight: .semibold))
             }
         }
         .foregroundStyle(Color.wardInk)

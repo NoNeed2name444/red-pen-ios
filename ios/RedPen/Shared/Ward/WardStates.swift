@@ -29,7 +29,7 @@ struct WardEmptyState<Actions: View>: View {
                 .accessibilityAddTraits(.isHeader)
             if let message {
                 Text(message)
-                    .font(.subheadline)
+                    .font(WardType.face(.subheadline, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
@@ -63,12 +63,12 @@ struct WardBanner: View {
         HStack(alignment: .firstTextBaseline, spacing: WardSpace.s) {
             Image(systemName: symbol).foregroundStyle(tone.color).accessibilityHidden(true)
             Text(text)
-                .font(.subheadline)
+                .font(WardType.face(.subheadline, weight: .regular))
                 .foregroundStyle(Color.wardInk)
                 .frame(maxWidth: .infinity, alignment: .leading)
             if let actionTitle, let action {
                 Button(actionTitle, action: action)
-                    .font(.subheadline.weight(.semibold))
+                    .font(WardType.face(.subheadline, weight: .semibold))
                     .foregroundStyle(Color.wardPrimaryInk)
             }
         }
@@ -194,9 +194,9 @@ struct WardTile: View {
         VStack(alignment: .leading, spacing: WardSpace.s) {
             WardIconSquare(symbol: symbol, tone: tone, size: 36)
             Spacer(minLength: 0)
-            Text(title).font(.headline).foregroundStyle(Color.wardInk).multilineTextAlignment(.leading)
+            Text(title).font(WardType.headline).foregroundStyle(Color.wardInk).multilineTextAlignment(.leading)
             if let detail {
-                Text(detail).font(.footnote).foregroundStyle(Color.wardInkSecondary).multilineTextAlignment(.leading)
+                Text(detail).font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary).multilineTextAlignment(.leading)
             }
         }
         .frame(maxWidth: .infinity, minHeight: 112, alignment: .topLeading)
@@ -220,7 +220,7 @@ struct WardFilterChip: View {
                 if let symbol { Image(systemName: symbol).imageScale(.small) }
                 Text(text)
             }
-            .font(.subheadline.weight(.semibold))
+            .font(WardType.face(.subheadline, weight: .semibold))
             .foregroundStyle(selected ? Color.wardOnAccent : Color.wardInk)
             .padding(.horizontal, 12)
             .frame(minHeight: 36)

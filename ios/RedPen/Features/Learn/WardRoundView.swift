@@ -77,10 +77,10 @@ struct WardRoundTile: View {
     @ViewBuilder
     private var setup: some View {
         Label("Start a focus session", systemImage: "stethoscope")
-            .font(.headline)
+            .font(WardType.headline)
             .foregroundStyle(Color.wardInk)
         Text("Four blocks of focus with a break between. Everything you study while the clock runs counts towards the session, and its minutes count for your streak.")
-            .font(.caption)
+            .font(WardType.caption)
             .foregroundStyle(Color.wardInkSecondary)
             .fixedSize(horizontal: false, vertical: true)
         WardSegmented(selection: $focus, options: WardRoundPlan.focusChoices) { minutes in
@@ -194,7 +194,7 @@ struct WardRoundPanel: View {
             WardRoundTicker(round: round) { now in face(now) }
             if let notice {
                 Text(notice)
-                    .font(.subheadline.weight(.semibold))
+                    .font(WardType.face(.subheadline, weight: .semibold))
                     .foregroundStyle(Color.wardInk)
                     .multilineTextAlignment(.center)
             }
@@ -208,7 +208,7 @@ struct WardRoundPanel: View {
     private var header: some View {
         HStack {
             Label("Focus session", systemImage: "stethoscope")
-                .font(.headline)
+                .font(WardType.headline)
                 .foregroundStyle(Color.wardInk)
             Spacer(minLength: WardSpace.s)
             Button(action: close) {
@@ -273,7 +273,7 @@ struct WardRoundPanel: View {
             stopButton
         case .rest:
             Text("Look away from the screen for a while.")
-                .font(.caption)
+                .font(WardType.caption)
                 .foregroundStyle(Color.wardInkSecondary)
             wide("Start block \(round.round + 1) now", symbol: "play.fill", id: "wardRoundNext") { clock.startNext() }
             stopButton
@@ -294,7 +294,7 @@ struct WardRoundPanel: View {
             clock.stop()
         } label: {
             Text("Stop the focus session")
-                .font(.subheadline)
+                .font(WardType.face(.subheadline, weight: .regular))
                 .foregroundStyle(Color.wardInk)
                 .frame(minHeight: 44)
         }
@@ -369,9 +369,9 @@ struct TodayGoalRow: View {
                 .frame(width: 24)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: WardSpace.xs) {
-                Text(days).font(.subheadline.weight(.semibold)).monospacedDigit().foregroundStyle(Color.wardInk)
+                Text(days).font(WardType.face(.subheadline, weight: .semibold)).monospacedDigit().foregroundStyle(Color.wardInk)
                 Label(rest, systemImage: "moon.fill")
-                    .font(.caption)
+                    .font(WardType.caption)
                     .foregroundStyle(Color.wardInkSecondary)
             }
             Spacer(minLength: WardSpace.s)

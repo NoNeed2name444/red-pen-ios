@@ -1045,7 +1045,7 @@ struct LibraryView: View {
     /// 44-point target.
     private func headerButtonFace(_ title: String) -> some View {
         Text(title)
-            .font(.footnote.weight(.semibold))
+            .font(WardType.face(.footnote, weight: .semibold))
             .foregroundStyle(Color.wardPrimaryInk)
             .lineLimit(1)
             .contentTransition(.identity)
@@ -1074,7 +1074,7 @@ struct LibraryView: View {
                 } icon: {
                     Image(systemName: "folder.fill").foregroundStyle(Color.wardInkSecondary)
                 }
-                .font(.caption2.weight(.semibold))
+                .font(WardType.face(.caption2, weight: .semibold))
                 .accessibilityAddTraits(.isHeader)
                 Spacer()
                 Menu {
@@ -1336,9 +1336,9 @@ private struct SearchPrompt: View {
     var body: some View {
         ViewThatFits(in: .horizontal) {
             Text(text).lineLimit(1)
-            Text(text).font(.callout).lineLimit(1)
-            Text(text).font(.subheadline).lineLimit(1)
-            Text(text).font(.footnote).lineLimit(1)
+            Text(text).font(WardType.face(.callout, weight: .regular)).lineLimit(1)
+            Text(text).font(WardType.face(.subheadline, weight: .regular)).lineLimit(1)
+            Text(text).font(WardType.face(.footnote, weight: .regular)).lineLimit(1)
             Text(text).fixedSize(horizontal: false, vertical: true)
         }
         .foregroundStyle(Color.wardInkSecondary)

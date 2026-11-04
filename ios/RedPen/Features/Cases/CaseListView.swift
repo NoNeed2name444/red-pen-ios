@@ -43,7 +43,7 @@ struct CaseListView: View {
                 }
                 if heldCount > 0 {
                     Label(heldNote, systemImage: "hand.raised")
-                        .font(.footnote)
+                        .font(WardType.face(.footnote, weight: .regular))
                         .foregroundStyle(CaseInk.biro)
                         .padding(.horizontal, 4)
                 }
@@ -63,7 +63,7 @@ struct CaseListView: View {
         Text(heldCount > 0
              ? "Every patient here is waiting on the accuracy checkers."
              : "No patients in this set yet.")
-            .font(.subheadline)
+            .font(WardType.face(.subheadline, weight: .regular))
             .foregroundStyle(CaseInk.biro)
             .caseCard()
     }
@@ -85,13 +85,13 @@ struct CasePatientCard: View {
             VStack(alignment: .leading, spacing: WardSpace.s) {
                 HStack(spacing: WardSpace.s) {
                     Text(file.patient.ageSex)
-                        .font(.headline)
+                        .font(WardType.headline)
                     Text("\u{00B7} " + file.setting.label)
-                        .font(.subheadline)
+                        .font(WardType.face(.subheadline, weight: .regular))
                         .foregroundStyle(CaseInk.biro)
                 }
                 Text(shortComplaint)
-                    .font(.subheadline)
+                    .font(WardType.face(.subheadline, weight: .regular))
                     .foregroundStyle(Color.wardInk)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
@@ -99,7 +99,7 @@ struct CasePatientCard: View {
             }
             Spacer(minLength: 0)
             Image(systemName: "chevron.right")
-                .font(.footnote.weight(.semibold))
+                .font(WardType.face(.footnote, weight: .semibold))
                 .foregroundStyle(Color.wardInkSecondary)
                 .accessibilityHidden(true)
         }

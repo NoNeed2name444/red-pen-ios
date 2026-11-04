@@ -63,7 +63,7 @@ struct AnalyticsView: View {
                 if s.includesExamples {
                     Section {
                         Label("Includes example data", systemImage: "info.circle")
-                            .font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                            .font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                     }
                     .wardRowBackground()
                 }
@@ -393,7 +393,7 @@ struct AnalyticsView: View {
                 } icon: {
                     Image(systemName: "calendar").foregroundStyle(Color.wardBeam)
                 }
-                .font(.subheadline.weight(.semibold))
+                .font(WardType.face(.subheadline, weight: .semibold))
                 .foregroundStyle(Color.wardInkSecondary)
                 .listRowBackground(Color.clear)
             }
@@ -577,15 +577,15 @@ struct AnalyticsView: View {
     private func focusRow(_ item: FocusItem, rank: Int, spark: [SparkPoint]) -> some View {
         HStack(spacing: 12) {
             Text("\(rank)")
-                .font(.caption.weight(.bold).monospacedDigit())
+                .font(WardType.face(.caption, weight: .bold).monospacedDigit())
                 .foregroundStyle(Color.wardInkSecondary)
                 .frame(width: 22, height: 22)
                 .wardInset(in: Circle())
             VStack(alignment: .leading, spacing: WardSpace.xs) {
                 Label(item.title, systemImage: item.symbol)
-                    .font(.body.weight(.semibold))
+                    .font(WardType.face(.body, weight: .semibold))
                 Text(item.detail)
-                    .font(.caption).foregroundStyle(Color.wardInkSecondary)
+                    .font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                 if spark.count >= 2 {
                     Sparkline(points: spark)
@@ -593,7 +593,7 @@ struct AnalyticsView: View {
                 }
             }
             Spacer(minLength: 0)
-            Image(systemName: "chevron.right").font(.caption).foregroundStyle(Color.wardInkSecondary)
+            Image(systemName: "chevron.right").font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
         }
         .padding(.vertical, WardSpace.xs)
         .contentShape(Rectangle())
@@ -611,17 +611,17 @@ struct AnalyticsView: View {
                                message: "Answer questions on a few different days and your weekly accuracy and daily practice will show here.")
             } else {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Accuracy by week").font(.subheadline.weight(.semibold))
+                    Text("Accuracy by week").font(WardType.face(.subheadline, weight: .semibold))
                     weeklyChart(s.weeks)
                     Text("The last 8 weeks. The dashed line is the typical pass mark.")
-                        .font(.caption).foregroundStyle(Color.wardInkSecondary)
+                        .font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
                 }
                 .padding(.vertical, 4)
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Studied per day").font(.subheadline.weight(.semibold))
+                    Text("Studied per day").font(WardType.face(.subheadline, weight: .semibold))
                     dailyChart(s.days)
                     Text("The last 30 days: questions answered and cards reviewed.")
-                        .font(.caption).foregroundStyle(Color.wardInkSecondary)
+                        .font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
                 }
                 .padding(.vertical, 4)
             }
@@ -681,19 +681,19 @@ struct AnalyticsView: View {
             } else {
                 if !s.shares.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Why you lose marks").font(.subheadline.weight(.semibold))
+                        Text("Why you lose marks").font(WardType.face(.subheadline, weight: .semibold))
                         ReasonDonut(shares: s.shares)
                         Text("The last \(Store.reasonWindowDays) days, from the reason picked after each wrong answer. Your commonest one has its fix under Focus next.")
-                            .font(.caption).foregroundStyle(Color.wardInkSecondary)
+                            .font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
                     }
                     .padding(.vertical, 4)
                 }
                 if !s.calibration.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Right by confidence").font(.subheadline.weight(.semibold))
+                        Text("Right by confidence").font(WardType.face(.subheadline, weight: .semibold))
                         CalibrationChart(rows: s.calibration)
                         Text("Bars are how often each was right; the dashed line is roughly where it should be. \u{201C}Sure\u{201D} well under the line means facts learned wrongly.")
-                            .font(.caption).foregroundStyle(Color.wardInkSecondary)
+                            .font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
                     }
                     .padding(.vertical, 4)
                 }
@@ -703,8 +703,8 @@ struct AnalyticsView: View {
                             Label("Confident but wrong", systemImage: "exclamationmark.triangle.fill")
                             Spacer(minLength: 8)
                             Text("\(s.confidentWrong)")
-                                .font(.subheadline.monospacedDigit()).foregroundStyle(Color.wardInkSecondary)
-                            Image(systemName: "chevron.right").font(.caption).foregroundStyle(Color.wardInkSecondary)
+                                .font(WardType.face(.subheadline, weight: .regular).monospacedDigit()).foregroundStyle(Color.wardInkSecondary)
+                            Image(systemName: "chevron.right").font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
                         }
                         .contentShape(Rectangle())
                     }
@@ -751,16 +751,16 @@ struct AnalyticsView: View {
                                               from: [answer.pick]))
             } label: {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(q.stem).font(.subheadline).lineLimit(3)
+                    Text(q.stem).font(WardType.face(.subheadline, weight: .regular)).lineLimit(3)
                     if !chosen.isEmpty {
                         WardInkLabel(chosen, systemImage: "xmark.circle", glyph: Color.wardDanger)
-                            .font(.caption)
+                            .font(WardType.caption)
                     }
                     if !right.isEmpty {
                         WardInkLabel(right, systemImage: "checkmark.circle", glyph: Color.wardPrimaryInk)
-                            .font(.caption.weight(.semibold))
+                            .font(WardType.face(.caption, weight: .semibold))
                     }
-                    Text(line).font(.caption).foregroundStyle(Color.wardInkSecondary)
+                    Text(line).font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
@@ -771,7 +771,7 @@ struct AnalyticsView: View {
                 // a soft disc raised off the row, pressed in under the finger
                 Button { route = .rules } label: {
                     Image(systemName: "list.bullet.rectangle")
-                        .font(.body)
+                        .font(WardType.body)
                         .foregroundStyle(Color.wardPrimaryInk)
                         .frame(width: 44, height: 44)
                 }
@@ -812,7 +812,7 @@ struct AnalyticsView: View {
                 // target is taller than the words
                 Button { route = .bySubject } label: {
                     Label("By subject", systemImage: "chart.bar.doc.horizontal")
-                        .font(.footnote.weight(.semibold))
+                        .font(WardType.face(.footnote, weight: .semibold))
                         .labelStyle(WardGlyphLabelStyle(glyph: Color.wardPrimaryInk)).foregroundStyle(Color.wardInk)
                         .textCase(nil)
                         .frame(minHeight: 44)
@@ -834,13 +834,13 @@ struct AnalyticsView: View {
         let percent: String = s.answered == 0 ? "\u{2013}" : Self.percent(s.accuracy)
         return HStack(spacing: WardSpace.m) {
             VStack(alignment: .leading, spacing: WardSpace.xs) {
-                Text(s.subject).font(.body.weight(.semibold)).lineLimit(1)
-                Text("\(s.answered) answered").font(.caption).foregroundStyle(Color.wardInkSecondary)
+                Text(s.subject).font(WardType.face(.body, weight: .semibold)).lineLimit(1)
+                Text("\(s.answered) answered").font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
             }
             Spacer(minLength: 8)
             if let trend {
                 Image(systemName: trend.symbol)
-                    .font(.caption.weight(.bold))
+                    .font(WardType.face(.caption, weight: .bold))
                     .foregroundStyle(trend.color)
                     .accessibilityLabel(trend.label)
             }
@@ -849,10 +849,10 @@ struct AnalyticsView: View {
             }
             .accessibilityHidden(true)
             Text(percent)
-                .font(.body.weight(.semibold).monospacedDigit())
+                .font(WardType.face(.body, weight: .semibold).monospacedDigit())
                 .frame(minWidth: 40, alignment: .trailing)
             Image(systemName: "chevron.right")
-                .font(.caption)
+                .font(WardType.caption)
                 .foregroundStyle(Color.wardInkSecondary)
                 .accessibilityHidden(true)
         }
@@ -889,9 +889,9 @@ struct AnalyticsView: View {
 
     private func figure(_ value: String, _ caption: String, symbol: String, color: Color) -> some View {
         VStack(spacing: WardSpace.xs) {
-            Image(systemName: symbol).font(.caption).foregroundStyle(color)
-            Text(value).font(.title2.weight(.bold).monospacedDigit())
-            Text(caption).font(.caption2).foregroundStyle(Color.wardInkSecondary)
+            Image(systemName: symbol).font(WardType.caption).foregroundStyle(color)
+            Text(value).font(WardType.face(.title2, weight: .bold).monospacedDigit())
+            Text(caption).font(WardType.face(.caption2, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                 .lineLimit(1).minimumScaleFactor(0.8)
         }
         .frame(maxWidth: .infinity)

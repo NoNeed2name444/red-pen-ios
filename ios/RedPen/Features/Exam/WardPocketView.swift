@@ -126,14 +126,14 @@ struct WardPocketSheet: View {
             NavigationLink(value: score) {
                 VStack(alignment: .leading, spacing: WardSpace.xs) {
                     Text(score.name)
-                    Text(score.purpose).font(.caption).foregroundStyle(Color.wardInkSecondary).lineLimit(2)
+                    Text(score.purpose).font(WardType.caption).foregroundStyle(Color.wardInkSecondary).lineLimit(2)
                 }
             }
         case .formula(let calc):
             NavigationLink(value: calc) {
                 VStack(alignment: .leading, spacing: WardSpace.xs) {
                     Text(calc.title)
-                    Text("Liver disease severity and transplant priority").font(.caption)
+                    Text("Liver disease severity and transplant priority").font(WardType.caption)
                         .foregroundStyle(Color.wardInkSecondary)
                 }
             }
@@ -178,7 +178,7 @@ private struct WardDisclaimer: ViewModifier {
         content.modifier(WardFoot {
             // as low as it was when it floated: no glow
             Label(WardPocket.disclaimer, systemImage: "graduationcap")
-                .font(.footnote.weight(.semibold))
+                .font(WardType.face(.footnote, weight: .semibold))
                 .labelStyle(WardGlyphLabelStyle(glyph: Color.wardWarning)).foregroundStyle(Color.wardInk)
                 .padding(.horizontal, WardSpace.l)
                 .padding(.vertical, WardSpace.s)
@@ -206,7 +206,7 @@ private struct WardTextSection: View {
         if !text.isEmpty {
             Section(title) {
                 Text(text)
-                    .font(.subheadline)
+                    .font(WardType.face(.subheadline, weight: .regular))
                     .fixedSize(horizontal: false, vertical: true)
                     .textSelection(.enabled)
             }
@@ -223,7 +223,7 @@ private struct PractiseButton: View {
         Section {
             Button(action: action) {
                 Label("Practise this", systemImage: "square.and.pencil")
-                    .font(.body.weight(.semibold))
+                    .font(WardType.face(.body, weight: .semibold))
                     .frame(maxWidth: .infinity, minHeight: 44)
             }
             .accessibilityIdentifier("wardPractise")
@@ -318,7 +318,7 @@ struct WardCalcView: View {
                 }
                 if let verdict = outcome.verdict {
                     Text(verdict)
-                        .font(.subheadline)
+                        .font(WardType.face(.subheadline, weight: .regular))
                         .foregroundStyle(Color.wardInkSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -367,7 +367,7 @@ struct WardCalcView: View {
                 .accessibilityLabel(spoken)
             if !unitName.isEmpty {
                 Text(unitName)
-                    .font(.caption)
+                    .font(WardType.caption)
                     .foregroundStyle(Color.wardInkSecondary)
                     .frame(minWidth: 44, alignment: .leading)
                     .accessibilityHidden(true)
@@ -437,7 +437,7 @@ struct WardScoreView: View {
         Form {
             Section {
                 Text(score.purpose)
-                    .font(.subheadline)
+                    .font(WardType.face(.subheadline, weight: .regular))
                     .fixedSize(horizontal: false, vertical: true)
             }
             .wardRowBackground()
@@ -531,13 +531,13 @@ struct WardScoreView: View {
                 .font(.system(.subheadline, design: .monospaced).weight(.semibold))
                 .frame(minWidth: 44, alignment: .leading)
             VStack(alignment: .leading, spacing: WardSpace.xs) {
-                Text(band.title).font(.subheadline.weight(.semibold))
-                Text(band.detail).font(.caption).foregroundStyle(Color.wardInkSecondary)
+                Text(band.title).font(WardType.face(.subheadline, weight: .semibold))
+                Text(band.detail).font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             if on {
                 Spacer(minLength: 0)
-                Image(systemName: "checkmark").font(.subheadline.weight(.bold)).accessibilityHidden(true)
+                Image(systemName: "checkmark").font(WardType.face(.subheadline, weight: .bold)).accessibilityHidden(true)
                     .foregroundStyle(Color.wardPrimaryInk)
                     .transition(.identity)
             }
@@ -565,11 +565,11 @@ private struct WardScoreTotal: View {
                 .frame(minWidth: 48)
             VStack(alignment: .leading, spacing: WardSpace.xs) {
                 Text(band?.title ?? "")
-                    .font(.headline)
+                    .font(WardType.headline)
                     .foregroundStyle(Color.wardInk)
                     .contentTransition(.identity)
                 Text(band?.detail ?? "")
-                    .font(.caption)
+                    .font(WardType.caption)
                     .foregroundStyle(Color.wardInkSecondary)
                     .lineLimit(3)
                     .contentTransition(.identity)

@@ -48,13 +48,13 @@ struct SourcePageReader: View {
             if current.isBlank {
                 Label("No text on this \(source.kind.pageNoun.lowercased())",
                       systemImage: "photo")
-                    .font(.footnote)
+                    .font(WardType.face(.footnote, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
             } else {
                 if current.recognised {
                     Label("Read by text recognition — worth checking against the original",
                           systemImage: "text.viewfinder")
-                        .font(.caption)
+                        .font(WardType.caption)
                         .labelStyle(WardGlyphLabelStyle(glyph: Color.wardWarning)).foregroundStyle(Color.wardInk)
                 }
                 LecturePassageText(text: current.text, page: page)

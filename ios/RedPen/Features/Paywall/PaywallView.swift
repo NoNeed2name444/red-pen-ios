@@ -60,7 +60,7 @@ struct PaywallView: View {
                 .foregroundStyle(Color.wardPrimaryInk)
                 .accessibilityHidden(true)
             Text("Everything, from any lecture")
-                .font(.title2.weight(.bold))
+                .font(WardType.face(.title2, weight: .bold))
                 .foregroundStyle(Color.wardInk)
                 .multilineTextAlignment(.center)
             VStack(alignment: .leading, spacing: 8) {
@@ -81,7 +81,7 @@ struct PaywallView: View {
                 .frame(width: 22)
                 .foregroundStyle(Color.wardPrimaryInk)
                 .accessibilityHidden(true)
-            Text(text).font(.subheadline).foregroundStyle(Color.wardInk)
+            Text(text).font(WardType.face(.subheadline, weight: .regular)).foregroundStyle(Color.wardInk)
             Spacer(minLength: 0)
         }
     }
@@ -120,10 +120,10 @@ struct PaywallView: View {
                     .foregroundStyle(mark)
                     .contentTransition(.identity)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(plan.label).font(.body.weight(.semibold)).foregroundStyle(Color.wardInk)
+                    Text(plan.label).font(WardType.face(.body, weight: .semibold)).foregroundStyle(Color.wardInk)
                     if plan == .yearly, let saving = subscriptions.yearlySaving, saving > 0 {
                         Text("Save \(saving)% against monthly")
-                            .font(.caption.weight(.semibold)).foregroundStyle(Color.wardInk)
+                            .font(WardType.face(.caption, weight: .semibold)).foregroundStyle(Color.wardInk)
                     }
                 }
                 Spacer()
@@ -179,13 +179,13 @@ struct PaywallView: View {
             Link(destination: LegalLinks.url(.terms)) { Text("Terms").minimumHitTarget() }
             Link(destination: LegalLinks.url(.privacy)) { Text("Privacy").minimumHitTarget() }
         }
-        .font(.footnote)
+        .font(WardType.face(.footnote, weight: .regular))
         .buttonStyle(.borderless)
     }
 
     private var billing: some View {
         Text("Billed through your Apple Account and renews until cancelled. Cancel any time in Settings.")
-            .font(.caption2)
+            .font(WardType.face(.caption2, weight: .regular))
             .foregroundStyle(Color.wardInkSecondary)
             .multilineTextAlignment(.center)
             .padding(.top, 4)

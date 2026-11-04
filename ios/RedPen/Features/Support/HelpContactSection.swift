@@ -43,7 +43,7 @@ struct HelpContactSection: View {
                 } icon: {
                     Image(systemName: "checkmark.circle.fill").foregroundStyle(Color.wardSuccess)
                 }
-                .font(.footnote)
+                .font(WardType.face(.footnote, weight: .regular))
             }
             if sender.waiting > 0 && outcome == nil {
                 HStack(spacing: WardSpace.s) {

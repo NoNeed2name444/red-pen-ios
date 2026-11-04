@@ -148,7 +148,7 @@ struct OsceReviewView: View {
                 HStack(spacing: WardSpace.s) {
                     // running, the chip is filled and its glyph near-black (D8)
                     Image(systemName: symbol)
-                        .font(.footnote.weight(.semibold))
+                        .font(WardType.face(.footnote, weight: .semibold))
                         .foregroundStyle(running ? Color.wardOnAccent : Color.wardPrimaryInk)
                     WardTimerPill(seconds: left, warnBelow: warnBelow, well: false, onFill: running)
                 }
@@ -213,7 +213,7 @@ struct OsceReviewView: View {
             VStack(spacing: WardSpace.xl) {
                 if revealed, let text = currentStepText {
                     Text(text)
-                        .font(.title3.weight(.medium))
+                        .font(WardType.face(.title3, weight: .medium))
                         .foregroundStyle(Color.wardInk)
                         .multilineTextAlignment(.center)
                         .padding(.vertical, WardSpace.m)
@@ -221,7 +221,7 @@ struct OsceReviewView: View {
                         .transition(.growIn(0.96))
                 } else {
                     Text(promptLine)
-                        .font(.title3)
+                        .font(WardType.face(.title3, weight: .regular))
                         .foregroundStyle(Color.wardInkSecondary)
                         .multilineTextAlignment(.center)
                         // all its lines: at XXL it was cut to one, "Say it
@@ -233,7 +233,7 @@ struct OsceReviewView: View {
                 }
                 if !revealed && run.stepIndex == 0 && run.restarts > 0 {
                     Text("From the top. The steps go in order, so a missed one means starting again.")
-                        .font(.subheadline).foregroundStyle(Color.wardInkSecondary).multilineTextAlignment(.center)
+                        .font(WardType.face(.subheadline, weight: .regular)).foregroundStyle(Color.wardInkSecondary).multilineTextAlignment(.center)
                         .transition(.identity)
                 }
             }

@@ -52,11 +52,11 @@ struct WardOptionRow: View {
         let shape = RoundedRectangle(cornerRadius: WardRadius.tile, style: .continuous)
         HStack(spacing: WardSpace.m) {
             Text(letter)
-                .font(.callout.weight(.semibold).monospaced())
+                .font(WardType.face(.callout, weight: .semibold).monospaced())
                 .foregroundStyle(letterInk)
                 .accessibilityHidden(true)
             Text(text)
-                .font(.callout)
+                .font(WardType.face(.callout, weight: .regular))
                 .foregroundStyle(textInk)
                 .strikethrough(struck || mark == .wrong, color: mark == .wrong ? .wardFadedInk : .wardInkSecondary)
                 .multilineTextAlignment(.leading)
@@ -65,11 +65,11 @@ struct WardOptionRow: View {
             if let symbol {
                 if noColour {
                     Text(mark == .right ? "Right" : "Your pick")
-                        .font(.caption.weight(.semibold)).foregroundStyle(textInk).accessibilityHidden(true)
+                        .font(WardType.face(.caption, weight: .semibold)).foregroundStyle(textInk).accessibilityHidden(true)
                         .transition(.identity)
                 }
                 Image(systemName: symbol)
-                    .font(mark == .wrong ? .caption.weight(.bold) : .title3.weight(.semibold))
+                    .font(mark == .wrong ? WardType.face(.caption, weight: .bold) : WardType.face(.title3, weight: .semibold))
                     .foregroundStyle(letterInk).accessibilityHidden(true)
                     .transition(.identity)
             }

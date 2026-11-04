@@ -38,7 +38,7 @@ struct MockResultsView: View {
                 if result.total < sitting.wanted {
                     Label("A shortened paper: \(result.total) of the real \(sitting.wanted) questions.",
                           systemImage: "info.circle")
-                        .font(.subheadline)
+                        .font(WardType.face(.subheadline, weight: .regular))
                         .foregroundStyle(Color.wardInkSecondary)
                 }
                 facts
@@ -96,7 +96,7 @@ struct MockResultsView: View {
         let line: String = "\(row.correct) of \(row.total)"
         return VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text(row.subject).font(.body).foregroundStyle(Color.wardInk)
+                Text(row.subject).font(WardType.body).foregroundStyle(Color.wardInk)
                 Spacer(minLength: 8)
                 Text(line + " \u{00B7} \(share)%")
                     .font(.system(.subheadline, design: .monospaced))
@@ -143,13 +143,13 @@ struct MockResultsView: View {
         let yours: String = chosen.flatMap { q.options.indices.contains($0) ? q.options[$0] : nil } ?? "No answer"
         return DisclosureGroup {
             VStack(alignment: .leading, spacing: 6) {
-                Text(q.stem).font(.subheadline).foregroundStyle(Color.wardInk)
+                Text(q.stem).font(WardType.face(.subheadline, weight: .regular)).foregroundStyle(Color.wardInk)
                 // words in ink, the marks in the right and wrong colours (D1, D7)
                 WardInkLabel("Answer: " + answer, systemImage: "checkmark.circle.fill", glyph: Color.wardPrimaryInk)
                 if !right {
                     WardInkLabel("You: " + yours, systemImage: "xmark.circle.fill", glyph: Color.wardDanger)
                 }
-                Text(q.explanation).font(.subheadline).foregroundStyle(Color.wardInkSecondary)
+                Text(q.explanation).font(WardType.face(.subheadline, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             }
             .padding(.top, 6)
         } label: {
@@ -157,7 +157,7 @@ struct MockResultsView: View {
                 Image(systemName: right ? "checkmark.circle.fill" : "xmark.circle.fill")
                     .foregroundStyle(right ? Color.wardPrimaryInk : Color.wardDanger)
                     .accessibilityHidden(true)
-                Text(q.stem).lineLimit(2).font(.subheadline).foregroundStyle(Color.wardInk)
+                Text(q.stem).lineLimit(2).font(WardType.face(.subheadline, weight: .regular)).foregroundStyle(Color.wardInk)
             }
         }
     }

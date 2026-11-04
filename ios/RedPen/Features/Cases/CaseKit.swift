@@ -45,7 +45,7 @@ struct CaseAvatar: View {
 
     var body: some View {
         Text(initials)
-            .font(.headline.weight(.semibold))
+            .font(WardType.face(.headline, weight: .semibold))
             .foregroundStyle(Color.wardInk)
             .frame(width: size, height: size)
             .wardInset(in: Circle())

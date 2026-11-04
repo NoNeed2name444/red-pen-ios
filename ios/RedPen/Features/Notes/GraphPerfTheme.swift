@@ -111,23 +111,23 @@ struct GraphPerfSpace: View {
             VStack(alignment: .leading, spacing: 2) {
                 if !stats.failed.isEmpty {
                     Text(stats.failed)
-                        .font(.caption.weight(.semibold))
+                        .font(WardType.face(.caption, weight: .semibold))
                 }
                 Text(stats.line)
-                    .font(.caption.monospacedDigit().weight(.semibold))
+                    .font(WardType.face(.caption, weight: .semibold).monospacedDigit())
                 Text(stats.pace)
-                    .font(.caption.monospacedDigit().weight(.semibold))
+                    .font(WardType.face(.caption, weight: .semibold).monospacedDigit())
                 Text(stats.drawn)
-                    .font(.caption2.monospacedDigit())
+                    .font(WardType.face(.caption2, weight: .regular).monospacedDigit())
                     .foregroundStyle(Color.wardInkSecondary)
                 if !stats.stages.isEmpty {
                     Text(stats.stages)
-                        .font(.caption2.monospacedDigit())
+                        .font(WardType.face(.caption2, weight: .regular).monospacedDigit())
                         .foregroundStyle(Color.wardInkSecondary)
                 }
                 if !stats.depth.isEmpty {
                     Text(stats.depth)
-                        .font(.caption2.monospacedDigit())
+                        .font(WardType.face(.caption2, weight: .regular).monospacedDigit())
                         .foregroundStyle(Color.wardInkSecondary)
                 }
                 // on screen the phase only; the tour's numbers are the
@@ -136,7 +136,7 @@ struct GraphPerfSpace: View {
                 // measures
                 if !stats.tourPhase.isEmpty {
                     Text("tour: " + stats.tourPhase)
-                        .font(.caption2.monospacedDigit())
+                        .font(WardType.face(.caption2, weight: .regular).monospacedDigit())
                         .foregroundStyle(Color.wardInkSecondary)
                 }
             }

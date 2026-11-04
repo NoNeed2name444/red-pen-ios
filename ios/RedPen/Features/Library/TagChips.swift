@@ -38,7 +38,7 @@ struct TagChipsField: View {
                     .accessibilityIdentifier("tagField")
                 Button(action: add) {
                     Image(systemName: "plus.circle.fill")
-                        .font(.title3)
+                        .font(WardType.face(.title3, weight: .regular))
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(Color.wardPrimaryInk)
@@ -54,7 +54,7 @@ struct TagChipsField: View {
                         ForEach(offered, id: \.self) { tag in
                             Button { take(tag) } label: {
                                 Label(CardTags.label(tag), systemImage: "plus")
-                                    .font(.caption.weight(.semibold))
+                                    .font(WardType.face(.caption, weight: .semibold))
                                     .labelStyle(WardGlyphLabelStyle(glyph: Color.wardPrimaryInk)).foregroundStyle(Color.wardInk)
                             }
                             .buttonStyle(WardChipButtonStyle())
@@ -76,12 +76,12 @@ struct TagChipsField: View {
     private func chip(_ tag: String) -> some View {
         HStack(spacing: 6) {
             Text(CardTags.label(tag))
-                .font(.caption.weight(.semibold))
+                .font(WardType.face(.caption, weight: .semibold))
                 .foregroundStyle(Color.wardInk)
                 .lineLimit(1)
             Button { remove(tag) } label: {
                 Image(systemName: "xmark")
-                    .font(.caption2.weight(.bold))
+                    .font(WardType.face(.caption2, weight: .bold))
                     .foregroundStyle(Color.wardInkSecondary)
                     .frame(width: 22, height: 22)
                     // drawn small inside the chip; the target reaches 44
@@ -126,13 +126,13 @@ struct TagLine: View {
             HStack(spacing: 4) {
                 ForEach(shown, id: \.self) { tag in
                     Text("#" + CardTags.label(tag))
-                        .font(.caption2)
+                        .font(WardType.face(.caption2, weight: .regular))
                         .foregroundStyle(Color.wardInkSecondary)
                         .lineLimit(1)
                 }
                 if more > 0 {
                     Text("+\(more)")
-                        .font(.caption2)
+                        .font(WardType.face(.caption2, weight: .regular))
                         .foregroundStyle(Color.wardInkSecondary)
                 }
             }

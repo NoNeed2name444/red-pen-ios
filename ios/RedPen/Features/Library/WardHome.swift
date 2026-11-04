@@ -293,7 +293,7 @@ struct HomeHeader: View {
                 .launchEntrance()
             nameLine
             Text(greeting)
-                .font(.footnote)
+                .font(WardType.face(.footnote, weight: .regular))
                 .foregroundStyle(Color.wardInkSecondary)
                 .launchEntrance()
             if let countdown {
@@ -595,7 +595,7 @@ struct HomeRoundCard: View {
             // heading's row, so the row is no taller than its two lines and
             // the round's button stays clear of New set
             Label("Open plan", systemImage: "chart.line.uptrend.xyaxis")
-                .font(.footnote.weight(.semibold))
+                .font(WardType.face(.footnote, weight: .semibold))
                 .foregroundStyle(Color.wardPrimaryInk)
                 .padding(.vertical, 12)
                 .contentShape(Rectangle())
@@ -609,7 +609,7 @@ struct HomeRoundCard: View {
 
     private var quiet: some View {
         Label("All done for now \u{2014} nothing is waiting.", systemImage: "checkmark.circle")
-            .font(.footnote)
+            .font(WardType.face(.footnote, weight: .regular))
             .foregroundStyle(Color.wardInkSecondary)
     }
 
@@ -639,7 +639,7 @@ struct HomeRoundCard: View {
 
     private func noteLine(_ text: String) -> some View {
         Label(text, systemImage: "moon.stars")
-            .font(.caption)
+            .font(WardType.caption)
             .foregroundStyle(Color.wardInkSecondary)
     }
 
@@ -650,7 +650,7 @@ struct HomeRoundCard: View {
             if let first { onOpen(first) }
         } label: {
             Label("Start revision", systemImage: "bolt.fill")
-                .font(.subheadline.weight(.semibold))
+                .font(WardType.face(.subheadline, weight: .semibold))
         }
         .buttonStyle(.wardPrimary)
         .frame(maxWidth: .infinity, alignment: .trailing)
@@ -837,17 +837,17 @@ private struct VitalsTileFace: View {
         let text: String = VitalsTileFace.streakText(streak)
         return VStack(alignment: .leading, spacing: WardSpace.xs) {
             Text("Readiness")
-                .font(.caption2)
+                .font(WardType.face(.caption2, weight: .regular))
                 .foregroundStyle(Color.wardInkSecondary)
             HStack(alignment: .firstTextBaseline, spacing: WardSpace.xs) {
                 Image(systemName: "heart.fill")
                     .foregroundStyle(Color.wardEcg)
                     .accessibilityHidden(true)
                 Text(text)
-                    .homeWordFit("the Vitals tile's streak", text, font: .caption.weight(.semibold))
+                    .homeWordFit("the Vitals tile's streak", text, font: WardType.face(.caption, weight: .semibold))
                     .fixedSize(horizontal: besideRing, vertical: true)
             }
-            .font(.caption.weight(.semibold))
+            .font(WardType.face(.caption, weight: .semibold))
             .foregroundStyle(Color.wardInk)
         }
     }
@@ -868,10 +868,10 @@ private struct BrainMapTileFace: View {
                 .frame(width: 72, height: 48)
                 .accessibilityHidden(true)
             Text(line)
-                .font(.caption.weight(.semibold))
+                .font(WardType.face(.caption, weight: .semibold))
                 .foregroundStyle(Color.wardInk)
                 .multilineTextAlignment(.leading)
-                .homeWordFit("the brain map's line", line, font: .caption.weight(.semibold))
+                .homeWordFit("the brain map's line", line, font: WardType.face(.caption, weight: .semibold))
         }
         .homeTile()
     }
@@ -1020,7 +1020,7 @@ struct SetRow: View {
     private var nameLine: some View {
         HStack(spacing: WardSpace.s) {
             Text(set.name)
-                .font(.subheadline.weight(.semibold))
+                .font(WardType.face(.subheadline, weight: .semibold))
                 .foregroundStyle(Color.wardInk)
                 .lineLimit(2)
             // the exam it was written for
@@ -1038,12 +1038,12 @@ struct SetRow: View {
         let subject: String = set.subject.trimmingCharacters(in: .whitespacesAndNewlines)
         let showsSubject: Bool = !subject.isEmpty && subject != "General"
         return HStack(spacing: WardSpace.s) {
-            Text(set.kind.label).font(.caption2.weight(.semibold))
+            Text(set.kind.label).font(WardType.face(.caption2, weight: .semibold))
             separator
-            Text(amount).font(.caption2)
+            Text(amount).font(WardType.face(.caption2, weight: .regular))
             if showsSubject {
                 separator
-                Text(subject).font(.caption2).lineLimit(1)
+                Text(subject).font(WardType.face(.caption2, weight: .regular)).lineLimit(1)
             }
             // flagged or to check, once anything in it is checked
             HomeAccuracySetMark(set: set)
@@ -1052,7 +1052,7 @@ struct SetRow: View {
     }
 
     private var separator: some View {
-        Text("\u{00B7}").font(.caption2).accessibilityHidden(true)
+        Text("\u{00B7}").font(WardType.face(.caption2, weight: .regular)).accessibilityHidden(true)
     }
 
     private func progressLine(_ value: Double) -> some View {
@@ -1074,7 +1074,7 @@ extension View {
     /// Home's small-caps label: one Dynamic Type step smaller than
     /// `WardSmallCaps` (`.caption.weight(.semibold)` -> `.caption2.weight(.semibold)`).
     func homeSmallCaps(colour: Color = .wardInkSecondary) -> some View {
-        modifier(WardSmallCaps(font: .caption2.weight(.semibold), colour: colour))
+        modifier(WardSmallCaps(font: WardType.face(.caption2, weight: .semibold), colour: colour))
     }
 }
 
@@ -1089,7 +1089,7 @@ private struct HomeChip: View {
             if let symbol { Image(systemName: symbol).imageScale(.small).foregroundStyle(tone.color) }
             Text(text)
         }
-        .font(.caption2.weight(.semibold))
+        .font(WardType.face(.caption2, weight: .semibold))
         .foregroundStyle(tone.ink)
         .padding(.horizontal, WardSpace.s)
         .padding(.vertical, WardSpace.xs)
@@ -1111,7 +1111,7 @@ private struct HomePill: View {
                 // list's row was cutting it to one ("Step 1 in 9...")
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .font(.footnote.weight(.bold))
+        .font(WardType.face(.footnote, weight: .bold))
         .foregroundStyle(Color.wardWarning)
         .padding(.horizontal, WardSpace.m)
         .padding(.vertical, WardSpace.s)
@@ -1170,15 +1170,15 @@ private struct HomeBedRow: View {
     private var words: some View {
         VStack(alignment: .leading, spacing: 2) {
             if let overline { Text(overline).homeSmallCaps() }
-            Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(Color.wardInk)
-            if let detail { Text(detail).font(.footnote).foregroundStyle(Color.wardInkSecondary) }
+            Text(title).font(WardType.face(.subheadline, weight: .semibold)).foregroundStyle(Color.wardInk)
+            if let detail { Text(detail).font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary) }
         }
         .multilineTextAlignment(.leading)
     }
 
     private var chevronMark: some View {
         Image(systemName: "chevron.right")
-            .font(.caption.weight(.semibold))
+            .font(WardType.face(.caption, weight: .semibold))
             .foregroundStyle(Color.wardInkSecondary)
             .accessibilityHidden(true)
     }
@@ -1193,7 +1193,7 @@ private struct HomeAccuracySetMark: View {
         if let summary = accuracy.summary(for: set), summary.checked > 0 {
             let grade: AccuracyGrade = summary.grade
             Image(systemName: grade.symbol)
-                .font(.caption2)
+                .font(WardType.face(.caption2, weight: .regular))
                 .foregroundStyle(grade.color)
                 .accessibilityLabel("Accuracy: " + (summary.line ?? grade.title))
         }

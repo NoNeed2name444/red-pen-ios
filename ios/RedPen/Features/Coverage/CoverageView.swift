@@ -254,12 +254,12 @@ struct CoverageView: View {
             }
             if let blocker = checker.blocker {
                 Text(blocker)
-                    .font(.footnote)
+                    .font(WardType.face(.footnote, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
             }
             if !hasNews {
                 Text("The keyword check below is instant. Check with AI reads what your matching items actually say.")
-                    .font(.footnote)
+                    .font(WardType.face(.footnote, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
             }
         } header: {
@@ -275,25 +275,25 @@ struct CoverageView: View {
         VStack(alignment: .leading, spacing: 4) {
             if check.isExample {
                 Label("Example check", systemImage: "checklist")
-                    .font(.subheadline.weight(.semibold))
+                    .font(WardType.face(.subheadline, weight: .semibold))
                     .foregroundStyle(Color.wardInk)
                 Text("Made up from your keyword result to show what a real check looks like, for the first \(CoverageExamples.areaCount) areas.")
-                    .font(.caption)
+                    .font(WardType.caption)
                     .foregroundStyle(Color.wardInkSecondary)
             } else {
                 let who: String = CoverageCloudCheck.displayName(check.source)
                 let when: String = check.date.formatted(.relative(presentation: .named))
                 Text("Checked by \(who) \u{00B7} \(when)")
-                    .font(.subheadline.weight(.semibold))
+                    .font(WardType.face(.subheadline, weight: .semibold))
                     .foregroundStyle(Color.wardInk)
                 if !check.byPreferredModel {
                     Text("Gemini 3.1 Pro wasn't available, so \(who) checked it.")
-                        .font(.caption)
+                        .font(WardType.caption)
                         .foregroundStyle(Color.wardInkSecondary)
                 }
                 if !check.failedAreas.isEmpty {
                     Text(Self.failedLine(check.failedAreas))
-                        .font(.caption)
+                        .font(WardType.caption)
                         .foregroundStyle(Color.wardInkSecondary)
                 }
             }
@@ -321,7 +321,7 @@ struct CoverageView: View {
                 }
                 if !next.isEmpty {
                     Label("Study next: \(next)", systemImage: "arrow.forward.circle")
-                        .font(.subheadline)
+                        .font(WardType.face(.subheadline, weight: .regular))
                         .labelStyle(WardGlyphLabelStyle(glyph: Color.wardPrimaryInk)).foregroundStyle(Color.wardInk)
                 }
             } header: {
@@ -379,29 +379,29 @@ struct CoverageView: View {
         return VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline) {
                 Text(sub.subtopic.name)
-                    .font(.subheadline.weight(.semibold))
+                    .font(WardType.face(.subheadline, weight: .semibold))
                     .foregroundStyle(Color.wardInk)
                 Spacer(minLength: 8)
                 StatusChip(status: status)
             }
             Text(Self.detail(sub))
-                .font(.caption)
+                .font(WardType.caption)
                 .monospacedDigit()
                 .foregroundStyle(Color.wardInkSecondary)
             if let ai {
                 if !ai.evidence.isEmpty {
                     Text(ai.evidence)
-                        .font(.caption)
+                        .font(WardType.caption)
                         .foregroundStyle(Color.wardInk)
                 }
                 if ai.status.coverage != sub.status {
                     Text("Keywords said \(sub.status.label.lowercased())")
-                        .font(.caption2)
+                        .font(WardType.face(.caption2, weight: .regular))
                         .foregroundStyle(Color.wardInkSecondary)
                 }
                 if !ai.suggestion.isEmpty {
                     Label(ai.suggestion, systemImage: "lightbulb")
-                        .font(.caption)
+                        .font(WardType.caption)
                         .foregroundStyle(Color.wardInkSecondary)
                 }
             }
@@ -412,7 +412,7 @@ struct CoverageView: View {
                     generate(sub, area: area)
                 } label: {
                     Label("Generate questions", systemImage: "square.and.pencil")
-                        .font(.caption.weight(.semibold))
+                        .font(WardType.face(.caption, weight: .semibold))
                         .labelStyle(WardGlyphLabelStyle(glyph: Color.wardPrimaryInk)).foregroundStyle(Color.wardInk)
                 }
                 .buttonStyle(WardChipButtonStyle())
@@ -484,7 +484,7 @@ private struct CoverageCountChip: View {
                 .foregroundStyle(countInk)
             Label(status.label, systemImage: CoverageView.symbol(status))
                 .labelStyle(WardGlyphLabelStyle(glyph: glyph))
-                .font(.caption)
+                .font(WardType.caption)
                 .foregroundStyle(words)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)

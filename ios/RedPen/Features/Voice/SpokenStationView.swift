@@ -47,9 +47,9 @@ struct SpokenStationView: View {
         List {
             Section {
                 Label("The patient needs \(Brand.name) Cloud", systemImage: "person.wave.2")
-                    .font(.headline)
+                    .font(WardType.headline)
                 Text("The patient and the examiner are played by \(Brand.name) Cloud. \(llm.noWriter)")
-                    .font(.callout).foregroundStyle(Color.wardInkSecondary)
+                    .font(WardType.face(.callout, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             }
             .wardRowBackground()
             StationPastAttempts(title: station.title, shown: $shown)
@@ -87,7 +87,7 @@ private struct SpokenStationScreen: View {
                 VStack(spacing: WardSpace.m) {
                     EcgLoader()
                     Text("The examiner is marking\u{2026}")
-                        .font(.subheadline)
+                        .font(WardType.face(.subheadline, weight: .regular))
                         .foregroundStyle(Color.wardInkSecondary)
                 }
                 .frame(maxHeight: .infinity)
@@ -110,12 +110,12 @@ private struct SpokenStationScreen: View {
     private var briefing: some View {
         List {
             Section {
-                Text(session.station.title).font(.title3.weight(.semibold))
-                Text(session.instructions).font(.callout)
+                Text(session.station.title).font(WardType.face(.title3, weight: .semibold))
+                Text(session.instructions).font(WardType.face(.callout, weight: .regular))
                 if session.isCommunication {
                     Label("Also marked on SPIKES: setting, perception, invitation, knowledge, emotions, strategy and summary.",
                           systemImage: "bubble.left.and.bubble.right")
-                        .font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                        .font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                 }
             } footer: {
                 Text("Tap the microphone to speak; it sends when you pause. The patient answers in their own voice. You can type instead.")
@@ -227,7 +227,7 @@ private struct SpokenTranscript: View {
                     if session.busy {
                         HStack(spacing: WardSpace.s) {
                             EcgLoader()
-                            Text("The patient is answering\u{2026}").font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                            Text("The patient is answering\u{2026}").font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                         }
                     }
                 }
@@ -257,7 +257,7 @@ private struct StationPastAttempts: View {
         Section("Past attempts") {
             if attempts.isEmpty {
                 Text("Your marked stations appear here.")
-                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                    .font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             }
             ForEach(attempts) { attempt in
                 StationAttemptRow(attempt: attempt,
@@ -293,7 +293,7 @@ private struct StationAttemptRow: View {
                         if attempt.isExample { VoiceExampleTag() }
                     }
                     Text(attempt.date, format: .dateTime.day().month().hour().minute())
-                        .font(.caption).foregroundStyle(Color.wardInkSecondary)
+                        .font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
                 }
                 Spacer()
                 Text(score)
@@ -348,7 +348,7 @@ private struct SpokenStationComposer: View {
     private var heardLine: some View {
         let words: String = listener.text.isEmpty ? "Listening\u{2026}" : listener.text
         return Label(words, systemImage: "waveform")
-            .font(.caption)
+            .font(WardType.caption)
             .foregroundStyle(Color.wardInkSecondary)
             .lineLimit(1)
             .truncationMode(.head)
@@ -447,7 +447,7 @@ private struct StationCircleFace: View {
         let rest: WardLift = prominent ? .mid : .low
         let ink: Color = isEnabled ? tint : Color.wardInk
         label
-            .font(.title3.weight(.semibold))
+            .font(WardType.face(.title3, weight: .semibold))
             .foregroundStyle(ink)
             .frame(width: 48, height: 48)
             .background {
@@ -472,7 +472,7 @@ private struct SpokenLineBubble: View {
         switch line.speaker {
         case .examiner:
             Text(line.text)
-                .font(.callout.italic())
+                .font(WardType.face(.callout, weight: .regular).italic())
                 .foregroundStyle(Color.wardInkSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(WardSpace.m)
@@ -508,7 +508,7 @@ struct StationReportView: View {
                         .scaledFont(54, relativeTo: .largeTitle, weight: .bold, design: .monospaced)
                         .monospacedDigit()
                         .foregroundStyle(Color.wardInk)
-                    Text("of \(attempt.steps.count) steps").font(.title3).foregroundStyle(Color.wardInkSecondary)
+                    Text("of \(attempt.steps.count) steps").font(WardType.face(.title3, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                     Spacer()
                     if attempt.isExample { VoiceExampleTag() }
                 }
@@ -525,7 +525,7 @@ struct StationReportView: View {
                     .accessibilityLabel("Communication \(attempt.mark.communication) out of 5")
                 }
                 if !attempt.mark.feedback.isEmpty {
-                    Text(attempt.mark.feedback).font(.callout)
+                    Text(attempt.mark.feedback).font(WardType.face(.callout, weight: .regular))
                 }
             } header: {
                 Text(attempt.title)
@@ -540,7 +540,7 @@ struct StationReportView: View {
                         Label {
                             VStack(alignment: .leading, spacing: WardSpace.xs) {
                                 Text(stage.name)
-                                Text(stage.meaning).font(.caption).foregroundStyle(Color.wardInkSecondary)
+                                Text(stage.meaning).font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
                             }
                         } icon: {
                             Image(systemName: done ? "checkmark.circle.fill" : "xmark.circle.fill")
@@ -562,7 +562,7 @@ struct StationReportView: View {
                             .foregroundStyle(done ? Color.wardSuccess : Color.wardDanger)
                             .accessibilityLabel(done ? "Done" : "Missed")
                     }
-                    .font(.callout)
+                    .font(WardType.face(.callout, weight: .regular))
                 }
             }
             .wardRowBackground()
@@ -570,7 +570,7 @@ struct StationReportView: View {
             if !attempt.mark.missedNotes.isEmpty {
                 Section("The examiner's notes") {
                     ForEach(Array(attempt.mark.missedNotes.enumerated()), id: \.offset) { _, note in
-                        Text(note).font(.callout)
+                        Text(note).font(WardType.face(.callout, weight: .regular))
                     }
                 }
                 .wardRowBackground()
@@ -580,8 +580,8 @@ struct StationReportView: View {
                 ForEach(attempt.lines) { line in
                     VStack(alignment: .leading, spacing: WardSpace.xs) {
                         Text(line.speaker.rawValue.capitalized)
-                            .font(.caption.weight(.semibold)).foregroundStyle(Color.wardInkSecondary)
-                        Text(line.text).font(.callout)
+                            .font(WardType.face(.caption, weight: .semibold)).foregroundStyle(Color.wardInkSecondary)
+                        Text(line.text).font(WardType.face(.callout, weight: .regular))
                     }
                 }
             }
@@ -589,7 +589,7 @@ struct StationReportView: View {
 
             Section {
                 Text("A study aid, not an exam result. Marked by a model from a speech-recognition transcript, which can mishear.")
-                    .font(.caption).foregroundStyle(Color.wardInkSecondary)
+                    .font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
             }
             .wardRowBackground()
         }

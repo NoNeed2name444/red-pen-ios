@@ -101,7 +101,7 @@ struct CommuteModeView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Cards due today")
                         Text(dueLine(due: due, stand: stand))
-                            .font(.caption).foregroundStyle(Color.wardInkSecondary)
+                            .font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
                     }
                 }
             } header: {
@@ -122,7 +122,7 @@ struct CommuteModeView: View {
                     ExplainBackView()
                 } label: {
                     Label("Explain it back", systemImage: "person.wave.2")
-                        .font(.subheadline)
+                        .font(WardType.face(.subheadline, weight: .regular))
                         .labelStyle(WardGlyphLabelStyle(glyph: Color.wardPrimaryInk)).foregroundStyle(Color.wardInk)
                 }
             }
@@ -144,7 +144,7 @@ struct CommuteModeView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(set.name).lineLimit(2)
                         Text(questionCount(in: set))
-                            .font(.caption).foregroundStyle(Color.wardInkSecondary)
+                            .font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
                     }
                 }
             }
@@ -165,11 +165,11 @@ struct CommuteModeView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Natural cloud voice")
                         Text("A human-sounding voice, made online")
-                            .font(.caption).foregroundStyle(Color.wardInkSecondary)
+                            .font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
                     }
                 }
                 Text(voiceNote)
-                    .font(.footnote)
+                    .font(WardType.face(.footnote, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
             } label: {
                 CommuteVoiceLabel(natural: naturalVoice)
@@ -329,7 +329,7 @@ private struct CommuteStartBar: View {
     var body: some View {
         if !ready {
             Text("Turn on due cards or choose a question set.")
-                .font(.footnote)
+                .font(WardType.face(.footnote, weight: .regular))
                 .foregroundStyle(Color.wardInkSecondary)
                 .frame(maxWidth: .infinity)
         }
@@ -501,18 +501,18 @@ private struct CommuteLineRow: View {
     var body: some View {
         switch line.kind {
         case .app:
-            Text(line.text).font(.callout).foregroundStyle(Color.wardInk)
+            Text(line.text).font(WardType.face(.callout, weight: .regular)).foregroundStyle(Color.wardInk)
         case .you:
             Label(line.text, systemImage: "mic.fill")
-                .font(.callout.italic()).labelStyle(WardGlyphLabelStyle(glyph: Color.wardPrimaryInk)).foregroundStyle(Color.wardInk)
+                .font(WardType.face(.callout, weight: .regular).italic()).labelStyle(WardGlyphLabelStyle(glyph: Color.wardPrimaryInk)).foregroundStyle(Color.wardInk)
         case .right:
             Label(line.text, systemImage: "checkmark.circle.fill")
-                .font(.callout).labelStyle(WardGlyphLabelStyle(glyph: Color.wardSuccess)).foregroundStyle(Color.wardInk)
+                .font(WardType.face(.callout, weight: .regular)).labelStyle(WardGlyphLabelStyle(glyph: Color.wardSuccess)).foregroundStyle(Color.wardInk)
         case .wrong:
             Label(line.text, systemImage: "xmark.circle.fill")
-                .font(.callout).labelStyle(WardGlyphLabelStyle(glyph: Color.wardDanger)).foregroundStyle(Color.wardInk)
+                .font(WardType.face(.callout, weight: .regular)).labelStyle(WardGlyphLabelStyle(glyph: Color.wardDanger)).foregroundStyle(Color.wardInk)
         case .note:
-            Text(line.text).font(.caption).foregroundStyle(Color.wardInkSecondary)
+            Text(line.text).font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
         }
     }
 }
@@ -535,7 +535,7 @@ private struct CommuteHeard: View {
                     .lineLimit(2)
                     .truncationMode(.head)
             }
-            .font(.footnote)
+            .font(WardType.face(.footnote, weight: .regular))
             .foregroundStyle(Color.wardInkSecondary)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 4)

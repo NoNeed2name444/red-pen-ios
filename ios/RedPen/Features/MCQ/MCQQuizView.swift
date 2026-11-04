@@ -277,7 +277,7 @@ struct MCQQuizView: View {
         let when: String = p.savedAt.formatted(.relative(presentation: .named))
         let line: String = "You left off \(when) \u{00B7} \(done) of \(total) answered"
         return Label(line, systemImage: "clock.arrow.circlepath")
-            .font(.subheadline.weight(.medium))
+            .font(WardType.face(.subheadline, weight: .medium))
             .foregroundStyle(Color.wardInkSecondary)
             .lineLimit(oneLine)
             .minimumScaleFactor(0.85)
@@ -548,7 +548,7 @@ struct MCQQuizView: View {
             if layout.plain {
                 HighlightableStem(stem: q.stem, plain: plainText(q.stem), marked: highlightBinding,
                                   highlighting: highlighting)
-                    .font(.title3.weight(.semibold))
+                    .font(WardType.face(.title3, weight: .semibold))
                     .foregroundStyle(Color.wardInk)
                     .lineSpacing(3)
             } else {
@@ -557,7 +557,7 @@ struct MCQQuizView: View {
             if minReadSeconds > 0 && !a.checked {
                 Label("Slow reading: the key words are marked, and you can answer after \(minReadSeconds) seconds.",
                       systemImage: "eye")
-                    .font(.subheadline)
+                    .font(WardType.face(.subheadline, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
                     .transition(.identity)
             }
@@ -583,7 +583,7 @@ struct MCQQuizView: View {
         if !layout.story.isEmpty {
             HighlightableStem(stem: layout.story, plain: plainText(layout.story),
                               marked: chartMarks(question: false), highlighting: highlighting)
-                .font(.body)
+                .font(WardType.body)
                 .foregroundStyle(Color.wardInk)
                 .lineSpacing(3)
         }
@@ -592,7 +592,7 @@ struct MCQQuizView: View {
             HighlightableStem(stem: layout.question, plain: plainText(layout.question),
                               marked: chartMarks(question: true), highlighting: highlighting,
                               prompt: layout.story.isEmpty)
-                .font(.headline)
+                .font(WardType.headline)
                 .foregroundStyle(Color.wardInk)
                 .lineSpacing(3)
         }
@@ -754,12 +754,12 @@ struct MCQQuizView: View {
             // words in ink, the mark in the right answer's colour or the wrong one's (D1, D7)
             WardInkLabel(said, systemImage: correct ? "checkmark.seal.fill" : "info.circle.fill",
                          glyph: correct ? Color.wardPrimaryInk : Color.wardDanger)
-                .font(.headline)
+                .font(WardType.headline)
                 .accessibilityAddTraits(.isHeader)
             if struckTheAnswer {
                 WardInkLabel("You crossed out the right answer. What made you rule it out?",
                              systemImage: "line.diagonal", glyph: Color.wardWarning)
-                    .font(.subheadline.weight(.semibold))
+                    .font(WardType.face(.subheadline, weight: .semibold))
             }
             // a passage selected here is saved on its own (Save to Ideas)
             let idea: IdeaClip = ideaClip
@@ -805,7 +805,7 @@ struct MCQQuizView: View {
     private func sureLabel(tagged: Bool) -> some View {
         HStack(spacing: WardSpace.s) {
             Text("How sure?")
-                .font(.subheadline.weight(.semibold))
+                .font(WardType.face(.subheadline, weight: .semibold))
                 .foregroundStyle(Color.wardInkSecondary)
             if tagged { optionalTag }
         }
@@ -829,7 +829,7 @@ struct MCQQuizView: View {
     private func skippable(_ lead: String) -> some View {
         HStack(spacing: 8) {
             Text(lead)
-                .font(.subheadline.weight(.semibold))
+                .font(WardType.face(.subheadline, weight: .semibold))
                 .foregroundStyle(Color.wardInkSecondary)
             optionalTag
         }
@@ -894,18 +894,18 @@ struct MCQQuizView: View {
             .scrollClipDisabled()
             if retested.contains(id) && !isRetest(current) {
                 Label("It comes back, re-shuffled, a few questions from now.", systemImage: "arrow.uturn.forward")
-                    .font(.footnote)
+                    .font(WardType.face(.footnote, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
                     .transition(.identity)
             }
             if writing {
                 HStack(spacing: 8) {
                     EcgLoader()
-                    Text("Writing a twin\u{2026}").font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                    Text("Writing a twin\u{2026}").font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                 }
                 .transition(.identity)
             } else if let note {
-                Text(note).font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                Text(note).font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                     .transition(.identity)
             }
         }

@@ -122,7 +122,7 @@ struct ProgressRing<Centre: View>: View {
             .modifier(RingDisc(raised: raised, pressed: pressed))
             if !label.isEmpty {
                 Text(label)
-                    .font(.caption2)
+                    .font(WardType.face(.caption2, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
@@ -274,7 +274,7 @@ struct ReasonDonut: View {
                 }
                 VStack(spacing: 0) {
                     Text("\(total)").font(.system(.title3, design: .monospaced).weight(.bold).monospacedDigit())
-                    Text(total == 1 ? "reason" : "reasons").font(.caption2).foregroundStyle(Color.wardInkSecondary)
+                    Text(total == 1 ? "reason" : "reasons").font(WardType.face(.caption2, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                 }
             }
             .frame(height: 150)
@@ -283,7 +283,7 @@ struct ReasonDonut: View {
                 HStack(spacing: WardSpace.s) {
                     RoundedRectangle(cornerRadius: 3).fill(shade(index)).frame(width: 12, height: 12)
                     Label(share.reason.title, systemImage: share.reason.symbol)
-                        .font(.caption)
+                        .font(WardType.caption)
                     Spacer(minLength: WardSpace.s)
                     Text("\(Int((share.share * 100).rounded()))%")
                         .font(.system(.caption, design: .monospaced).monospacedDigit()).foregroundStyle(Color.wardInkSecondary)
@@ -478,12 +478,12 @@ struct StudyHeatmap: View {
             .accessibilityElement(children: .contain)
             .accessibilityLabel(summary(studied: studied, busiest: busiest) + restWords(cells))
             HStack(spacing: WardSpace.xs) {
-                Text("Less").font(.caption2).foregroundStyle(Color.wardInkSecondary)
+                Text("Less").font(WardType.face(.caption2, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                 ForEach(HeatLevel.allCases, id: \.self) { level in
                     square(level, future: false, today: false)
                         .frame(width: 12, height: 12)
                 }
-                Text("More").font(.caption2).foregroundStyle(Color.wardInkSecondary)
+                Text("More").font(WardType.face(.caption2, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             }
             .accessibilityHidden(true)
         }

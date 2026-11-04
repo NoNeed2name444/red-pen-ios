@@ -317,7 +317,7 @@ struct NewSetView: View {
             .accessibilityLabel("Step \(step.rawValue) of 3")
             VStack(alignment: .leading, spacing: 4) {
                 Text(step.question)
-                    .font(.title2.weight(.bold))
+                    .font(WardType.face(.title2, weight: .bold))
                     .foregroundStyle(Color.wardInk)
                     .contentTransition(.identity)
                     .accessibilityAddTraits(.isHeader)
@@ -448,14 +448,14 @@ struct NewSetView: View {
             HStack(spacing: 16) {
                 ModeTile(kind: option, size: 44, selected: chosen)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(Self.plainName(option)).font(.headline).foregroundStyle(title)
+                    Text(Self.plainName(option)).font(WardType.headline).foregroundStyle(title)
                     Text(Self.blurb(option))
-                        .font(.subheadline).foregroundStyle(Color.wardInkSecondary)
+                        .font(WardType.face(.subheadline, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                         .lineLimit(2).multilineTextAlignment(.leading)
                 }
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.forward")
-                    .font(.footnote.weight(.semibold))
+                    .font(WardType.face(.footnote, weight: .semibold))
                     .foregroundStyle(Color.wardInkSecondary)
                     .accessibilityHidden(true)
             }
@@ -508,13 +508,13 @@ struct NewSetView: View {
             HStack(spacing: 16) {
                 WardIconSquare(symbol: option.symbol, size: 40, selected: chosen)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(option.title).font(.headline).foregroundStyle(title)
-                    Text(option.blurb).font(.subheadline).foregroundStyle(Color.wardInkSecondary)
+                    Text(option.title).font(WardType.headline).foregroundStyle(title)
+                    Text(option.blurb).font(WardType.face(.subheadline, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
                         .multilineTextAlignment(.leading)
                 }
                 Spacer(minLength: 0)
                 Image(systemName: mark)
-                    .font(.title3)
+                    .font(WardType.face(.title3, weight: .regular))
                     .foregroundStyle(markInk)
                     .contentTransition(.identity)
                     .accessibilityHidden(true)
@@ -532,7 +532,7 @@ struct NewSetView: View {
     private var nameSection: some View {
         Section {
             TextField("Name", text: $name, prompt: Text("e.g. Cardiology week 3"))
-                .font(.body)
+                .font(WardType.body)
                 .wardField()
                 .wardWellRow()
         } header: {
@@ -666,7 +666,7 @@ struct NewSetView: View {
                 HStack(spacing: 12) {
                     EcgLoader()
                     Text("Reading \u{201C}\(readingFile)\u{201D}\u{2026}")
-                        .font(.footnote)
+                        .font(WardType.face(.footnote, weight: .regular))
                         .foregroundStyle(Color.wardInk)
                         .lineLimit(2)
                 }
@@ -676,7 +676,7 @@ struct NewSetView: View {
                     .wardWellRow()
             } else {
                 Label(importSource.help, systemImage: importSource.symbol)
-                    .font(.footnote)
+                    .font(WardType.face(.footnote, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
             }
         }
@@ -722,7 +722,7 @@ struct NewSetView: View {
             // what each line needs, before the box it goes in
             DisclosureGroup("How to lay it out", isExpanded: $showFormat) {
                 Text(formatHelp(for: kind))
-                    .font(.caption).foregroundStyle(Color.wardInkSecondary)
+                    .font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
             }
             TextEditor(text: $bodyText)
                 .frame(minHeight: 180)

@@ -477,12 +477,12 @@ struct FeatureTile: View {
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(feature.title)
-                    .font(.subheadline.weight(.semibold))
+                    .font(WardType.face(.subheadline, weight: .semibold))
                     .foregroundStyle(Color.wardInk)
                     .lineLimit(lines)
                     .multilineTextAlignment(.leading)
                 Text(detail ?? feature.detail)
-                    .font(.caption2)
+                    .font(WardType.face(.caption2, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
                     .lineLimit(lines)
                     .multilineTextAlignment(.leading)
@@ -632,18 +632,18 @@ struct CategoryDock: View {
         HStack(spacing: 12) {
             if let symbol {
                 Image(systemName: symbol)
-                    .font(.title2.weight(.semibold))
+                    .font(WardType.face(.title2, weight: .semibold))
                     .foregroundStyle(Color.wardPrimaryInk)
                     .accessibilityHidden(true)
             }
             Text(here)
-                .font(.headline)
+                .font(WardType.headline)
                 .foregroundStyle(Color.wardInk)
                 .lineLimit(1)
                 .minimumScaleFactor(shrinks ? 0.5 : 1)
             Spacer(minLength: 8)
             Image(systemName: "chevron.up")
-                .font(.headline)
+                .font(WardType.headline)
                 .foregroundStyle(Color.wardInk)
                 .accessibilityHidden(true)
         }
@@ -894,21 +894,21 @@ extension DockListSheet {
         HStack(spacing: 14) {
             if let symbol {
                 Image(systemName: symbol)
-                    .font(.title2)
+                    .font(WardType.face(.title2, weight: .regular))
                     .foregroundStyle(tint)
                     .frame(minWidth: 28)
                     .accessibilityHidden(true)
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.headline)
+                    .font(WardType.headline)
                     .foregroundStyle(Color.wardInk)
                     .lineLimit(1)
                     .minimumScaleFactor(shrinks ? 0.5 : 1)
                 // it wraps as it needs; its one-line width does not count
                 // towards whether the name fits
                 Text(detail)
-                    .font(.subheadline)
+                    .font(WardType.face(.subheadline, weight: .regular))
                     .foregroundStyle(Color.wardInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(minWidth: 0, idealWidth: 0, maxWidth: .infinity, alignment: .leading)
@@ -916,7 +916,7 @@ extension DockListSheet {
             Spacer(minLength: 8)
             if chosen {
                 Image(systemName: "checkmark")
-                    .font(.headline)
+                    .font(WardType.headline)
                     .foregroundStyle(Color.wardPrimaryInk)
                     .accessibilityHidden(true)
             }
@@ -980,7 +980,7 @@ private struct DockItemFace: View {
             // whole at its size where the row has room; a little smaller,
             // all five alike, where it has not (DockSlots)
             Text(title)
-                .font(.caption2.weight(.bold))
+                .font(WardType.face(.caption2, weight: .bold))
                 .lineLimit(1)
                 .minimumScaleFactor(CGFloat(WardDock.leastNameScale))
         }

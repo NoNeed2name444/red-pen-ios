@@ -70,7 +70,7 @@ struct CaseMakeSection: View {
             .wardButtonRow()
             if !sourceName.isEmpty {
                 Label(sourceName, systemImage: "checkmark.circle.fill")
-                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                    .font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             }
             messages
         } header: {
@@ -85,7 +85,7 @@ struct CaseMakeSection: View {
         Section {
             if sourceName.isEmpty {
                 Text("Go back and add a lecture first.")
-                    .font(.footnote).foregroundStyle(Color.wardInkSecondary)
+                    .font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             } else {
                 CountField(title: "How many patients", value: $caseCount, range: 1...CaseWriting.maxCases)
                     .disabled(working)
@@ -116,10 +116,10 @@ struct CaseMakeSection: View {
     @ViewBuilder
     private var messages: some View {
         if let status {
-            Text(status).font(.caption).foregroundStyle(Color.wardInkSecondary)
+            Text(status).font(WardType.caption).foregroundStyle(Color.wardInkSecondary)
         }
         if let trouble {
-            Text(trouble).font(.caption).foregroundStyle(Color.wardInk)
+            Text(trouble).font(WardType.caption).foregroundStyle(Color.wardInk)
         }
     }
 

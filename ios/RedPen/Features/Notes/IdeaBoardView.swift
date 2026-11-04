@@ -145,9 +145,9 @@ struct IdeaBoardView: View {
                 if notes.notes.isEmpty {
                     VStack(spacing: 8) {
                         Image(systemName: "hand.tap")
-                            .font(.title2)
+                            .font(WardType.face(.title2, weight: .regular))
                         Text("Double-tap anywhere to put an idea there.")
-                            .font(.callout)
+                            .font(WardType.face(.callout, weight: .regular))
                     }
                     .foregroundStyle(Color.wardInkSecondary)
                     .allowsHitTesting(false)
@@ -202,10 +202,10 @@ struct IdeaBoardView: View {
                 Text(place)
                     .lineLimit(1)
             }
-            .font(.caption2)
+            .font(WardType.face(.caption2, weight: .regular))
             .foregroundStyle(Color.wardInkSecondary)
             Text(title)
-                .font(.subheadline.weight(.medium))
+                .font(WardType.face(.subheadline, weight: .medium))
                 .foregroundStyle(Color.wardInk)
                 .lineLimit(4)
                 .multilineTextAlignment(.leading)
@@ -259,11 +259,11 @@ struct IdeaBoardView: View {
             Image(systemName: "point.topleft.down.to.point.bottomright.curvepath")
                 .accessibilityHidden(true)
             Text(words)
-                .font(.footnote)
+                .font(WardType.face(.footnote, weight: .regular))
                 .foregroundStyle(Color.wardInk)
             if source != nil {
                 Button("Cancel") { source = nil }
-                    .font(.footnote.weight(.semibold))
+                    .font(WardType.face(.footnote, weight: .semibold))
                     .foregroundStyle(Color.wardInk)
                     .frame(minHeight: 44)
                     .contentShape(Rectangle())
