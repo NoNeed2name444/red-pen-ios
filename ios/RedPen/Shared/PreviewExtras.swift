@@ -13,7 +13,7 @@ enum PreviewExtras {
 
     static let screens = ["anki-quizable", "quiz-from-cards", "narrate-fixing", "occlusion-example",
                           "quiz-folded", "quiz-scrolled", "library-end", "library-loading", "signin", "account-deleted",
-                          "settings", "sheet", "mode-switch", "section-switch", "home-ideas", "mode-switch-quiz", "lens"]
+                          "settings", "sheet", "mode-switch", "section-switch", "home-ideas", "mode-switch-quiz", "lens", "a11y-probe"]
                           + tourScreens
 
     /// Posted by the "section-switch" preview: home moves one place along
@@ -60,6 +60,10 @@ enum PreviewExtras {
         case "sheet":
             // a sheet over home: New set, as the dock's writing modes open it
             LibraryView().sheet(isPresented: .constant(true)) { NewSetView() }
+        case "a11y-probe":
+            // diagnostic only (T0177): the texts the audit flagged, in each
+            // way of setting their font (A11yProbeUITests)
+            A11yProbe()
         case "lens":
             // Study Lens's answer sheet on a sample multiple-choice question,
             // answered: how its option rows are marked has never been shown
@@ -204,6 +208,101 @@ private struct PreviewSectionSwitch: View {
                     NotificationCenter.default.post(name: PreviewExtras.dockStep, object: nil)
                 }
             }
+    }
+}
+
+// MARK: - The accessibility probe (diagnostic, T0177)
+
+/// Diagnostic only: the five texts the audit called partly Dynamic Type at
+/// d4567ed0, each in one way of setting its font, so a Mac run shows which
+/// way the audit flags. `-a11yProbeVariant <a-f>` picks the way; none shows
+/// all six. Each text is `probe.<n>.<variant>`.
+/// (a) WardType.face as shipped; (b) Font.custom relative to the style with
+/// no weight; (c) as (b), named by the weight's PostScript instance; (d) the
+/// system text style with the weight; (e) a UIFontMetrics-scaled UIFont,
+/// rebuilt in body at each text size; (f) (a) upper-cased.
+private struct A11yProbe: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    private static let texts: [(String, Font.TextStyle, Font.Weight)] = [
+        ("Good afternoon", .footnote, .regular),
+        ("Step 1 in 90 days", .footnote, .bold),
+        ("New set", .headline, .bold),
+        ("Stethoscore", .largeTitle, .bold),
+        ("Four drug classes with mortality benefit in HFrEF?", .title3, .semibold),
+    ]
+    private static let variants = ["a", "b", "c", "d", "e", "f"]
+
+    private var shown: [String] {
+        let args = ProcessInfo.processInfo.arguments
+        if let i = args.firstIndex(of: "-a11yProbeVariant"), i + 1 < args.count,
+           Self.variants.contains(args[i + 1]) {
+            return [args[i + 1]]
+        }
+        return Self.variants
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: WardSpace.m) {
+                ForEach(shown, id: \.self) { variant in
+                    ForEach(Array(Self.texts.enumerated()), id: \.offset) { index, item in
+                        text(item.0, style: item.1, weight: item.2, variant: variant)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityIdentifier("probe.\(index + 1).\(variant)")
+                    }
+                }
+            }
+            .padding(WardSpace.gutter)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .accessibilityIdentifier("a11yProbe")
+    }
+
+    @ViewBuilder
+    private func text(_ words: String, style: Font.TextStyle, weight: Font.Weight, variant: String) -> some View {
+        let size: CGFloat = WardType.largeSize(style)
+        switch variant {
+        case "a": Text(words).font(WardType.face(style, weight: weight))
+        case "b": Text(words).font(Font.custom(WardType.family, size: size, relativeTo: style))
+        case "c": Text(words).font(Font.custom(Self.postScript(weight), size: size, relativeTo: style))
+        case "d": Text(words).font(Font.system(style).weight(weight))
+        case "e": Text(words).font(Font(scaled(style, weight: weight)))
+        default: Text(words).font(WardType.face(style, weight: weight)).textCase(.uppercase)
+        }
+    }
+
+    /// Nunito's named instance for `weight` (the variable font's fvar
+    /// carries Nunito-Regular, Nunito-SemiBold, Nunito-Bold).
+    private static func postScript(_ weight: Font.Weight) -> String {
+        if weight == .bold { return "Nunito-Bold" }
+        if weight == .semibold { return "Nunito-SemiBold" }
+        return "Nunito-Regular"
+    }
+
+    /// The instance at the style's Large size, scaled by UIFontMetrics for the
+    /// text size SwiftUI is drawing at now (read above, so body reruns).
+    private func scaled(_ style: Font.TextStyle, weight: Font.Weight) -> UIFont {
+        let base: UIFont = UIFont(name: Self.postScript(weight), size: WardType.largeSize(style))
+            ?? UIFont.systemFont(ofSize: WardType.largeSize(style))
+        let traits = UITraitCollection(preferredContentSizeCategory: UIContentSizeCategory(typeSize))
+        return UIFontMetrics(forTextStyle: Self.uiStyle(style)).scaledFont(for: base, compatibleWith: traits)
+    }
+
+    private static func uiStyle(_ style: Font.TextStyle) -> UIFont.TextStyle {
+        switch style {
+        case .largeTitle: return .largeTitle
+        case .title: return .title1
+        case .title2: return .title2
+        case .title3: return .title3
+        case .headline: return .headline
+        case .callout: return .callout
+        case .subheadline: return .subheadline
+        case .footnote: return .footnote
+        case .caption: return .caption1
+        case .caption2: return .caption2
+        default: return .body
+        }
     }
 }
 

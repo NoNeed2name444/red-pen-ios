@@ -78,6 +78,7 @@ jobs:
             -default-test-execution-time-allowance 960 \
             -maximum-test-execution-time-allowance 960 \
             -skip-testing:RedPenUITests/AccessibilityUITests \
+            -skip-testing:RedPenUITests/A11yProbeUITests \
             test 2>&1 | tee ../uitest.log | grep --line-buffered -E "error:|Test Case|TEST |\*\* " || true
           grep -q "TEST SUCCEEDED" ../uitest.log
       # its own step, so it is written also when the step above ran out of time
@@ -119,7 +120,8 @@ jobs:
             -default-test-execution-time-allowance 480 \
             -maximum-test-execution-time-allowance 480 \
             -only-testing:RedPenUITests/AccessibilityUITests \
-            test 2>&1 | tee ../a11y.log | grep --line-buffered -E "error:|Test Case|TEST |\*\* " || true
+            -only-testing:RedPenUITests/A11yProbeUITests \
+            test 2>&1 | tee ../a11y.log | grep --line-buffered -E "error:|Test Case|TEST |\*\* |PROBE-" || true
           grep -q "TEST SUCCEEDED" ../a11y.log
       - name: Summary of the accessibility run
         if: ${{ always() && steps.a11y.outcome != 'skipped' }}
