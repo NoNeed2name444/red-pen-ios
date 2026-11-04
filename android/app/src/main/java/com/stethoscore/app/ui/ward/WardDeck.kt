@@ -31,7 +31,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
@@ -225,8 +224,10 @@ internal fun LayoutCoordinates.wardWindowRect(density: Float): WardRect {
  * wardBarBase(room: 0), WardEdgeHost, WardScrollEdgeLine): the page's wash,
  * from the line down to the window's foot, and over the bar one stroke of
  * the frame's edge ink whose ends curve into the frame's ring. The frame
- * owns its own stroke where the two meet. With no frame to join, a plain
- * line runs across the top.
+ * owns its own stroke where the two meet. With no frame to join (a
+ * dialog's window, a sheet over home) the strip stands as its own island:
+ * the same wash and stroke, its top corners at WardRadius.bar (design audit
+ * F15), the same shape as iOS's WardBareIsland.
  */
 @Composable private fun Modifier.wardBarBase(edge: WardDeckEdge?, shown: Boolean): Modifier {
     if (!shown) return this
@@ -238,10 +239,11 @@ internal fun LayoutCoordinates.wardWindowRect(density: Float): WardRect {
         val w = (WardPaper.edgeWidth * density).toFloat()
         val side = WardPaper.sideInset
         if (edge == null) {
-            drawRect(wash)
-            drawContent()
             val out = (side * density).toFloat()
-            drawRect(line, Offset(-out, 0f), Size(size.width + 2 * out, w))
+            val r = (WardRadius.bar * density).toFloat()
+            drawPath(bareIsland(size, out, w, r, filled = true), wash)
+            drawContent()
+            drawPath(bareIsland(size, out, w, r, filled = false), line, style = Stroke(w))
             return@drawWithContent
         }
         val host = edge.host
@@ -259,6 +261,26 @@ internal fun LayoutCoordinates.wardWindowRect(density: Float): WardRect {
             canvas.restore()
         }
     }
+}
+
+/**
+ * The strip with no frame to join (iOS WardBareIsland): from [out] past each
+ * side, its top on the line's middle, circular top corners of [r], the sides
+ * down to the foot. [filled] closes it along the foot for the wash; the
+ * stroke stays open there.
+ */
+private fun bareIsland(size: Size, out: Float, w: Float, r: Float, filled: Boolean): Path = Path().apply {
+    val left = -out
+    val right = size.width + out
+    val top = w / 2
+    val c = r.coerceIn(0f, minOf((right - left) / 2, max(0f, size.height - top)))
+    moveTo(left, size.height)
+    lineTo(left, top + c)
+    arcTo(Rect(left, top, left + 2 * c, top + 2 * c), 180f, 90f, forceMoveTo = false)
+    lineTo(right - c, top)
+    arcTo(Rect(right - 2 * c, top, right, top + 2 * c), 270f, 90f, forceMoveTo = false)
+    lineTo(right, size.height)
+    if (filled) close()
 }
 
 /**

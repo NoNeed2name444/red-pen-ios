@@ -1343,7 +1343,9 @@ private struct WardEdgeHost: ViewModifier {
                         }
                         .transition(.identity)
                     } else {
-                        base.ignoresSafeArea(edges: [.horizontal, .bottom]).transition(.identity)
+                        WardBareIsland(filled: true).fill(base)
+                            .padding(.horizontal, -WardPaper.sideInset)
+                            .ignoresSafeArea(edges: .bottom).transition(.identity)
                     }
                 }
             }
@@ -1389,13 +1391,38 @@ struct WardScrollEdgeLine: View {
                     .frame(height: max(entry.local.left?.join.y ?? 0, entry.local.right?.join.y ?? 0) + WardPaper.edgeWidth)
                     .padding(.horizontal, -WardPaper.sideInset)
             } else {
-                Rectangle().fill(color)
-                    .frame(height: WardPaper.edgeWidth)
+                WardBareIsland(filled: false).stroke(color, lineWidth: WardPaper.edgeWidth)
                     .padding(.horizontal, -WardPaper.sideInset)
+                    .ignoresSafeArea(edges: .bottom)
             }
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+    }
+}
+
+/// The strip with no frame to join (a dialog's window, a sheet over home):
+/// its own island, not a straight line across the top (design audit F15).
+/// Its top sits on the line's middle with circular corners of
+/// WardRadius.bar, and its sides run down to the foot. Filled, it closes
+/// along the foot for the wash; stroked, it stays open there. The same
+/// shape as Android's bareIsland in WardDeck.kt.
+struct WardBareIsland: Shape {
+    var filled: Bool
+    func path(in rect: CGRect) -> Path {
+        let top = rect.minY + WardPaper.edgeWidth / 2
+        let c = max(0, min(WardRadius.bar, rect.width / 2, rect.maxY - top))
+        var p = Path()
+        p.move(to: CGPoint(x: rect.minX, y: rect.maxY))
+        p.addLine(to: CGPoint(x: rect.minX, y: top + c))
+        p.addArc(center: CGPoint(x: rect.minX + c, y: top + c), radius: c,
+                 startAngle: .degrees(180), endAngle: .degrees(270), clockwise: false)
+        p.addLine(to: CGPoint(x: rect.maxX - c, y: top))
+        p.addArc(center: CGPoint(x: rect.maxX - c, y: top + c), radius: c,
+                 startAngle: .degrees(270), endAngle: .degrees(360), clockwise: false)
+        p.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+        if filled { p.closeSubpath() }
+        return p
     }
 }
 

@@ -3614,6 +3614,9 @@ mode's colour as an underline under it, on both apps.
 - F15 (a rounded island at WardRadius.bar for the deck with no paper frame)
   moves to a new task after T0140, as it changes iOS's WardSurfaces
   (android/docs/parity.md).
+- [x] T0171: F15 done. The deck with no paper frame to join is a rounded
+  island at WardRadius.bar on both (WardDeck.kt bareIsland, WardSurfaces.swift
+  WardBareIsland), in the joined deck's wash and stroke.
 
 ### Waiting on the owner
 

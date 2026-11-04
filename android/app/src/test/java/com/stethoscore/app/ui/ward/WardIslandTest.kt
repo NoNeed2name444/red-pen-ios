@@ -102,4 +102,41 @@ class WardIslandTest {
             }
         }
     }
+
+    // Design audit F15: a deck with no paper frame to join (a dialog's
+    // window, a sheet over home) stands as its own island, its top corners
+    // at WardRadius.bar, in the joined deck's wash and stroke, with no
+    // straight line across its top. iOS draws the same shape
+    // (WardBareIsland, WardIslandTests' "bare island" checks).
+    @Test fun bareIsland() = checks {
+        fun source(path: String) = java.io.File(path).takeIf { it.exists() }?.readText() ?: ""
+        fun slice(text: String, from: String, to: String): String {
+            val a = text.indexOf(from).takeIf { it >= 0 } ?: return ""
+            val b = text.indexOf(to, a + from.length).takeIf { it >= 0 } ?: return ""
+            return text.substring(a, b)
+        }
+        val deckFile = source("src/main/java/com/stethoscore/app/ui/ward/WardDeck.kt")
+        val base = slice(deckFile, "Modifier.wardBarBase(", "\n}\n")
+        val bare = slice(base, "if (edge == null) {", "return@drawWithContent")
+        val joined = base.substringAfter("return@drawWithContent", "")
+        val shape = slice(deckFile, "private fun bareIsland(", "\n}\n")
+        check("bare: wardBarBase's no-frame branch found", bare.isNotEmpty())
+        check("bare: its corners take WardRadius.bar", bare.contains("WardRadius.bar * density"))
+        check("bare: the wash fills the island", bare.contains("drawPath(bareIsland(size, out, w, r, filled = true), wash)"))
+        check("bare: the edge ink strokes it at the edge width",
+            bare.contains("drawPath(bareIsland(size, out, w, r, filled = false), line, style = Stroke(w))"))
+        check("bare: no straight line or plain rect across the top", !bare.contains("drawRect("))
+        check("bare: the joined deck keeps its island and stroke",
+            joined.contains("wardIslandPath(edge.local") && joined.contains("drawPath(stroke, line, style = Stroke(w))"))
+        check("bare: the shape has two circular top corners", shape.split("arcTo(").size == 3)
+        check("bare: its top sits on the line's middle", shape.contains("val top = w / 2"))
+        check("bare: it reaches past each side by the side inset", shape.contains("val left = -out") &&
+            shape.contains("val right = size.width + out"))
+        check("bare: only the fill closes along the foot", shape.contains("if (filled) close()"))
+        check("bare: no stroke runs along the foot", shape.split("close()").size == 2)
+        val ios = source("../../ios/RedPen/Shared/Ward/WardSurfaces.swift")
+        check("bare: iOS draws the same island (WardBareIsland)", ios.isEmpty() ||
+            (ios.contains("struct WardBareIsland: Shape") && ios.contains("min(WardRadius.bar, rect.width / 2, rect.maxY - top)")),
+            "the iOS source is checked where the checkout has it")
+    }
 }

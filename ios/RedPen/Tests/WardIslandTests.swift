@@ -93,5 +93,42 @@ for (name, w, h, isPad) in [("phone", 402.0, 874.0, false), ("SE", 375, 667, fal
 }
 #endif
 
+// Design audit F15: a deck with no paper frame to join (a dialog's window, a
+// sheet over home) stands as its own island, its top corners at
+// WardRadius.bar, in the joined deck's wash and stroke, with no straight line
+// across its top. Android draws the same shape (WardIslandTest.bareIsland).
+do {
+    func source(_ path: String) -> String { (try? String(contentsOfFile: path, encoding: .utf8)) ?? "" }
+    func slice(_ text: String, _ from: String, _ to: String) -> String {
+        guard let a = text.range(of: from),
+              let b = text.range(of: to, range: a.upperBound..<text.endIndex) else { return "" }
+        return String(text[a.lowerBound..<b.lowerBound])
+    }
+    let surfaces = source("ios/RedPen/Shared/Ward/WardSurfaces.swift")
+    let host = slice(surfaces, "private struct WardEdgeHost: ViewModifier", "\n}\n")
+    let hostBare = slice(host, "} else {", ".onGeometryChange")
+    let line = slice(surfaces, "struct WardScrollEdgeLine: View", "\n}\n")
+    let lineBare = slice(line, "} else {", ".allowsHitTesting")
+    let shape = slice(surfaces, "struct WardBareIsland: Shape", "\n}\n")
+    check("bare: WardEdgeHost's and WardScrollEdgeLine's no-frame branches found", !hostBare.isEmpty && !lineBare.isEmpty)
+    check("bare: the wash fills the island", hostBare.contains("WardBareIsland(filled: true).fill(base)"))
+    check("bare: the edge ink strokes it at the edge width",
+          lineBare.contains("WardBareIsland(filled: false).stroke(color, lineWidth: WardPaper.edgeWidth)"))
+    check("bare: both reach past each side by the side inset",
+          hostBare.contains(".padding(.horizontal, -WardPaper.sideInset)") && lineBare.contains(".padding(.horizontal, -WardPaper.sideInset)"))
+    check("bare: no straight line across the top", !lineBare.contains("Rectangle()") && !hostBare.contains("base.ignoresSafeArea"))
+    check("bare: the joined deck keeps its island and stroke",
+          host.contains("WardIslandPath(join: entry.local") && line.contains("WardPageEdge(shape: WardIslandPath("))
+    check("bare: its corners take WardRadius.bar", shape.contains("min(WardRadius.bar, rect.width / 2, rect.maxY - top)"))
+    check("bare: the shape has two circular top corners", shape.components(separatedBy: "p.addArc(").count == 3)
+    check("bare: its top sits on the line's middle", shape.contains("rect.minY + WardPaper.edgeWidth / 2"))
+    check("bare: only the fill closes along the foot", shape.contains("if filled { p.closeSubpath() }")
+          && shape.components(separatedBy: "closeSubpath()").count == 2)
+    let android = source("android/app/src/main/java/com/stethoscore/app/ui/ward/WardDeck.kt")
+    check("bare: Android draws the same island (bareIsland)", android.isEmpty
+          || (android.contains("private fun bareIsland(") && android.contains("WardRadius.bar * density")
+              && android.contains("if (filled) close()")))
+}
+
 print("\(failures) WARD ISLAND FAILURES")
 exit(failures == 0 ? 0 : 1)
