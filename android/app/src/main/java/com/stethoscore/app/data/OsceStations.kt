@@ -1,13 +1,22 @@
 package com.stethoscore.app.data
 
+import com.stethoscore.app.llm.ChatTurn
+import com.stethoscore.app.llm.LLMBackend
+import com.stethoscore.app.llm.LLMError
+import com.stethoscore.app.llm.LLMText
 import com.stethoscore.app.quiz.ExamTrack
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ensureActive
+import kotlin.coroutines.coroutineContext
 
 // A port of ios/RedPen/Models/OsceChecklist.swift (OsceRun: one run
 // through a station, in order), Shared/OsceStations.swift (tidying written
 // stations and the text format they come back in), the OSCE and card lines of
 // Shared/PlainTextImport.swift (OsceText, until the Library batch ports the
-// whole file), OsceGenerator's limits and words, and ExamTrack's station
-// minutes and OSCE style. Plain Kotlin, tested on the JVM (OsceTest).
+// whole file), OsceGenerator (its limits, its words, and the writer from the
+// OSCE half of Shared/LLM/MedicalGenerate.swift), and ExamTrack's station
+// minutes and OSCE style. Plain Kotlin, tested on the JVM (OsceTest,
+// OsceGeneratorTest).
 
 /**
  * One run through a station, in order. The steps of a station are done in a
@@ -228,17 +237,95 @@ object OsceText {
 }
 
 /**
- * Writing stations from a lecture or a mark sheet (iOS OsceGenerator). iOS
- * writes them with the writer route; Android does not write stations yet,
- * so [writer] finds none and the form says so.
+ * Writing stations from a lecture or a mark sheet (iOS OsceGenerator, and the
+ * OSCE half of Shared/LLM/MedicalGenerate.swift). The writer route writes
+ * them call by call, as iOS asks a backend: two stations a call, each call
+ * reading the next window of the lecture and told the titles already written,
+ * every reply tidied (OsceStations) and the unusable dropped. While the
+ * writer route is blocked, [writer] finds none and the form says why.
+ *
+ * Not ported: iOS's Stethoscore Cloud job, which writes the whole set on the
+ * server; Android's collector does not make OSCE sets from a job yet (CloudRecipe).
  */
 object OsceGenerator {
+    const val maxStationsPerCall = 2
     const val maxStationsTotal = 1_000
+    /**
+     * The source a small-window writer is given at a time (audit #85: 12,000
+     * characters overflowed a 4,096-token window); a long lecture is read a
+     * window at a time.
+     */
+    const val maxPromptChars = 4_000
 
-    /** A writer of stations; none on Android yet. */
+    /** A writer of stations: the usable ones it wrote, none when nothing in the source reads like a station. */
     fun interface Writer { suspend fun stations(sourceText: String, count: Int, subject: String): List<OsceChecklist> }
 
-    fun writer(): Writer? = null
+    /** A chosen backend as a station writer, asking for [exam]'s kind of station ([osceStyle]). */
+    class BackendWriter(val backend: LLMBackend, val exam: ExamTrack = ExamTrack.general) : Writer {
+        override suspend fun stations(sourceText: String, count: Int, subject: String): List<OsceChecklist> =
+            OsceGenerator.write(sourceText, count, subject, backend, exam)
+    }
+
+    /** The writer to use here: the writer route's backend, or null while it is blocked. */
+    fun writer(backend: LLMBackend?, exam: ExamTrack = ExamTrack.general): Writer? = backend?.let { BackendWriter(it, exam) }
+
+    /** Up to [count] stations, never more than [maxStationsTotal], [maxStationsPerCall] a call, until three calls in a row keep none. */
+    suspend fun write(sourceText: String, count: Int, subject: String, using: LLMBackend,
+                      exam: ExamTrack = ExamTrack.general): List<OsceChecklist> {
+        val wanted = minOf(count, maxStationsTotal)
+        // a station prompt is long: 12,000 characters of source a call on a
+        // hosted model, 4,000 on a phone, and the whole lecture in turn
+        val budget = if (using.isOnDevice) maxPromptChars else minOf(using.promptBudgetChars, 12_000)
+        val windows = TextSlicing.windows(sourceText, budget).take(60)
+        val collected = mutableListOf<OsceChecklist>()
+        val titles = mutableListOf<String>()
+        var consecutiveFailures = 0
+        while (collected.size < wanted && consecutiveFailures < 3) {
+            coroutineContext.ensureActive()
+            val callCount = minOf(maxStationsPerCall, wanted - collected.size)
+            val instructions = OsceStations.prompt(TextSlicing.window(windows, titles.size / maxStationsPerCall),
+                callCount, subject, titles, exam) + answerShape
+            try {
+                val reply = using.complete(
+                    listOf(ChatTurn.system(instructions),
+                        ChatTurn.user("Write the $callCount station${if (callCount == 1) "" else "s"} now, as JSON only.")),
+                    900 * callCount, 0.6)
+                var kept = 0
+                for (station in OsceStations.tidy(parseStations(reply))) {
+                    if (titles.any { it.equals(station.title, ignoreCase = true) }) continue
+                    collected += station
+                    titles += station.title
+                    kept += 1
+                    if (collected.size >= wanted) break
+                }
+                consecutiveFailures = if (kept == 0) consecutiveFailures + 1 else 0
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: LLMError) {
+                // a missing key or a refused request will not fix itself on retry
+                if (e is LLMError.EmptyReply) consecutiveFailures += 1 else throw e
+            } catch (e: Exception) {
+                consecutiveFailures += 1
+            }
+        }
+        return collected.take(wanted)
+    }
+
+    private const val answerShape = "\n\nAnswer with JSON only, in exactly this shape: {\"stations\":[{\"title\":\"...\",\"steps\":[\"...\"]}]}"
+
+    /**
+     * Every station in a reply, each read on its own (LLMText.jsonItems): a
+     * malformed one costs only itself. Whether it is worth drilling is for
+     * OsceStations.tidy to say.
+     */
+    fun parseStations(raw: String): List<OsceChecklist> = LLMText.jsonItems(raw, "stations").mapNotNull { item ->
+        val title = item.opt("title") as? String ?: return@mapNotNull null
+        val array = item.optJSONArray("steps") ?: return@mapNotNull null
+        val steps = LLMText.strings(array)
+        // a step that is not words costs the station, as iOS's [String] reads it
+        if (steps.size != array.length()) return@mapNotNull null
+        OsceChecklist(title = title, steps = steps)
+    }
 
     const val nothingUsable = "Nothing in that source reads like a station. A skills lecture or a mark sheet works best — a slide deck of facts usually has no procedure in it."
 }

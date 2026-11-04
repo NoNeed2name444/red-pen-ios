@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import com.stethoscore.app.data.CaseMaker
 import com.stethoscore.app.data.OsceGenerator
 import com.stethoscore.app.data.OsceStations
+import com.stethoscore.app.exam.ExamChoice
 import com.stethoscore.app.ui.editors.rememberLLMService
 import com.stethoscore.app.ui.mock.CountField
 import com.stethoscore.app.ui.ward.WardBanner
@@ -75,8 +76,9 @@ import java.util.zip.ZipInputStream
 //
 // New set on Android is one page rather than iOS's steps, so the file
 // (iOS step 2) and the count with its Make button (step 3) stand one under
-// the other. Stations need an AI writer; none is set up on this phone yet
-// (OsceGenerator.writer()), so Make says so, as batches 7 and 10 do.
+// the other. Stations are written by the writer route (OsceGenerator.writer),
+// in the shape of the student's exam; while it is blocked, Make says why, as
+// the question and case forms do.
 
 /** What a file gave: its words, its name and how many pages it counts as. */
 internal data class OsceSourceRead(val text: String, val name: String, val pages: Int)
@@ -218,7 +220,8 @@ fun OsceGenerateSection(bodyText: String, onBodyText: (String) -> Unit, subject:
         trouble = null
         // stations need the cloud's writer; without it, the cloud's own reason
         // (part of Pro, sign in, or out of reach), as the question and case screens say
-        val writer = OsceGenerator.writer() ?: run { trouble = CaseMaker.noWriter(llm.cloudBlocker); return }
+        val writer = OsceGenerator.writer(llm.backend(), ExamChoice.currentTrack(ExamChoice.defaults(context)))
+            ?: run { trouble = CaseMaker.noWriter(llm.cloudBlocker); return }
         working = true
         val wanted = stationCount
         val subj = subject
