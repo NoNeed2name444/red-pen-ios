@@ -36,6 +36,7 @@ import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.exam.ExamChoice
 import com.stethoscore.app.llm.HostedProvider
+import com.stethoscore.app.llm.GenerationRules
 import com.stethoscore.app.llm.LLMBackend
 import com.stethoscore.app.llm.LLMService
 import com.stethoscore.app.llm.MedicalGenerate
@@ -154,6 +155,9 @@ val LocalFloatingAction = staticCompositionLocalOf<FloatingAction?> { null }
     val blocker: String? = llm.cloudBlocker
     val scope = rememberCoroutineScope()
     var generation by remember { mutableStateOf<Job?>(null) }
+    // the run the card is showing now; a cancelled run that ends late leaves a newer one alone (GenerationRules.endingClears)
+    var runId by remember { mutableStateOf<java.util.UUID?>(null) }
+    val generationOwner = LocalGenerationOwner.current
     var generationStatus by rememberSaveable { mutableStateOf<String?>(null) }
     val isGenerating = generation != null
     val needsWriter = backend == null
@@ -164,26 +168,39 @@ val LocalFloatingAction = staticCompositionLocalOf<FloatingAction?> { null }
         val text = sourceText.trim()
         val writer = backend ?: return
         if (text.isEmpty() || isGenerating) return
+        // something else is being written: said here, and left running
+        GenerationCenter.busy?.let { generationStatus = it; return }
         val count = questionCount
         val subj = subject
         val cite = readSource
         val defaults = ExamChoice.defaults(context)
         val exam = MedicalGenerate.Exam(ExamChoice.currentTrack(defaults), ExamChoice.current(defaults), ExamChoice.currentSecondary(defaults))
+        // the card (GenerationCenter) shows the run and holds the one Cancel (iOS MCQGenerateForm.startGenerating)
+        val job = GenerationCenter.begin("Writing $count questions", count, generationOwner) {
+            generation?.cancel()
+            generation = null
+            runId = null
+            generationStatus = "Cancelled."
+        } ?: run { generationStatus = GenerationCenter.busy; return }
+        runId = job
         generationStatus = "Writing 0 of $count questions\u2026"
         generation = scope.launch {
             try {
                 val questions: List<MCQQuestion> = MedicalGenerate.mcq(text, count, subj, highYield, writer, exam) { done, total ->
+                    GenerationCenter.update(job, done, total)
                     generationStatus = "Writing $done of $total questions\u2026"
                 }
+                GenerationCenter.end(job)
                 generationStatus = "Done \u2014 ${questions.size} question(s) written."
                 onGenerated(generatedSet(name, subj, questions, exam.target?.id, cite))
             } catch (e: CancellationException) {
-                generationStatus = "Cancelled."
+                GenerationCenter.end(job)
                 throw e
             } catch (e: Exception) {
-                generationStatus = e.message ?: "The questions could not be written."
+                GenerationCenter.end(job)
+                if (GenerationRules.endingClears(job, runId)) generationStatus = e.message ?: "The questions could not be written."
             } finally {
-                generation = null
+                if (GenerationRules.endingClears(job, runId)) { generation = null; runId = null }
             }
         }
     }
@@ -220,11 +237,10 @@ val LocalFloatingAction = staticCompositionLocalOf<FloatingAction?> { null }
                 CountField("How many questions", questionCount, 3..MCQGenerator.maxQuestionsTotal, onQuestionCount, enabled = !isGenerating)
                 // the same as its floating copy in the dock
                 FloatingActionRegistration("mcq", "Make $questionCount questions", canStart, isGenerating, Icons.Rounded.EditNote, ::generate)
+                // stopping is the progress card's Cancel, at the bottom (iOS makeSection)
                 WardButtonBox(::generate, Modifier.fillMaxWidth().floatingActionAnchor("mcq"), kind = WardButtonKind.primary, enabled = canStart) {
+                    if (isGenerating) EcgLoader()
                     Text(if (isGenerating) generationStatus ?: "Writing\u2026" else "Make $questionCount questions")
-                }
-                if (isGenerating) {
-                    WardButtonBox({ generation?.cancel() }, Modifier.fillMaxWidth(), kind = WardButtonKind.secondary) { Text("Cancel") }
                 }
                 generationStatus?.takeIf { !isGenerating }?.let { EditorNote(it) }
                 makeHint?.let { EditorNote(it) }

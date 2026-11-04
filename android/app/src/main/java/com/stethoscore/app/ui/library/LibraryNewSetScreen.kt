@@ -37,6 +37,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -69,6 +70,9 @@ import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.ui.QuizScreen
 import com.stethoscore.app.ui.cases.CaseMakeSection
 import com.stethoscore.app.ui.editors.FloatingAction
+import com.stethoscore.app.ui.editors.GenerationCenter
+import com.stethoscore.app.ui.editors.GenerationHUD
+import com.stethoscore.app.ui.editors.LocalGenerationOwner
 import com.stethoscore.app.ui.editors.LectureStep
 import com.stethoscore.app.ui.editors.LocalFloatingAction
 import com.stethoscore.app.ui.editors.MCQGenerateForm
@@ -149,10 +153,15 @@ import kotlinx.coroutines.withContext
     var leavingQuiz by remember { mutableStateOf(false) }
     // the writers' Make, copied into the dock while it is scrolled away (iOS FloatingAction)
     val floating = remember { FloatingAction() }
+    // what this screen starts is its own: closing it stops that, and not a
+    // generation started elsewhere (iOS NewSetView.generationOwner, GenerationRules.closingStops)
+    val generationOwner = remember { java.util.UUID.randomUUID() }
+    DisposableEffect(generationOwner) { onDispose { GenerationCenter.cancel(startedBy = generationOwner) } }
 
     fun choose(option: StudySetKind) {
         if (option != kind) {
             // each mode's draft is in its own format, so a draft never carries over to another mode
+            GenerationCenter.cancel(startedBy = generationOwner)
             bodyText = ""
             if (path !in NewSetWords.paths(option)) path = NewSetWords.paths(option).first()
         }
@@ -271,7 +280,7 @@ import kotlinx.coroutines.withContext
             onDiscard = { leavingQuiz = false; generated = null },
             onCancel = { leavingQuiz = false },
         )
-    } else CompositionLocalProvider(LocalFloatingAction provides floating) { Column(Modifier.fillMaxSize()) {
+    } else CompositionLocalProvider(LocalFloatingAction provides floating, LocalGenerationOwner provides generationOwner) { Column(Modifier.fillMaxSize()) {
         // Cancel, and the title in the middle (iOS's inline navigation title)
         Row(Modifier.fillMaxWidth().padding(horizontal = WardSpace.s.wardDp, vertical = WardSpace.xs.wardDp),
             verticalAlignment = Alignment.CenterVertically) {
@@ -354,7 +363,10 @@ import kotlinx.coroutines.withContext
             }
             Spacer(Modifier.height(8.dp))
         }
-        if (step != NewSetStep.KIND) NewSetDock(
+        // the one bottom container: while something is being written the
+        // progress card, with its Cancel, takes the slab's place (iOS NewSetDock)
+        if (GenerationCenter.job != null) GenerationHUD()
+        else if (step != NewSetStep.KIND) NewSetDock(
             hint = NewSetWords.dockHint(step, path, canGoOn),
             back = ::goBack,
         ) {
