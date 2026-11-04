@@ -59,7 +59,7 @@ check('earlier builds\' model files are removed on launch', /RetiredModels\.remo
 // Android's station screen: the cloud's own reason, as its question and case screens give
 const androidStations = read('android/app/src/main/java/com/stethoscore/app/ui/osce/OsceGenerateSection.kt');
 check('Android stations: with no writer, CaseMaker.noWriter(llm.cloudBlocker), as questions and cases',
-  /OsceGenerator\.writer\(\) \?: run \{ trouble = CaseMaker\.noWriter\(llm\.cloudBlocker\); return \}/.test(androidStations));
+  /OsceGenerator\.writer\(llm\.backend\(\), ExamChoice\.currentTrack\(ExamChoice\.defaults\(context\)\)\)\s*\?: run \{ trouble = CaseMaker\.noWriter\(llm\.cloudBlocker\); return \}/.test(androidStations));
 check('Android stations: no "on this phone" writer text left',
   !/on this phone/.test(read('android/app/src/main/java/com/stethoscore/app/data/OsceStations.kt')));
 // the server's switches no longer promise a writer on the phone
