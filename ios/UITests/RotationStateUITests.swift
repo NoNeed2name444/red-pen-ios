@@ -73,12 +73,30 @@ final class RotationStateUITests: XCTestCase {
     }
 
     /// Scrolls until `element` can be tapped, a few swipes at most.
+    ///
+    /// Tappable means hittable and clear of the study deck: the quiz's page
+    /// scrolls under the deck (StudyBarHost's bottom safe-area inset), and
+    /// XCTest calls a button there hittable though a tap at its middle lands
+    /// on the deck's folding band. That is how question 2's Check answer was
+    /// "tapped" with no Swipe (App build on d4567ed0, the Nunito faces making
+    /// the question taller) and the deck folded instead.
     private func reach(_ element: XCUIElement, in app: XCUIApplication) {
         var swipes = 0
-        while !element.isHittable && swipes < 5 {
+        while !(element.isHittable && clearOfDeck(element, in: app)) && swipes < 5 {
             app.swipeUp()
             swipes += 1
         }
+    }
+
+    /// Whether no part of `element` stands under the open study deck, whose
+    /// top is its folding band, or under the folded deck's button.
+    private func clearOfDeck(_ element: XCUIElement, in app: XCUIApplication) -> Bool {
+        let band = app.buttons["studyBarFold"]
+        guard band.exists else { return true }
+        let deck = band.frame
+        let item = element.frame
+        let sideBySide = item.maxX <= deck.minX || item.minX >= deck.maxX
+        return sideBySide || item.maxY <= deck.minY
     }
 
     private func answers(_ app: XCUIApplication) -> XCUIElementQuery {

@@ -591,8 +591,14 @@ final class GraphPreviewUITests: XCTestCase {
         XCTAssertTrue(quizHeader.waitForExistence(timeout: 10), "second pushed quiz view didn't appear")
         usleep(1_500_000)
 
-        let halfTarget = window.coordinate(withNormalizedOffset: CGVector(dx: 0.4, dy: 0.5))
-        leftEdge.press(forDuration: 0.05, thenDragTo: halfTarget, withVelocity: .slow, thenHoldForDuration: 0.1)
+        // Short of half the page, and held still a full second before letting
+        // go, so UIKit reads no speed at the release. With 0.4 of the window
+        // (about 0.42 of the inset page) and a 0.1 s hold, a loaded runner
+        // delivered the moves late and close together, UIKit read a flick
+        // and finished the pop (App build on d4567ed0: the 0.75 s drag took
+        // about 2.3 s; plan T0151's preview run, 5 gesture actions in 0.65 s).
+        let halfTarget = window.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5))
+        leftEdge.press(forDuration: 0.05, thenDragTo: halfTarget, withVelocity: .slow, thenHoldForDuration: 1.0)
         usleep(1_500_000)
         XCTAssertTrue(quizHeader.exists, "pushed quiz view should remain after cancelled back")
     }
