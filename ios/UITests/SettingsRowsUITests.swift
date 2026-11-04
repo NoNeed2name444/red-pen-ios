@@ -54,12 +54,30 @@ final class SettingsRowsUITests: XCTestCase {
     }
 
     /// Moves the page about a third of the screen: `down` shows what is
-    /// below. The drag runs near the leading edge, on the rows' words, clear
-    /// of the switches and the slider's thumb.
+    /// below. The drag runs in the page's leading margin, left of the
+    /// groups' cards, so no row is under the finger. On the rows' words it
+    /// stopped once the library switch was reached: every drag then began on
+    /// a switch row, whose face (WardToggleFace) holds a long press across
+    /// the whole row, and the page never moved again (run 41848103900).
     private func scroll(down: Bool) {
-        let low = app.coordinate(withNormalizedOffset: CGVector(dx: 0.15, dy: 0.7))
-        let high = app.coordinate(withNormalizedOffset: CGVector(dx: 0.15, dy: 0.35))
+        let window: CGRect = app.windows.firstMatch.frame
+        let x: CGFloat = marginX(in: window)
+        let origin = app.coordinate(withNormalizedOffset: .zero)
+        let low = origin.withOffset(CGVector(dx: x, dy: window.minY + window.height * 0.7))
+        let high = origin.withOffset(CGVector(dx: x, dy: window.minY + window.height * 0.35))
         let (from, to) = down ? (low, high) : (high, low)
         from.press(forDuration: 0.05, thenDragTo: to, withVelocity: .default, thenHoldForDuration: 0.3)
+    }
+
+    /// The middle of the page's leading margin, from the element tree: half
+    /// way between the window's edge and the nearest card's (a Form cell,
+    /// or a switch row's own edge), a few points in at least.
+    private func marginX(in window: CGRect) -> CGFloat {
+        var edge: CGFloat = window.maxX
+        for item in [app.cells.firstMatch, app.switches.firstMatch] where item.exists {
+            edge = min(edge, item.frame.minX)
+        }
+        if edge >= window.maxX { edge = window.minX + 16 }
+        return window.minX + max((edge - window.minX) / 2, 4)
     }
 }

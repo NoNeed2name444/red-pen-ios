@@ -73,6 +73,15 @@ struct AnkiReviewView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear(perform: startSitting)
         .navigationDestination(item: $quizSet) { set in MCQQuizView(set: set, keepsProgress: false) }
+        // A trace for the UI tests only (GraphPreviewUITests'
+        // testIslandPushAndBack): when the pushed quiz is let go of, with the
+        // seconds since boot, so a cancelled back gesture's pop can be timed
+        // against the touch. Nothing is printed on a normal launch.
+        .onChange(of: quizSet?.id) { _, id in
+            guard PreviewLaunch.screen != nil else { return }
+            let t = String(format: "%.3f", ProcessInfo.processInfo.systemUptime)
+            print("QUIZSET-CHANGE \(id == nil ? "nil" : "set") t=\(t)")
+        }
         // A sheet rather than a push: checking the slide is a glance in the
         // middle of a review, and the card underneath should still be there
         // when it closes.

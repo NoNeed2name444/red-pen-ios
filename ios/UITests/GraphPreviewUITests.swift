@@ -600,6 +600,17 @@ final class GraphPreviewUITests: XCTestCase {
         let halfTarget = window.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5))
         leftEdge.press(forDuration: 0.05, thenDragTo: halfTarget, withVelocity: .slow, thenHoldForDuration: 1.0)
         usleep(1_500_000)
+        // What is on screen after the cancelled back, once, for the run's
+        // log beside the app's QUIZSET-CHANGE lines (AnkiReviewView): the
+        // recording shows the hold still at about a quarter of the way, yet
+        // the pop finishes as the finger lifts (run 41848103900).
+        let snapshot: String = app.debugDescription
+        let at = String(format: "%.3f", ProcessInfo.processInfo.systemUptime)
+        print("ISLAND-TREE t=\(at)\n\(snapshot)")
+        let tree = XCTAttachment(string: snapshot)
+        tree.name = "island-after-cancelled-back"
+        tree.lifetime = .keepAlways
+        add(tree)
         XCTAssertTrue(quizHeader.exists, "pushed quiz view should remain after cancelled back")
     }
 

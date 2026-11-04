@@ -60,7 +60,10 @@ final class AccessibilityUITests: XCTestCase {
     private func tilesGoOneAcross() {
         XCTAssertTrue(choose("questions"))
         let tile = element("feature-mixed")
-        guard reveal(tile) else {
+        // at AX sizes the page is long: twelve swipes stopped on "Build a
+        // session", the section above the Mixed tile (LibraryView's
+        // sections; run 41848103900)
+        guard reveal(tile, swipes: 24) else {
             XCTFail("no Mixed quiz tile on Questions")
             return
         }
@@ -110,8 +113,12 @@ final class AccessibilityUITests: XCTestCase {
         }
         assertInWindow(reveal, "Reveal")
         reveal.tap()
+        // each rating's label is its whole spoken line, "Again, back in 1
+        // minute. I forgot it." (AnkiCardFace's spoken), so it is matched by
+        // the name it starts with
         for title in ["Again", "Hard", "Good", "Easy"] {
-            let rating = app.buttons[title].firstMatch
+            let named = NSPredicate(format: "label BEGINSWITH %@", "\(title),")
+            let rating = app.buttons.matching(named).firstMatch
             XCTAssertTrue(rating.waitForExistence(timeout: 5), "no \(title) rating")
             _ = self.reveal(rating, swipes: 4)
             assertInWindow(rating, "the \(title) rating")
@@ -145,7 +152,7 @@ final class AccessibilityUITests: XCTestCase {
     private func examPlan() {
         XCTAssertTrue(choose("questions"))
         let plan = element("missionPlan")
-        guard plan.waitForExistence(timeout: 6), reveal(plan) else {
+        guard plan.waitForExistence(timeout: 6), reveal(plan, clearOfSearch: true) else {
             // the Plan only shows once there is something to say
             return
         }
@@ -316,14 +323,48 @@ final class AccessibilityUITests: XCTestCase {
     }
 
     /// Scrolls until `target` can be pressed. True if it can.
+    ///
+    /// With `clearOfSearch`, pressable also means wholly below the library's
+    /// search field, which stays pinned at the top: the page scrolls under
+    /// it, and XCTest calls a button half under it hittable though a tap at
+    /// its middle lands on the field. That is how "Open plan" was "tapped"
+    /// and opened nothing (run 41848103900). A target under the field is
+    /// drawn back down past it, by a drag held still so the page does not
+    /// coast. As RotationStateUITests' reach waits to clear the study deck.
     @discardableResult
-    private func reveal(_ target: XCUIElement, swipes: Int = 12) -> Bool {
+    private func reveal(_ target: XCUIElement, swipes: Int = 12, clearOfSearch: Bool = false) -> Bool {
         for _ in 0..<swipes {
-            if target.exists && target.isHittable { return true }
-            app.swipeUp(velocity: .slow)
+            let overlap: CGFloat = clearOfSearch && target.exists ? searchOverlap(target) : 0
+            if overlap > 0 {
+                // under the field, or scrolled past it: back down, a part
+                // of the window at a time
+                drawDown(by: min(overlap + 24, app.windows.firstMatch.frame.height * 0.4))
+            } else if target.exists && target.isHittable {
+                return true
+            } else {
+                app.swipeUp(velocity: .slow)
+            }
             usleep(500_000)
         }
-        return target.exists && target.isHittable
+        let pressable: Bool = target.exists && target.isHittable
+        return pressable && (!clearOfSearch || searchOverlap(target) <= 0)
+    }
+
+    /// How far `target`'s top stands above the bottom of the pinned search
+    /// field, in points; zero or less when it is wholly below it, or when no
+    /// search field is on screen.
+    private func searchOverlap(_ target: XCUIElement) -> CGFloat {
+        let search = element("librarySearch")
+        guard search.exists else { return 0 }
+        return search.frame.maxY - target.frame.minY + 1
+    }
+
+    /// Moves the page down by about `points`, showing what is above.
+    private func drawDown(by points: CGFloat) {
+        let window = app.windows.firstMatch
+        let from = window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        let to = from.withOffset(CGVector(dx: 0, dy: points))
+        from.press(forDuration: 0.05, thenDragTo: to, withVelocity: .slow, thenHoldForDuration: 0.3)
     }
 
     /// Scrolls until `target` can be pressed: down the page up to `down`
