@@ -1,7 +1,8 @@
 import XCTest
 
 /// The Sciences, photographed for the owner: the hub, a subject, a body
-/// system, a topic, nine tools and the 3D atlas (male and female), each opened straight from
+/// system, a topic, nine tools and the 3D atlas (male and female, and the
+/// skull, pelvis and hip muscles close up), each opened straight from
 /// launch (`-uiPreviewScreen science-<name>`, SciencePreviewScreen), the
 /// tools also scrolled once to their results. Run by design-preview.yml
 /// (preview/<name>, its "only" input matching testSciencesTour).
@@ -25,6 +26,10 @@ final class SciencesUITests: XCTestCase {
         ("science-atlas", "atlasLayer-skeletal", false),
         ("science-atlas-heart", "atlasChosen", false),
         ("science-atlas-female", "atlasChosen", false),
+        // close up, for the bone's and the muscle's surfaces
+        ("science-atlas-skull", "atlasLayer-skeletal", false),
+        ("science-atlas-pelvis", "atlasLayer-skeletal", false),
+        ("science-atlas-hip", "atlasLayer-muscular", false),
     ]
 
     func testSciencesTour() {

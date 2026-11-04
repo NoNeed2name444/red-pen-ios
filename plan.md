@@ -2944,7 +2944,9 @@ for screenshots.
     across the part (AnatomyMesh.curvature, AtlasRelief, a vertex colour).
     Bone is warmer (DDD1B6). tools/atlas_lab draws the atlas on Linux with
     the real shader sources under a stand-in for the light, which is where
-    the numbers come from; the Mac screenshots confirm them.
+    the numbers come from; the Mac screenshots confirm them (the tour now
+    has the skull, the pelvis and the hip muscles close up:
+    science-atlas-skull, -pelvis and -hip).
 - [x] S4. The catalog, Shared/Sciences/ScienceCatalog.swift: nine subjects,
   ten body systems, 29 tools and 75 topics, each a short note written for
   the app with points, its tools and its atlas parts; every system has
