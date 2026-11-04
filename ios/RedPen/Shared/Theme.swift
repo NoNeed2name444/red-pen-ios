@@ -62,11 +62,13 @@ enum PhotonRim {
 }
 
 /// Each mode's screen: the soft UI's matte base under the mode's wash
-/// (WardModeWash).
+/// (WardModeWash), from `seed`.
 struct ModeBackdrop: View {
     let kind: StudySetKind
+    var seed: UInt64 = 0
     var body: some View {
-        WardModeWashView(section: WardSection(kindRaw: kind.rawValue))
+        WardModeWashView(look: WardModeWashLook(section: WardSection(kindRaw: kind.rawValue),
+                                                mesh: WardModeWash.mesh(seed: seed)))
     }
 }
 
@@ -89,16 +91,16 @@ extension View {
             // one side of a fold's hinge, the mode's paper across it
             .clearOfBand()
             .wardMasthead()
-            .background(ModeBackdrop(kind: kind))
-            .wardControls()
-            .environment(\.modeTint, Color.wardPrimaryInk)
-            // the faces see-through over the mode's wash, one tone with it
-            .environment(\.wardModeWash, WardSection(kindRaw: kind.rawValue))
-            // the mode's hue on the paper's grid and the controls' edges
-            .wardSection(WardSection(kindRaw: kind.rawValue))
             // the bar, and the status bar over it, named light or dark with
             // the page, so they switch with it rather than fading
             .modifier(WardBarScheme())
+            // the mode's wash (WardModeWash), this screen's own, the faces
+            // see-through over it, one tone with it
+            .modifier(WardScreenGround(wash: WardSection(kindRaw: kind.rawValue)))
+            .wardControls()
+            .environment(\.modeTint, Color.wardPrimaryInk)
+            // the mode's hue on the paper's grid and the controls' edges
+            .wardSection(WardSection(kindRaw: kind.rawValue))
     }
 
     /// Slides up, solid, on first appearance, staggered by `index` so a
@@ -111,13 +113,16 @@ extension View {
 /// The navigation bar's scheme, named outright as the page's.
 private struct WardBarScheme: ViewModifier {
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.wardModeWash) private var modeWash
 
     func body(content: Content) -> some View {
         content
             .toolbarColorScheme(scheme, for: .navigationBar)
             // the bar's own base, always shown: with it the bar, not iOS's
-            // guess from the content under it, owns the status bar's style
-            .toolbarBackground(Color.wardWash, for: .navigationBar)
+            // guess from the content under it, owns the status bar's style;
+            // over a mode's wash, the wash along its top edge, as the
+            // masthead
+            .toolbarBackground(modeWash?.edge(dark: scheme == .dark, bottom: false) ?? Color.wardWash, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
     }
 }

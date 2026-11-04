@@ -116,6 +116,7 @@ struct ChartChipsRow: View {
 struct ChartVitalsGrid: View {
     let vitals: [PatientChart.Vital]
     @ScaledMetric(relativeTo: .body) private var column: CGFloat = 92
+    @Environment(\.wardModeWash) private var modeWash
 
     var body: some View {
         let columns: [GridItem] = [GridItem(.adaptive(minimum: column), spacing: WardSpace.m, alignment: .topLeading)]
@@ -127,7 +128,9 @@ struct ChartVitalsGrid: View {
             }
         }
         .padding(WardSpace.m)
-        .background(Color.wardBackground, in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
+        // over a mode's wash, see-through: one tone with the ground
+        .background(modeWash == nil ? Color.wardBackground : Color.clear,
+                    in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
     }
 }
 
@@ -135,6 +138,7 @@ struct ChartVitalsGrid: View {
 /// flagged value and its letter in Resus Red. Each row is read whole.
 struct ChartLabsTable: View {
     let labs: [PatientChart.Lab]
+    @Environment(\.wardModeWash) private var modeWash
 
     var body: some View {
         Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: WardSpace.m, verticalSpacing: WardSpace.s) {
@@ -143,7 +147,9 @@ struct ChartLabsTable: View {
         .font(WardType.mono(.subheadline, weight: .regular))
         .padding(WardSpace.m)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.wardBackground, in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
+        // over a mode's wash, see-through: one tone with the ground
+        .background(modeWash == nil ? Color.wardBackground : Color.clear,
+                    in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
     }
 
     private func row(_ lab: PatientChart.Lab) -> some View {

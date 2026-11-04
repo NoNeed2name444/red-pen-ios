@@ -75,33 +75,46 @@ extension EnvironmentValues {
     }
 }
 
-/// The section whose wash (WardModeWash) lies under the page, or nil for
-/// the plain base. Over a wash the faces are see-through, one tone with
-/// the ground: their fill is left out and their lights fall only outside
-/// a raised face and inside a pressed one, so the wash runs under them.
-/// What floats over a page (wardUnlit) keeps its fill.
+/// The mode wash under a page: its section and the screen's own mesh.
+struct WardModeWashLook: Equatable, Sendable {
+    let section: WardSection
+    let mesh: WardModeWash.Mesh
+
+    /// A solid bar's colour over it, at the top or the bottom edge.
+    func edge(dark: Bool, bottom: Bool) -> Color? {
+        WardModeWash.edge(section, dark: dark, mesh: mesh, bottom: bottom).map { Color(uiColor: Color.uiColor($0)) }
+    }
+}
+
+/// The wash (WardModeWash) that lies under the page, or nil for the plain
+/// base. Over a wash the faces are see-through, one tone with the ground:
+/// their fill is left out and their lights fall only outside a raised face
+/// and inside a pressed one, so the wash runs under them. What floats over
+/// a page (wardUnlit) keeps its fill.
 private struct WardWashKey: EnvironmentKey {
-    static let defaultValue: WardSection? = nil
+    static let defaultValue: WardModeWashLook? = nil
 }
 
 extension EnvironmentValues {
-    var wardModeWash: WardSection? {
+    var wardModeWash: WardModeWashLook? {
         get { self[WardWashKey.self] }
         set { self[WardWashKey.self] = newValue }
     }
 }
 
-/// The base's mode wash, top to bottom, for a section that has one; the
-/// plain base otherwise. Decoration only, so VoiceOver skips it.
+/// The base's mode wash, the screen's mesh, for a section that has one;
+/// the plain base otherwise. Decoration only, so VoiceOver skips it.
 struct WardModeWashView: View {
-    let section: WardSection
+    let look: WardModeWashLook
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         Group {
-            if let stops = WardModeWash.stops(section, dark: scheme == .dark) {
-                LinearGradient(stops: stops.map { .init(color: Color(uiColor: Color.uiColor($0.hex)), location: $0.location) },
-                               startPoint: .top, endPoint: .bottom)
+            if let colours = WardModeWash.colours(look.section, dark: scheme == .dark, mesh: look.mesh) {
+                MeshGradient(width: 3, height: 3,
+                             points: (0..<9).map { SIMD2<Float>(Float(look.mesh.x[$0]), Float(look.mesh.y[$0])) },
+                             colors: colours.map { Color(uiColor: Color.uiColor($0)) },
+                             smoothsColors: true)
             } else {
                 WardBackground()
             }
@@ -112,9 +125,35 @@ struct WardModeWashView: View {
     }
 }
 
+/// A screen's ground: with `wash`, that section's mode wash from a seed the
+/// screen keeps while it is shown (so nothing changes on a redraw, a turn
+/// or a change of mode), the faces on it see-through; `over`, a wash that
+/// already lies under this view (a panel beside the page), drawn by
+/// nothing here; otherwise the plain base.
+struct WardScreenGround: ViewModifier {
+    var wash: WardSection?
+    var over: WardModeWashLook?
+    @State private var seed = UInt64.random(in: .min ... .max)
+
+    func body(content: Content) -> some View {
+        let look: WardModeWashLook? = over ?? wash.map { WardModeWashLook(section: $0, mesh: WardModeWash.mesh(seed: seed)) }
+        content
+            .background {
+                if over != nil {
+                    Color.clear
+                } else if let look {
+                    WardModeWashView(look: look)
+                } else {
+                    WardBackground()
+                }
+            }
+            .environment(\.wardModeWash, look)
+    }
+}
+
 /// The ring round a shape out to `reach`, filled even-odd: what casts a
 /// pressed face's lights inside it, so they need no fill of the face.
-struct WardRing<S: Shape>: Shape {
+struct WardLightRing<S: Shape>: Shape {
     let shape: S
     let reach: CGFloat
 
@@ -148,7 +187,7 @@ struct WardSeeThroughLights<S: Shape>: View {
             ForEach(inner.indices, id: \.self) { i in
                 let light = inner[i]
                 let reach = CGFloat(light.radius * 2 + abs(light.x) + abs(light.y) + 4)
-                WardRing(shape: shape, reach: reach)
+                WardLightRing(shape: shape, reach: reach)
                     .fill(Color.black.shadow(.ward(light, inner: false)), style: FillStyle(eoFill: true))
                     .clipShape(shape)
             }
@@ -1298,9 +1337,8 @@ struct WardMasthead: ViewModifier {
     @Environment(\.colorScheme) private var scheme
 
     func body(content: Content) -> some View {
-        // over a mode's wash, the wash's own top edge
-        let top: Color = modeWash.flatMap { WardModeWash.top($0, dark: scheme == .dark) }
-            .map { Color(uiColor: Color.uiColor($0)) } ?? Color.wardWash
+        // over a mode's wash, the wash along its top edge
+        let top: Color = modeWash?.edge(dark: scheme == .dark, bottom: false) ?? Color.wardWash
         content
             .scrollEdgeEffectHidden(true, for: .top)
             .overlay(alignment: .top) {
@@ -1429,6 +1467,8 @@ private final class WardEdgeTransaction {
 private struct WardEdgeHost: ViewModifier {
     let shown: Bool
     @Environment(\.wardEdgeStore) private var store
+    @Environment(\.wardModeWash) private var modeWash
+    @Environment(\.colorScheme) private var scheme
     @State private var id = UUID()
     @State private var frame: CGRect = .zero
     @State private var clock = WardEdgeTransaction()
@@ -1439,7 +1479,8 @@ private struct WardEdgeHost: ViewModifier {
             .environment(\.wardIslandEntry, entry)
             .background(alignment: .top) {
                 if shown {
-                    let base = Color.wardWash
+                    // over a mode's wash, the wash along its bottom edge
+                    let base: Color = modeWash?.edge(dark: scheme == .dark, bottom: true) ?? Color.wardWash
                     if let entry {
                         GeometryReader { geometry in
                             WardIslandPath(join: entry.local, from: -WardPaper.sideInset,
@@ -1617,6 +1658,8 @@ private struct WardDeckShape: InsettableShape {
 struct WardDeckSlab: ViewModifier {
     @Environment(\.wardIslandEntry) private var entry
     @Environment(\.wardEdgeStore) private var store
+    @Environment(\.wardModeWash) private var modeWash
+    @Environment(\.colorScheme) private var scheme
     @State private var frame: CGRect = .zero
 
     func body(content: Content) -> some View {
@@ -1629,10 +1672,12 @@ struct WardDeckSlab: ViewModifier {
         // The slab takes the strip's own wash, not the cards' surface, so
         // the dock reads as one tone with the screen: no paler (or darker)
         // panel inside the island and no seam between its rows. The edge
-        // and relief stay as they are (the owner, 21 Oct).
+        // and relief stay as they are (the owner, 21 Oct). Over a mode's
+        // wash it is the strip's colour there, solid, as the strip is.
+        let slabFill: Color = modeWash?.edge(dark: scheme == .dark, bottom: true) ?? Color.wardWash
         let face = content
             .environment(\.wardFoldInset, CGFloat(inset))
-            .wardRaised(in: shape, lift: .high, fill: .wardWash)
+            .wardRaised(in: shape, lift: .high, fill: slabFill)
         Group {
             if let join {
                 face.clipShape(shape)
@@ -1718,16 +1763,16 @@ extension View {
 
     /// A screen in the soft UI: the matte base under it, a solid bar area
     /// and its controls. With `wash`, the base takes that section's mode
-    /// wash (WardModeWash) and the faces on it are see-through.
-    func wardScreen(wash: WardSection? = nil) -> some View {
+    /// wash (WardModeWash) and the faces on it are see-through; `over`, a
+    /// wash already under it (a panel beside the page) shows through.
+    func wardScreen(wash: WardSection? = nil, over: WardModeWashLook? = nil) -> some View {
         self
             // one side of a fold's hinge, the base across it
             .clearOfBand()
             .wardMasthead()
-            .background { if let wash { WardModeWashView(section: wash) } else { WardBackground() } }
+            .modifier(WardScreenGround(wash: wash, over: over))
             .lineSpacing(WardSpace.leading)
             .wardControls()
-            .environment(\.wardModeWash, wash)
     }
 
     /// A Form or List in the soft UI: its own grey ground hidden for the

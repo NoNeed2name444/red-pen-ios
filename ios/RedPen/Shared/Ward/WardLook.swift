@@ -111,13 +111,16 @@ enum WardWash {
     static let alpha = 0.22
 }
 
-/// The colour wash behind a mode's screens (the owner, 4 Nov): the base,
-/// top to bottom, mixed toward the mode's earlier colour, which serves the
-/// wash alone (buttons, words and glyphs keep the section's accent). The
-/// colour is first pulled toward grey, and the mix runs from the top edge
-/// to nothing by a quarter down, nothing to six tenths, then up to the
-/// bottom edge; at night it is weaker. Ideas has none. Mixed in plain
-/// sRGB components, as the earlier backdrop mixed it.
+/// The colour wash behind a mode's screens (the owner, 4 Nov: "randomly
+/// tinted like the screenshots", "stronger a bit"): the earlier backdrop's
+/// uneven 3x3 mesh on the base, each point mixed toward the mode's earlier
+/// colour, which serves the wash alone (buttons, words and glyphs keep the
+/// section's accent). Each screen draws its own from a seed it keeps while
+/// shown: every point's strength moves a little, and the inner points move
+/// a little along their edge or, in the middle, both ways; then all are made
+/// a quarter stronger, to a cap. The colour is pulled toward grey first, and
+/// at night the mix is weaker. Ideas has none. Mixed in plain sRGB
+/// components, as the earlier backdrop mixed it.
 enum WardModeWash {
     /// Each mode's earlier colour, 0xRRGGBB.
     static let colour: [WardSection: UInt32] = [
@@ -127,10 +130,49 @@ enum WardModeWash {
     /// How far the colour is pulled toward `grey` before it is mixed in.
     static let greyPull = 0.35
     static let grey: (r: Double, g: Double, b: Double) = (0.5, 0.5, 0.52)
-    /// (location, mix) from the top edge to the bottom edge.
-    static let stops: [(location: Double, mix: Double)] = [(0, 0.08), (0.25, 0), (0.60, 0), (1, 0.12)]
+    /// The earlier backdrop's strengths, row by row from the top left.
+    static let strengths: [Double] = [0.30, 0.18, 0.26, 0.16, 0.05, 0.18, 0.24, 0.16, 0.30]
+    /// How far a seed moves each point's strength, either way.
+    static let strengthJitter = 0.08
+    /// How far a seed moves an inner point (in the unit square), either way.
+    static let pointJitter = 0.12
+    /// Every strength is made this much stronger after the jitter, to `cap`.
+    static let boost = 1.25
+    static let cap = 0.40
     /// The night's share of each mix.
     static let night = 0.7
+    /// The points a seed moves, and which way: the edges' middles along
+    /// their edge, the middle both ways; the corners stay put.
+    static let moved: [(index: Int, x: Bool, y: Bool)] = [(1, true, false), (3, false, true), (4, true, true),
+                                                          (5, false, true), (7, true, false)]
+
+    /// One screen's mesh: nine strengths and points, row by row.
+    struct Mesh: Equatable, Sendable {
+        var strengths: [Double]
+        var x: [Double]
+        var y: [Double]
+    }
+
+    /// The mesh for `seed`, the same on every platform (SplitMix64).
+    static func mesh(seed: UInt64) -> Mesh {
+        var state = seed
+        func unit() -> Double {
+            state = state &+ 0x9E37_79B9_7F4A_7C15
+            var z = state
+            z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
+            z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
+            z = z ^ (z >> 31)
+            return Double(z >> 11) * 0x1p-53
+        }
+        let s = strengths.map { min(cap, max(0, ($0 + strengthJitter * (2 * unit() - 1)) * boost)) }
+        var x: [Double] = [0, 0.5, 1, 0, 0.5, 1, 0, 0.5, 1]
+        var y: [Double] = [0, 0, 0, 0.5, 0.5, 0.5, 1, 1, 1]
+        for m in moved {
+            if m.x { x[m.index] += pointJitter * (2 * unit() - 1) }
+            if m.y { y[m.index] += pointJitter * (2 * unit() - 1) }
+        }
+        return Mesh(strengths: s, x: x, y: y)
+    }
 
     /// The wash's colour at `mix` (before the night's share), or nil
     /// where the section has no wash.
@@ -146,20 +188,36 @@ enum WardModeWash {
         return channel(br, hue.0) << 16 | channel(bg, hue.1) << 8 | channel(bb, hue.2)
     }
 
-    /// The wash's stops as 0xRRGGBB, top to bottom, or nil for no wash.
-    static func stops(_ section: WardSection, dark: Bool) -> [(location: Double, hex: UInt32)]? {
+    /// The mesh's nine colours as 0xRRGGBB, or nil for no wash.
+    static func colours(_ section: WardSection, dark: Bool, mesh: Mesh) -> [UInt32]? {
         guard colour[section] != nil else { return nil }
-        return stops.map { ($0.location, hex(section, dark: dark, mix: $0.mix)!) }
+        return mesh.strengths.map { hex(section, dark: dark, mix: $0)! }
     }
 
-    /// The wash at its strongest, the bottom edge, where contrast is least.
+    /// The strength at (x, y) in the unit square, blended from the nine
+    /// points by inverse squared distance: what a drawing without a mesh
+    /// gradient shows. Never past the strongest point.
+    static func strength(_ mesh: Mesh, x: Double, y: Double) -> Double {
+        var num = 0.0, den = 0.0
+        for i in 0..<9 {
+            let d2 = (x - mesh.x[i]) * (x - mesh.x[i]) + (y - mesh.y[i]) * (y - mesh.y[i])
+            if d2 < 1e-12 { return mesh.strengths[i] }
+            num += mesh.strengths[i] / d2
+            den += 1 / d2
+        }
+        return num / den
+    }
+
+    /// A solid bar's colour over the wash: the mean of its edge's row.
+    static func edge(_ section: WardSection, dark: Bool, mesh: Mesh, bottom: Bool) -> UInt32? {
+        let row = bottom ? mesh.strengths[6...8] : mesh.strengths[0...2]
+        return hex(section, dark: dark, mix: row.reduce(0, +) / 3)
+    }
+
+    /// The wash at its strongest possible point, the cap, where contrast
+    /// is least.
     static func strongest(_ section: WardSection, dark: Bool) -> UInt32? {
-        hex(section, dark: dark, mix: stops.map(\.mix).max()!)
-    }
-
-    /// The wash at the top edge, under the bar area.
-    static func top(_ section: WardSection, dark: Bool) -> UInt32? {
-        hex(section, dark: dark, mix: stops[0].mix)
+        hex(section, dark: dark, mix: cap)
     }
 }
 

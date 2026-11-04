@@ -234,7 +234,8 @@ internal fun LayoutCoordinates.wardWindowRect(density: Float): WardRect {
     val look = LocalWardLook.current
     val ink = WardPaper.ink(WardGlide.rest(look), look.dark, highContrast = false)
     val line = wardRgb(ink.hex).copy(alpha = ink.edge.toFloat())
-    val wash = wardColor(WardToken.background)
+    // over a mode's wash, the wash along the bottom edge (iOS WardEdgeHost)
+    val wash = wardBarFill()
     return drawWithContent {
         val w = (WardPaper.edgeWidth * density).toFloat()
         val side = WardPaper.sideInset
@@ -290,7 +291,8 @@ private fun bareIsland(size: Size, out: Float, w: Float, r: Float, filled: Boole
  * and the island cuts it where a join passes its circle's widest point.
  */
 @Composable private fun Modifier.wardDeckSlab(edge: WardDeckEdge?, slab: WardRect?): Modifier {
-    val wash = wardColor(WardToken.background)
+    // over a mode's wash, the strip's colour there, solid, as the strip is (iOS WardDeckSlab)
+    val wash = wardBarFill()
     return drawBehind {
         if (edge != null && slab != null) {
             val left = WardEdge.slabTopRadius(edge.join.left, slabSide = slab.minX, leading = true)

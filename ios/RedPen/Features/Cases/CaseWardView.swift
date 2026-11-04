@@ -90,6 +90,8 @@ struct CaseWardView: View {
                 CaseLadderPanel(file: file, run: $run)
                     .navigationTitle("Differential")
                     .navigationBarTitleDisplayMode(.inline)
+                    // a sheet stands on the plain base, not the case's wash
+                    .environment(\.wardModeWash, nil)
                     .toolbar {
                         ToolbarItem(placement: .confirmationAction) {
                             Button("Done") { showingLadder = false }
@@ -362,6 +364,8 @@ struct CaseLadderPanel: View {
     @Binding var run: CaseRun
     @State private var typed = ""
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// beside the patient, the case's wash under both; in its sheet, none
+    @Environment(\.wardModeWash) private var modeWash
 
     var body: some View {
         ScrollView {
@@ -413,7 +417,7 @@ struct CaseLadderPanel: View {
             }
             .padding(WardSpace.gutter)
         }
-        .wardScreen()
+        .wardScreen(over: modeWash)
     }
 
     /// The case's list, less what is on the ladder already.

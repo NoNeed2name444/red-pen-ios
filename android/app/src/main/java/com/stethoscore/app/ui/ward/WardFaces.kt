@@ -86,17 +86,41 @@ val LocalWardShowsPressed = staticCompositionLocalOf { false }
 val LocalWardUnlit = staticCompositionLocalOf { false }
 
 /**
- * The section whose wash (WardModeWash) lies under the page, or null for the
- * plain base (iOS wardModeWash). Over a wash the faces in the base's tone are
- * see-through, one tone with the ground: their fill is left out and their
- * lights fall only outside a raised face and inside a pressed one, so the
- * wash runs under them. What floats over a page (LocalWardUnlit) keeps its fill.
+ * A mode's wash under a page (iOS WardModeWashLook): its section, the screen's own
+ * mesh, and the window it is drawn in.
  */
-val LocalWardModeWash = staticCompositionLocalOf<WardSection?> { null }
+class WardModeWashOn(val section: WardSection, val mesh: WardModeWash.Mesh, val view: android.view.View) {
+    /** A solid bar's colour over it, at the top or the bottom edge. */
+    fun edge(dark: Boolean, bottom: Boolean): Color? = WardModeWash.edge(section, dark, mesh, bottom)?.let(::wardRgb)
+}
+
+/**
+ * The wash (WardModeWash) that lies under the page, or null for the plain base
+ * (iOS wardModeWash). Over a wash the faces in the base's tone are see-through,
+ * one tone with the ground: their fill is left out and their lights fall only
+ * outside a raised face and inside a pressed one, so the wash runs under them.
+ * What floats over a page (LocalWardUnlit) keeps its fill.
+ */
+val LocalWardModeWash = staticCompositionLocalOf<WardModeWashOn?> { null }
+
+/**
+ * The wash under this view, read only in the window it is drawn in: a sheet or a
+ * dialog has a window of its own and stands on the plain base, as iOS's wardSheet.
+ */
+@Composable fun wardModeWashHere(): WardModeWashOn? =
+    LocalWardModeWash.current?.takeIf { it.view === androidx.compose.ui.platform.LocalView.current }
+
+/** A solid bar's fill (the bottom strip, the deck's slab, a bottom bar): over a mode's wash, the wash along that edge. */
+@Composable fun wardBarFill(bottom: Boolean = true): Color =
+    wardModeWashHere()?.edge(LocalWardLook.current.dark, bottom) ?: wardColor(WardToken.background)
+
+/** A flat panel in the base's tone: over a mode's wash, see-through, one tone with the ground. */
+@Composable fun wardPanelFill(): Color =
+    if (wardModeWashHere() != null) Color.Transparent else wardColor(WardToken.background)
 
 /** Whether a face filled with [fill] stands on a mode's wash in the base's tone (LocalWardModeWash); unlit, it keeps its fill. */
 @Composable fun wardSeeThrough(fill: Color): Boolean =
-    LocalWardModeWash.current != null && fill.alpha >= 0.999f &&
+    wardModeWashHere() != null && fill.alpha >= 0.999f &&
         (fill.toArgb() and 0xFFFFFF) == WardPalette.hex(WardToken.background, LocalWardLook.current.dark)
 
 /** One light cast round [path], outside it only: a see-through face's. */

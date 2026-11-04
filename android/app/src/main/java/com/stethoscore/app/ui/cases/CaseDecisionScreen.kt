@@ -122,7 +122,7 @@ internal fun CaseDecisionScreen(file: CaseFile, leading: String, onBack: () -> U
             }
         }
         HorizontalDivider(color = wardColor(WardToken.hairline))
-        Box(Modifier.fillMaxWidth().background(wardColor(WardToken.background)).padding(horizontal = 16.dp, vertical = 10.dp)) {
+        Box(Modifier.fillMaxWidth().background(com.stethoscore.app.ui.ward.wardBarFill()).padding(horizontal = 16.dp, vertical = 10.dp)) {
             CaseButton("Discharge and debrief", ::discharge,
                 Modifier.fillMaxWidth().semantics {
                     stateDescription = if (ready) "Closes the case and shows what mattered" else "Confirm a diagnosis and choose a next step first"

@@ -123,7 +123,7 @@ internal enum class QuizButtonKind { primary, companion, secondary }
 /** The vital signs as observations on a Ward White panel: monospaced values, one high or low in Resus Red with its arrow. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable fun ChartVitalsGrid(vitals: List<PatientChart.Vital>) {
-    FlowRow(Modifier.fillMaxWidth().background(wardColor(WardToken.background), RoundedCornerShape(WardRadius.field.wardDp)).padding(WardSpace.m.wardDp),
+    FlowRow(Modifier.fillMaxWidth().background(com.stethoscore.app.ui.ward.wardPanelFill(), RoundedCornerShape(WardRadius.field.wardDp)).padding(WardSpace.m.wardDp),
         horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
         vitals.forEach { v ->
             val danger = ChartQuiz.tone(v.flag) == ChartQuiz.Tone.danger
@@ -139,7 +139,7 @@ internal enum class QuizButtonKind { primary, companion, secondary }
 
 /** The results as a monospaced table - name, value, unit, H or L - with a flagged value and its letter in Resus Red. Each row is read whole. */
 @Composable fun ChartLabsTable(labs: List<PatientChart.Lab>) {
-    Column(Modifier.fillMaxWidth().background(wardColor(WardToken.background), RoundedCornerShape(WardRadius.field.wardDp)).padding(WardSpace.m.wardDp),
+    Column(Modifier.fillMaxWidth().background(com.stethoscore.app.ui.ward.wardPanelFill(), RoundedCornerShape(WardRadius.field.wardDp)).padding(WardSpace.m.wardDp),
         verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
         labs.forEach { lab ->
             val value = if (ChartQuiz.tone(lab.flag) == ChartQuiz.Tone.danger) wardColor(WardToken.danger) else wardColor(WardToken.ink)

@@ -95,8 +95,12 @@ class WardKitPortTest {
         val copies = Regex("fun StudyBar\\(|import com\\.stethoscore\\.app\\.ui\\.(mock|sources|editors)\\.StudyActionBar")
         for (file in sources()) assertTrue("${file.name} keeps its own study bar", !copies.containsMatchIn(file.readText()))
         val deck = File(ui, "ward/WardDeck.kt").readText()
-        // the slab and the strip take the page's wash and the slab lies flat: it always holds a control
-        assertTrue("the strip and the slab fill with the wash", deck.split("wardColor(WardToken.background)").size - 1 == 2)
+        // the slab and the strip take the page's wash and the slab lies flat: it always holds a control;
+        // over a mode's wash (the owner, 4 Nov) the wash along the bottom edge, the base otherwise
+        assertTrue("the strip and the slab fill with the wash", deck.split("val wash = wardBarFill()").size - 1 == 2 &&
+            !deck.contains("wardColor(WardToken.background)"))
+        assertTrue("the bars' fill is the base off a mode's wash", File(ui, "ward/WardFaces.kt").readText().contains(
+            "wardModeWashHere()?.edge(LocalWardLook.current.dark, bottom) ?: wardColor(WardToken.background)"))
         assertTrue("the slab casts no lights", !deck.contains("wardRaised("))
         assertTrue("the line joins the frame through WardEdge's arcs", deck.contains("wardIslandPath(edge.local"))
         assertTrue("the frame tells the decks where it is", File(ui, "ward/WardSurfaces.kt").readText().contains("WardEdgeStore.setWindow("))

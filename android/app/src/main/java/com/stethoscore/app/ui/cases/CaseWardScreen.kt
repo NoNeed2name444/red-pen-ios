@@ -99,9 +99,14 @@ fun CaseWardScreen(file: CaseFile, setID: String, store: StudyStore, onBack: () 
     }
     if (deciding) {
         BackHandler { deciding = false }
-        CaseDecisionScreen(file, leading = run.ladder.firstOrNull() ?: "", onBack = { deciding = false }) { decision ->
-            deciding = false
-            change { it.decide(decision, file); true }
+        // the decision is a sheet on iOS (CaseWardView): the plain base, no wash
+        Box(Modifier.fillMaxSize().background(wardColor(WardToken.background))) {
+            CompositionLocalProvider(com.stethoscore.app.ui.ward.LocalWardModeWash provides null) {
+                CaseDecisionScreen(file, leading = run.ladder.firstOrNull() ?: "", onBack = { deciding = false }) { decision ->
+                    deciding = false
+                    change { it.decide(decision, file); true }
+                }
+            }
         }
         return
     }
@@ -140,7 +145,7 @@ fun CaseWardScreen(file: CaseFile, setID: String, store: StudyStore, onBack: () 
             }
             // the bar at the bottom, under the thumb
             HorizontalDivider(color = wardColor(WardToken.hairline))
-            Row(Modifier.fillMaxWidth().background(wardColor(WardToken.background)).padding(horizontal = WardSpace.l.wardDp, vertical = WardSpace.m.wardDp), horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
+            Row(Modifier.fillMaxWidth().background(com.stethoscore.app.ui.ward.wardBarFill()).padding(horizontal = WardSpace.l.wardDp, vertical = WardSpace.m.wardDp), horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
                 if (arriving) {
                     CaseButton("See the patient", { arriving = false }, Modifier.weight(1f), primary = true, icon = Icons.Rounded.MedicalServices)
                 } else {
@@ -318,7 +323,8 @@ internal fun CaseLadderPanel(file: CaseFile, run: CaseRun, modifier: Modifier = 
     }
     // the case's list, less what is on the ladder already
     val pickable = file.candidates.filter { name -> run.ladder.none { CaseNames.same(it, name) } }
-    Column(modifier.background(wardColor(WardToken.background)).verticalScroll(rememberScrollState()).padding(WardSpace.l.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.l.wardDp)) {
+    // beside the patient the case's wash shows through; in its sheet, the plain base
+    Column(modifier.background(com.stethoscore.app.ui.ward.wardPanelFill()).verticalScroll(rememberScrollState()).padding(WardSpace.l.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.l.wardDp)) {
         CaseLabel("Your ladder")
         if (run.ladder.isEmpty()) Text("Up to three working diagnoses, the most likely first. Change them whenever you like.", style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary))
         run.ladder.forEachIndexed { index, name ->

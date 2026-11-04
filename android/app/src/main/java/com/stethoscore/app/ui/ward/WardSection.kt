@@ -100,12 +100,15 @@ enum class WardSection {
 }
 
 /**
- * The colour wash behind a mode's screens (the owner, 4 Nov; iOS WardModeWash):
- * the base, top to bottom, mixed toward the mode's earlier colour, which serves
- * the wash alone (buttons, words and glyphs keep the section's accent). The
- * colour is first pulled toward grey, and the mix runs from the top edge to
- * nothing by a quarter down, nothing to six tenths, then up to the bottom edge;
- * at night it is weaker. Ideas has none. Mixed in plain sRGB components.
+ * The colour wash behind a mode's screens (the owner, 4 Nov: "randomly tinted like
+ * the screenshots", "stronger a bit"; iOS WardModeWash, the same numbers): the
+ * earlier backdrop's uneven 3x3 mesh on the base, each point mixed toward the mode's
+ * earlier colour, which serves the wash alone (buttons, words and glyphs keep the
+ * section's accent). Each screen draws its own from a seed it keeps while shown:
+ * every point's strength moves a little, and the inner points move a little along
+ * their edge or, in the middle, both ways; then all are made a quarter stronger, to
+ * a cap. The colour is pulled toward grey first, and at night the mix is weaker.
+ * Ideas has none. Mixed in plain sRGB components.
  */
 object WardModeWash {
     /** Each mode's earlier colour, 0xRRGGBB. */
@@ -118,11 +121,50 @@ object WardModeWash {
     const val greyPull = 0.35
     val grey = WardRgb(0.5, 0.5, 0.52)
 
-    /** (location, mix) from the top edge to the bottom edge. */
-    val stops: List<Pair<Double, Double>> = listOf(0.0 to 0.08, 0.25 to 0.0, 0.60 to 0.0, 1.0 to 0.12)
+    /** The earlier backdrop's strengths, row by row from the top left. */
+    val strengths: List<Double> = listOf(0.30, 0.18, 0.26, 0.16, 0.05, 0.18, 0.24, 0.16, 0.30)
+
+    /** How far a seed moves each point's strength, either way. */
+    const val strengthJitter = 0.08
+
+    /** How far a seed moves an inner point (in the unit square), either way. */
+    const val pointJitter = 0.12
+
+    /** Every strength is made this much stronger after the jitter, to [cap]. */
+    const val boost = 1.25
+    const val cap = 0.40
 
     /** The night's share of each mix. */
     const val night = 0.7
+
+    /** The points a seed moves, and which way: the edges' middles along their edge, the middle both ways. */
+    val moved: List<Triple<Int, Boolean, Boolean>> = listOf(
+        Triple(1, true, false), Triple(3, false, true), Triple(4, true, true), Triple(5, false, true), Triple(7, true, false),
+    )
+
+    /** One screen's mesh: nine strengths and points, row by row. */
+    data class Mesh(val strengths: List<Double>, val x: List<Double>, val y: List<Double>)
+
+    /** The mesh for [seed], the same on every platform (SplitMix64; iOS takes the seed as UInt64). */
+    fun mesh(seed: Long): Mesh {
+        var state = seed
+        fun unit(): Double {
+            state += 0x9E3779B97F4A7C15uL.toLong()
+            var z = state
+            z = (z xor (z ushr 30)) * 0xBF58476D1CE4E5B9uL.toLong()
+            z = (z xor (z ushr 27)) * 0x94D049BB133111EBuL.toLong()
+            z = z xor (z ushr 31)
+            return (z ushr 11).toDouble() * (1.0 / 9007199254740992.0)
+        }
+        val s = strengths.map { minOf(cap, maxOf(0.0, (it + strengthJitter * (2 * unit() - 1)) * boost)) }
+        val x = mutableListOf(0.0, 0.5, 1.0, 0.0, 0.5, 1.0, 0.0, 0.5, 1.0)
+        val y = mutableListOf(0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 1.0, 1.0, 1.0)
+        for ((i, mx, my) in moved) {
+            if (mx) x[i] += pointJitter * (2 * unit() - 1)
+            if (my) y[i] += pointJitter * (2 * unit() - 1)
+        }
+        return Mesh(s, x, y)
+    }
 
     /** The wash's colour at [mix] (before the night's share), or null where the section has none. */
     fun hex(section: WardSection, dark: Boolean, mix: Double): Int? {
@@ -135,17 +177,47 @@ object WardModeWash {
         return (channel(base.r, hue.r) shl 16) or (channel(base.g, hue.g) shl 8) or channel(base.b, hue.b)
     }
 
-    /** The wash's stops as 0xRRGGBB, top to bottom, or null for no wash. */
-    fun stops(section: WardSection, dark: Boolean): List<Pair<Double, Int>>? {
+    /** The mesh's nine colours as 0xRRGGBB, or null for no wash. */
+    fun colours(section: WardSection, dark: Boolean, mesh: Mesh): List<Int>? {
         if (section !in colour) return null
-        return stops.map { (at, mix) -> at to hex(section, dark, mix)!! }
+        return mesh.strengths.map { hex(section, dark, it)!! }
     }
 
-    /** The wash at its strongest, the bottom edge, where contrast is least. */
-    fun strongest(section: WardSection, dark: Boolean): Int? = hex(section, dark, stops.maxOf { it.second })
+    /**
+     * The strength at ([x], [y]) in the unit square, blended from the nine points by
+     * inverse squared distance: what Android draws, having no mesh gradient. Never
+     * past the strongest point.
+     */
+    fun strength(mesh: Mesh, x: Double, y: Double): Double {
+        var num = 0.0
+        var den = 0.0
+        for (i in 0 until 9) {
+            val d2 = (x - mesh.x[i]) * (x - mesh.x[i]) + (y - mesh.y[i]) * (y - mesh.y[i])
+            if (d2 < 1e-12) return mesh.strengths[i]
+            num += mesh.strengths[i] / d2
+            den += 1 / d2
+        }
+        return num / den
+    }
 
-    /** The wash at the top edge, under the bar area. */
-    fun top(section: WardSection, dark: Boolean): Int? = hex(section, dark, stops.first().second)
+    /** The wash as [width] x [height] ARGB pixels, each at its centre, or null for no wash: drawn once, stretched smooth. */
+    fun pixels(section: WardSection, dark: Boolean, mesh: Mesh, width: Int, height: Int): IntArray? {
+        if (section !in colour) return null
+        return IntArray(width * height) { k ->
+            val px = (k % width + 0.5) / width
+            val py = (k / width + 0.5) / height
+            hex(section, dark, strength(mesh, px, py))!! or (0xFF shl 24)
+        }
+    }
+
+    /** A solid bar's colour over the wash: the mean of its edge's row. */
+    fun edge(section: WardSection, dark: Boolean, mesh: Mesh, bottom: Boolean): Int? {
+        val row = if (bottom) mesh.strengths.subList(6, 9) else mesh.strengths.subList(0, 3)
+        return hex(section, dark, row.sum() / 3)
+    }
+
+    /** The wash at its strongest possible point, the cap, where contrast is least. */
+    fun strongest(section: WardSection, dark: Boolean): Int? = hex(section, dark, cap)
 }
 
 /** The wash behind the word being spoken in Audio: the section's fill at this strength, under Chart Ink words. */

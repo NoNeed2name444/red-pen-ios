@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
@@ -90,5 +91,24 @@ class WardGroundDrawable(private val ground: WardGround, private val density: Fl
                 drawRect(color(bold), Offset(0f, y - line / 2), androidx.compose.ui.geometry.Size(size.width, line))
             }
         }
+    }
+}
+
+/**
+ * A mode's wash (WardModeWash, the owner 4 Nov), this screen's own mesh: Android has
+ * no mesh gradient, so the nine points' blend is worked out once into a small picture
+ * (WardModeWash.pixels) and drawn stretched, smooth, over the whole page.
+ */
+@Composable fun WardModeWashBackground(section: com.stethoscore.app.ui.ward.WardSection, mesh: com.stethoscore.app.ui.ward.WardModeWash.Mesh,
+                                       dark: Boolean, modifier: Modifier = Modifier) {
+    val side = 48
+    val image = remember(section, mesh, dark) {
+        com.stethoscore.app.ui.ward.WardModeWash.pixels(section, dark, mesh, side, side)?.let {
+            android.graphics.Bitmap.createBitmap(it, side, side, android.graphics.Bitmap.Config.ARGB_8888).asImageBitmap()
+        }
+    } ?: return
+    Canvas(modifier) {
+        drawImage(image, dstSize = androidx.compose.ui.unit.IntSize(size.width.toInt().coerceAtLeast(1), size.height.toInt().coerceAtLeast(1)),
+            filterQuality = androidx.compose.ui.graphics.FilterQuality.Low)
     }
 }

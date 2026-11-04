@@ -214,12 +214,16 @@ import com.stethoscore.app.ui.library.LibraryEtch
         // the header as the list scrolls; gone with the header
         var bandBottom by remember { mutableStateOf<Float?>(null) }
         if(onGround) WardGroundBackground(WardGround.home(section, dark),Modifier.fillMaxSize(),gridBottom={ bandBottom })
-        // a mode's screens stand on its wash (the owner, 4 Nov; iOS modeScreen), the faces on it see-through
-        val modeWash=if(screen in modeWashScreens) com.stethoscore.app.ui.ward.WardModeWash.stops(section, dark) else null
-        if(modeWash!=null) Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Brush.verticalGradient(
-            *modeWash.map { (at, hex) -> at.toFloat() to wardRgb(hex) }.toTypedArray())))
-        Surface(Modifier.fillMaxSize(),color=if(onGround || modeWash!=null) androidx.compose.ui.graphics.Color.Transparent else MaterialTheme.colorScheme.background) {
-        androidx.compose.runtime.CompositionLocalProvider(com.stethoscore.app.ui.ward.LocalWardModeWash provides if(modeWash!=null) section else null) { WardCornerScope(framed=!onGround) {
+        // a mode's screens stand on its wash (the owner, 4 Nov; iOS modeScreen), each its own mesh from a
+        // seed it keeps while shown (a turn or a change of mode keeps it), the faces on it see-through
+        val washSeed=rememberSaveable(screen,selectedId) { kotlin.random.Random.nextLong() }
+        val washMesh=remember(washSeed) { com.stethoscore.app.ui.ward.WardModeWash.mesh(washSeed) }
+        val washed=screen in modeWashScreens && section in com.stethoscore.app.ui.ward.WardModeWash.colour
+        if(washed) WardModeWashBackground(section,washMesh,dark,Modifier.fillMaxSize())
+        val washView=androidx.compose.ui.platform.LocalView.current
+        Surface(Modifier.fillMaxSize(),color=if(onGround || washed) androidx.compose.ui.graphics.Color.Transparent else MaterialTheme.colorScheme.background) {
+        androidx.compose.runtime.CompositionLocalProvider(com.stethoscore.app.ui.ward.LocalWardModeWash provides
+            if(washed) com.stethoscore.app.ui.ward.WardModeWashOn(section,washMesh,washView) else null) { WardCornerScope(framed=!onGround) {
             // a page in the paper's opening sits inside its ring (wardFrameClearance); home has
             // no frame, and the map (ui/map) keeps its own full-bleed layout
             val inFrame=!onGround && screen!="ideas"
@@ -372,12 +376,17 @@ import com.stethoscore.app.ui.library.LibraryEtch
             }
             // a learning screen over the app, in a sheet of its own (LearnRoutes): its face fills
             // the window, its screen sits inside the frame's ring
+            // what floats over the page keeps its fill: no wash under it (iOS: its own window)
+            androidx.compose.runtime.CompositionLocalProvider(com.stethoscore.app.ui.ward.LocalWardModeWash provides null) {
             com.stethoscore.app.ui.learn.LearnSheet(store,dark,section,onPreset={ com.stethoscore.app.ui.learn.LearnRouter.close();newPreset=it;screen="new" }) { set -> refresh();open(set) }
+            }
             // Every page but home stands in the paper's opening (iOS WardPaperFrame):
             // still ECG paper round the window, the page scrolling beneath it.
             if(!onGround) WardPaperFrame(Modifier.fillMaxSize())
             // a ward round's chip, over every screen while one runs
-            com.stethoscore.app.ui.learn.WardRoundFloat()
+            androidx.compose.runtime.CompositionLocalProvider(com.stethoscore.app.ui.ward.LocalWardModeWash provides null) {
+                com.stethoscore.app.ui.learn.WardRoundFloat()
+            }
         } } }
     } }
 }
