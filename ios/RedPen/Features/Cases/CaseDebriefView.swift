@@ -220,12 +220,19 @@ struct CaseDebriefView: View {
                     Text(file.step(taken.stepID)?.label ?? "")
                         .font(WardType.caption)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                    // right is said in ink with a check in the mode colour, never by colour alone (D7)
+                    if right {
+                        Image(systemName: "checkmark")
+                            .font(WardType.face(.caption, weight: .semibold))
+                            .foregroundStyle(CaseInk.theatre)
+                            .accessibilityHidden(true)
+                    }
                     Text(lead)
                         .font(WardType.face(.caption, weight: .semibold))
-                        .foregroundStyle(right ? CaseInk.discharge : Color.primary)
+                        .foregroundStyle(Color.primary)
                 }
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel("After \(file.step(taken.stepID)?.label ?? "a step"), your leading diagnosis was \(lead)")
+                .accessibilityLabel("After \(file.step(taken.stepID)?.label ?? "a step"), your leading diagnosis was \(lead)\(right ? ", right" : "")")
             }
         }
     }
@@ -263,7 +270,7 @@ struct CaseDebriefView: View {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text("\(index + 1).")
                         .font(.system(.subheadline, design: .monospaced).weight(.semibold))
-                        .foregroundStyle(CaseInk.theatre)
+                        .foregroundStyle(CaseInk.biro)
                         .accessibilityHidden(true)
                     Text(point)
                         .font(WardType.face(.subheadline, weight: .regular))

@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Cancel
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Group
 import androidx.compose.material.icons.rounded.Lightbulb
@@ -239,12 +240,14 @@ internal fun CaseDebriefScreen(file: CaseFile, setID: String, run: CaseRun, stor
                         val right = file.isDiagnosis(lead)
                         val label = file.step(taken.stepID)?.label
                         Row(
-                            Modifier.clearAndSetSemantics { contentDescription = "After ${label ?: "a step"}, your leading diagnosis was $lead" },
+                            Modifier.clearAndSetSemantics { contentDescription = "After ${label ?: "a step"}, your leading diagnosis was $lead" + if (right) ", right" else "" },
                             horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text("${taken.at} min", Modifier.widthIn(min = 48.dp), style = WardTextStyle.caption.textStyle(mono = true), color = wardColor(WardToken.inkSecondary))
                             Text(label ?: "", Modifier.weight(1f), style = WardType.caption.textStyle())
-                            Text(lead, style = WardTextStyle.caption.textStyle(WardWeight.semibold), color = if (right) wardColor(WardToken.success) else wardColor(WardToken.ink))
+                            // right is said in ink with a check in the mode colour, never by colour alone (D7)
+                            if (right) Icon(Icons.Rounded.Check, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(14.dp))
+                            Text(lead, style = WardTextStyle.caption.textStyle(WardWeight.semibold), color = wardColor(WardToken.ink))
                         }
                     }
                 }
@@ -273,7 +276,7 @@ internal fun CaseDebriefScreen(file: CaseFile, setID: String, run: CaseRun, stor
             CaseLabel("Teaching")
             file.teaching.forEachIndexed { index, point ->
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("${index + 1}.", Modifier.clearAndSetSemantics { }, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold, mono = true), color = wardColor(WardToken.primaryInk))
+                    Text("${index + 1}.", Modifier.clearAndSetSemantics { }, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold, mono = true), color = wardColor(WardToken.inkSecondary))
                     Text(point, style = WardTextStyle.subheadline.textStyle())
                 }
             }
