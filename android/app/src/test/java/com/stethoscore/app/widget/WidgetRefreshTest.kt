@@ -1,6 +1,7 @@
 package com.stethoscore.app.widget
 
 import android.content.Context
+import android.content.Intent
 import android.util.Log
 import androidx.test.core.app.ApplicationProvider
 import androidx.work.Configuration
@@ -13,6 +14,7 @@ import com.stethoscore.app.data.GlanceDigest
 import com.stethoscore.app.data.StudyStore
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -26,6 +28,7 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
+import java.util.TimeZone
 
 /**
  * When the widgets next redraw on their own: the next local midnight, or the
@@ -103,7 +106,8 @@ class WidgetRefreshTest {
 
 /**
  * The on-time redraw as WorkManager runs it: one job at a time, replaced by
- * each new digest, redrawing the widgets and queuing the next after itself.
+ * each new digest, redrawing the widgets and queuing the next after itself,
+ * and run at once when the clock is set or the zone changes.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -172,6 +176,44 @@ class WidgetRefreshWorkTest {
         assertEquals(emptyList<WorkInfo>(), infos())
         timer.fire()
         assertEquals(WorkInfo.State.ENQUEUED, waiting().single().state)
+    }
+
+    @Test fun aNewZoneRedrawsAtOnceAndTimesTheNextJobForIt() {
+        // the job timed for Cairo's midnight
+        WidgetRefresh.queue(context, null, now, cairo)
+        val old = waiting().single()
+        val zoneBefore = TimeZone.getDefault()
+        val tokyo = ZoneId.of("Asia/Tokyo")
+        try {
+            TimeZone.setDefault(TimeZone.getTimeZone(tokyo))
+            val drawn = WidgetUpdates.version.value
+            WidgetClockReceiver().onReceive(context, Intent(Intent.ACTION_TIMEZONE_CHANGED))
+            assertTrue("redrawn at once", WidgetUpdates.version.value > drawn)
+            assertTrue("the job for the old zone is gone", infos().none { it.id == old.id })
+            val next = waiting().single()
+            val midnight = WidgetRefresh.delayMs(System.currentTimeMillis(), null, tokyo)
+            assertEquals("the next is at Tokyo's midnight", midnight.toDouble(), next.initialDelayMillis.toDouble(), 10_000.0)
+        } finally {
+            TimeZone.setDefault(zoneBefore)
+        }
+    }
+
+    @Test fun aClockSetQueuesTheJobAndOtherBroadcastsDoNot() {
+        WidgetClockReceiver().onReceive(context, Intent(Intent.ACTION_DATE_CHANGED))
+        assertEquals(emptyList<WorkInfo>(), infos())
+        val drawn = WidgetUpdates.version.value
+        WidgetClockReceiver().onReceive(context, Intent(Intent.ACTION_TIME_CHANGED))
+        assertTrue("redrawn at once", WidgetUpdates.version.value > drawn)
+        assertEquals(WorkInfo.State.ENQUEUED, waiting().single().state)
+    }
+
+    @Test fun theManifestDeclaresTheClockReceiverForBothBroadcasts() {
+        for (action in listOf("android.intent.action.TIMEZONE_CHANGED", "android.intent.action.TIME_SET")) {
+            val found = context.packageManager.queryBroadcastReceivers(Intent(action).setPackage(context.packageName), 0)
+                .map { it.activityInfo }.filter { it.name == WidgetClockReceiver::class.java.name }
+            assertEquals(action, 1, found.size)
+            assertFalse("only the system sends it", found.single().exported)
+        }
     }
 }
 

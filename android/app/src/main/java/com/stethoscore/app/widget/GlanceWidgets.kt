@@ -203,7 +203,6 @@ class DueCardsWidget : GlanceAppWidget() {
     override val previewSizeMode: PreviewSizeMode = sizes
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        WidgetUpdates.drawn(context)
         provideContent { DueCards(DueFace.of(glanceState())) }
     }
 
@@ -289,7 +288,6 @@ class ExamCountdownWidget : GlanceAppWidget() {
     override val previewSizeMode: PreviewSizeMode = sizes
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        WidgetUpdates.drawn(context)
         provideContent {
             ExamCountdown(CountdownFace.of(glanceState(), System.currentTimeMillis()))
         }
@@ -328,7 +326,6 @@ class DoneTodayWidget : GlanceAppWidget() {
     override val previewSizeMode: PreviewSizeMode = sizes
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        WidgetUpdates.drawn(context)
         provideContent {
             DoneToday(TodayFace.of(glanceState(), System.currentTimeMillis()))
         }

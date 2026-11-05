@@ -107,15 +107,22 @@ object WidgetUpdates {
         republishes.submit { store.publishGlance() }
     }
 
-    /** Redraws every placed widget from the file on disk; no widget placed is a no-op. */
+    /**
+     * Redraws every placed widget from the file on disk; no widget placed is a
+     * no-op. Only this redraw of all three records the scale they are drawn at
+     * (drawnScale), once each was asked to: one widget's own update (its
+     * period, or being placed) redraws that one alone, so it records nothing
+     * and catchUp still redraws the others.
+     */
     fun updateNow(context: Context) {
-        drawn(context)
+        val scale = DrawnScale.of(context.applicationContext.resources.configuration)
         version.value += 1
-        runBlocking {
-            for (widget in listOf(DueCardsWidget(), ExamCountdownWidget(), DoneTodayWidget())) {
-                runCatching { widget.updateAll(context) }
-            }
+        val all = runBlocking {
+            listOf(DueCardsWidget(), ExamCountdownWidget(), DoneTodayWidget())
+                .map { widget -> runCatching { widget.updateAll(context) }.isSuccess }
+                .all { it }
         }
+        if (all) record(context, scale)
     }
 
     // MARK: - The font and display size
@@ -163,8 +170,9 @@ object WidgetUpdates {
     }
 
     /**
-     * The app's screen started: the widgets are redrawn if they were last
-     * drawn at another font scale or density, and from Android 15 the picker's
+     * The app's screen started: the widgets are all redrawn unless all three
+     * were last redrawn together at this font scale and density (a widget's
+     * own update since does not count, updateNow), and from Android 15 the picker's
      * previews are published again where they are out of date (WidgetPreviews).
      */
     internal fun catchUp(context: Context) {
@@ -181,17 +189,16 @@ object WidgetUpdates {
 
     internal fun prefs(context: Context) = context.applicationContext.getSharedPreferences("widgets", Context.MODE_PRIVATE)
 
-    /** The scale the widgets were last drawn at, or null before the first drawing this app recorded. */
+    /** The scale all three widgets were last redrawn at together ([updateNow]), or null before the first. */
     fun drawnScale(context: Context): DrawnScale? {
         val prefs = prefs(context)
         if (!prefs.contains(fontScaleKey)) return null
         return DrawnScale(prefs.getFloat(fontScaleKey, 1f), prefs.getInt(densityKey, 0))
     }
 
-    /** The widgets are drawn now at the app's scale: each widget's start (provideGlance) and [updateNow] record it. */
-    fun drawn(context: Context) {
-        val now = DrawnScale.of(context.applicationContext.resources.configuration)
-        if (drawnScale(context) == now) return
-        prefs(context).edit().putFloat(fontScaleKey, now.fontScale).putInt(densityKey, now.densityDpi).apply()
+    /** [updateNow]'s record; nothing else writes it. */
+    private fun record(context: Context, scale: DrawnScale) {
+        if (drawnScale(context) == scale) return
+        prefs(context).edit().putFloat(fontScaleKey, scale.fontScale).putInt(densityKey, scale.densityDpi).apply()
     }
 }

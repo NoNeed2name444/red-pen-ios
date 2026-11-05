@@ -1,7 +1,11 @@
 package com.stethoscore.app.widget
 
+import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProviderInfo
+import android.content.ComponentName
 import android.content.Context
+import android.os.Process
+import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.composeForPreview
 import androidx.test.core.app.ApplicationProvider
 import com.stethoscore.app.data.GlanceState
@@ -13,9 +17,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import java.time.LocalDateTime
 import java.time.ZoneId
+import kotlin.reflect.KClass
 
 /**
  * The picker's previews: each widget's own composable, at every size it
@@ -61,5 +67,57 @@ class WidgetPreviewsTest {
         assertEquals(before, WidgetPreviews.drawnFor(context))
         RuntimeEnvironment.setFontScale(1.3f)
         assertNotEquals(before, WidgetPreviews.drawnFor(context))
+    }
+
+    // MARK: - Publishing, one record per widget
+
+    private val sent = mutableListOf<KClass<out GlanceAppWidgetReceiver>>()
+
+    /** Records each preview sent; the system refuses the ones in [refused] and fails on the ones in [failing]. */
+    private fun system(refused: Set<KClass<*>> = emptySet(), failing: Set<KClass<*>> = emptySet()): suspend (KClass<out GlanceAppWidgetReceiver>) -> Boolean = { receiver ->
+        sent += receiver
+        if (receiver in failing) throw IllegalStateException("no widget service")
+        receiver !in refused
+    }
+
+    private fun publishedOnce() {
+        WidgetUpdates.prefs(context).edit().clear().commit()
+        WidgetPreviews.publishIfStale(context, system())
+        assertEquals(WidgetPreviews.receivers, sent)
+        sent.clear()
+    }
+
+    @Test fun aPartialFailureRepublishesOnlyTheOnesThatFailed() {
+        WidgetUpdates.prefs(context).edit().clear().commit()
+        WidgetPreviews.publishIfStale(context, system(refused = setOf(ExamCountdownReceiver::class), failing = setOf(DoneTodayReceiver::class)))
+        assertEquals("each is tried, past a refusal", WidgetPreviews.receivers, sent)
+        sent.clear()
+        WidgetPreviews.publishIfStale(context, system())
+        assertEquals("the one that went through is not sent again", listOf(ExamCountdownReceiver::class, DoneTodayReceiver::class), sent)
+        sent.clear()
+        WidgetPreviews.publishIfStale(context, system())
+        assertEquals("all current: nothing is sent", emptyList<KClass<*>>(), sent)
+    }
+
+    @Test fun aPreviewTheSystemNoLongerHasIsSentAgain() {
+        publishedOnce()
+        val widgets = shadowOf(AppWidgetManager.getInstance(context))
+        val user = Process.myUserHandle()
+        widgets.addInstalledProvidersForProfile(user, provider(DueCardsReceiver::class, generated = 0))
+        widgets.addInstalledProvidersForProfile(user, provider(DoneTodayReceiver::class, generated = AppWidgetProviderInfo.WIDGET_CATEGORY_HOME_SCREEN))
+        WidgetPreviews.publishIfStale(context, system())
+        assertEquals("the provider with no generated preview for the home screen", listOf(DueCardsReceiver::class), sent)
+    }
+
+    @Test fun aNewFontScaleSendsAllThreeAgain() {
+        publishedOnce()
+        RuntimeEnvironment.setFontScale(1.3f)
+        WidgetPreviews.publishIfStale(context, system())
+        assertEquals(WidgetPreviews.receivers, sent)
+    }
+
+    private fun provider(receiver: KClass<out GlanceAppWidgetReceiver>, generated: Int) = AppWidgetProviderInfo().apply {
+        provider = ComponentName(context, receiver.java)
+        generatedPreviewCategories = generated
     }
 }

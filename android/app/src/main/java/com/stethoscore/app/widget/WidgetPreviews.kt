@@ -1,16 +1,20 @@
 package com.stethoscore.app.widget
 
+import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProviderInfo
 import android.content.Context
 import android.os.Build
+import android.os.Process
 import androidx.annotation.RequiresApi
 import androidx.collection.intSetOf
 import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import com.stethoscore.app.data.GlanceDigest
 import com.stethoscore.app.data.GlanceState
 import kotlinx.coroutines.runBlocking
 import java.time.Instant
 import java.time.ZoneId
+import kotlin.reflect.KClass
 
 /**
  * The widget picker's previews: each widget's own face, drawn by the same
@@ -50,9 +54,10 @@ object WidgetPreviews {
         return GlanceState.CardsDue(digest, digest.dueNow)
     }
 
-    private const val publishedKey = "previewsPublishedFor"
+    /** Where [receiver]'s published preview records what it was drawn for: one record per widget. */
+    internal fun publishedKey(receiver: KClass<out GlanceAppWidgetReceiver>) = "previewsPublishedFor." + receiver.java.name
 
-    /** What the published previews were drawn for: this install of the app, at this font scale and density. */
+    /** What a published preview was drawn for: this install of the app, at this font scale and density. */
     internal fun drawnFor(context: Context): String {
         val installed = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime }.getOrDefault(0L)
         val scale = DrawnScale.of(context.resources.configuration)
@@ -60,22 +65,42 @@ object WidgetPreviews {
     }
 
     /**
-     * Publishes the three previews unless they were published for this install
-     * and scale (drawnFor). The system limits how often a provider's preview
-     * may be set; a refused one is tried again at the next start.
+     * Publishes each widget's preview that is out of date: not published for
+     * this install and scale (drawnFor), or one the system no longer has for
+     * the home screen (its provider's generatedPreviewCategories, as Google's
+     * reference checks). The system limits how often a provider's preview may
+     * be set, so each widget keeps its own record: one refused, or failed, is
+     * tried again at the next start, and the ones that went through are not
+     * sent again.
      */
     @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
     fun publishIfStale(context: Context) {
+        val manager = GlanceAppWidgetManager(context.applicationContext)
+        publishIfStale(context) { receiver ->
+            manager.setWidgetPreviews(receiver, intSetOf(home)) == GlanceAppWidgetManager.SET_WIDGET_PREVIEWS_RESULT_SUCCESS
+        }
+    }
+
+    /** [publishIfStale] with what sends one widget's preview, true when the system took it; a test hands in its own. */
+    @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    internal fun publishIfStale(context: Context, publish: suspend (KClass<out GlanceAppWidgetReceiver>) -> Boolean) {
         val prefs = WidgetUpdates.prefs(context)
         val key = drawnFor(context)
-        if (prefs.getString(publishedKey, null) == key) return
-        val manager = GlanceAppWidgetManager(context.applicationContext)
-        val published = runBlocking {
-            receivers.all {
-                manager.setWidgetPreviews(it, intSetOf(AppWidgetProviderInfo.WIDGET_CATEGORY_HOME_SCREEN)) ==
-                    GlanceAppWidgetManager.SET_WIDGET_PREVIEWS_RESULT_SUCCESS
+        val providers = runCatching {
+            AppWidgetManager.getInstance(context).getInstalledProvidersForPackage(context.packageName, Process.myUserHandle())
+        }.getOrDefault(emptyList())
+        val stale = receivers.filter { receiver ->
+            val provider = providers.firstOrNull { it.provider.className == receiver.java.name }
+            prefs.getString(publishedKey(receiver), null) != key || (provider != null && (provider.generatedPreviewCategories and home) == 0)
+        }
+        if (stale.isEmpty()) return
+        runBlocking {
+            for (receiver in stale) {
+                if (runCatching { publish(receiver) }.getOrDefault(false)) prefs.edit().putString(publishedKey(receiver), key).apply()
             }
         }
-        if (published) prefs.edit().putString(publishedKey, key).apply()
     }
+
+    /** The one category the widgets list (widget_*.xml). */
+    private const val home = AppWidgetProviderInfo.WIDGET_CATEGORY_HOME_SCREEN
 }

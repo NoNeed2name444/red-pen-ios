@@ -3,9 +3,11 @@ package com.stethoscore.app.widget
 import android.app.Activity
 import android.app.Application
 import android.content.res.Configuration
+import androidx.glance.GlanceId
 import androidx.test.core.app.ApplicationProvider
 import com.stethoscore.app.data.GlanceDigest
 import com.stethoscore.app.data.StudyStore
+import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -74,7 +76,7 @@ class WidgetScaleTest {
     @Test fun theScaleTheWidgetsWereDrawnAtIsKept() {
         WidgetUpdates.prefs(app).edit().clear().commit()
         assertNull(WidgetUpdates.drawnScale(app))
-        WidgetUpdates.drawn(app)
+        WidgetUpdates.updateNow(app)
         val now = DrawnScale.of(app.resources.configuration)
         assertEquals(now, WidgetUpdates.drawnScale(app))
         assertFalse("drawn at this scale", WidgetUpdates.needsRedraw(WidgetUpdates.drawnScale(app), now))
@@ -84,7 +86,7 @@ class WidgetScaleTest {
     }
 
     @Test fun anAppStartAfterAMissedFontChangeRedrawsAndRecordsTheNewScale() {
-        WidgetUpdates.drawn(app)
+        WidgetUpdates.updateNow(app)
         val before = WidgetUpdates.drawnScale(app)
         // the font grew while no process heard it
         RuntimeEnvironment.setFontScale(1.3f)
@@ -97,5 +99,22 @@ class WidgetScaleTest {
         val again = WidgetUpdates.version.value
         WidgetUpdates.catchUp(app)
         assertEquals(again, WidgetUpdates.version.value)
+    }
+
+    @Test fun oneWidgetsOwnDrawLeavesCatchUpDueForTheOthers() {
+        WidgetUpdates.updateNow(app)
+        val before = WidgetUpdates.drawnScale(app)
+        // the font grew while no process heard it, then each widget is drawn on its own (its period, or one placed)
+        RuntimeEnvironment.setFontScale(1.3f)
+        for (widget in listOf(DueCardsWidget(), ExamCountdownWidget(), DoneTodayWidget())) {
+            val drew = runBlocking { runCatching { widget.provideGlance(app, object : GlanceId {}) } }
+            // with no Glance session around it, provideGlance stops at provideContent, so it ran up to the drawing
+            assertTrue(drew.exceptionOrNull()?.message.orEmpty(), drew.exceptionOrNull()?.message.orEmpty().startsWith("provideContent requires a ContentReceiver"))
+            assertEquals("one widget's own draw records no scale", before, WidgetUpdates.drawnScale(app))
+        }
+        val drawn = WidgetUpdates.version.value
+        WidgetUpdates.catchUp(app)
+        assertTrue("the next start still redraws them all", WidgetUpdates.version.value > drawn)
+        assertEquals(1.3f, WidgetUpdates.drawnScale(app)!!.fontScale, 0f)
     }
 }

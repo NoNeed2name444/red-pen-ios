@@ -1,6 +1,8 @@
 package com.stethoscore.app.widget
 
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
@@ -17,8 +19,9 @@ import java.util.concurrent.TimeUnit
  * the next card's due time, when the due count may have grown
  * (ios/StethoscoreWidgets/GlanceTimeline.swift:46-51). One unique WorkManager
  * job, no network, for whichever comes first: queued after each new digest
- * (WidgetUpdates), replacing the one before, and again by the job itself once
- * it has redrawn. Never from a widget's onUpdate: a one-time job that finishes
+ * (WidgetUpdates), replacing the one before, again by the job itself once it
+ * has redrawn, and at once when the clock or the zone changes
+ * (WidgetClockReceiver). Never from a widget's onUpdate: a one-time job that finishes
  * there sets onUpdate off again, in a loop.
  */
 object WidgetRefresh {
@@ -41,6 +44,18 @@ object WidgetRefresh {
     /** After a new digest: the job for its [nextDue], in place of any queued or running one. */
     fun queue(context: Context, nextDue: Long?, now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()) {
         enqueue(context, ExistingWorkPolicy.REPLACE, delayMs(now, nextDue, zone))
+    }
+
+    /**
+     * The clock was set or the zone changed (WidgetClockReceiver): the job runs
+     * at once, in place of one timed for the old clock, and then queues the
+     * next for the new zone's midnight or the next due card (queueNext). At
+     * once, not at [queue]'s delay: the faces count today and the days to the
+     * exam in the zone they are drawn in, so a change that crosses midnight
+     * changes them now.
+     */
+    fun queueNow(context: Context) {
+        enqueue(context, ExistingWorkPolicy.REPLACE, 0L)
     }
 
     /**
@@ -68,5 +83,25 @@ class WidgetRefreshWorker(context: Context, params: WorkerParameters) : Worker(c
         runCatching { WidgetUpdates.updateNow(app) }
         if (!isStopped) WidgetRefresh.queueNext(app, GlanceShelf(app.filesDir).read()?.nextDue)
         return Result.success()
+    }
+}
+
+/**
+ * The clock was set, or the time zone changed (a flight, or the owner's own
+ * setting): the job queued for the old clock's midnight would come at the
+ * wrong hour, so the widgets are redrawn now and the next job is timed again
+ * (WidgetRefresh.queueNow). Both broadcasts are exempt from Android 8's limit
+ * on implicit broadcasts, so the manifest entry still hears them with the app
+ * closed; only the system sends them, so the receiver is not exported.
+ */
+class WidgetClockReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action !in actions) return
+        WidgetRefresh.queueNow(context)
+    }
+
+    companion object {
+        /** The two it is declared for (AndroidManifest.xml). */
+        val actions = setOf(Intent.ACTION_TIMEZONE_CHANGED, Intent.ACTION_TIME_CHANGED)
     }
 }
