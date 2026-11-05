@@ -222,7 +222,7 @@ object NumberStack {
 
 /** The one-line sizes' words: the first form that fits the line at the system's font scale, else the shortest, ended with an ellipsis. */
 object OneLineFit {
-    /** How short a one-line widget can be made (widget_countdown.xml, widget_today.xml); Responsive hands it the 48 dp layout. */
+    /** How short a one-line widget can be made (widget_countdown.xml, widget_today.xml): its layout's height (WidgetSizes.oneLine). */
     const val leastHeight = 40.0
 
     /** How tall the line draws at the font [scale], in dp. */

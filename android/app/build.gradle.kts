@@ -39,11 +39,16 @@ dependencies {
     implementation("androidx.window:window:1.5.1")
     // the home-screen widgets (T0200): 1.2.0, the newest stable on Maven Google on 5 Nov 2026
     implementation("androidx.glance:glance-appwidget:1.2.0")
+    // the widgets' redraw at midnight and when the next card falls due (T0208): 2.12.0, the newest stable on Maven Google
+    // on 5 Nov 2026 (released 23 Sep 2026); Glance 1.2.0 brings 2.7.1 for its own sessions, which this lifts
+    implementation("androidx.work:work-runtime-ktx:2.12.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
     testImplementation("org.robolectric:robolectric:4.14.1")
     testImplementation("androidx.compose.ui:ui-test-junit4")
+    // WorkManager in the JVM tests: the refresh job queued and run by hand (WidgetRefreshWorkTest)
+    testImplementation("androidx.work:work-testing:2.12.0")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
     androidTestImplementation(platform("androidx.compose:compose-bom:2025.04.01"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")

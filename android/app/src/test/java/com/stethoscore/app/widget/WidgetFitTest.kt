@@ -1,8 +1,12 @@
 package com.stethoscore.app.widget
 
+import android.content.ComponentName
 import android.content.Context
+import android.content.pm.PackageManager
 import android.content.res.Configuration
+import android.util.Xml
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.SizeMode
 import androidx.test.core.app.ApplicationProvider
@@ -18,6 +22,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.xmlpull.v1.XmlPullParser
 import java.time.Instant
 import java.time.ZoneId
 
@@ -154,7 +159,8 @@ internal object EveryFace {
 
     /**
      * Every face at [scale]: each checked as it draws, and each one-line text
-     * at the one-line size's 48 dp and its least 40 dp. Prints, and returns,
+     * at the one-line size, 110x40, the least a 2x1 is resized to, which every
+     * one-line widget is laid out for (WidgetSizes.oneLine). Prints, and returns,
      * for each size how many faces keep the glyph, give it way and take the
      * last resort, names those that take it, and counts and names the faces
      * drawn below 22 sp.
@@ -183,8 +189,11 @@ internal object EveryFace {
         val line = IntArray(3)
         val shortest = linkedSetOf<String>()
         for (widget in listOf(ExamCountdownWidget(), DoneTodayWidget())) {
-            for (size in sizes(widget).filter { it.h() < WidgetSizes.oneLineHeight }) for (height in listOf(size.h(), OneLineFit.leastHeight)) {
-                val room = FaceRoom.oneLine(size.w(), height, OneLineFit.margin(scale))
+            for (size in sizes(widget).filter { it.h() < WidgetSizes.oneLineHeight }) {
+                // the room the line is picked in is the least the widget can have: no taller layout promises more
+                assertEquals("$name: the one-line layout is the least height", OneLineFit.leastHeight, size.h(), 0.0)
+                assertEquals("$name: the one-line layout is the least width", 110.0, size.w(), 0.0)
+                val room = FaceRoom.oneLine(size.w(), size.h(), OneLineFit.margin(scale))
                 assertTrue("$name: a ${OneLineFit.lineHeight(scale)} dp line is squeezed in $room", OneLineFit.lineHeight(scale) <= room.height)
                 for (forms in lineForms) {
                     val picked = OneLineFit.pick(forms, room, scale)
@@ -214,7 +223,7 @@ internal object EveryFace {
             assertTrue("$name: \"$picked\" leaves out ${face.number}", picked.startsWith(face.number))
             if (face.number in longCounts) longCountsWhole++
         }
-        counts["one line (48 and 40 dp)"] = line
+        counts["one line (110x40)"] = line
         println("$name: per size [with the glyph, glyph gives way, last resort]")
         for ((size, count) in counts) println("  $size: ${count.toList()}")
         for ((size, faces) in lastResort) println("  last resort at $size (${faces.size}): ${faces.joinToString("; ")}")
@@ -432,23 +441,27 @@ class WidgetFitTest {
         val floor = FaceRoom.small(WidgetSizes.smallFloor.w(), WidgetSizes.smallFloor.h())
         val left = FaceRoom.mediumLeft(WidgetSizes.medium.w(), WidgetSizes.medium.h())
         val noFile = DueFace.of(GlanceState.NoFile)
-        // w03 at the floor; at 1.3x the medium's column, as "Open Stethoscore" takes three lines in a 2x2 there
+        // w03 at the floor; at 1.3x the medium's column, as "Open Stethoscore" takes three lines in a 2x2 there:
+        // each fits, and the dash comes down by its ink's height over its baseline at the size it is drawn
         for ((room, scale) in listOf(floor to 1.0, left to 1.0, left to 1.3)) {
             val textScale = TextScale.linear(scale)
             val fit = assertFits("no file", noFile.number, noFile.captions, room, textScale)
-            val size = textScale.dp(fit.numberSize)
-            // a number's box stands on its caption and its ink on its baseline, the box's foot padding over the caption
-            val footPadding = size * WidgetText.below + WidgetText.lineRounding
-            val numberGap = footPadding
-            // the dash's box stands dashDrop lower, its ink dashFoot em over its baseline
-            val dashGap = (fit.captionHeight - fit.dashDrop) + footPadding + size * WidgetText.dashFoot - fit.captionHeight
-            assertEquals("at ${scale}x", numberGap, dashGap, 1e-9)
-            assertEquals(size * WidgetText.dashFoot, fit.dashDrop, 1e-9)
+            assertEquals(textScale.dp(fit.numberSize) * WidgetText.dashFoot, fit.dashDrop, 1e-9)
         }
-        // at 44 sp the dash comes down about 13 dp, which it stood higher than a number before T0206
+        // How far it must come down, measured on 38cdcdd5's pictures, drawn before the drop (2.625 px a dp), each at
+        // 110x110 with the number at 44 sp over a 12 sp caption, the number's box standing on the caption's:
+        // w03-due-no-file: the dash's ink ends at 118.9 px (row 118 is 89 % covered) and its caption's first
+        // baseline ("Open": the n's foot) is at 219 px; w01b-due-small-floor: "24" stands on 183 px and its
+        // caption's baseline ("due now") is at 249 px. So the dash stood 100.1 px over its caption's baseline where
+        // a number stands 66 px over its: 34.1 px, 13.0 dp, too high. The drop must be that, within a pixel, so
+        // drawn with it the dash sits as near its caption as w01b's number does.
+        val px = 2.625
+        val dashOverCaption = (219.0 - 118.9) / px
+        val numberOverCaption = (249.0 - 183.0) / px
         val fit = NumberStack.fit(noFile.number, noFile.captions, floor, one)
         assertEquals(44.0, fit.numberSize, 0.0)
         assertEquals(12.9, fit.dashDrop, 0.1)
+        assertEquals("the drop the pictures ask for", dashOverCaption - numberOverCaption, fit.dashDrop, 1 / px)
         assertEquals("a number is not moved", 0.0, NumberStack.fit("24", listOf("due now"), floor, one).dashDrop, 0.0)
     }
 
@@ -590,5 +603,51 @@ class WidgetTextScaleTest {
         assertEquals(emptyList<String>(), atOne.belowLadder)
         assertEquals(emptyList<String>(), large.belowLadder)
         assertTrue(largest.belowLadder.any { "\"1200\"" in it } && largest.belowLadder.any { "\"9999\"" in it })
+    }
+}
+
+/**
+ * Each widget's faces are fitted in the least room it can have: Responsive
+ * hands a widget the layout of the largest listed size that fits it, or of
+ * the least where none does, so the least size a widget lists must be the
+ * least it can be resized to (its provider's minResizeWidth and
+ * minResizeHeight, from the manifest's receiver), or a widget made smaller
+ * draws a layout that assumes more room than it has.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [35])
+class WidgetLeastSizeTest {
+    private val context: Context get() = ApplicationProvider.getApplicationContext()
+
+    /** The provider's least resize, in dp, read from the XML the manifest names for [receiver]. */
+    private fun leastResize(receiver: Class<*>): DpSize {
+        val info = context.packageManager.getReceiverInfo(ComponentName(context, receiver), PackageManager.GET_META_DATA)
+        val parser = context.resources.getXml(info.metaData.getInt("android.appwidget.provider"))
+        while (parser.next() != XmlPullParser.START_TAG) continue
+        val wanted = intArrayOf(android.R.attr.minResizeWidth, android.R.attr.minResizeHeight)
+        val order = wanted.sortedArray()
+        val values = context.obtainStyledAttributes(Xml.asAttributeSet(parser), order)
+        val density = context.resources.displayMetrics.density
+        fun inDp(attr: Int) = values.getDimension(order.indexOf(attr), -1f) / density
+        val size = DpSize(inDp(wanted[0]).dp, inDp(wanted[1]).dp)
+        values.recycle()
+        return size
+    }
+
+    @Test fun eachWidgetsLeastSizeIsTheLeastItResizesTo() {
+        val widgets = listOf(
+            DueCardsReceiver::class.java to DueCardsWidget(),
+            ExamCountdownReceiver::class.java to ExamCountdownWidget(),
+            DoneTodayReceiver::class.java to DoneTodayWidget(),
+        )
+        for ((receiver, widget) in widgets) {
+            val least = leastResize(receiver)
+            val listed = sizes(widget)
+            assertTrue("${receiver.simpleName}: ${least.label()} not in ${listed.map { it.label() }}", least in listed)
+            for (size in listed) assertTrue("${receiver.simpleName}: ${size.label()} is under ${least.label()}", size.w() >= least.w() && size.h() >= least.h())
+        }
+        assertEquals(DpSize(110.dp, 40.dp), leastResize(ExamCountdownReceiver::class.java))
+        assertEquals(WidgetSizes.oneLine, leastResize(DoneTodayReceiver::class.java))
+        assertEquals(WidgetSizes.smallFloor, leastResize(DueCardsReceiver::class.java))
     }
 }

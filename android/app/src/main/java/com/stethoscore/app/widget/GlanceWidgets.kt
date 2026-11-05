@@ -1,6 +1,7 @@
 package com.stethoscore.app.widget
 
 import android.content.Context
+import android.os.Build
 import android.util.DisplayMetrics
 import android.util.TypedValue
 import androidx.compose.runtime.Composable
@@ -19,8 +20,10 @@ import androidx.glance.LocalSize
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
+import androidx.glance.appwidget.PreviewSizeMode
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
+import androidx.glance.appwidget.appWidgetBackground
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
@@ -51,7 +54,12 @@ import com.stethoscore.app.data.GlanceState
 // as iOS's DueCardsWidget, ExamCountdownWidget and DoneTodayWidget do. No
 // widget opens the library or the network, and none shows a streak.
 
-/** The sizes each widget is drawn at (cells: 2x2 small, 4x2 medium, 2x1 one line). */
+/**
+ * The sizes each widget is drawn at (cells: 2x2 small, 4x2 medium, 2x1 one
+ * line). Responsive hands a widget the layout of the largest of its sizes
+ * that fits it, or of the least where none does, so each is the least real
+ * size it is drawn for: a face is fitted in the least room it can have.
+ */
 internal object WidgetSizes {
     /** A 2x2 at least 122 dp tall: the number at iOS's 44 sp over a one-line caption, 34 sp over two (NumberStack.fit). */
     val small = DpSize(110.dp, 122.dp)
@@ -62,7 +70,12 @@ internal object WidgetSizes {
     val mediumOneRow = DpSize(250.dp, 112.dp)
     /** A 4x2 widget at least 160 dp tall: both deck rows and the button, 48 dp each, with 8 dp above and below. */
     val mediumTall = DpSize(250.dp, 160.dp)
-    val oneLine = DpSize(110.dp, 48.dp)
+    /**
+     * The one-line size: the least a 2x1 is resized to (widget_countdown.xml and
+     * widget_today.xml, 110x40). Every 2x1 from 40 to 109 dp tall is drawn from
+     * this layout, its line centred in the height there is.
+     */
+    val oneLine = DpSize(110.dp, OneLineFit.leastHeight.dp)
     /** Below this height a widget draws its one-line size. */
     const val oneLineHeight = 100.0
 }
@@ -84,16 +97,35 @@ private fun glanceState(): GlanceState {
 private fun GlanceModifier.opens(link: AppLink): GlanceModifier =
     clickable(actionStartActivity(WidgetLinks.intent(LocalContext.current, link)))
 
-/** The widget's ground, its tap, and its margins: iOS's 16 dp at the sides; 12 dp above and below a 2x2 (FaceRoom). */
+/**
+ * The widget's ground, its tap, and its margins: iOS's 16 dp at the sides; 12
+ * dp above and below a 2x2 (FaceRoom). From Android 12 the ground is the
+ * widget's background, as the system's widgets mark theirs, with the system's
+ * widget corners (systemGround); on API 26 to 30 it stays the flat ground.
+ */
 @Composable
 private fun Ground(link: AppLink, spoken: String, vertical: Double = WidgetStyle.smallVerticalMargin, content: @Composable () -> Unit) {
     Box(
-        modifier = GlanceModifier.fillMaxSize().background(WidgetStyle.ground).opens(link)
+        modifier = GlanceModifier.fillMaxSize().background(WidgetStyle.ground).then(systemGround()).opens(link)
             .padding(horizontal = WidgetStyle.dp(WidgetStyle.margin), vertical = WidgetStyle.dp(vertical))
             .semantics { contentDescription = spoken },
         contentAlignment = Alignment.TopStart,
     ) { content() }
 }
+
+/**
+ * From API 31: the ground marked as the widget's background
+ * (appWidgetBackground, which the launcher's open and close animations start
+ * from) and rounded at the system's widget radius
+ * (system_app_widget_background_radius, a dimension API 31 added). Below
+ * it, nothing: the flat ground as before.
+ */
+private fun systemGround(): GlanceModifier =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        GlanceModifier.appWidgetBackground().cornerRadius(android.R.dimen.system_app_widget_background_radius)
+    } else {
+        GlanceModifier
+    }
 
 /**
  * The glyph at the top, then the big number and the caption under it at the
@@ -153,7 +185,7 @@ private fun Glyph(glyph: Int, colour: ColorProvider) {
         modifier = GlanceModifier.size(WidgetStyle.dp(WidgetStyle.glyph)))
 }
 
-/** The one-line size: the first of [forms] that fits 110 dp across, one line, centred in a height that can be 40 dp (widget_today.xml). */
+/** The one-line size: the first of [forms] that fits 110 dp across, one line, in the 40 dp it is laid out for (WidgetSizes.oneLine), centred in the height there is. */
 @Composable
 private fun OneLine(forms: List<String>) {
     val (width, height) = laidOut()
@@ -166,10 +198,19 @@ private fun OneLine(forms: List<String>) {
 // MARK: - Due cards
 
 class DueCardsWidget : GlanceAppWidget() {
-    override val sizeMode = SizeMode.Responsive(setOf(WidgetSizes.smallFloor, WidgetSizes.small, WidgetSizes.medium, WidgetSizes.mediumOneRow, WidgetSizes.mediumTall))
+    private val sizes = SizeMode.Responsive(setOf(WidgetSizes.smallFloor, WidgetSizes.small, WidgetSizes.medium, WidgetSizes.mediumOneRow, WidgetSizes.mediumTall))
+    override val sizeMode: SizeMode = sizes
+    override val previewSizeMode: PreviewSizeMode = sizes
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        WidgetUpdates.drawn(context)
         provideContent { DueCards(DueFace.of(glanceState())) }
+    }
+
+    /** The picker's preview: this face from iOS's sample numbers (WidgetPreviews). */
+    override suspend fun providePreview(context: Context, widgetCategory: Int) {
+        val sample = WidgetPreviews.sample(System.currentTimeMillis())
+        provideContent { DueCards(DueFace.of(sample)) }
     }
 }
 
@@ -243,12 +284,22 @@ class DueCardsReceiver : GlanceAppWidgetReceiver() {
 // MARK: - Exam countdown
 
 class ExamCountdownWidget : GlanceAppWidget() {
-    override val sizeMode = SizeMode.Responsive(setOf(WidgetSizes.oneLine, WidgetSizes.smallFloor, WidgetSizes.small))
+    private val sizes = SizeMode.Responsive(setOf(WidgetSizes.oneLine, WidgetSizes.smallFloor, WidgetSizes.small))
+    override val sizeMode: SizeMode = sizes
+    override val previewSizeMode: PreviewSizeMode = sizes
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        WidgetUpdates.drawn(context)
         provideContent {
             ExamCountdown(CountdownFace.of(glanceState(), System.currentTimeMillis()))
         }
+    }
+
+    /** The picker's preview: this face from iOS's sample numbers (WidgetPreviews). */
+    override suspend fun providePreview(context: Context, widgetCategory: Int) {
+        val now = System.currentTimeMillis()
+        val sample = WidgetPreviews.sample(now)
+        provideContent { ExamCountdown(CountdownFace.of(sample, now)) }
     }
 }
 
@@ -272,12 +323,22 @@ class ExamCountdownReceiver : GlanceAppWidgetReceiver() {
 // MARK: - Done today
 
 class DoneTodayWidget : GlanceAppWidget() {
-    override val sizeMode = SizeMode.Responsive(setOf(WidgetSizes.oneLine, WidgetSizes.smallFloor, WidgetSizes.small))
+    private val sizes = SizeMode.Responsive(setOf(WidgetSizes.oneLine, WidgetSizes.smallFloor, WidgetSizes.small))
+    override val sizeMode: SizeMode = sizes
+    override val previewSizeMode: PreviewSizeMode = sizes
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        WidgetUpdates.drawn(context)
         provideContent {
             DoneToday(TodayFace.of(glanceState(), System.currentTimeMillis()))
         }
+    }
+
+    /** The picker's preview: this face from iOS's sample numbers (WidgetPreviews). */
+    override suspend fun providePreview(context: Context, widgetCategory: Int) {
+        val now = System.currentTimeMillis()
+        val sample = WidgetPreviews.sample(now)
+        provideContent { DoneToday(TodayFace.of(sample, now)) }
     }
 }
 
