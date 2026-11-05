@@ -182,7 +182,7 @@ object HomeBrand { const val name = "Stethoscore" }
     }
 }
 
-/** Home's countdown pill (WardPill one text step smaller: footnote bold). */
+/** Home's countdown pill (WardPill one text step smaller: footnote bold): words in ink, the amber on the clock. */
 @Composable private fun HomePill(text: String, icon: ImageVector?, modifier: Modifier = Modifier) {
     Row(
         modifier.wardInset(CircleShape)
@@ -191,19 +191,25 @@ object HomeBrand { const val name = "Stethoscore" }
         horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) Icon(icon, null, tint = wardColor(WardToken.beam), modifier = Modifier.size(13.dp))
-        Text(text, style = WardTextStyle.footnote.textStyle(WardWeight.bold), color = wardColor(WardToken.warning))
+        // words in ink (the owner, 23 Oct, D1): Caution Amber words read 1.42:1 by day (T0211 A1)
+        Text(text, style = WardTextStyle.footnote.textStyle(WardWeight.bold), color = wardColor(WardToken.ink))
     }
 }
 
-/** Home's chip (WardChip one text step smaller: caption2 semibold). */
-@Composable private fun HomeChip(text: String, tone: WardTone, modifier: Modifier = Modifier) {
+/**
+ * Home's chip (WardChip one text step smaller: caption2 semibold): words in
+ * ink, as WardChip's and as the same beds' chips on the exam plan; the bed's
+ * tone stays on its glyph square.
+ */
+@Composable private fun HomeChip(text: String, modifier: Modifier = Modifier) {
     Row(
         modifier.wardInset(CircleShape)
             .padding(horizontal = WardSpace.s.wardDp, vertical = WardSpace.xs.wardDp)
             .semantics(mergeDescendants = true) {},
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(text, style = WardTextStyle.caption2.textStyle(WardWeight.semibold), color = tone.ink())
+        // words in ink (the owner, 23 Oct, D1), as WardChip's: Due's amber read 1.42:1 and New's coral 2.36:1 by day (T0211 A1)
+        Text(text, style = WardTextStyle.caption2.textStyle(WardWeight.semibold), color = wardColor(WardToken.ink))
     }
 }
 
@@ -348,7 +354,8 @@ fun LazyListScope.homeRoundItems(model: HomeRoundModel, tiles: Boolean, book: Ho
         .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Icon(Icons.AutoMirrored.Rounded.TrendingUp, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(16.dp))
-        Text("Open plan", style = WardTextStyle.footnote.textStyle(WardWeight.semibold), color = wardColor(WardToken.primaryInk))
+        // a link's words in ink, its glyph in the accent, as WardSectionLabel's (D1; the coral words read 2.36:1 by day, T0211 A1)
+        Text("Open plan", style = WardTextStyle.footnote.textStyle(WardWeight.semibold), color = wardColor(WardToken.ink))
     }
 }
 
@@ -413,7 +420,7 @@ fun homeBedChip(bed: BedPlan.Bed): Pair<String, WardTone>? {
         }
     }
     val chipView: @Composable () -> Unit = {
-        if (chip != null) HomeChip(chip.first, chip.second, Modifier.homePart(book, "chip-${bed.id}", "bed ${bed.number}'s ${chip.first} chip"))
+        if (chip != null) HomeChip(chip.first, Modifier.homePart(book, "chip-${bed.id}", "bed ${bed.number}'s ${chip.first} chip"))
     }
     val chevron: @Composable () -> Unit = {
         Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = wardColor(WardToken.inkSecondary), modifier = Modifier.size(16.dp))

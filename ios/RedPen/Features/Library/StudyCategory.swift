@@ -966,7 +966,7 @@ private struct DockItemFace: View {
     @Environment(\.isEnabled) private var enabled
 
     /// The states every control keeps: Chart Ink, the section's accent when
-    /// chosen, Biro Grey when disabled.
+    /// chosen, Biro Grey when disabled. The accent is the glyph's alone.
     private var ink: Color {
         if !enabled { return .wardDisabledInk }
         return chosen ? .wardPrimaryInk : .wardInk
@@ -977,13 +977,16 @@ private struct DockItemFace: View {
             Image(systemName: symbol)
                 .scaledFont(19, relativeTo: .body, weight: .semibold, maxSize: 30)
                 .frame(minHeight: 24)
+                .foregroundStyle(ink)
             // whole at its size where the row has room; a little smaller,
             // all five alike, where it has not (DockSlots)
             Text(title)
                 .font(WardType.face(.caption2, weight: .bold))
                 .lineLimit(1)
                 .minimumScaleFactor(CGFloat(WardDock.leastNameScale))
+                // words are ink, chosen or not (the owner, 23 Oct, D1): the
+                // chosen tab's coral words read 2.36:1 by day (T0211 A1)
+                .foregroundStyle(enabled ? Color.wardInk : Color.wardDisabledInk)
         }
-        .foregroundStyle(ink)
     }
 }

@@ -314,6 +314,99 @@ check("a cloze gap's underline takes the mode colour token in its line style (D1
 check("a cloze gap's words are ink (D16)", cardFace.contains("gap.foregroundColor = Color.wardInk"))
 check("no cloze gap sets underlineColor, which Text ignores", !cardFace.contains("underlineColor"))
 
+// T0211 A1: by day, Due's amber words read 1.42:1, New's, Open plan's and the
+// chosen dock tab's coral 2.36:1, and the Ideas switcher's pink 2.25:1. Each
+// site's words are read from its source and measured, in every section, light
+// and dark, with and without Increase Contrast, on what is behind them: the
+// base (one tone: the page, a card, the dock's panel) and, for a chip, a pill
+// or a chosen segment, the shade inside its well where the words start. No
+// owner case excuses a short one (D1: words become ink, the colour goes on
+// the glyph). A disabled control's Biro Grey is not held to a ratio (WCAG
+// 1.4.3 leaves inactive controls out).
+struct WordSite { let file: String; let from: String; let to: String; let name: String; let pressedIn: Bool }
+let wordSites: [WordSite] = [
+    WordSite(file: "Features/Library/WardHome.swift", from: "private struct HomePill: View {", to: "\n}\n",
+             name: "home's countdown pill", pressedIn: true),
+    WordSite(file: "Features/Library/WardHome.swift", from: "private struct HomeChip: View {", to: "\n}\n",
+             name: "home's Due and New chips", pressedIn: true),
+    WordSite(file: "Features/Library/WardHome.swift", from: "private var planButton: some View {", to: "\n    }\n",
+             name: "home's Open plan link", pressedIn: false),
+    WordSite(file: "Features/Library/StudyCategory.swift", from: "private struct DockItemFace: View {", to: "\n}\n",
+             name: "the dock's tab names", pressedIn: true),
+    WordSite(file: "Shared/FloatingSwitcher.swift", from: "private struct SwitcherSegment<Value: Hashable>: View {", to: "\n}\n",
+             name: "the Ideas switcher's segments", pressedIn: true),
+]
+/// The colour given to each line of words in `region`: the first
+/// `.foregroundStyle(...)` after each `Text(` or `Label(`, as written.
+func wordStyles(_ region: String) -> [String] {
+    var out: [String] = []
+    var at = region.startIndex
+    while let call = region.range(of: #"\b(Text|Label)\("#, options: .regularExpression, range: at..<region.endIndex) {
+        at = call.upperBound
+        guard let style = region.range(of: ".foregroundStyle(", range: call.upperBound..<region.endIndex) else {
+            out.append("")
+            continue
+        }
+        var depth = 1
+        var i = style.upperBound
+        while i < region.endIndex, depth > 0 {
+            if region[i] == "(" { depth += 1 } else if region[i] == ")" { depth -= 1 }
+            if depth > 0 { i = region.index(after: i) }
+        }
+        out.append(String(region[style.upperBound..<i]).trimmingCharacters(in: .whitespaces))
+    }
+    return out
+}
+/// The palette token a style names (`Color.wardInk` is `.ink`), the enabled
+/// side of `enabled ? <token> : Color.wardDisabledInk`; nil for anything
+/// else (a tone, a tint, a local colour), which cannot be measured here.
+func wordToken(_ style: String) -> WardToken? {
+    var s = style
+    if let m = s.range(of: #"^enabled \? (Color)?\.ward\w+ : (Color)?\.wardDisabledInk$"#, options: .regularExpression) {
+        s = String(s[m].dropFirst("enabled ? ".count).split(separator: " ").first ?? "")
+    }
+    guard s.range(of: #"^(Color)?\.ward\w+$"#, options: .regularExpression) != nil,
+          let ward = s.range(of: ".ward") else { return nil }
+    let name = String(s[ward.upperBound...])
+    guard let first = name.first else { return nil }
+    return WardToken(rawValue: first.lowercased() + name.dropFirst())
+}
+for site in wordSites {
+    let text = (try? String(contentsOf: root.appendingPathComponent("ios/RedPen/" + site.file), encoding: .utf8)) ?? ""
+    guard let a = text.range(of: site.from),
+          let b = text.range(of: site.to, range: a.upperBound..<text.endIndex) else {
+        check("\(site.name): found in \(site.file)", false)
+        continue
+    }
+    let styles = wordStyles(String(text[a.lowerBound..<b.lowerBound]))
+    check("\(site.name): every line of words names its colour", !styles.isEmpty && !styles.contains(""),
+          "\(styles.count) lines, \(styles.filter(\.isEmpty).count) without a colour")
+    for style in styles where !style.isEmpty {
+        guard let token = wordToken(style) else {
+            check("\(site.name): its words are a palette token, so they can be measured", false, style)
+            continue
+        }
+        for dark in [false, true] {
+            for hc in [false, true] {
+                for section in WardSection.allCases {
+                    let glide = WardGlide.rest(WardLook(dark: dark, section: section))
+                    var grounds: [(String, UInt32)] = [WardToken.background, .surface, .raised, .well]
+                        .map { ("\($0)", glide.hex($0, dark: dark)) }
+                    if site.pressedIn {
+                        grounds.append(("its well", WardRelief.insetGround(glide.hex(.well, dark: dark), lift: .low, dark: dark,
+                                                                         highContrast: hc, depth: chipTextDepth)))
+                    }
+                    for (on, ground) in grounds {
+                        let r = WardPalette.contrast(glide.hex(token, dark: dark), ground)
+                        check("\(dark ? "dark" : "light")\(hc ? " with Increase Contrast" : "") \(section): \(site.name) (\(token)) read 4.5:1 on \(on)",
+                              r >= 4.5, String(format: "%.2f", r))
+                    }
+                }
+            }
+        }
+    }
+}
+
 // The owner's list holds only cases a check above measured short.
 check("the owner's list is read (\(ownerFile), WardPaletteTests.swift)", !ownerList.isEmpty)
 let ownerStale = ownerList.keys.filter { !ownerSeen.contains($0) }.sorted()

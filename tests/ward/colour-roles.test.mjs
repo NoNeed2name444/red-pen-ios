@@ -106,10 +106,12 @@ check('no screen marks a right answer in Fresh Mint (D7: the mode\'s colour)', h
 // --- 4. words on the page are ink (D1) ---------------------------------------
 
 // files another task owns at this commit (T0140), and the chart's clinical
-// flags (an abnormal value in red, the owner's targets doc; open with D1)
+// flags (an abnormal value in red, the owner's targets doc; open with D1).
+// Home and the dock are held to it since T0211 A1 (WardPaletteTests measures
+// their words).
 const D1_LATER = [
-  'Features/Library/LibraryView.swift', 'Features/Library/WardHome.swift', 'Features/Mock/MockSittingView.swift',
-  'Features/Book/BookReaderView.swift', 'Shared/Theme.swift', 'Features/Library/StudyCategory.swift',
+  'Features/Library/LibraryView.swift', 'Features/Mock/MockSittingView.swift',
+  'Features/Book/BookReaderView.swift', 'Shared/Theme.swift',
 ];
 const accentWords = /\bText\(.*\.(?:foregroundStyle|foregroundColor)\((?:Color)?\.?(?:wardPrimaryInk|wardSuccess|wardWarning|wardBeam|wardEcg|wardRight|tint)\)/;
 const words = [];

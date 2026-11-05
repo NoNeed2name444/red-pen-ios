@@ -610,9 +610,12 @@ struct HomeRoundCard: View {
             // heading's row, so the row is no taller than its two lines and
             // the round's button stays clear of New set; on its own line at
             // the accessibility sizes it keeps its whole target's height
+            // a link's words in ink, its glyph in the accent (the owner, 23
+            // Oct, D1): the coral words read 2.36:1 by day (T0211 A1)
             Label("Open plan", systemImage: "chart.line.uptrend.xyaxis")
+                .labelStyle(WardGlyphLabelStyle(glyph: .wardPrimaryInk))
                 .font(WardType.face(.footnote, weight: .semibold))
-                .foregroundStyle(Color.wardPrimaryInk)
+                .foregroundStyle(Color.wardInk)
                 .padding(.vertical, 12)
                 .contentShape(Rectangle())
                 .padding(.vertical, typeSize.isAccessibilitySize ? 0 : -12)
@@ -695,10 +698,10 @@ struct HomeRoundCard: View {
         .blue
     }
 
-    /// The chip's words and tone: every tone here keeps its text at AA in
-    /// the chip's well (WardPaletteTests: Caution Amber, Resus Red, and the
-    /// section's accent, which is what New takes: no blue outside
-    /// Questions).
+    /// The chip's words and tone. The words are ink, as WardChip's (the
+    /// owner, 23 Oct, D1): in these tones by day, Caution Amber read 1.42:1
+    /// and the section's coral 2.36:1 in the chip's well (T0211 A1). The
+    /// tone colours only a glyph, when the chip has one.
     static func chip(_ bed: BedPlan.Bed) -> (text: String, tone: WardTone)? {
         guard let status = bed.status else { return nil }
         let tone: WardTone
@@ -1156,7 +1159,8 @@ extension View {
     }
 }
 
-/// Home's chip (`WardChip` one Dynamic Type step smaller: `.caption2.weight(.semibold)`).
+/// Home's chip (`WardChip` one Dynamic Type step smaller: `.caption2.weight(.semibold)`):
+/// words in ink, as WardChip's; the tone is on the glyph.
 private struct HomeChip: View {
     let text: String
     var tone: WardTone = .blue
@@ -1168,7 +1172,9 @@ private struct HomeChip: View {
             Text(text)
         }
         .font(WardType.face(.caption2, weight: .semibold))
-        .foregroundStyle(tone.ink)
+        // words are ink (the owner, 23 Oct, D1), as WardChip's: Due's amber
+        // read 1.42:1 and New's coral 2.36:1 by day (T0211 A1)
+        .foregroundStyle(Color.wardInk)
         .padding(.horizontal, WardSpace.s)
         .padding(.vertical, WardSpace.xs)
         .wardInset(in: Capsule())
@@ -1176,7 +1182,8 @@ private struct HomeChip: View {
     }
 }
 
-/// Home's countdown pill (`WardPill` one Dynamic Type step smaller: `.footnote.weight(.bold)`).
+/// Home's countdown pill (`WardPill` one Dynamic Type step smaller: `.footnote.weight(.bold)`):
+/// words in ink, the amber on the clock, as WardPill's.
 private struct HomePill: View {
     let text: String
     var symbol: String? = "clock"
@@ -1190,7 +1197,9 @@ private struct HomePill: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .font(WardType.face(.footnote, weight: .bold))
-        .foregroundStyle(Color.wardWarning)
+        // words are ink (the owner, 23 Oct, D1): Caution Amber words read
+        // 1.42:1 by day (T0211 A1)
+        .foregroundStyle(Color.wardInk)
         .padding(.horizontal, WardSpace.m)
         .padding(.vertical, WardSpace.s)
         .wardInset(in: Capsule())

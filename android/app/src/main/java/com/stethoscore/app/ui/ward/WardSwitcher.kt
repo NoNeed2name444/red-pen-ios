@@ -73,9 +73,10 @@ data class SwitcherItem<T>(val value: T, val title: String, val icon: ImageVecto
                     .then(if (chosen) Modifier.wardInset(shape).wardChosenEdge(shape, true, tint) else Modifier)
                     .defaultMinSize(minWidth = 64.dp, minHeight = 48.dp).padding(horizontal = WardSpace.s.wardDp),
                     horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp, Alignment.CenterVertically)) {
-                    val ink = if (chosen) tint else wardColor(WardToken.ink)
-                    Icon(item.icon, null, tint = ink, modifier = Modifier.size(20.dp))
-                    Text(item.title, style = WardTextStyle.caption2.textStyle(WardWeight.bold), color = ink, maxLines = 1)
+                    // the chosen segment's colour is on its glyph and edge, its words in ink (the owner, 23 Oct,
+                    // D1): Ideas' pink words read 2.25:1 by day (T0211 A1)
+                    Icon(item.icon, null, tint = if (chosen) tint else wardColor(WardToken.ink), modifier = Modifier.size(20.dp))
+                    Text(item.title, style = WardTextStyle.caption2.textStyle(WardWeight.bold), color = wardColor(WardToken.ink), maxLines = 1)
                 }
             }
             IconButton(onClick = collapse, Modifier.semantics { testTag = toggleTag }) {

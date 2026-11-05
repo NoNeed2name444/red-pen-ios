@@ -205,12 +205,16 @@ private struct SwitcherSegment<Value: Hashable>: View {
             VStack(spacing: 3) {
                 Image(systemName: item.symbol)
                     .scaledFont(17, relativeTo: .body, weight: .semibold, maxSize: 28)
+                    .foregroundStyle(ink)
                 Text(L10n.lookup(item.title))
                     .font(WardType.face(.caption2, weight: .bold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
+                    // the chosen segment's colour is on its glyph and edge,
+                    // its words in ink (the owner, 23 Oct, D1): Ideas' pink
+                    // words read 2.25:1 by day (T0211 A1)
+                    .foregroundStyle(enabled ? Color.wardInk : Color.wardDisabledInk)
             }
-            .foregroundStyle(ink)
             .padding(.horizontal, 8)
             .frame(minWidth: 64, minHeight: 48)
             .background {

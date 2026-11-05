@@ -629,12 +629,13 @@ private class DockSlotsPolicy(private val hollowAt:() -> Float?):androidx.compos
         minIntrinsicWidth(measurables,height)
 }
 
-/** One dock item's face: an outline glyph over its name, Chart Ink at rest and the section's ink when chosen (iOS DockItemFace). The name keeps to one line, shrinking to WardDock.leastNameScale before it would cross the ring. */
+/** One dock item's face: an outline glyph over its name, Chart Ink at rest and, chosen, the glyph in the section's ink over words in ink (iOS DockItemFace). The name keeps to one line, shrinking to WardDock.leastNameScale before it would cross the ring. */
 @Composable private fun DockItemFace(icon:ImageVector,name:String,selected:Boolean) {
     val tint=if(selected) wardColor(WardToken.primaryInk) else wardColor(WardToken.ink)
     Icon(icon,null,Modifier.size(23.dp),tint=tint)
     Spacer(Modifier.height(3.dp))
+    // words in ink (the owner, 23 Oct, D1); the chosen tab's colour is on its glyph and ring: coral words read 2.36:1 by day (T0211 A1)
     androidx.compose.foundation.text.BasicText(name,maxLines=1,softWrap=false,
-        style=WardTextStyle.caption2.textStyle(WardWeight.bold).copy(color=tint),
+        style=WardTextStyle.caption2.textStyle(WardWeight.bold).copy(color=wardColor(WardToken.ink)),
         autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize=(WardTextStyle.caption2.size*WardDock.leastNameScale).sp,maxFontSize=WardTextStyle.caption2.size.sp))
 }

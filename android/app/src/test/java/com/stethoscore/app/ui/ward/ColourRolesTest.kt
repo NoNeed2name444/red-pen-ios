@@ -84,8 +84,9 @@ class ColourRolesTest {
     @Test fun wordsOnThePageAreInk() = checks {
         // the clinical flags (an abnormal value in red, the owner's targets doc) wait on the owner with D1; the
         // destructive menu items match iOS's system red; a swipe action's words match iOS's swipe button; the
-        // home header's links match iOS LibraryView, which another task (T0140) owns at this commit
-        val later = setOf("ui/home/WardHome.kt", "ui/library/LibraryList.kt", "ui/book/BookReaderScreen.kt", "ui/StethoscoreApp.kt")
+        // library header's links match iOS LibraryView, which another task (T0140) owns at this commit. Home and
+        // the dock are held to it since T0211 A1.
+        val later = setOf("ui/library/LibraryList.kt", "ui/book/BookReaderScreen.kt")
         val accentWords = Regex("""\bText\((?!.*DropdownMenuItem).*color = (wardColor\(WardToken\.(primaryInk|success|warning|beam|ecg)\)|wardRight\(\))""")
         val found = sources.filter { it.first !in later }.flatMap { (rel, text) ->
             text.lines().mapIndexedNotNull { i, l -> if (accentWords.containsMatchIn(l) && !l.contains("DropdownMenuItem")) "$rel:${i + 1}" else null }
@@ -142,6 +143,61 @@ class ColourRolesTest {
             }.toList()
         }
         check("no chosen chip is toned grey", greyChip.isEmpty(), greyChip.joinToString("; "))
+    }
+
+    @Test fun coloredWordsReadAAWhereTheReviewFoundThem() = checks {
+        // T0211 A1: by day, Due's amber words read 1.42:1, New's, Open plan's and the chosen dock tab's coral 2.36:1,
+        // and the Ideas switcher's pink 2.25:1. Each site's words are read from its source and measured, in every
+        // section, light and dark, with and without high contrast, on what is behind them: the base (one tone: the
+        // page, a card, the dock's panel) and, for a chip, a pill or a chosen segment, the shade inside its well where
+        // the words start. No owner case excuses a short one: words become ink, the colour goes on the glyph.
+        val base = listOf(WardToken.background, WardToken.surface, WardToken.raised, WardToken.well)
+        data class Site(val file: String, val anchor: String, val name: String, val pressedIn: Boolean)
+        val sites = listOf(
+            Site("ui/home/WardHome.kt", "@Composable private fun HomePill(", "home's countdown pill", true),
+            Site("ui/home/WardHome.kt", "@Composable private fun HomeChip(", "home's Due and New chips", true),
+            Site("ui/home/WardHome.kt", "Text(\"Open plan\"", "home's Open plan link", false),
+            Site("ui/StethoscoreApp.kt", "@Composable private fun DockItemFace(", "the dock's tab names", true),
+            Site("ui/ward/WardSwitcher.kt", "@Composable private fun <T> SwitcherStrip(", "the Ideas switcher's segments", true),
+        )
+        val words = Regex("""\b(?:Basic)?Text\(""")
+        val colour = Regex("""color\s*=\s*(wardColor\(WardToken\.(\w+)\)|[A-Za-z_][\w.]*(?:\(\))?)""")
+        for (site in sites) {
+            val text = File(main, site.file).readText()
+            val at = text.indexOf(site.anchor)
+            check("${site.name}: found in ${site.file}", at >= 0)
+            if (at < 0) continue
+            // a function to its closing brace, a one-line call to its line's end
+            val end = if (site.anchor.startsWith("@Composable")) text.indexOf("\n}\n", at) else text.indexOf('\n', at)
+            val region = text.substring(at, if (end < 0) text.length else end)
+            val inks = words.findAll(region).map { m ->
+                // the call, to its closing bracket
+                var depth = 0
+                var i = m.range.last
+                while (i < region.length) {
+                    if (region[i] == '(') depth++ else if (region[i] == ')' && --depth == 0) break
+                    i++
+                }
+                colour.find(region.substring(m.range.first, minOf(region.length, i + 1)))
+            }.toList()
+            check("${site.name}: every line of words names its colour", inks.isNotEmpty() && inks.all { it != null },
+                "${inks.size} calls, ${inks.count { it == null }} without a colour")
+            for (ink in inks.filterNotNull()) {
+                val token = ink.groupValues[2].takeIf { it.isNotEmpty() }?.let { n -> WardToken.entries.firstOrNull { it.name == n } }
+                check("${site.name}: its words are a palette token, so they can be measured", token != null, ink.value)
+                if (token == null) continue
+                for (dark in listOf(false, true)) for (hc in listOf(false, true)) for (s in WardSection.entries) {
+                    val glide = WardGlide.rest(WardLook(dark, s))
+                    val grounds = base.map { it.name to glide.hex(it, dark) }.toMutableList()
+                    if (site.pressedIn) grounds.add("its well" to WardRelief.insetGround(glide.hex(WardToken.well, dark), WardLift.low, dark, hc, 6.0))
+                    for ((on, ground) in grounds) {
+                        val r = WardPalette.contrast(glide.hex(token, dark), ground)
+                        check("${if (dark) "dark" else "light"}${if (hc) " high contrast" else ""} $s: ${site.name} ($token) read 4.5:1 on $on",
+                            r >= 4.5, f2(r))
+                    }
+                }
+            }
+        }
     }
 
     @Test fun aChosenLabelSaysItsWordsInNearBlack() = checks {
