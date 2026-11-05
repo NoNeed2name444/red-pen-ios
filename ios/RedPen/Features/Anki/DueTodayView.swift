@@ -78,44 +78,59 @@ struct DueTodayView: View {
         }
     }
 
+    /// Where the next card's page scrolls back to, as on the quiz
+    /// (MCQQuizView's chartTop).
+    private static let cardTop: String = "card-top"
+
+    /// The card's page; a new card starts at the top of it.
     private func cardScroll(_ due: ReviewPlan.Due) -> some View {
-        ScrollView {
-            if decksInline { header }
-            VStack(alignment: .leading, spacing: 8) {
-                Text(due.setName)
-                    .wardSmallCaps()
-                AnkiCardFace(card: due.card, images: images(for: due),
-                             revealed: revealed, deck: deck(for: due))
-            }
-            .contentCard()
-            // the answer opens under the question (AnkiCardFace): no flip
-            .reviewCardActions(onBury: { bury(due) }, onSuspend: { suspend(due) })
-            .padding(.horizontal, WardSpace.gutter)
-            .padding(.top, 8)
-            .padding(.bottom, revealed ? 8 : 24)
-            .readableColumn()
-            // turned over: the back kept as a note in Ideas
-            if revealed, let set = store.library.first(where: { $0.id == due.setID }) {
-                HStack {
-                    Spacer()
-                    SaveToIdeasButton(clip: SaveToIdeas.clip(card: due.card, in: set,
-                                                             library: store.library))
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: 0) {
+                    Color.clear.frame(height: 1).id(Self.cardTop)
+                    VStack {
+                        if decksInline { header }
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(due.setName)
+                                .wardSmallCaps()
+                            AnkiCardFace(card: due.card, images: images(for: due),
+                                         revealed: revealed, deck: deck(for: due))
+                        }
+                        .contentCard()
+                        // the answer opens under the question (AnkiCardFace): no flip
+                        .reviewCardActions(onBury: { bury(due) }, onSuspend: { suspend(due) })
+                        .padding(.horizontal, WardSpace.gutter)
+                        .padding(.top, 8)
+                        .padding(.bottom, revealed ? 8 : 24)
+                        .readableColumn()
+                        // turned over: the back kept as a note in Ideas
+                        if revealed, let set = store.library.first(where: { $0.id == due.setID }) {
+                            HStack {
+                                Spacer()
+                                SaveToIdeasButton(clip: SaveToIdeas.clip(card: due.card, in: set,
+                                                                         library: store.library))
+                            }
+                            .padding(.horizontal, WardSpace.gutter)
+                            .padding(.bottom, 24)
+                            .readableColumn()
+                        }
+                        // the deck in the page at the accessibility sizes (decksInline)
+                        if decksInline {
+                            footer(due)
+                                .padding(.horizontal, WardSpace.gutter)
+                                .padding(.bottom, 24)
+                                .readableColumn()
+                        }
+                    }
                 }
-                .padding(.horizontal, WardSpace.gutter)
-                .padding(.bottom, 24)
-                .readableColumn()
             }
-            // the deck in the page at the accessibility sizes (decksInline)
-            if decksInline {
-                footer(due)
-                    .padding(.horizontal, WardSpace.gutter)
-                    .padding(.bottom, 24)
-                    .readableColumn()
-            }
+            .reviewUndoChip(until: $undoUntil, action: undo)
+            .studyBar(shown: !decksInline) { footer(due) }
+            .saveToIdeasHost()
+            // rated at the accessibility sizes, the page is left at the deck;
+            // the next card opens at its header (a no-op below them)
+            .onChange(of: due.id) { _, _ in proxy.scrollTo(Self.cardTop, anchor: .top) }
         }
-        .reviewUndoChip(until: $undoUntil, action: undo)
-        .studyBar(shown: !decksInline) { footer(due) }
-        .saveToIdeasHost()
     }
 
     private var emptyScroll: some View {
@@ -189,7 +204,9 @@ struct DueTodayView: View {
         return StudyProgressHeader(status, detail: "\(done) done", fraction: fraction)
     }
 
-    /// Listen and Reveal, then the four ratings, always in the same place.
+    /// Listen and Reveal, then the four ratings: in the bar below the
+    /// accessibility sizes, and inline at the foot of the card's page at
+    /// them (decksInline).
     private func footer(_ due: ReviewPlan.Due) -> some View {
         let kept: ReviewRecord = ReviewPlan.record(for: due.card, in: reviews.records)
         let labels: [AnkiRating: String] = ReviewPlan.previewLabels(for: kept, now: Date(),

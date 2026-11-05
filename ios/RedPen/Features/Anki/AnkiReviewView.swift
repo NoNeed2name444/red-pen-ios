@@ -127,48 +127,63 @@ struct AnkiReviewView: View {
         }
     }
 
-    /// The card, scrolling under the bar that turns it over and rates it.
+    /// Where the next card's page scrolls back to, as on the quiz
+    /// (MCQQuizView's chartTop).
+    private static let cardTop: String = "card-top"
+
+    /// The card, scrolling under the bar that turns it over and rates it; a
+    /// new card starts at the top of its page.
     private func cardScroll(_ item: AnkiQueueItem) -> some View {
-        ScrollView {
-            if decksInline { header }
-            AnkiCardFace(card: item.card, images: studySet.images,
-                         revealed: revealed,
-                         sources: studySet.sources,
-                         openSource: { source, page in
-                             reading = SourceOpening(source: source, page: page)
-                         },
-                         deck: studySet.cards)
-                .contentCard()
-                // the answer opens under the question (AnkiCardFace): no flip
-                .reviewCardActions(onBury: buryCurrent, onSuspend: suspendCurrent)
-                .padding(.horizontal, WardSpace.gutter)
-                .padding(.top, 8)
-                .padding(.bottom, revealed ? 8 : 24)
-                .readableColumn()
-            // turned over: the card's accuracy, and why; and the back kept
-            // as a note in Ideas
-            if revealed {
-                HStack {
-                    AccuracyBadge(set: studySet, itemID: item.card.id.uuidString)
-                    Spacer()
-                    SaveToIdeasButton(clip: SaveToIdeas.clip(card: item.card, in: studySet,
-                                                             library: store.library))
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: 0) {
+                    Color.clear.frame(height: 1).id(Self.cardTop)
+                    VStack {
+                        if decksInline { header }
+                        AnkiCardFace(card: item.card, images: studySet.images,
+                                     revealed: revealed,
+                                     sources: studySet.sources,
+                                     openSource: { source, page in
+                                         reading = SourceOpening(source: source, page: page)
+                                     },
+                                     deck: studySet.cards)
+                            .contentCard()
+                            // the answer opens under the question (AnkiCardFace): no flip
+                            .reviewCardActions(onBury: buryCurrent, onSuspend: suspendCurrent)
+                            .padding(.horizontal, WardSpace.gutter)
+                            .padding(.top, 8)
+                            .padding(.bottom, revealed ? 8 : 24)
+                            .readableColumn()
+                        // turned over: the card's accuracy, and why; and the back kept
+                        // as a note in Ideas
+                        if revealed {
+                            HStack {
+                                AccuracyBadge(set: studySet, itemID: item.card.id.uuidString)
+                                Spacer()
+                                SaveToIdeasButton(clip: SaveToIdeas.clip(card: item.card, in: studySet,
+                                                                         library: store.library))
+                            }
+                            .padding(.horizontal, WardSpace.gutter)
+                            .padding(.bottom, 24)
+                            .readableColumn()
+                        }
+                        // the deck's Reveal, then the ratings, in the page at the
+                        // accessibility sizes, where they scroll with the card
+                        if decksInline {
+                            footer(item)
+                                .padding(.horizontal, WardSpace.gutter)
+                                .padding(.bottom, 24)
+                                .readableColumn()
+                        }
+                    }
                 }
-                .padding(.horizontal, WardSpace.gutter)
-                .padding(.bottom, 24)
-                .readableColumn()
             }
-            // the deck's Reveal, then the ratings, in the page at the
-            // accessibility sizes, where they scroll with the card
-            if decksInline {
-                footer(item)
-                    .padding(.horizontal, WardSpace.gutter)
-                    .padding(.bottom, 24)
-                    .readableColumn()
-            }
+            .reviewUndoChip(until: $undoUntil, action: undo)
+            .studyBar(folds: true, shown: !decksInline) { footer(item) }
+            // rated at the accessibility sizes, the page is left at the deck;
+            // the next card opens at its header (a no-op below them)
+            .onChange(of: item.id) { _, _ in proxy.scrollTo(Self.cardTop, anchor: .top) }
         }
-        .reviewUndoChip(until: $undoUntil, action: undo)
-        .studyBar(folds: true, shown: !decksInline) { footer(item) }
     }
 
     /// The finish: what happened, the way to a quiz on the same cards, and
@@ -253,7 +268,8 @@ struct AnkiReviewView: View {
         return StudyProgressHeader(status, detail: detail, fraction: fraction)
     }
 
-    /// Reveal, then the four ratings, always in the same place.
+    /// Reveal, then the four ratings: in the bar below the accessibility
+    /// sizes, and inline at the foot of the card's page at them (decksInline).
     private func footer(_ item: AnkiQueueItem) -> some View {
         // from the card's stored standing, so studying ahead promises what
         // an early rating will actually store
