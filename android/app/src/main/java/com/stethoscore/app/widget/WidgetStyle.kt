@@ -31,7 +31,11 @@ object WidgetStyle {
     const val mediumVerticalMargin = WardScale.s
     /** The 2x2 faces' top and bottom margin, so the glyph, the number and its caption fit a 110 dp widget (NumberStack). */
     const val smallVerticalMargin = WardScale.m
-    /** Between a deck's name and its count (iOS's Spacer(minLength: 4)). */
+    /**
+     * Between a deck's name and its count (iOS's Spacer(minLength: 4)), and the
+     * least between a 2x2's glyph and its number's ink (iOS's stack spacing of
+     * 4, NumberStack.fit).
+     */
     const val gap = WardScale.xs
     /** The widget's side margins and the gap between its columns. */
     const val margin = WardScale.l
@@ -53,7 +57,7 @@ object WidgetStyle {
     /** Vital Coral, iOS's GlanceStyle.pen: the Ward palette's ECG Red, one value in both modes. */
     val pen: ColorProvider get() = pair(WardToken.ecg)
 
-    /** The big count at [size]: [numberSize], or smaller where the face is short (NumberStack.fit). */
+    /** The big count at [size] sp: [numberSize], or smaller where the face is short or the font is large (NumberStack.fit). */
     fun number(size: Double = numberSize): TextStyle = TextStyle(color = ink, fontSize = size.sp, fontWeight = FontWeight.Bold)
     val caption: TextStyle get() = style(WardType.caption, inkSecondary)
     /**

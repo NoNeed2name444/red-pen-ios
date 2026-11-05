@@ -51,9 +51,9 @@ import com.stethoscore.app.data.GlanceState
 
 /** The sizes each widget is drawn at (cells: 2x2 small, 4x2 medium, 2x1 one line). */
 internal object WidgetSizes {
-    /** A 2x2 at least 122 dp tall: the number at iOS's 44 sp, whatever the caption. */
+    /** A 2x2 at least 122 dp tall: the number at iOS's 44 sp over a one-line caption, 34 sp over two (NumberStack.fit). */
     val small = DpSize(110.dp, 122.dp)
-    /** A 2x2 from 110 to 121 dp tall: the number steps down where the caption takes two lines (NumberStack.fit). */
+    /** A 2x2 from 110 to 121 dp tall: the number steps further down, to 34 sp over a one-line caption and 22 over two. */
     val smallFloor = DpSize(110.dp, 110.dp)
     val medium = DpSize(250.dp, 110.dp)
     /** A 4x2 widget 112 to 159 dp tall: one deck row and the button. */
@@ -96,15 +96,28 @@ private fun Ground(link: AppLink, spoken: String, vertical: Double = WidgetStyle
 /**
  * The glyph at the top, then the big number and the caption under it at the
  * widget's foot (iOS's bigCount), as [fit] sizes them for the room. The glyph
- * stands in the number's top line padding, where nothing is drawn.
+ * stands in the number's top line padding, where nothing is drawn, at least
+ * WidgetStyle.gap above the number's ink.
  */
 @Composable
 private fun NumberAndCaption(glyph: Int, number: String, fit: StackFit, modifier: GlanceModifier = GlanceModifier.fillMaxSize()) {
     Box(modifier = modifier, contentAlignment = Alignment.TopStart) {
         Glyph(glyph, WidgetStyle.pen)
-        Column(modifier = GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.Bottom, horizontalAlignment = Alignment.Start) {
-            Text(number, style = WidgetStyle.number(fit.numberSize), maxLines = 1)
-            Text(fit.caption, style = WidgetStyle.caption, maxLines = NumberStack.captionLines)
+        if (fit.dashDrop == 0.0) {
+            Column(modifier = GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.Bottom, horizontalAlignment = Alignment.Start) {
+                Text(number, style = WidgetStyle.number(fit.numberSize), maxLines = 1)
+                Text(fit.caption, style = WidgetStyle.caption, maxLines = NumberStack.captionLines)
+            }
+        } else {
+            // the en dash's ink stands over its baseline, so it is drawn lower, into the caption's
+            // top line padding, and sits as near its caption as a number does (NumberStack.dashDrop)
+            Box(modifier = GlanceModifier.fillMaxSize(), contentAlignment = Alignment.BottomStart) {
+                Text(number, style = WidgetStyle.number(fit.numberSize), maxLines = 1,
+                    modifier = GlanceModifier.padding(bottom = WidgetStyle.dp(fit.captionHeight - fit.dashDrop)))
+            }
+            Column(modifier = GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.Bottom, horizontalAlignment = Alignment.Start) {
+                Text(fit.caption, style = WidgetStyle.caption, maxLines = NumberStack.captionLines)
+            }
         }
     }
 }
@@ -112,6 +125,10 @@ private fun NumberAndCaption(glyph: Int, number: String, fit: StackFit, modifier
 /** The size Glance lays this face out for (one of WidgetSizes), in dp. */
 @Composable
 private fun laidOut(): Pair<Double, Double> = LocalSize.current.let { it.width.value.toDouble() to it.height.value.toDouble() }
+
+/** The system's font scale: widget text is in sp, so it grows with the reader's font size, and each face is fitted at it. */
+@Composable
+private fun fontScale(): Double = LocalContext.current.resources.configuration.fontScale.toDouble()
 
 /** A Material glyph in place of iOS's SF Symbol, decorative: the words beside it say what it means. */
 @Composable
@@ -125,7 +142,7 @@ private fun Glyph(glyph: Int, colour: ColorProvider) {
 private fun OneLine(forms: List<String>) {
     val (width, height) = laidOut()
     Column(modifier = GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-        Text(OneLineFit.pick(forms, FaceRoom.oneLine(width, height)), style = WidgetStyle.line, maxLines = 1)
+        Text(OneLineFit.pick(forms, FaceRoom.oneLine(width, height), fontScale()), style = WidgetStyle.line, maxLines = 1)
     }
 }
 
@@ -144,7 +161,7 @@ internal fun DueCards(face: DueFace) {
     val (width, height) = laidOut()
     if (!DueLayout.isMedium(width)) {
         Ground(face.link, face.spoken) {
-            NumberAndCaption(R.drawable.ic_widget_stack, face.number, NumberStack.fit(face.number, face.captions, FaceRoom.small(width, height)))
+            NumberAndCaption(R.drawable.ic_widget_stack, face.number, NumberStack.fit(face.number, face.captions, FaceRoom.small(width, height), fontScale()))
         }
         return
     }
@@ -153,7 +170,7 @@ internal fun DueCards(face: DueFace) {
         Row(modifier = GlanceModifier.fillMaxSize()) {
             // only the widget's own 8 dp above and below, as iOS's medium margins (DueCardsWidget.swift:39-40)
             NumberAndCaption(R.drawable.ic_widget_stack, face.number,
-                NumberStack.fit(face.number, face.captions, FaceRoom.mediumLeft(width, height)), GlanceModifier.defaultWeight().fillMaxHeight())
+                NumberStack.fit(face.number, face.captions, FaceRoom.mediumLeft(width, height), fontScale()), GlanceModifier.defaultWeight().fillMaxHeight())
             Spacer(GlanceModifier.width(WidgetStyle.dp(WidgetStyle.margin)))
             Column(modifier = GlanceModifier.defaultWeight().fillMaxHeight()) {
                 for (deck in face.decks.take(rows)) DeckLine(deck)
@@ -226,7 +243,7 @@ internal fun ExamCountdown(face: CountdownFace) {
         Ground(face.link, face.line, vertical = WidgetStyle.mediumVerticalMargin) { OneLine(face.lineForms) }
     } else {
         Ground(face.link, face.spoken) {
-            NumberAndCaption(R.drawable.ic_widget_calendar, face.number, NumberStack.fit(face.number, face.captions, FaceRoom.small(width, height)))
+            NumberAndCaption(R.drawable.ic_widget_calendar, face.number, NumberStack.fit(face.number, face.captions, FaceRoom.small(width, height), fontScale()))
         }
     }
 }
@@ -255,7 +272,7 @@ internal fun DoneToday(face: TodayFace) {
         Ground(face.link, face.line, vertical = WidgetStyle.mediumVerticalMargin) { OneLine(face.lineForms) }
     } else {
         Ground(face.link, face.spoken) {
-            NumberAndCaption(R.drawable.ic_widget_check, face.number, NumberStack.fit(face.number, face.captions, FaceRoom.small(width, height)))
+            NumberAndCaption(R.drawable.ic_widget_check, face.number, NumberStack.fit(face.number, face.captions, FaceRoom.small(width, height), fontScale()))
         }
     }
 }

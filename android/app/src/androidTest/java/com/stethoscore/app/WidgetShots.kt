@@ -53,7 +53,8 @@ class WidgetShots {
 
     // Each widget at the sizes its layout is drawn for (WidgetSizes), the least of each: the 2x2 floor
     // 110x110 and 110x122, 4x2 250x110 (the button), 250x112 (one deck row), 250x160 (two), and the
-    // one-line 110x48. At the floor the number steps down where the caption takes two lines (NumberStack.fit).
+    // one-line 110x48. The number steps down where the caption takes two lines, further at the floor, and
+    // where the font is larger (NumberStack.fit); w06c is drawn at a font scale of 1.3.
     private val longName = GlanceState.CardsDue(digest.copy(examName = "MRCP Part 1"), digest.dueNow)
 
     @Test fun dueCards() {
@@ -68,20 +69,26 @@ class WidgetShots {
     @Test fun examCountdown() {
         shots("w04-countdown-small", WidgetSizes.small) { ExamCountdown(CountdownFace.of(due, now)) }
         shots("w04b-countdown-small-floor", WidgetSizes.smallFloor) { ExamCountdown(CountdownFace.of(longName, now)) }
+        shots("w04c-countdown-small-two-lines", WidgetSizes.small) { ExamCountdown(CountdownFace.of(longName, now)) }
         shots("w05-countdown-line", WidgetSizes.oneLine) { ExamCountdown(CountdownFace.of(due, now)) }
     }
 
     @Test fun doneToday() {
         shots("w06-today-small", WidgetSizes.small) { DoneToday(TodayFace.of(due, now)) }
         shots("w06b-today-small-floor", WidgetSizes.smallFloor) { DoneToday(TodayFace.of(due, now)) }
+        shots("w06c-today-small-large-text", WidgetSizes.small, fontScale = 1.3f) { DoneToday(TodayFace.of(due, now)) }
         shots("w07-today-line", WidgetSizes.oneLine) { DoneToday(TodayFace.of(due, now)) }
     }
 
-    /** [content] at [size], light and dark, into the app's external files (widgets/), which adb can pull. */
-    private fun shots(name: String, size: DpSize, content: @Composable () -> Unit) {
+    /**
+     * [content] at [size] and the system font scale [fontScale], light and dark, into the app's external
+     * files (widgets/), which adb can pull. The configuration's font scale reaches both Glance's
+     * LocalContext, where the faces are fitted, and the TextViews the RemoteViews inflate.
+     */
+    private fun shots(name: String, size: DpSize, fontScale: Float = 1f, content: @Composable () -> Unit) {
         val directory = File(context.getExternalFilesDir(null), "widgets").apply { mkdirs() }
         for (dark in listOf(false, true)) {
-            val themed = night(context, dark)
+            val themed = configured(context, dark, fontScale)
             val views = runBlocking { GlanceRemoteViews().compose(themed, size) { content() } }.remoteViews
             val density = themed.resources.displayMetrics.density
             val width = (size.width.value * density).roundToInt()
@@ -102,10 +109,11 @@ class WidgetShots {
         }
     }
 
-    private fun night(base: Context, dark: Boolean): Context {
+    private fun configured(base: Context, dark: Boolean, fontScale: Float): Context {
         val config = Configuration(base.resources.configuration)
         val mode = if (dark) Configuration.UI_MODE_NIGHT_YES else Configuration.UI_MODE_NIGHT_NO
         config.uiMode = (config.uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or mode
+        config.fontScale = fontScale
         return base.createConfigurationContext(config)
     }
 }

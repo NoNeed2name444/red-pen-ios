@@ -8,22 +8,35 @@ import kotlin.math.ceil
 // face is checked at every size on the JVM (WidgetFitTest). A launcher's
 // RemoteViews cannot shrink text to fit, as iOS's minimumScaleFactor does, so
 // each face picks its number size, its caption and its one-line words from
-// these figures before Glance draws it.
+// these figures before Glance draws it. Widget text is in sp, so it grows with
+// the reader's font size: every size is measured at its sp times the system's
+// font scale, in dp.
 
 /**
  * Roboto, the face Glance's text draws in: its advance widths, in 1/2048 em,
  * and its line heights with the font padding Glance's Text keeps (a line
  * stands [above] em over its baseline and [below] em under it, each further
- * line adds [lineStep] em; digits are [digits] em tall and the en dash's top
- * is [dash] em up). Checked against Android CI run 42014339195's widget
- * pictures (WidgetFitTest).
+ * line adds [lineStep] em, and each line draws up to [lineRounding] dp more;
+ * the round digits' tops are [digits] em up and the en dash's ink runs from
+ * [dashFoot] to [dash] em up, Roboto Bold's own bounds). Checked against
+ * Android CI run 42014339195's widget pictures and T0206's measurements of
+ * them (WidgetFitTest). Sizes here are in dp.
  */
 object WidgetText {
     const val above = 1.0566
     const val below = 0.2715
     const val lineStep = 1.172
-    const val digits = 0.711
-    const val dash = 0.40
+    /** 0, 2, 3, 8 and 9 overshoot the flat digits' 0.711 em. */
+    const val digits = 0.721
+    const val dash = 0.405
+    const val dashFoot = 0.294
+    /**
+     * Android rounds a line's top and foot out to whole pixels, so a line draws
+     * up to about a pixel taller at each: 0.6 dp a line keeps the model at or
+     * over the heights CI's pictures measured, and its clearances at or under
+     * the measured ones.
+     */
+    const val lineRounding = 0.6
 
     /** Widths are rounded up: regular by 2 %; bold, which measured about 4 % wider than regular, by 6 %. */
     const val regularSlack = 1.02
@@ -43,17 +56,17 @@ object WidgetText {
     /** A letter the table lacks: 0.6 em, or a full em for CJK. */
     private fun units(c: Char): Int = advance[c] ?: if (c.code >= 0x2E80) 2048 else 1229
 
-    /** How wide [text] draws at [sp], in dp. */
-    fun width(text: String, sp: Double, bold: Boolean): Double =
-        text.sumOf { units(it) } / 2048.0 * sp * (if (bold) boldSlack else regularSlack)
+    /** How wide [text] draws at [size] dp. */
+    fun width(text: String, size: Double, bold: Boolean): Double =
+        text.sumOf { units(it) } / 2048.0 * size * (if (bold) boldSlack else regularSlack)
 
-    /** How many lines [text] takes in [widthDp], broken at spaces, a word wider than the line broken inside it. */
-    fun lines(text: String, sp: Double, bold: Boolean, widthDp: Double): Int {
-        val space = width(" ", sp, bold)
+    /** How many lines [text] at [size] dp takes in [widthDp], broken at spaces, a word wider than the line broken inside it. */
+    fun lines(text: String, size: Double, bold: Boolean, widthDp: Double): Int {
+        val space = width(" ", size, bold)
         var lines = 1
         var used = 0.0
         for (word in text.split(' ').filter { it.isNotEmpty() }) {
-            val w = width(word, sp, bold)
+            val w = width(word, size, bold)
             when {
                 used == 0.0 -> used = w
                 used + space + w <= widthDp -> used += space + w
@@ -67,8 +80,8 @@ object WidgetText {
         return lines
     }
 
-    /** How tall [lines] lines of [sp] text draw, in dp. */
-    fun height(sp: Double, lines: Int = 1): Double = sp * (above + below) + (lines - 1) * sp * lineStep
+    /** How tall [lines] lines of [size] dp text draw, in dp. */
+    fun height(size: Double, lines: Int = 1): Double = size * (above + below) + (lines - 1) * size * lineStep + lines * lineRounding
 }
 
 /** The room a face has inside its margins, in dp. */
@@ -88,13 +101,18 @@ data class FaceRoom(val width: Double, val height: Double) {
     }
 }
 
-/** What the big number's stack draws: the caption, its lines, and the number's size. */
-data class StackFit(val caption: String, val captionLines: Int, val numberSize: Double)
+/**
+ * What the big number's stack draws: the caption, its lines and their height
+ * in dp, the number's size in sp, and, for the en dash, how far below a
+ * number's place it is drawn (NumberStack.dashDrop; 0 for a number).
+ */
+data class StackFit(val caption: String, val captionLines: Int, val numberSize: Double, val captionHeight: Double, val dashDrop: Double)
 
 /**
  * The big number's stack (iOS's bigCount): the glyph at the top, the number
  * and its caption at the foot. The glyph stands in the number's top line
- * padding, where nothing is drawn, so it needs room only above the number's ink.
+ * padding, where nothing is drawn, so it needs room only above the number's
+ * ink: at least [WidgetStyle.gap] of it, as iOS's stack keeps its spacing.
  */
 object NumberStack {
     /** The caption's most lines, as iOS's lineLimit(2). */
@@ -105,39 +123,56 @@ object NumberStack {
 
     private val captionSize: Double get() = WardType.caption.size
 
+    /** How tall [lines] lines of caption draw at the font [scale], in dp. */
+    fun captionHeight(lines: Int, scale: Double): Double = WidgetText.height(captionSize * scale, lines)
+
+    /**
+     * How far the en dash, at [numberSp] and the font [scale], is drawn below
+     * a number's place, in dp. A digit's ink stands on its baseline and the
+     * dash's [WidgetText.dashFoot] em over it, so the dash comes down by that
+     * much, into the caption's top line padding, where nothing is drawn, and
+     * its foot is as far from the caption as a number's.
+     */
+    fun dashDrop(numberSp: Double, scale: Double): Double = numberSp * scale * WidgetText.dashFoot
+
     /**
      * The gap between the glyph's foot and the top of the number's ink when
      * the number, at [numberSp], and [captionLines] of caption stand at the
-     * foot of [roomHeight]; below 0 they meet. The en dash's ink sits low.
+     * foot of [roomHeight], at the font [scale]; below 0 they meet.
      */
-    fun clearance(roomHeight: Double, numberSp: Double, captionLines: Int, dash: Boolean): Double {
-        val numberTop = roomHeight - WidgetText.height(captionSize, captionLines) - WidgetText.height(numberSp)
-        val inkTop = numberSp * (WidgetText.above - if (dash) WidgetText.dash else WidgetText.digits)
+    fun clearance(roomHeight: Double, numberSp: Double, captionLines: Int, dash: Boolean, scale: Double): Double {
+        val size = numberSp * scale
+        val foot = captionHeight(captionLines, scale) - if (dash) dashDrop(numberSp, scale) else 0.0
+        val numberTop = roomHeight - foot - WidgetText.height(size)
+        val inkTop = size * (WidgetText.above - if (dash) WidgetText.dash else WidgetText.digits)
         return numberTop + inkTop - WidgetStyle.glyph
     }
 
     /**
      * The first of [captions] that fits two lines of [room] (the last one
-     * otherwise), and the largest number size that fits beside the glyph and
-     * across the room.
+     * otherwise), and the largest number size that keeps [WidgetStyle.gap]
+     * below the glyph and fits across the room, all measured at the system's
+     * font [scale].
      */
-    fun fit(number: String, captions: List<String>, room: FaceRoom): StackFit {
-        fun linesOf(text: String) = WidgetText.lines(text, captionSize, bold = false, widthDp = room.width)
+    fun fit(number: String, captions: List<String>, room: FaceRoom, scale: Double): StackFit {
+        fun linesOf(text: String) = WidgetText.lines(text, captionSize * scale, bold = false, widthDp = room.width)
         val caption = captions.firstOrNull { linesOf(it) <= captionLines } ?: captions.last()
         val lines = linesOf(caption).coerceAtMost(captionLines)
         val dash = number == WidgetWords.noNumber
         val size = numberSizes.firstOrNull {
-            WidgetText.width(number, it, bold = true) <= room.width && clearance(room.height, it, lines, dash) >= 0
+            WidgetText.width(number, it * scale, bold = true) <= room.width &&
+                clearance(room.height, it, lines, dash, scale) >= WidgetStyle.gap
         } ?: numberSizes.last()
-        return StackFit(caption, lines, size)
+        return StackFit(caption, lines, size, captionHeight(lines, scale), if (dash) dashDrop(size, scale) else 0.0)
     }
 }
 
-/** The one-line sizes' words: the first form that fits the line, the shortest otherwise. */
+/** The one-line sizes' words: the first form that fits the line at the system's font scale, the shortest otherwise. */
 object OneLineFit {
-    fun fits(text: String, room: FaceRoom): Boolean =
-        WidgetText.width(text, WidgetStyle.lineFace.size, bold = true) <= room.width &&
-            WidgetText.height(WidgetStyle.lineFace.size) <= room.height
+    fun fits(text: String, room: FaceRoom, scale: Double): Boolean {
+        val size = WidgetStyle.lineFace.size * scale
+        return WidgetText.width(text, size, bold = true) <= room.width && WidgetText.height(size) <= room.height
+    }
 
-    fun pick(forms: List<String>, room: FaceRoom): String = forms.firstOrNull { fits(it, room) } ?: forms.last()
+    fun pick(forms: List<String>, room: FaceRoom, scale: Double): String = forms.firstOrNull { fits(it, room, scale) } ?: forms.last()
 }
