@@ -57,11 +57,11 @@ final class ExamplesUITests: XCTestCase {
             XCTAssertEqual(app.state, .runningForeground, "the app stopped opening \(id)")
             XCTAssertFalse(row.exists && row.isHittable, "tapping \(id) opened nothing")
             snap(app, id)
-            // back to the list - one step only, never past it to the library
+            // back to the list - one step only, never past it to the library;
+            // the wait for the hub just below is what this step waits on
             if !hub.exists {
                 let back = app.navigationBars.buttons.firstMatch
                 if back.exists { back.tap() }
-                sleep(1)
             }
             XCTAssertTrue(hub.waitForExistence(timeout: 10), "\(id) didn't come back to the examples")
             while app.buttons["example-ideas"].exists && !app.buttons["example-ideas"].isHittable { app.swipeDown() }
