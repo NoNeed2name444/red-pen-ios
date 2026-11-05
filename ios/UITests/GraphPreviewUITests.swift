@@ -467,8 +467,23 @@ final class GraphPreviewUITests: XCTestCase {
         for _ in 0..<16 where !(banner.exists && banner.isHittable) {
             app.swipeUp()
         }
+        // a slow runner may still be scrolling the banner when it is found:
+        // press it only once two reads 0.3 s apart give the same frame
+        if banner.exists {
+            var last: CGRect = banner.frame
+            for _ in 0..<20 {
+                usleep(300_000)
+                let now: CGRect = banner.frame
+                if now == last { break }
+                last = now
+            }
+        }
         XCTAssertTrue(press(banner), "no examples banner")
         let example = find("example-ideas")
+        // a press that landed while the page moved opens nothing: press once more
+        if !example.waitForExistence(timeout: 3) {
+            _ = press(banner)
+        }
         XCTAssertTrue(example.waitForExistence(timeout: 8) && press(example), "no Ideas example")
         let board = find("ideasMode-board")
         if !board.waitForExistence(timeout: 4) {

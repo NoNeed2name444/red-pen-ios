@@ -219,6 +219,9 @@ final class AccessibilityUITests: XCTestCase {
     /// The issues left to the system, each for a reason. Everything else
     /// fails the test.
     private func isBenign(_ issue: XCUIAccessibilityAuditIssue) -> Bool {
+        // every issue named with its element, before it is judged
+        let line: String = "AUDIT-ISSUE compact=\(issue.compactDescription) detailed=\(issue.detailedDescription) type=\(issue.auditType) element=\(issue.element?.debugDescription ?? "nil")"
+        print(line.replacingOccurrences(of: "\n", with: " | "))
         guard let element = issue.element else { return false }
         // UIKit draws the navigation bar and truncates its inline title at
         // the largest sizes by design (the long-press on it shows the whole

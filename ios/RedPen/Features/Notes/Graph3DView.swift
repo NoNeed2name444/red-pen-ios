@@ -231,7 +231,15 @@ struct Graph3DView: View {
                 }
             }
             if let name = GraphPreview.hold, let id = previewID(name) {
-                command.send(.previewHold(id))
+                // a slow runner can drop a hold sent as the scene settles,
+                // so it is sent again every 2 s until the body's options
+                // show (up to 10 tries); only under -graphPreviewHold
+                var tries = 0
+                while options == nil, tries < 10 {
+                    command.send(.previewHold(id))
+                    tries += 1
+                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+                }
             }
         }
         .task {
