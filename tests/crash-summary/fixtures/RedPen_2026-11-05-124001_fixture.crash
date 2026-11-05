@@ -1,0 +1,41 @@
+Incident Identifier: 00000000-0000-4000-8000-000000000004
+Hardware Model:      VirtualMac2,1
+Process:             RedPen [40002]
+Path:                /Users/runner/Library/Developer/CoreSimulator/Devices/00000000-0000-0000-0000-000000000000/data/Containers/Bundle/Application/00000000-0000-0000-0000-000000000003/RedPen.app/RedPen
+Identifier:          com.cramdown.app
+Version:             1.0 (1)
+Code Type:           ARM-64 (Native)
+Parent Process:      launchd_sim [999]
+
+Date/Time:           2026-11-05 12:40:01.000 +0000
+OS Version:          macOS 26.0 (25A000)
+Report Version:      104
+
+Exception Type:  EXC_BAD_ACCESS (SIGSEGV)
+Exception Codes: KERN_INVALID_ADDRESS at 0x0000000000000010
+Termination Reason: Namespace SIGNAL, Code 11 Segmentation fault: 11
+Terminating Process: exc handler [40002]
+
+Triggered by Thread:  0
+
+Application Specific Information:
+Hand-made synthetic fixture for tests/crash-summary: not a real crash report.
+
+Thread 0 Crashed::  Dispatch queue: com.apple.main-thread
+0   RedPen.debug.dylib            	0x0000000100a01000 FixtureView.body.getter + 40
+1   SwiftUICore                   	0x0000000180000100 fixture_frame_1 + 1
+2   SwiftUICore                   	0x0000000180000200 fixture_frame_2 + 2
+3   SwiftUICore                   	0x0000000180000300 fixture_frame_3 + 3
+4   SwiftUICore                   	0x0000000180000400 fixture_frame_4 + 4
+5   SwiftUICore                   	0x0000000180000500 fixture_frame_5 + 5
+6   SwiftUICore                   	0x0000000180000600 fixture_frame_6 + 6
+7   SwiftUICore                   	0x0000000180000700 fixture_frame_7 + 7
+8   SwiftUICore                   	0x0000000180000800 fixture_frame_8 + 8
+9   SwiftUICore                   	0x0000000180000900 fixture_frame_9 + 9
+10  SwiftUICore                   	0x0000000180000a00 fixture_frame_10 + 10
+11  UIKitCore                     	0x0000000180000b00 fixture_frame_11 + 11
+12  UIKitCore                     	0x0000000180000c00 fixture_frame_12_not_shown + 12
+13  RedPen                        	0x0000000100000d00 main + 13
+
+Thread 1:
+0   libsystem_kernel.dylib        	0x0000000180000e00 fixture_other_thread + 8
