@@ -3696,10 +3696,13 @@ every default:
   widgets show "Open Stethoscore"; "It saves when you open the app or your
   cards change"; the countdown's en dash is hidden from VoiceOver. Tests in
   PlatformTests and BedPlanTests.
-- [x] Slice 3 (T0196): the medium Due widget shows up to two deck rows as
+- [ ] Slice 3 (T0196, code in; ticked only when a Mac screenshot shows two
+  deck rows and the button on a 158 pt medium widget, as the proposal's
+  slice 3 asks for screenshots in CI): the medium Due widget shows up to two deck rows as
   links (redpen://set/<id>, D4; AppRouter already routes .openSet, tested in
   PlatformTests) and a Review button, each at least 44 pt
-  (GlanceStyle.minTarget). The widget draws its own margins, 8 pt above and
+  (GlanceStyle.minTarget; the button is plain, its capsule drawn on the
+  label, so no bordered padding adds to the 44 pt). The widget draws its own margins, 8 pt above and
   below, so the three targets (132 pt) fit a 148 pt widget; ViewThatFits
   drops to one row, then to the button, on a shorter one (iPad 141 pt).
   Open: only a Mac run draws it; screenshots of the three widgets in light

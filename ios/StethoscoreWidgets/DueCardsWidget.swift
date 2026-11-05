@@ -107,11 +107,16 @@ struct DueCardsView: View {
             if due > 0 {
                 // interactive: opens the app on the due cards
                 Button(intent: ReviewDueIntent()) {
+                    // plain, with the look drawn on the label: a bordered
+                    // style's own padding would make the target 56 pt and
+                    // push the second deck row out
                     Label("Review", systemImage: "play.fill")
                         .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(GlanceStyle.pen)
                         .frame(maxWidth: .infinity, minHeight: GlanceStyle.minTarget)
+                        .background(GlanceStyle.pen.opacity(0.15), in: Capsule())
                 }
-                .tint(GlanceStyle.pen)
+                .buttonStyle(.plain)
             }
         }
     }

@@ -15,8 +15,8 @@ import java.time.ZoneId
 //
 // The file is the Swift one, byte for byte: keys sorted, dates ISO-8601 in
 // whole seconds, a missing value left out, "/" written as "\/" (JSONEncoder's
-// default). `goal` is the one field the iOS file does not carry yet; it is
-// optional, so either side reads the other's file. `examName` is home's
+// default). `goal` is optional on both sides (iOS carries it since T0196),
+// so either side reads the other's file, old or new. `examName` is home's
 // name for the exam (ExamCountdown.examName), and the sentence is home's
 // (WardWords.countdown). Pure Kotlin, tested on the JVM (GlanceDigestTest).
 
