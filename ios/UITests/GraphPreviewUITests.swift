@@ -606,14 +606,16 @@ final class GraphPreviewUITests: XCTestCase {
         XCTAssertTrue(quizHeader.waitForExistence(timeout: 10), "second pushed quiz view didn't appear")
         usleep(1_500_000)
 
-        // Short of half the page, and held still a full second before letting
-        // go, so UIKit reads no speed at the release. With 0.4 of the window
-        // (about 0.42 of the inset page) and a 0.1 s hold, a loaded runner
-        // delivered the moves late and close together, UIKit read a flick
-        // and finished the pop (App build on d4567ed0: the 0.75 s drag took
-        // about 2.3 s; plan T0151's preview run, 5 gesture actions in 0.65 s).
+        // Short of half the page, dragged at a low speed, then held a full
+        // second before letting go. The hold sends no touch-moved events, so
+        // it does not zero the pan's speed: UIKit still reads the drag's last
+        // measured speed at the release. With .slow, the App build on
+        // 2542ace3 (run 41986436797) read 257 pt/s at the lift (POP-GESTURE
+        // state=2 vx=257.0) and finished the pop at 28% (POP-END
+        // cancelled=false percent=0.277). About 40 pt/s keeps the release far
+        // below the flick threshold.
         let halfTarget = window.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5))
-        leftEdge.press(forDuration: 0.05, thenDragTo: halfTarget, withVelocity: .slow, thenHoldForDuration: 1.0)
+        leftEdge.press(forDuration: 0.05, thenDragTo: halfTarget, withVelocity: 40, thenHoldForDuration: 1.0)
         usleep(1_500_000)
         // What is on screen after the cancelled back, once, for the run's
         // log beside the app's QUIZSET-CHANGE lines (AnkiReviewView): the
