@@ -68,6 +68,7 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -143,9 +144,12 @@ private const val squiggleLine = 2.0
 /**
  * The top of a category's page, in place of a large title: the date in
  * small caps, the app's name with a squiggle of ECG beside it, a greeting,
- * and the countdown to the exam when there is a date.
+ * and the countdown to the exam when there is a date. With no date the slot
+ * holds one compact button, [examPrompt], that opens the exam setup
+ * ([onExam]; T0211 A6): on a first run it was empty.
  */
-@Composable fun HomeHeader(countdown: String?, modifier: Modifier = Modifier, name: String? = null) {
+@Composable fun HomeHeader(countdown: String?, modifier: Modifier = Modifier, name: String? = null,
+                           examPrompt: String? = null, onExam: () -> Unit = {}) {
     val today = LocalDate.now()
     val greeting = WardWords.greeting(LocalTime.now().hour, name)
     Column(modifier.fillMaxWidth().padding(top = WardSpace.xs.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
@@ -159,6 +163,11 @@ private const val squiggleLine = 2.0
         }
         Text(greeting, style = WardTextStyle.footnote.textStyle(), color = wardColor(WardToken.inkSecondary))
         if (countdown != null) HomePill(countdown, Icons.Rounded.CalendarMonth, Modifier.padding(top = WardSpace.xs.wardDp))
+        else if (examPrompt != null) WardButtonBox(onExam, Modifier.padding(top = WardSpace.xs.wardDp).testTag("homeExamSetUp"),
+            kind = WardButtonKind.compact, fills = false, clickLabel = ExamCountdown.setUpHint) {
+            Icon(Icons.Rounded.CalendarMonth, null, Modifier.size(16.dp))
+            Text(examPrompt)
+        }
     }
 }
 

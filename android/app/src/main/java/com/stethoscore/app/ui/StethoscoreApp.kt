@@ -296,6 +296,8 @@ import com.stethoscore.app.ui.library.LibraryEtch
                         val standardText=LocalDensity.current.fontScale<=1f
                         val windowWidth=androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp
                         var bedsTrimmed by remember(shortWindow,standardText,windowWidth) { mutableStateOf(0) }
+                        // the exam setup, opened from the header's slot while there is no date (T0211 A6)
+                        var examSetUp by remember { mutableStateOf(false) }
                         val home=remember(revision,shortWindow,bedsTrimmed,store.library,com.stethoscore.app.ui.learn.LearnRouter.version) { if(store.library.isEmpty()) null else {
                             val due=store.dueAcross()
                             val situation=com.stethoscore.app.ui.learn.LearnLibrary.examSituation(store,due.size,com.stethoscore.app.ui.mock.MockLibrary.recordsFile(context.filesDir))
@@ -351,8 +353,10 @@ import com.stethoscore.app.ui.library.LibraryEtch
                                 item {
                                     val below=with(LocalDensity.current) { HomeFit.belowHeader.dp.toPx() }
                                     DisposableEffect(Unit) { onDispose { bandBottom=null } }
+                                    val examChosen=remember(revision) { com.stethoscore.app.exam.ExamChoice.current(com.stethoscore.app.exam.ExamChoice.defaults(context))!=null }
                                     HomeHeader(remember(revision) { ExamCountdown.text(store.examDate,examName=ExamCountdown.examName(com.stethoscore.app.exam.ExamChoice.defaults(context))) },
-                                        Modifier.onGloballyPositioned { bandBottom=it.positionInWindow().y+it.size.height+below })
+                                        Modifier.onGloballyPositioned { bandBottom=it.positionInWindow().y+it.size.height+below },
+                                        examPrompt=ExamCountdown.setUp(examChosen),onExam={ examSetUp=true })
                                 }
                                 store.loadError?.let { message -> item { WardCard(Modifier.fillMaxWidth()) {
                                     Icon(Icons.Rounded.ErrorOutline,null,tint=MaterialTheme.colorScheme.error,modifier=Modifier.size(32.dp))
@@ -385,6 +389,9 @@ import com.stethoscore.app.ui.library.LibraryEtch
                         // while the keyboard is up the bar stays behind it, as iOS's does, so it never
                         // rides up over the search's results ("No results for…")
                         val typing=keyboardShown()
+                        if(examSetUp) com.stethoscore.app.ui.exam.ExamSheet({ examSetUp=false }) {
+                            com.stethoscore.app.ui.exam.ExamPickerScreen(store,{ examSetUp=false;refresh() })
+                        }
                         if(typing) SideEffect { barHeight=0.0;barTop=null }
                         if(!typing) Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().onGloballyPositioned { barHeight=(it.size.height/barDensity).toDouble();barTop=(it.positionInRoot().y/barDensity).toDouble() }) { com.stethoscore.app.ui.ward.WardUnlit {
                         // New set on its own row over the dock, at the trailing end, once there is something to list (iOS newSetRow)

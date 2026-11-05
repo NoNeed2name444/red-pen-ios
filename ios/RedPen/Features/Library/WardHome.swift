@@ -36,6 +36,16 @@ enum ExamCountdown {
     static func text(now: Date = Date()) -> String? {
         WardWords.countdown(days: daysLeft(now: now), exam: examName)
     }
+
+    /// The words on the button the countdown's slot holds while there is
+    /// no date (T0211 A6): the exam first, then its date. Android
+    /// ExamCountdown.setUp.
+    static func setUp(examChosen: Bool) -> String {
+        examChosen ? "Add your exam date" : "Choose your exam"
+    }
+
+    /// What the button opens, for VoiceOver: the exam's page, "Your exam".
+    static let setUpHint: String = "Opens Your exam"
 }
 
 // MARK: - The home's sections
@@ -48,10 +58,18 @@ extension LibraryView {
         let now: Date = Date()
         let hour: Int = Calendar.current.component(.hour, from: now)
         let greeting: String = WardWords.greeting(hour: hour, name: account.account?.displayName)
-        let header = HomeHeader(date: now, greeting: greeting, countdown: ExamCountdown.text(now: now))
+        // read so a save in the exam setup draws the header again
+        _ = examVersion
+        let header = HomeHeader(date: now, greeting: greeting, countdown: ExamCountdown.text(now: now),
+                                examPrompt: ExamCountdown.setUp(examChosen: ExamChoice.current != nil),
+                                onExam: { examSetUp = true })
             // where the header ends, for the grid band under it
             .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: { y in
                 bandTrack.header(y)
+            }
+            .sheet(isPresented: $examSetUp) {
+                NavigationStack { ExamPickerView(onDone: { examVersion += 1 }) }
+                    .wardSheet()
             }
         return Section { homeRow(header) }
     }
@@ -275,7 +293,9 @@ extension LibraryView {
 
 /// The top of a category's page, in place of a large title: the date in
 /// small caps, the app's name with a squiggle of ECG beside it, a greeting,
-/// and the countdown to the exam when there is a date.
+/// and the countdown to the exam when there is a date. With no date the
+/// slot holds one compact button, `examPrompt`, that opens the exam setup
+/// (`onExam`; T0211 A6): on a first run it was empty.
 struct HomeHeader: View {
     /// The squiggle's frame, which the opening's ECG becomes (its line is
     /// LaunchOpening.squiggleLine).
@@ -284,6 +304,8 @@ struct HomeHeader: View {
     let date: Date
     let greeting: String
     let countdown: String?
+    var examPrompt: String? = nil
+    var onExam: () -> Void = {}
     @Environment(\.colorScheme) private var scheme
     @ScaledMetric(relativeTo: .largeTitle) private var logoHeight: CGFloat = CGFloat(BrandLogo.defaultHeight)
 
@@ -306,6 +328,15 @@ struct HomeHeader: View {
                 HomePill(text: countdown, symbol: "calendar")
                     .padding(.top, WardSpace.xs)
                     .launchEntrance()
+            } else if let examPrompt {
+                Button(action: onExam) {
+                    Label(examPrompt, systemImage: "calendar")
+                }
+                .buttonStyle(.wardCompact)
+                .accessibilityHint(ExamCountdown.setUpHint)
+                .accessibilityIdentifier("homeExamSetUp")
+                .padding(.top, WardSpace.xs)
+                .launchEntrance()
             }
         }
         .padding(.top, WardSpace.xs)

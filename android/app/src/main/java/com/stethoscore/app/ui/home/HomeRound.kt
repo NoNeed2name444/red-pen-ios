@@ -37,6 +37,15 @@ object ExamCountdown {
     fun daysLeft(examDate: Long?, now: Instant = Instant.now(), zone: ZoneId = ZoneId.systemDefault()): Int? =
         examDate?.let { ExamWeekPlanner.daysLeft(Instant.ofEpochMilli(it), now, zone) }
 
+    /**
+     * The words on the button the countdown's slot holds while there is no
+     * date (T0211 A6): the exam first, then its date. iOS ExamCountdown.setUp.
+     */
+    fun setUp(examChosen: Boolean): String = if (examChosen) "Add your exam date" else "Choose your exam"
+
+    /** What the button opens, for TalkBack: the exam's page, "Your exam". */
+    const val setUpHint: String = "Opens Your exam"
+
     /** "Finals in 23 days"; null with no date, or once it has passed. */
     fun text(examDate: Long?, now: Instant = Instant.now(), zone: ZoneId = ZoneId.systemDefault(), examName: String? = null): String? =
         WardWords.countdown(daysLeft(examDate, now, zone), examName)

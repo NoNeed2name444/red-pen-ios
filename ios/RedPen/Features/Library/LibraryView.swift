@@ -212,6 +212,11 @@ struct LibraryView: View {
     @State var startFrame: CGRect = .zero
     @State var tilesFrame: CGRect = .zero
     @State var bedsSpare: Double = 0
+    /// The exam setup, opened from the header's countdown slot while there
+    /// is no date (T0211 A6), and a count of its saves, so the header
+    /// reads the new date and exam.
+    @State var examSetUp = false
+    @State var examVersion = 0
     /// At the accessibility text sizes the dock is one button over a list
     /// (CategoryDock), so it sits at the bottom even on a wide iPad.
     @Environment(\.dynamicTypeSize) var typeSize
