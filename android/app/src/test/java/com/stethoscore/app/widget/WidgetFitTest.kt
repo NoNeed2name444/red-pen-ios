@@ -87,8 +87,11 @@ internal object EveryFace {
         }
     }
 
-    /** The one-line sizes' words, TalkBack's sentence first. */
-    val lineForms: List<List<String>> get() = countdowns.map { it.lineForms } + todays.map { it.lineForms }
+    /** The one-line sizes' words, TalkBack's sentence first, as the widgets pass them (DoneToday: oneLineForms). */
+    val lineForms: List<List<String>> get() = countdowns.map { it.lineForms } + todays.map { it.oneLineForms }
+
+    /** The longest counts the faces are swept with. */
+    val longCounts = setOf("1200", "9999")
 
     /** [stack] at [scale], checked as it draws. */
     fun check(stack: Stack, scale: TextScale, name: String): StackFit {
@@ -100,6 +103,11 @@ internal object EveryFace {
         fun across(sp: Double) = WidgetText.width(stack.number, scale.dp(sp), bold = true) <= room.width
         fun stands(sp: Double) = NumberStack.headroom(room.height, sp, needed, dash, scale) >= 0
         fun clear(sp: Double) = NumberStack.clearance(room.height, sp, needed, dash, scale) >= WidgetStyle.gap
+        // a count is never cut ("12…" reads as twelve): the number fits across whole, at the last resort's 12 sp floor
+        // at the least, and where it does not even there, this names the face
+        assertTrue("$label: the number is cut, wider than ${room.width} dp even at the floor's ${NumberStack.lastResortSizes.last()} sp",
+            across(fit.numberSize))
+        assertTrue("$label: below the floor", fit.numberSize >= NumberStack.lastResortSizes.last())
         // nothing meets: the number's box and the caption's lines stand one on the other inside the room, so Android
         // squeezes neither, and the glyph, where it is drawn, keeps the gap above the number's ink
         assertTrue("$label: squeezed", NumberStack.headroom(room.height, fit.numberSize, fit.captionLines, dash, scale) >= 0)
@@ -122,22 +130,40 @@ internal object EveryFace {
                 assertFalse("$label: the glyph is drawn without its gap", fit.glyph)
                 assertEquals(label, without, fit.numberSize, 0.0)
             }
-            else -> assertEquals("$label: the last resort is the ladder's foot", NumberStack.numberSizes.last(), fit.numberSize, 0.0)
+            else -> {
+                // the largest last-resort size whose digits fit across with a line of caption under them: 22 sp, the
+                // ladder's foot, where they fit there, and below it only as far as they need
+                val standsOnOne = { sp: Double -> NumberStack.headroom(room.height, sp, 1, dash, scale) >= 0 }
+                val largest = NumberStack.lastResortSizes.firstOrNull { across(it) && standsOnOne(it) }
+                assertEquals("$label: the last resort is the largest size the count fits whole", largest, fit.numberSize)
+            }
         }
+        assertTrue("$label: below the ladder only in the last resort", fit.lastResort || fit.numberSize >= NumberStack.numberSizes.last())
         assertEquals("$label: the last resort only where nothing fits whole", without == null, fit.lastResort)
         if (!fit.lastResort) assertEquals("$label: the caption whole", needed, fit.captionLines)
         return fit
     }
 
     /**
+     * What a sweep found: for each size how many faces keep the glyph, give it
+     * way and take the last resort; the faces whose number is drawn below the
+     * ladder's 22 sp; and how many faces of Due and Today show a [longCounts]
+     * count, each whole.
+     */
+    class Swept(val counts: Map<String, IntArray>, val belowLadder: List<String>, val longCountsWhole: Int)
+
+    /**
      * Every face at [scale]: each checked as it draws, and each one-line text
      * at the one-line size's 48 dp and its least 40 dp. Prints, and returns,
      * for each size how many faces keep the glyph, give it way and take the
-     * last resort, and names those that take it.
+     * last resort, names those that take it, and counts and names the faces
+     * drawn below 22 sp.
      */
-    fun sweep(scale: TextScale, name: String): Map<String, IntArray> {
+    fun sweep(scale: TextScale, name: String): Swept {
         val counts = linkedMapOf<String, IntArray>()
         val lastResort = linkedMapOf<String, MutableSet<String>>()
+        val below = mutableListOf<String>()
+        var longCountsWhole = 0
         for (stack in stacks) {
             val fit = check(stack, scale, name)
             val count = counts.getOrPut(stack.size.label()) { IntArray(3) }
@@ -147,10 +173,12 @@ internal object EveryFace {
                 else -> count[1]++
             }
             if (fit.lastResort) {
-                val cut = WidgetText.width(stack.number, scale.dp(fit.numberSize), bold = true) > stack.room.width
                 lastResort.getOrPut(stack.size.label()) { linkedSetOf() } +=
-                    "${stack.widget} \"${stack.number}\"${if (cut) " (cut)" else ""} / \"${fit.caption}\" on ${fit.captionLines}"
+                    "${stack.widget} \"${stack.number}\" at ${fit.numberSize} sp / \"${fit.caption}\" on ${fit.captionLines}"
             }
+            if (fit.numberSize < NumberStack.numberSizes.last()) below += "${stack.widget} ${stack.size.label()} \"${stack.number}\" at ${fit.numberSize} sp"
+            // check() has found it whole
+            if (stack.widget in setOf("Due", "Today") && stack.number in longCounts) longCountsWhole++
         }
         val line = IntArray(3)
         val shortest = linkedSetOf<String>()
@@ -167,18 +195,38 @@ internal object EveryFace {
                         line[2]++
                         assertTrue("$name: \"$picked\" though a form fits", forms.none { OneLineFit.fits(it, room, scale) })
                         assertEquals("$name: the shortest form, ended with an ellipsis", forms.last(), picked)
+                        // the words may end in the ellipsis, a count never: what runs to its last digit fits with a
+                        // whole em, more than the ellipsis takes, to spare
+                        val count = picked.substring(0, picked.indexOfLast { it.isDigit() } + 1)
+                        val size = scale.dp(WidgetStyle.lineFace.size)
+                        assertTrue("$name: \"$picked\" in $room cuts its count",
+                            WidgetText.width(count, size, bold = true) + size * WidgetText.boldSlack <= room.width)
                         shortest += picked
                     }
                 }
             }
         }
+        // Done today's one line shows its count whole, the long ones too, at the least at the count alone
+        for (face in todays.filter { it.hasFile }) {
+            val room = FaceRoom.oneLine(WidgetSizes.oneLine.w(), OneLineFit.leastHeight, OneLineFit.margin(scale))
+            val picked = OneLineFit.pick(face.oneLineForms, room, scale)
+            assertTrue("$name: Done today's one line \"$picked\" is cut", OneLineFit.fits(picked, room, scale))
+            assertTrue("$name: \"$picked\" leaves out ${face.number}", picked.startsWith(face.number))
+            if (face.number in longCounts) longCountsWhole++
+        }
         counts["one line (48 and 40 dp)"] = line
         println("$name: per size [with the glyph, glyph gives way, last resort]")
         for ((size, count) in counts) println("  $size: ${count.toList()}")
         for ((size, faces) in lastResort) println("  last resort at $size (${faces.size}): ${faces.joinToString("; ")}")
+        println("  below 22 sp, every count whole (${below.size}): ${below.joinToString("; ")}")
+        println("  1200 and 9999 whole in Due and Today: $longCountsWhole faces")
         if (shortest.isNotEmpty()) println("  one line ellipsized (${shortest.size}): ${shortest.joinToString("; ")}")
-        return counts
+        return Swept(counts, below, longCountsWhole)
     }
+
+    /** How many faces show 1200 or 9999 in Due and Today: Due's at each size it lists, Today's at each 2x2 and its one line. */
+    val longCountFaces: Int get() = stacks.count { it.widget in setOf("Due", "Today") && it.number in longCounts } +
+        todays.count { it.hasFile && it.number in longCounts }
 }
 
 /**
@@ -303,16 +351,60 @@ class WidgetFitTest {
         // sp times the font scale, as Android draws it below API 34; Android 14's curve, at 1.0x, 1.3x and the 2.0x
         // stock Android offers only from then, is swept in WidgetTextScaleTest
         val atOne = EveryFace.sweep(one, "1.0x")
-        for ((size, count) in atOne) assertEquals("1.0x $size: every face whole with the glyph", 0, count[1] + count[2])
+        for ((size, count) in atOne.counts) assertEquals("1.0x $size: every face whole with the glyph", 0, count[1] + count[2])
         val large = EveryFace.sweep(TextScale.linear(1.3), "1.3x linear")
-        val floor = large.getValue(WidgetSizes.smallFloor.label())
+        val floor = large.counts.getValue(WidgetSizes.smallFloor.label())
         // the glyph gives way at the floor where a two-line caption at 15.6 dp leaves no room for it
         assertTrue("1.3x at 110x110: ${floor.toList()}", floor[0] + floor[1] >= 170)
         assertEquals("1.3x at 110x110: only three-line captions take the last resort", 8, floor[2])
-        assertEquals(8, large.getValue(WidgetSizes.small.label())[2])
+        assertEquals(8, large.counts.getValue(WidgetSizes.small.label())[2])
         for (size in listOf(WidgetSizes.medium, WidgetSizes.mediumOneRow, WidgetSizes.mediumTall)) {
-            assertEquals("1.3x ${size.label()}", listOf(7, 0, 0), large.getValue(size.label()).toList())
+            assertEquals("1.3x ${size.label()}", listOf(7, 0, 0), large.counts.getValue(size.label()).toList())
         }
+        // 2.0x as sp times the scale, as some makers offered it before Android 14: every count still whole
+        val largest = EveryFace.sweep(TextScale.linear(2.0), "2.0x linear")
+        for (swept in listOf(atOne, large, largest)) assertEquals("1200 and 9999 in Due and Today", EveryFace.longCountFaces, swept.longCountsWhole)
+        // each at Due's 5 sizes, Done today's two 2x2 sizes and its one line
+        assertEquals("1200 and 9999 faces", 2 * (5 + 2 + 1), EveryFace.longCountFaces)
+        // the number goes below 22 sp only at 2.0x
+        assertEquals(emptyList<String>(), atOne.belowLadder)
+        assertEquals(emptyList<String>(), large.belowLadder)
+        assertTrue(largest.belowLadder.isNotEmpty())
+    }
+
+    @Test fun theLastResortStepsBelow22SpOnlyUntilTheCountIsWhole() {
+        assertEquals(listOf(22.0, 17.0, 16.0, 15.0, 13.0, 12.0), NumberStack.lastResortSizes)
+        val floor = FaceRoom.small(WidgetSizes.smallFloor.w(), WidgetSizes.smallFloor.h())
+        val twice = TextScale.linear(2.0)
+        val due = DueFace.of(GlanceState.CardsDue(digest, 24))
+        // at 2.0x "1200" at 22 sp is 105 dp and at 17 sp 81, wider than 78: 16 sp, 76 dp, whole
+        for (count in listOf("1200", "9999")) {
+            val fit = NumberStack.fit(count, due.captions, floor, twice)
+            assertTrue(fit.lastResort)
+            assertEquals(count, 16.0, fit.numberSize, 0.0)
+            assertTrue(WidgetText.width(count, twice.dp(fit.numberSize), bold = true) <= floor.width)
+            assertFalse(WidgetText.width(count, twice.dp(17.0), bold = true) <= floor.width)
+        }
+        // "24" fits across at 22 sp, but over a line of 24 dp caption it is 91.5 dp tall in 86: 17 sp, the next that stands
+        val small = NumberStack.fit(due.number, due.captions, floor, twice)
+        assertEquals(17.0, small.numberSize, 0.0)
+        assertEquals(1, small.captionLines)
+        assertTrue(NumberStack.headroom(floor.height, small.numberSize, small.captionLines, dash = false, scale = twice) >= 0)
+        // where 22 sp fits whole and stands, the last resort stays at it (1.3x, a three-line caption)
+        val noFile = DueFace.of(GlanceState.NoFile)
+        assertEquals(22.0, NumberStack.fit(noFile.number, noFile.captions, floor, TextScale.linear(1.3)).numberSize, 0.0)
+    }
+
+    @Test fun doneTodaysOneLineEndsWithTheCountAloneSoACountIsNeverCut() {
+        val room = FaceRoom.oneLine(WidgetSizes.oneLine.w(), OneLineFit.leastHeight, OneLineFit.margin(TextScale.linear(2.0)))
+        val long = TodayFace.of(GlanceState.CardsDue(digest.copy(today = 1200, goal = 300), 24), now, utc)
+        assertEquals(listOf("1200 of 300 done today", "1200/300 today", "1200/300", "1200"), long.oneLineForms)
+        // at 1.0x "1200/300" fits; at 2.0x it would end "120…", so the count alone
+        assertEquals("1200/300", OneLineFit.pick(long.oneLineForms, FaceRoom.oneLine(WidgetSizes.oneLine.w(), WidgetSizes.oneLine.h()), one))
+        assertEquals("1200", OneLineFit.pick(long.oneLineForms, room, TextScale.linear(2.0)))
+        // with no file it still says "Open app", not the dash
+        val noFile = TodayFace.of(GlanceState.NoFile, now, utc)
+        assertEquals(noFile.lineForms, noFile.oneLineForms)
     }
 
     @Test fun theLastResortHoldsTheCaptionToTheLinesThatFit() {
@@ -488,10 +580,15 @@ class WidgetTextScaleTest {
 
     @Test fun onThePlatformsCurveNothingMeetsAtAnyScale() {
         val atOne = EveryFace.sweep(scale(1.0f), "1.0x curve")
-        for ((size, count) in atOne) assertEquals("1.0x $size", 0, count[1] + count[2])
+        for ((size, count) in atOne.counts) assertEquals("1.0x $size", 0, count[1] + count[2])
         val large = EveryFace.sweep(scale(1.3f), "1.3x curve")
-        val floor = large.getValue(WidgetSizes.smallFloor.label())
+        val floor = large.counts.getValue(WidgetSizes.smallFloor.label())
         assertTrue("1.3x at 110x110: ${floor.toList()}", floor[0] + floor[1] >= 170)
-        EveryFace.sweep(scale(2.0f), "2.0x curve")
+        val largest = EveryFace.sweep(scale(2.0f), "2.0x curve")
+        // every count whole on the curve as well, 1200 and 9999 in Due and Today among them, below 22 sp only at 2.0x
+        for (swept in listOf(atOne, large, largest)) assertEquals("1200 and 9999 in Due and Today", EveryFace.longCountFaces, swept.longCountsWhole)
+        assertEquals(emptyList<String>(), atOne.belowLadder)
+        assertEquals(emptyList<String>(), large.belowLadder)
+        assertTrue(largest.belowLadder.any { "\"1200\"" in it } && largest.belowLadder.any { "\"9999\"" in it })
     }
 }

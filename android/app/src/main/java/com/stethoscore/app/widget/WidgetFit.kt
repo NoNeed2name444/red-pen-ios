@@ -120,8 +120,9 @@ data class FaceRoom(val width: Double, val height: Double) {
  * (its maxLines) with their height in dp, the number's size in sp, whether the
  * glyph is drawn, and, for the en dash, how far below a number's place it is
  * drawn (NumberStack.dashDrop; 0 for a number). [lastResort]: nothing fitted
- * whole, so the number is at the ladder's foot and Glance's Text ends what
- * does not fit with an ellipsis.
+ * whole, so the number is at the largest of NumberStack.lastResortSizes at
+ * which its digits fit whole, and the caption is held to the lines that fit,
+ * which Glance's Text ends with an ellipsis.
  */
 data class StackFit(
     val caption: String,
@@ -147,6 +148,15 @@ object NumberStack {
 
     /** iOS's 44 sp first, then the Ward title sizes down to 22, half of it, as far as iOS's minimumScaleFactor(0.5) goes. */
     val numberSizes: List<Double> = listOf(WidgetStyle.numberSize, WardTextStyle.largeTitle.size, WardTextStyle.title.size, WardTextStyle.title2.size)
+
+    /**
+     * The last resort's sizes: the ladder's 22 sp foot, then the Ward sizes
+     * from headline's 17 down to the caption's 12. A count is never cut, as
+     * "12…" reads as twelve, so there the number goes on below iOS's floor
+     * until its digits fit whole.
+     */
+    val lastResortSizes: List<Double> = listOf(WardTextStyle.title2.size, WardTextStyle.headline.size, WardTextStyle.callout.size,
+        WardTextStyle.subheadline.size, WardTextStyle.footnote.size, WardTextStyle.caption.size)
 
     private val captionSize: Double get() = WardType.caption.size
 
@@ -184,8 +194,10 @@ object NumberStack {
      * otherwise) and, measured at the system's font [scale], the largest
      * number size that fits across the room with the caption under it and
      * [WidgetStyle.gap] below the glyph; else the largest that fits without
-     * the glyph; else the last resort: the ladder's foot, the caption held to
-     * the lines that fit, ended with an ellipsis.
+     * the glyph; else the last resort: the largest of [lastResortSizes] whose
+     * digits fit across whole with a line of caption under them, the caption
+     * held to the lines that fit, ended with an ellipsis. The number itself
+     * is never ended with one: it is drawn at a size it fits.
      */
     fun fit(number: String, captions: List<String>, room: FaceRoom, scale: TextScale): StackFit {
         fun linesOf(text: String) = WidgetText.lines(text, scale.dp(captionSize), bold = false, widthDp = room.width)
@@ -201,7 +213,8 @@ object NumberStack {
             numberSizes.firstOrNull { across(it) && stands(it, needed) && clear(it, needed) }?.let { return stack(it, needed, glyph = true, lastResort = false) }
             numberSizes.firstOrNull { across(it) && stands(it, needed) }?.let { return stack(it, needed, glyph = false, lastResort = false) }
         }
-        val size = numberSizes.last()
+        // where even 12 sp is too wide, or too tall for a line of caption, the test that sweeps every face names it
+        val size = lastResortSizes.firstOrNull { across(it) && stands(it, 1) } ?: lastResortSizes.firstOrNull { across(it) } ?: lastResortSizes.last()
         val lines = (minOf(needed, captionLines) downTo 1).firstOrNull { stands(size, it) } ?: 1
         return stack(size, lines, glyph = clear(size, lines), lastResort = true)
     }
@@ -227,3 +240,11 @@ object OneLineFit {
 
     fun pick(forms: List<String>, room: FaceRoom, scale: TextScale): String = forms.firstOrNull { fits(it, room, scale) } ?: forms.last()
 }
+
+/**
+ * Done today's one-line words: its forms, then, with a file, the count alone.
+ * The shortest form is ended with an ellipsis where none fits, and a cut
+ * count misreads ("1200/3…", or "120…" at 2.0x), so the count, which fits
+ * the line at every font scale (WidgetFitTest), comes last.
+ */
+val TodayFace.oneLineForms: List<String> get() = if (hasFile) lineForms + number else lineForms

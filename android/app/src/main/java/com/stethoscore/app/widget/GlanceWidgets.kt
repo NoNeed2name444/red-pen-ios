@@ -101,7 +101,10 @@ private fun Ground(link: AppLink, spoken: String, vertical: Double = WidgetStyle
  * stands in the number's top line padding, where nothing is drawn, at least
  * WidgetStyle.gap above the number's ink; at a large font, where that gap
  * does not fit, the glyph gives way. The caption is held to [StackFit.captionLines],
- * which Glance's Text ends with an ellipsis.
+ * which Glance's Text ends with an ellipsis. The number keeps one line and is
+ * never ended with one: Glance's text style sets ellipsize end and Glance's
+ * Text cannot turn it off, so the number is drawn at a size its digits fit
+ * whole ([StackFit.numberSize]), and the ellipsis never comes into play.
  */
 @Composable
 private fun NumberAndCaption(glyph: Int, number: String, fit: StackFit, modifier: GlanceModifier = GlanceModifier.fillMaxSize()) {
@@ -282,8 +285,9 @@ class DoneTodayWidget : GlanceAppWidget() {
 internal fun DoneToday(face: TodayFace) {
     val (width, height) = laidOut()
     if (height < WidgetSizes.oneLineHeight) {
-        // the sentence is too wide for a 2x1 at 110 dp, so it shows "32/50 today" and is read out whole
-        Ground(face.link, face.line, vertical = OneLineFit.margin(textScale())) { OneLine(face.lineForms) }
+        // the sentence is too wide for a 2x1 at 110 dp, so it shows "32/50 today", or at a large font the count
+        // alone, never cut, and is read out whole
+        Ground(face.link, face.line, vertical = OneLineFit.margin(textScale())) { OneLine(face.oneLineForms) }
     } else {
         Ground(face.link, face.spoken) {
             NumberAndCaption(R.drawable.ic_widget_check, face.number, NumberStack.fit(face.number, face.captions, FaceRoom.small(width, height), textScale()))
