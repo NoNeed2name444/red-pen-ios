@@ -192,6 +192,15 @@ enum GlancePublisher {
     static let liveActivityKey = "platform.examDayLiveActivity"
 }
 
+enum GlanceShelfCheck: Equatable {
+    case ready, noGroup, noContainer, noFile, unreadable
+    var widgetsCanRead: Bool { self == .ready }
+}
+
+enum GlanceShelf {
+    static func check() -> GlanceShelfCheck { .noGroup }
+}
+
 enum AppLock {
     static let key = "platform.appLock"
     static var supported: Bool { false }
