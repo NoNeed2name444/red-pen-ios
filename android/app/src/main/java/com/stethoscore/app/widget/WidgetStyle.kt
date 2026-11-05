@@ -53,7 +53,8 @@ object WidgetStyle {
     /** Vital Coral, iOS's GlanceStyle.pen: the Ward palette's ECG Red, one value in both modes. */
     val pen: ColorProvider get() = pair(WardToken.ecg)
 
-    val number: TextStyle get() = TextStyle(color = ink, fontSize = numberSize.sp, fontWeight = FontWeight.Bold)
+    /** The big count at [size]: [numberSize], or smaller where the face is short (NumberStack.fit). */
+    fun number(size: Double = numberSize): TextStyle = TextStyle(color = ink, fontSize = size.sp, fontWeight = FontWeight.Bold)
     val caption: TextStyle get() = style(WardType.caption, inkSecondary)
     /**
      * The one-line sizes' text, on one line: footnote, semibold, as the app

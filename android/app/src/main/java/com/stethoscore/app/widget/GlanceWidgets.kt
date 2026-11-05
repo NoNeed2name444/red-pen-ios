@@ -51,7 +51,10 @@ import com.stethoscore.app.data.GlanceState
 
 /** The sizes each widget is drawn at (cells: 2x2 small, 4x2 medium, 2x1 one line). */
 internal object WidgetSizes {
-    val small = DpSize(110.dp, 110.dp)
+    /** A 2x2 at least 122 dp tall: the number at iOS's 44 sp, whatever the caption. */
+    val small = DpSize(110.dp, 122.dp)
+    /** A 2x2 from 110 to 121 dp tall: the number steps down where the caption takes two lines (NumberStack.fit). */
+    val smallFloor = DpSize(110.dp, 110.dp)
     val medium = DpSize(250.dp, 110.dp)
     /** A 4x2 widget 112 to 159 dp tall: one deck row and the button. */
     val mediumOneRow = DpSize(250.dp, 112.dp)
@@ -79,7 +82,7 @@ private fun glanceState(): GlanceState {
 private fun GlanceModifier.opens(link: AppLink): GlanceModifier =
     clickable(actionStartActivity(WidgetLinks.intent(LocalContext.current, link)))
 
-/** The widget's ground, its tap, and its margins: iOS's 16 dp at the sides; 12 dp above and below a 2x2, so it fits 110 dp. */
+/** The widget's ground, its tap, and its margins: iOS's 16 dp at the sides; 12 dp above and below a 2x2 (FaceRoom). */
 @Composable
 private fun Ground(link: AppLink, spoken: String, vertical: Double = WidgetStyle.smallVerticalMargin, content: @Composable () -> Unit) {
     Box(
@@ -92,20 +95,23 @@ private fun Ground(link: AppLink, spoken: String, vertical: Double = WidgetStyle
 
 /**
  * The glyph at the top, then the big number and the caption under it at the
- * widget's foot (iOS's bigCount). The glyph stands in the number's top line
- * padding, where nothing is drawn, so the three fit a 2x2 at 110 dp and the
- * medium widget's left column at 112 (NumberStack).
+ * widget's foot (iOS's bigCount), as [fit] sizes them for the room. The glyph
+ * stands in the number's top line padding, where nothing is drawn.
  */
 @Composable
-private fun NumberAndCaption(glyph: Int, number: String, caption: String, modifier: GlanceModifier = GlanceModifier.fillMaxSize()) {
+private fun NumberAndCaption(glyph: Int, number: String, fit: StackFit, modifier: GlanceModifier = GlanceModifier.fillMaxSize()) {
     Box(modifier = modifier, contentAlignment = Alignment.TopStart) {
         Glyph(glyph, WidgetStyle.pen)
         Column(modifier = GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.Bottom, horizontalAlignment = Alignment.Start) {
-            Text(number, style = WidgetStyle.number, maxLines = 1)
-            Text(caption, style = WidgetStyle.caption, maxLines = 2)
+            Text(number, style = WidgetStyle.number(fit.numberSize), maxLines = 1)
+            Text(fit.caption, style = WidgetStyle.caption, maxLines = NumberStack.captionLines)
         }
     }
 }
+
+/** The size Glance lays this face out for (one of WidgetSizes), in dp. */
+@Composable
+private fun laidOut(): Pair<Double, Double> = LocalSize.current.let { it.width.value.toDouble() to it.height.value.toDouble() }
 
 /** A Material glyph in place of iOS's SF Symbol, decorative: the words beside it say what it means. */
 @Composable
@@ -114,18 +120,19 @@ private fun Glyph(glyph: Int, colour: ColorProvider) {
         modifier = GlanceModifier.size(WidgetStyle.dp(WidgetStyle.glyph)))
 }
 
-/** The one-line size: one line, centred in the height, which can be 40 dp (widget_today.xml). */
+/** The one-line size: the first of [forms] that fits 110 dp across, one line, centred in a height that can be 40 dp (widget_today.xml). */
 @Composable
-private fun OneLine(text: String) {
+private fun OneLine(forms: List<String>) {
+    val (width, height) = laidOut()
     Column(modifier = GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-        Text(text, style = WidgetStyle.line, maxLines = 1)
+        Text(OneLineFit.pick(forms, FaceRoom.oneLine(width, height)), style = WidgetStyle.line, maxLines = 1)
     }
 }
 
 // MARK: - Due cards
 
 class DueCardsWidget : GlanceAppWidget() {
-    override val sizeMode = SizeMode.Responsive(setOf(WidgetSizes.small, WidgetSizes.medium, WidgetSizes.mediumOneRow, WidgetSizes.mediumTall))
+    override val sizeMode = SizeMode.Responsive(setOf(WidgetSizes.smallFloor, WidgetSizes.small, WidgetSizes.medium, WidgetSizes.mediumOneRow, WidgetSizes.mediumTall))
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent { DueCards(DueFace.of(glanceState())) }
@@ -134,16 +141,19 @@ class DueCardsWidget : GlanceAppWidget() {
 
 @Composable
 internal fun DueCards(face: DueFace) {
-    val size = LocalSize.current
-    if (!DueLayout.isMedium(size.width.value.toDouble())) {
-        Ground(face.link, face.spoken) { NumberAndCaption(R.drawable.ic_widget_stack, face.number, face.caption) }
+    val (width, height) = laidOut()
+    if (!DueLayout.isMedium(width)) {
+        Ground(face.link, face.spoken) {
+            NumberAndCaption(R.drawable.ic_widget_stack, face.number, NumberStack.fit(face.number, face.captions, FaceRoom.small(width, height)))
+        }
         return
     }
-    val rows = DueLayout.rows(size.height.value.toDouble(), face.decks.size, face.showsReview)
+    val rows = DueLayout.rows(height, face.decks.size, face.showsReview)
     Ground(face.link, face.spoken, vertical = WidgetStyle.mediumVerticalMargin) {
         Row(modifier = GlanceModifier.fillMaxSize()) {
             // only the widget's own 8 dp above and below, as iOS's medium margins (DueCardsWidget.swift:39-40)
-            NumberAndCaption(R.drawable.ic_widget_stack, face.number, face.caption, GlanceModifier.defaultWeight().fillMaxHeight())
+            NumberAndCaption(R.drawable.ic_widget_stack, face.number,
+                NumberStack.fit(face.number, face.captions, FaceRoom.mediumLeft(width, height)), GlanceModifier.defaultWeight().fillMaxHeight())
             Spacer(GlanceModifier.width(WidgetStyle.dp(WidgetStyle.margin)))
             Column(modifier = GlanceModifier.defaultWeight().fillMaxHeight()) {
                 for (deck in face.decks.take(rows)) DeckLine(deck)
@@ -199,7 +209,7 @@ class DueCardsReceiver : GlanceAppWidgetReceiver() {
 // MARK: - Exam countdown
 
 class ExamCountdownWidget : GlanceAppWidget() {
-    override val sizeMode = SizeMode.Responsive(setOf(WidgetSizes.oneLine, WidgetSizes.small))
+    override val sizeMode = SizeMode.Responsive(setOf(WidgetSizes.oneLine, WidgetSizes.smallFloor, WidgetSizes.small))
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent {
@@ -210,10 +220,14 @@ class ExamCountdownWidget : GlanceAppWidget() {
 
 @Composable
 internal fun ExamCountdown(face: CountdownFace) {
-    if (LocalSize.current.height.value < WidgetSizes.oneLineHeight) {
-        Ground(face.link, face.line, vertical = WidgetStyle.mediumVerticalMargin) { OneLine(face.line) }
+    val (width, height) = laidOut()
+    if (height < WidgetSizes.oneLineHeight) {
+        // home's sentence where it fits, else "90 days" and the like; read out whole
+        Ground(face.link, face.line, vertical = WidgetStyle.mediumVerticalMargin) { OneLine(face.lineForms) }
     } else {
-        Ground(face.link, face.spoken) { NumberAndCaption(R.drawable.ic_widget_calendar, face.number, face.caption) }
+        Ground(face.link, face.spoken) {
+            NumberAndCaption(R.drawable.ic_widget_calendar, face.number, NumberStack.fit(face.number, face.captions, FaceRoom.small(width, height)))
+        }
     }
 }
 
@@ -224,7 +238,7 @@ class ExamCountdownReceiver : GlanceAppWidgetReceiver() {
 // MARK: - Done today
 
 class DoneTodayWidget : GlanceAppWidget() {
-    override val sizeMode = SizeMode.Responsive(setOf(WidgetSizes.oneLine, WidgetSizes.small))
+    override val sizeMode = SizeMode.Responsive(setOf(WidgetSizes.oneLine, WidgetSizes.smallFloor, WidgetSizes.small))
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent {
@@ -235,11 +249,14 @@ class DoneTodayWidget : GlanceAppWidget() {
 
 @Composable
 internal fun DoneToday(face: TodayFace) {
-    if (LocalSize.current.height.value < WidgetSizes.oneLineHeight) {
+    val (width, height) = laidOut()
+    if (height < WidgetSizes.oneLineHeight) {
         // the sentence is too wide for a 2x1 at 110 dp, so it shows "32/50 today" and is read out whole
-        Ground(face.link, face.line, vertical = WidgetStyle.mediumVerticalMargin) { OneLine(face.shortLine) }
+        Ground(face.link, face.line, vertical = WidgetStyle.mediumVerticalMargin) { OneLine(face.lineForms) }
     } else {
-        Ground(face.link, face.spoken) { NumberAndCaption(R.drawable.ic_widget_check, face.number, face.caption) }
+        Ground(face.link, face.spoken) {
+            NumberAndCaption(R.drawable.ic_widget_check, face.number, NumberStack.fit(face.number, face.captions, FaceRoom.small(width, height)))
+        }
     }
 }
 

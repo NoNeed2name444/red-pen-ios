@@ -4,7 +4,6 @@ import com.stethoscore.app.AppLink
 import com.stethoscore.app.data.GlanceDigest
 import com.stethoscore.app.data.GlanceState
 import com.stethoscore.app.data.WardWords
-import com.stethoscore.app.ui.ward.WardType
 import java.time.ZoneId
 import kotlin.math.floor
 
@@ -17,6 +16,8 @@ import kotlin.math.floor
 /** What a widget says when it has no file from the app (iOS GlanceWords). */
 object WidgetWords {
     const val openApp = "Open Stethoscore"
+    /** [openApp] where it does not fit: the one-line size at 110 dp wide. */
+    const val openAppShort = "Open app"
     /** The number when there is none to show: an en dash, never read out. */
     const val noNumber = "–"
 
@@ -47,6 +48,9 @@ data class DueFace(
 ) {
     /** The whole widget's tap, and the Review button's. */
     val link: AppLink get() = AppLink.ReviewDue
+
+    /** The caption, then with no file "Open Stethoscore", for a column too narrow for it (NumberStack.fit); [spoken] stays whole. */
+    val captions: List<String> get() = if (hasFile) listOf(caption) else listOf(caption, WidgetWords.openApp)
 
     companion object {
         fun of(state: GlanceState): DueFace {
@@ -84,6 +88,23 @@ data class CountdownFace(
     /** Spoken for the whole widget: the en dash is never read out. */
     val spoken: String get() = if (days == null) caption else "$number $caption"
 
+    /** The caption, then with no file "Open Stethoscore", for a 2x2 too narrow for it (NumberStack.fit). */
+    val captions: List<String> get() = if (hasFile) listOf(caption) else listOf(caption, WidgetWords.openApp)
+
+    /**
+     * The one-line size's words, longest first (OneLineFit.pick): home's
+     * sentence, then without the exam's name, as iOS's circular widget's
+     * "90 days": "Tomorrow", "Today"; "Set a date"; "Open app". TalkBack
+     * reads [line].
+     */
+    val lineForms: List<String> get() = when {
+        !hasFile -> listOf(line, WidgetWords.openAppShort)
+        days == null -> listOf(line, "Set a date")
+        days == 0 -> listOf(line, "Today")
+        days == 1 -> listOf(line, "Tomorrow")
+        else -> listOf(line, "$days days")
+    }
+
     companion object {
         fun of(state: GlanceState, now: Long, zone: ZoneId = ZoneId.systemDefault()): CountdownFace {
             val digest = digest(state)
@@ -117,12 +138,16 @@ data class TodayFace(
     /** What the 2x2 size says aloud: the sentence, or with no file the caption (iOS DoneTodayWidget.swift:69). */
     val spoken: String get() = if (hasFile) line else caption
 
+    /** The caption, then with no file "Open Stethoscore", for a 2x2 too narrow for it (NumberStack.fit). */
+    val captions: List<String> get() = if (hasFile) listOf(caption) else listOf(caption, WidgetWords.openApp)
+
     /**
-     * What the one-line size shows: "32/50 today". The sentence is wider than
-     * a 2x1 at its least width (110 dp) at any size worth reading; TalkBack
-     * still reads [line].
+     * The one-line size's words, longest first (OneLineFit.pick): the
+     * sentence, "32/50 today", then "120/150" when the counts run long;
+     * "Open app" with no file. TalkBack reads [line].
      */
-    val shortLine: String get() = if (hasFile) "$today/$goal today" else line
+    val lineForms: List<String> get() =
+        if (hasFile) listOf(line, "$today/$goal today", "$today/$goal") else listOf(line, WidgetWords.openAppShort)
 
     val link: AppLink get() = AppLink.ReviewDue
 
@@ -159,35 +184,6 @@ object DueLayout {
         val room = heightDp - 2 * WidgetStyle.mediumVerticalMargin - (if (review) WidgetStyle.target else 0.0)
         val fit = if (room <= 0) 0 else floor(room / WidgetStyle.target).toInt()
         return minOf(maxRows, decks, fit).coerceAtLeast(0)
-    }
-}
-
-/**
- * The height budget of the big number's stack: the glyph, the number and its
- * caption at the foot. Glance's Text keeps the font padding, so a line of
- * Roboto stands [above] em over its baseline and [below] em under it, each
- * further line adds [lineStep] em, and digits are [digits] em tall: Android
- * CI run 42014339195's pictures drew the 44 sp number 59 dp tall and a 12 sp
- * caption line 16.4 dp. The glyph stands in the padding over the digits,
- * where nothing is drawn.
- */
-object NumberStack {
-    const val above = 1.0566
-    const val below = 0.2715
-    const val lineStep = 1.172
-    const val digits = 0.711
-
-    /** How tall [lines] lines of [sp] text draw, in dp. */
-    fun height(sp: Double, lines: Int = 1): Double = sp * (above + below) + (lines - 1) * sp * lineStep
-
-    /**
-     * The gap between the glyph's foot and the digits' tops when the number
-     * and a caption of [captionLines] stand at the foot of [roomDp] (the
-     * widget's height less its top and bottom margins); below 0 they meet.
-     */
-    fun clearance(roomDp: Double, captionLines: Int): Double {
-        val numberTop = roomDp - height(WardType.caption.size, captionLines) - height(WidgetStyle.numberSize)
-        return numberTop + WidgetStyle.numberSize * (above - digits) - WidgetStyle.glyph
     }
 }
 

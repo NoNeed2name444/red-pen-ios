@@ -59,7 +59,10 @@ class WidgetFacesTest {
         assertEquals("–", today.number)
         assertEquals("Open Stethoscore to see today’s count", today.caption)
         assertEquals("Open Stethoscore", today.line)
-        assertEquals("Open Stethoscore", today.shortLine)
+        assertEquals(listOf("Open Stethoscore", "Open app"), today.lineForms)
+        assertEquals(listOf("Open Stethoscore", "Open app"), countdown.lineForms)
+        assertEquals("a column too narrow for the caption says only", listOf(today.caption, "Open Stethoscore"), today.captions)
+        assertEquals(listOf(due.caption, "Open Stethoscore"), due.captions)
         assertEquals("the 2x2 says the caption aloud", "Open Stethoscore to see today\u2019s count", today.spoken)
     }
 
@@ -114,25 +117,11 @@ class WidgetFacesTest {
         assertEquals(0, DueLayout.rows(WidgetSizes.medium.height.value.toDouble(), 3, true))
     }
 
-    @Test fun theGlyphNumberAndOneLineCaptionFitEachSize() {
-        // a 2x2 draws 12 dp above and below; the medium's left column, the widget's 8 dp only
-        val small = WidgetSizes.small.height.value - 2 * WidgetStyle.smallVerticalMargin
-        assertEquals(86.0, small, 0.0)
-        assertTrue("2x2 at 110 dp: ${NumberStack.clearance(small, 1)}", NumberStack.clearance(small, 1) >= 0)
-        for (size in listOf(WidgetSizes.medium, WidgetSizes.mediumOneRow, WidgetSizes.mediumTall)) {
-            val room = size.height.value - 2 * WidgetStyle.mediumVerticalMargin
-            assertTrue("4x2 at ${size.height}: ${NumberStack.clearance(room, 1)}", NumberStack.clearance(room, 1) >= 0)
-        }
-        // the 44 sp number and a 12 sp line draw as measured on CI (59 dp, 16.4 dp), within a dp
-        assertEquals(59.0, NumberStack.height(WidgetStyle.numberSize), 1.0)
-        assertEquals(16.4, NumberStack.height(12.0), 1.0)
-    }
-
     @Test fun theOneLineSizeFitsOneLineAt40dp() {
         // widget_countdown.xml and widget_today.xml resize down to 40 dp tall; the one-line size draws 8 dp above and below
         val room = 40.0 - 2 * WidgetStyle.mediumVerticalMargin
-        assertTrue(NumberStack.height(WidgetStyle.lineFace.size, 1) <= room)
-        assertEquals(13.0, WidgetStyle.lineFace.size, 0.0)
+        assertTrue(WidgetText.height(WidgetStyle.lineFace.size) <= room)
+        assertEquals("the footnote style, as far down as the line goes", 13.0, WidgetStyle.lineFace.size, 0.0)
     }
 
     // exam date
@@ -143,14 +132,17 @@ class WidgetFacesTest {
         assertEquals("90", face.number)
         assertEquals("days to Step 1", face.caption)
         assertEquals("Step 1 in 90 days", face.line)
+        assertEquals(listOf("Step 1 in 90 days", "90 days"), face.lineForms)
         assertEquals(AppLink.ExamPlan, face.link)
     }
 
     @Test fun countdownTomorrowTodayAndFinals() {
         val tomorrow = CountdownFace.of(stateOf(digest.copy(examDate = at("2026-11-06T00:00:00Z"))), now, utc)
         assertEquals("day to Step 1", tomorrow.caption); assertEquals("Step 1 tomorrow", tomorrow.line)
+        assertEquals(listOf("Step 1 tomorrow", "Tomorrow"), tomorrow.lineForms)
         val today = CountdownFace.of(stateOf(digest.copy(examDate = at("2026-11-05T00:00:00Z"))), now, utc)
         assertEquals("0", today.number); assertEquals("Step 1 today", today.caption); assertEquals("Step 1 today", today.line)
+        assertEquals(listOf("Step 1 today", "Today"), today.lineForms)
         val finals = CountdownFace.of(stateOf(digest.copy(examName = null)), now, utc)
         assertEquals("days to Finals", finals.caption); assertEquals("Finals in 90 days", finals.line)
     }
@@ -162,6 +154,8 @@ class WidgetFacesTest {
         assertEquals("Set your exam date", face.caption)
         assertEquals("Set your exam date", face.line)
         assertEquals("Set your exam date", face.spoken)
+        assertEquals(listOf("Set your exam date", "Set a date"), face.lineForms)
+        assertEquals("with a file the caption is never swapped", listOf("Set your exam date"), face.captions)
         val passed = CountdownFace.of(stateOf(digest.copy(examDate = at("2026-11-01T00:00:00Z"))), now, utc)
         assertNull("a day gone shows no countdown", passed.days)
     }
@@ -174,7 +168,7 @@ class WidgetFacesTest {
         assertEquals("of 40 done today", face.caption)
         assertEquals("32 of 40 done today", face.line)
         assertEquals("32 of 40 done today", face.spoken)
-        assertEquals("the 2x1 shows the short form", "32/40 today", face.shortLine)
+        assertEquals("the 2x1 shows a short form", listOf("32 of 40 done today", "32/40 today", "32/40"), face.lineForms)
         assertEquals(AppLink.ReviewDue, face.link)
     }
 
@@ -187,7 +181,8 @@ class WidgetFacesTest {
     @Test fun noWidgetSaysStreakFlameXpOrRank() {
         val words = listOf(stateOf(null), stateOf(nothing), stateOf(digest)).flatMap { s ->
             val d = DueFace.of(s); val c = CountdownFace.of(s, now, utc); val t = TodayFace.of(s, now, utc)
-            listOf(d.number, d.caption, d.spoken, c.caption, c.line, c.spoken, t.caption, t.line, t.shortLine) + d.decks.map { it.spoken }
+            listOf(d.number, d.spoken, c.spoken, t.spoken) + d.captions + c.captions + c.lineForms + t.captions + t.lineForms +
+                d.decks.map { it.spoken }
         }
         for (w in words) for (banned in listOf("streak", "flame", "xp", "rank", "🔥")) {
             assertFalse("$w says $banned", w.lowercase().contains(banned))

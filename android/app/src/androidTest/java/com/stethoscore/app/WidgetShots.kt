@@ -51,24 +51,29 @@ class WidgetShots {
     )
     private val due = GlanceState.CardsDue(digest, digest.dueNow)
 
-    // Each widget at the sizes its layout is drawn for (WidgetSizes), the least of each: 2x2 110x110,
-    // 4x2 250x110 (the button), 250x112 (one deck row), 250x160 (two), and the one-line 110x48.
+    // Each widget at the sizes its layout is drawn for (WidgetSizes), the least of each: the 2x2 floor
+    // 110x110 and 110x122, 4x2 250x110 (the button), 250x112 (one deck row), 250x160 (two), and the
+    // one-line 110x48. At the floor the number steps down where the caption takes two lines (NumberStack.fit).
+    private val longName = GlanceState.CardsDue(digest.copy(examName = "MRCP Part 1"), digest.dueNow)
 
     @Test fun dueCards() {
         shots("w01-due-small", WidgetSizes.small) { DueCards(DueFace.of(due)) }
+        shots("w01b-due-small-floor", WidgetSizes.smallFloor) { DueCards(DueFace.of(due)) }
         shots("w02-due-medium", WidgetSizes.medium) { DueCards(DueFace.of(due)) }
         shots("w02b-due-medium-one-row", WidgetSizes.mediumOneRow) { DueCards(DueFace.of(due)) }
         shots("w02c-due-medium-tall", WidgetSizes.mediumTall) { DueCards(DueFace.of(due)) }
-        shots("w03-due-no-file", WidgetSizes.small) { DueCards(DueFace.of(GlanceState.NoFile)) }
+        shots("w03-due-no-file", WidgetSizes.smallFloor) { DueCards(DueFace.of(GlanceState.NoFile)) }
     }
 
     @Test fun examCountdown() {
         shots("w04-countdown-small", WidgetSizes.small) { ExamCountdown(CountdownFace.of(due, now)) }
+        shots("w04b-countdown-small-floor", WidgetSizes.smallFloor) { ExamCountdown(CountdownFace.of(longName, now)) }
         shots("w05-countdown-line", WidgetSizes.oneLine) { ExamCountdown(CountdownFace.of(due, now)) }
     }
 
     @Test fun doneToday() {
         shots("w06-today-small", WidgetSizes.small) { DoneToday(TodayFace.of(due, now)) }
+        shots("w06b-today-small-floor", WidgetSizes.smallFloor) { DoneToday(TodayFace.of(due, now)) }
         shots("w07-today-line", WidgetSizes.oneLine) { DoneToday(TodayFace.of(due, now)) }
     }
 
