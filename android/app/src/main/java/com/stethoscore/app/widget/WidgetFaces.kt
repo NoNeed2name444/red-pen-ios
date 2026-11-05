@@ -4,6 +4,7 @@ import com.stethoscore.app.AppLink
 import com.stethoscore.app.data.GlanceDigest
 import com.stethoscore.app.data.GlanceState
 import com.stethoscore.app.data.WardWords
+import com.stethoscore.app.ui.ward.WardType
 import java.time.ZoneId
 import kotlin.math.floor
 
@@ -116,6 +117,13 @@ data class TodayFace(
     /** What the 2x2 size says aloud: the sentence, or with no file the caption (iOS DoneTodayWidget.swift:69). */
     val spoken: String get() = if (hasFile) line else caption
 
+    /**
+     * What the one-line size shows: "32/50 today". The sentence is wider than
+     * a 2x1 at its least width (110 dp) at any size worth reading; TalkBack
+     * still reads [line].
+     */
+    val shortLine: String get() = if (hasFile) "$today/$goal today" else line
+
     val link: AppLink get() = AppLink.ReviewDue
 
     companion object {
@@ -151,6 +159,35 @@ object DueLayout {
         val room = heightDp - 2 * WidgetStyle.mediumVerticalMargin - (if (review) WidgetStyle.target else 0.0)
         val fit = if (room <= 0) 0 else floor(room / WidgetStyle.target).toInt()
         return minOf(maxRows, decks, fit).coerceAtLeast(0)
+    }
+}
+
+/**
+ * The height budget of the big number's stack: the glyph, the number and its
+ * caption at the foot. Glance's Text keeps the font padding, so a line of
+ * Roboto stands [above] em over its baseline and [below] em under it, each
+ * further line adds [lineStep] em, and digits are [digits] em tall: Android
+ * CI run 42014339195's pictures drew the 44 sp number 59 dp tall and a 12 sp
+ * caption line 16.4 dp. The glyph stands in the padding over the digits,
+ * where nothing is drawn.
+ */
+object NumberStack {
+    const val above = 1.0566
+    const val below = 0.2715
+    const val lineStep = 1.172
+    const val digits = 0.711
+
+    /** How tall [lines] lines of [sp] text draw, in dp. */
+    fun height(sp: Double, lines: Int = 1): Double = sp * (above + below) + (lines - 1) * sp * lineStep
+
+    /**
+     * The gap between the glyph's foot and the digits' tops when the number
+     * and a caption of [captionLines] stand at the foot of [roomDp] (the
+     * widget's height less its top and bottom margins); below 0 they meet.
+     */
+    fun clearance(roomDp: Double, captionLines: Int): Double {
+        val numberTop = roomDp - height(WardType.caption.size, captionLines) - height(WidgetStyle.numberSize)
+        return numberTop + WidgetStyle.numberSize * (above - digits) - WidgetStyle.glyph
     }
 }
 

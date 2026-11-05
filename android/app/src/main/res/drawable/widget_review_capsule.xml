@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Review button's capsule on the medium Due widget: 24 dp corners on its 48 dp height, drawn on every
+     version (Glance's cornerRadius needs API 31). Tinted and faded where it is used (widget/GlanceWidgets.kt). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="24dp" />
+    <solid android:color="#FFFFFFFF" />
+</shape>

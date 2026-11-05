@@ -8,7 +8,6 @@ import android.view.View
 import android.widget.FrameLayout
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.DpSize
-import androidx.compose.ui.unit.dp
 import androidx.glance.appwidget.ExperimentalGlanceRemoteViewsApi
 import androidx.glance.appwidget.GlanceRemoteViews
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -21,6 +20,7 @@ import com.stethoscore.app.widget.DueCards
 import com.stethoscore.app.widget.DueFace
 import com.stethoscore.app.widget.ExamCountdown
 import com.stethoscore.app.widget.TodayFace
+import com.stethoscore.app.widget.WidgetSizes
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -51,27 +51,25 @@ class WidgetShots {
     )
     private val due = GlanceState.CardsDue(digest, digest.dueNow)
 
-    private val small = DpSize(160.dp, 160.dp)
-    private val medium = DpSize(320.dp, 170.dp)
-    private val oneLine = DpSize(160.dp, 72.dp)
-    /** A short 4x2 (112 to 159 dp): one deck row and the button. */
-    private val mediumOneRow = DpSize(250.dp, 112.dp)
+    // Each widget at the sizes its layout is drawn for (WidgetSizes), the least of each: 2x2 110x110,
+    // 4x2 250x110 (the button), 250x112 (one deck row), 250x160 (two), and the one-line 110x48.
 
     @Test fun dueCards() {
-        shots("w01-due-small", small) { DueCards(DueFace.of(due)) }
-        shots("w02-due-medium", medium) { DueCards(DueFace.of(due)) }
-        shots("w02b-due-medium-one-row", mediumOneRow) { DueCards(DueFace.of(due)) }
-        shots("w03-due-no-file", small) { DueCards(DueFace.of(GlanceState.NoFile)) }
+        shots("w01-due-small", WidgetSizes.small) { DueCards(DueFace.of(due)) }
+        shots("w02-due-medium", WidgetSizes.medium) { DueCards(DueFace.of(due)) }
+        shots("w02b-due-medium-one-row", WidgetSizes.mediumOneRow) { DueCards(DueFace.of(due)) }
+        shots("w02c-due-medium-tall", WidgetSizes.mediumTall) { DueCards(DueFace.of(due)) }
+        shots("w03-due-no-file", WidgetSizes.small) { DueCards(DueFace.of(GlanceState.NoFile)) }
     }
 
     @Test fun examCountdown() {
-        shots("w04-countdown-small", small) { ExamCountdown(CountdownFace.of(due, now)) }
-        shots("w05-countdown-line", oneLine) { ExamCountdown(CountdownFace.of(due, now)) }
+        shots("w04-countdown-small", WidgetSizes.small) { ExamCountdown(CountdownFace.of(due, now)) }
+        shots("w05-countdown-line", WidgetSizes.oneLine) { ExamCountdown(CountdownFace.of(due, now)) }
     }
 
     @Test fun doneToday() {
-        shots("w06-today-small", small) { DoneToday(TodayFace.of(due, now)) }
-        shots("w07-today-line", oneLine) { DoneToday(TodayFace.of(due, now)) }
+        shots("w06-today-small", WidgetSizes.small) { DoneToday(TodayFace.of(due, now)) }
+        shots("w07-today-line", WidgetSizes.oneLine) { DoneToday(TodayFace.of(due, now)) }
     }
 
     /** [content] at [size], light and dark, into the app's external files (widgets/), which adb can pull. */

@@ -79,9 +79,9 @@ private fun glanceState(): GlanceState {
 private fun GlanceModifier.opens(link: AppLink): GlanceModifier =
     clickable(actionStartActivity(WidgetLinks.intent(LocalContext.current, link)))
 
-/** The widget's ground, its tap, and the margins iOS's widgets keep. */
+/** The widget's ground, its tap, and its margins: iOS's 16 dp at the sides; 12 dp above and below a 2x2, so it fits 110 dp. */
 @Composable
-private fun Ground(link: AppLink, spoken: String, vertical: Double = WidgetStyle.margin, content: @Composable () -> Unit) {
+private fun Ground(link: AppLink, spoken: String, vertical: Double = WidgetStyle.smallVerticalMargin, content: @Composable () -> Unit) {
     Box(
         modifier = GlanceModifier.fillMaxSize().background(WidgetStyle.ground).opens(link)
             .padding(horizontal = WidgetStyle.dp(WidgetStyle.margin), vertical = WidgetStyle.dp(vertical))
@@ -90,14 +90,20 @@ private fun Ground(link: AppLink, spoken: String, vertical: Double = WidgetStyle
     ) { content() }
 }
 
-/** The glyph at the top, then the big number and the caption under it at the widget's foot (iOS's bigCount). */
+/**
+ * The glyph at the top, then the big number and the caption under it at the
+ * widget's foot (iOS's bigCount). The glyph stands in the number's top line
+ * padding, where nothing is drawn, so the three fit a 2x2 at 110 dp and the
+ * medium widget's left column at 112 (NumberStack).
+ */
 @Composable
 private fun NumberAndCaption(glyph: Int, number: String, caption: String, modifier: GlanceModifier = GlanceModifier.fillMaxSize()) {
-    Column(modifier = modifier, horizontalAlignment = Alignment.Start) {
+    Box(modifier = modifier, contentAlignment = Alignment.TopStart) {
         Glyph(glyph, WidgetStyle.pen)
-        Spacer(GlanceModifier.defaultWeight())
-        Text(number, style = WidgetStyle.number, maxLines = 1)
-        Text(caption, style = WidgetStyle.caption, maxLines = 2)
+        Column(modifier = GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.Bottom, horizontalAlignment = Alignment.Start) {
+            Text(number, style = WidgetStyle.number, maxLines = 1)
+            Text(caption, style = WidgetStyle.caption, maxLines = 2)
+        }
     }
 }
 
@@ -108,11 +114,11 @@ private fun Glyph(glyph: Int, colour: ColorProvider) {
         modifier = GlanceModifier.size(WidgetStyle.dp(WidgetStyle.glyph)))
 }
 
-/** The one-line size: a sentence, centred in the height. */
+/** The one-line size: one line, centred in the height, which can be 40 dp (widget_today.xml). */
 @Composable
 private fun OneLine(text: String) {
     Column(modifier = GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-        Text(text, style = WidgetStyle.line, maxLines = 2)
+        Text(text, style = WidgetStyle.line, maxLines = 1)
     }
 }
 
@@ -136,8 +142,8 @@ internal fun DueCards(face: DueFace) {
     val rows = DueLayout.rows(size.height.value.toDouble(), face.decks.size, face.showsReview)
     Ground(face.link, face.spoken, vertical = WidgetStyle.mediumVerticalMargin) {
         Row(modifier = GlanceModifier.fillMaxSize()) {
-            NumberAndCaption(R.drawable.ic_widget_stack, face.number, face.caption,
-                GlanceModifier.defaultWeight().fillMaxHeight().padding(vertical = WidgetStyle.dp(WidgetStyle.margin - WidgetStyle.mediumVerticalMargin)))
+            // only the widget's own 8 dp above and below, as iOS's medium margins (DueCardsWidget.swift:39-40)
+            NumberAndCaption(R.drawable.ic_widget_stack, face.number, face.caption, GlanceModifier.defaultWeight().fillMaxHeight())
             Spacer(GlanceModifier.width(WidgetStyle.dp(WidgetStyle.margin)))
             Column(modifier = GlanceModifier.defaultWeight().fillMaxHeight()) {
                 for (deck in face.decks.take(rows)) DeckLine(deck)
@@ -162,12 +168,18 @@ private fun DeckLine(deck: DeckRow) {
     }
 }
 
-/** "Review": a 48 dp coral capsule that opens the due cards. */
+/**
+ * "Review": a 48 dp coral capsule that opens the due cards. The capsule is a
+ * drawable, so it is round on every version; cornerRadius, from API 31, only
+ * clips the press ripple to it.
+ */
 @Composable
 private fun ReviewButton() {
     Box(
         modifier = GlanceModifier.fillMaxWidth().height(WidgetStyle.dp(WidgetStyle.target))
-            .background(WidgetStyle.penWash).cornerRadius(WidgetStyle.dp(WidgetStyle.target / 2))
+            .background(ImageProvider(R.drawable.widget_review_capsule), alpha = WidgetStyle.reviewWash,
+                colorFilter = ColorFilter.tint(WidgetStyle.pen))
+            .cornerRadius(WidgetStyle.dp(WidgetStyle.target / 2))
             .opens(AppLink.ReviewDue).semantics { contentDescription = "Review" },
         contentAlignment = Alignment.Center,
     ) {
@@ -224,7 +236,8 @@ class DoneTodayWidget : GlanceAppWidget() {
 @Composable
 internal fun DoneToday(face: TodayFace) {
     if (LocalSize.current.height.value < WidgetSizes.oneLineHeight) {
-        Ground(face.link, face.line, vertical = WidgetStyle.mediumVerticalMargin) { OneLine(face.line) }
+        // the sentence is too wide for a 2x1 at 110 dp, so it shows "32/50 today" and is read out whole
+        Ground(face.link, face.line, vertical = WidgetStyle.mediumVerticalMargin) { OneLine(face.shortLine) }
     } else {
         Ground(face.link, face.spoken) { NumberAndCaption(R.drawable.ic_widget_check, face.number, face.caption) }
     }
