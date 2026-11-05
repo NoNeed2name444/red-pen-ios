@@ -84,7 +84,10 @@ All four show the same three things, which the digest already carries: cards due
 - **Data:** a Kotlin port of the digest, written as JSON to the app's own files directory. A widget runs in the app's process, so no shared container is needed, but loading the whole library on every widget update would be slow. The digest is built from:
   - due: `StudyStore.dueAcross` (`StudyStore.kt:374`), the same queue as `DueTodayScreen` (`AnkiReviewScreen.kt:140`);
   - exam date: `StudyStore.examDate` (`StudyStore.kt:52`); exam name: `ExamCountdown.examName` (`HomeRound.kt:30`);
-  - today: `LibraryStats.streakAndToday` (`LibraryStats.kt:185`), taking the today half only.
+  - today: `LibraryStats.streakAndToday` (`LibraryStats.kt:185`), taking the today half only;
+  - goal: `StudyStreak.goal(stored)` (`StudyStreak.kt:132-135`), from what Settings stored under `DailyGoal.key`, read the same way as iOS `DailyGoal.current` (50 until one is chosen, clamped to the range).
+
+  The Kotlin digest has the same fields as the Swift one, `goal` included, so the widget's "of 50 done today" and the watch's copy read the goal from the digest, never from Settings.
 - **Links (new):** Android has none today. The slice will:
   - add a `VIEW` intent filter for the `stethoscore` scheme on `MainActivity`;
   - port `AppLink.parse` (`AppLink.swift:39-70`) to Kotlin, with its round-trip test (`PlatformTests.swift:44`);
@@ -127,6 +130,7 @@ All four show the same three things, which the digest already carries: cards due
 - **Complications:** `SHORT_TEXT` with the count and "due", and `LONG_TEXT` with "24 cards due". A tap opens the Wear app.
 - **Data:** the Kotlin digest from surface 2, sent from the phone as one Data Layer item at `/glance` (`DataClient.putDataItem`). On the watch, a `WearableListenerService` saves it and asks the tile and complications to update. The Data Layer needs Google Play services on both devices (decision D2).
 - **Refresh:** a send on each real change, and a 4-hour tile freshness interval. Complications update when an item arrives.
+- **Release:** with the Apple Watch app, never before it (D1).
 
 ## Constraints, checked
 
@@ -141,9 +145,9 @@ All four show the same three things, which the digest already carries: cards due
 - Apple's capability table ([Supported capabilities, iOS](https://developer.apple.com/help/account/reference/supported-capabilities-ios)) did not render its tick marks when read, so it settled nothing.
 - AltStore, which itself installs with a free Apple ID, ships a home-screen widget, and its release notes cover app-group handling for sideloaded apps (1.5: "Fixed some apps having access to AltStore's app group"; 2.0: "missing app group" fixes) ([AltStore release notes](https://faq.altstore.io/release-notes/altstore)). That is good evidence that sideloading apps provision App Groups under a free account.
 - Against it, one third-party sideloaded app says its widget "needs a paid Apple Developer account for App Groups" ([ai_usage ios-0.5.1](https://github.com/Neoo-Blue/ai_usage/releases/tag/ios-0.5.1)).
-- One risk is specific to this code. A sideloading app may rename the group (often by adding the team ID). It does not know about our `RedPenAppGroup` key (`project.yml:91`, `:297`; read at `GlanceDigest.swift:130-134`). The app and the widget would then each fall back to their own caches and never meet. Slice 1 makes this visible on the device before anything else is built on it.
+- One risk is specific to this code. A sideloading app may rename the group (often by adding the team ID). It does not know about our `RedPenAppGroup` Info.plist key (`project.yml:247` for the app, `:303` for the widgets; read at `GlanceDigest.swift:130-134`). The entitlement values it must match are at `project.yml:91` and `:297`. The app and the widget would then each fall back to their own caches and never meet. Slice 1 makes this visible on the device before anything else is built on it.
 
-**Watch hardware.** The owner has an iPhone and an iPad (`CLAUDE.md`, line 1), and no Apple Watch or Wear OS watch is mentioned. Both watch apps can be checked only in simulators and emulators on CI, by screenshots. This is behind decision D1.
+**Watch hardware.** The owner has an iPhone and an iPad (`CLAUDE.md`, line 1), and no Apple Watch or Wear OS watch is mentioned. Both watch apps can be checked only in simulators and emulators on CI, by screenshots. Every change lands on iOS and Android together, so the two watch apps are built side by side and released together, or not at all (decision D1).
 
 **Touch targets.**
 - iOS: every tappable thing inside a widget, and Refresh on the watch, is at least 44 pt. Lock Screen and complication taps are whole-surface.
@@ -160,14 +164,14 @@ All four show the same three things, which the digest already carries: cards due
 
 ## Decisions for the owner
 
-1. **D1. Should the Apple Watch app wait?** It takes the week's two new App IDs, and there is no Apple Watch to use it on. *Default: build it in CI and check it with simulator screenshots, but keep it out of the .ipa, so no App ID is registered until you say so.*
-2. **D2. Can the Wear OS app use Google Play services to get data from the phone?** It is free and needs no key, but it would be the app's first Google library. *Default: yes, `play-services-wearable` only. The phone app works the same without a watch.*
+1. **D1. When do the watch apps reach you?** The Apple Watch app takes the week's two new App IDs, and there is no watch of either kind to use them on. *Default: build both watch apps and check both by screenshots on CI, but keep both out of what you install (the .ipa and the Android build) until you release them together. No App ID is registered before then.*
+2. **D2. Can the Wear OS app use Google Play services to get data from the phone?** It is free and needs no key, but it would be the app's first Google library. *Default: yes, `play-services-wearable` only. The phone app works the same without a watch, and the library reaches your Android build only when D1 releases the watch apps.*
 3. **D3. Should the watch only show, or also review cards?** Reviewing on the watch means sending cards and ratings both ways. *Default: show only.*
 4. **D4. In the medium widget, what does tapping a deck open?** *Default: that deck (`redpen://set/<id>`, a link the app already handles). The other choice is a new link that opens only that deck's due cards.*
 
 ## Slices, in order
 
-Each slice is one task packet. Slices 1 to 3 are iOS, 4 to 6 are Android, and 7 onwards are watches. Slices 7 and 8 wait on D2. Slices 9 and 10 wait on D1.
+Each slice is one task packet. Slices 1 to 3 are iOS, 4 to 6 are Android, and 7 onwards are watches. Slices 7 to 10 are built in pairs (7 with 9, 8 with 10) so neither watch gets ahead of the other. Slice 7 needs D2. All four stay out of what the owner installs until D1 releases both watches together.
 
 1. **Shared file check (iOS).**
    - A row in Settings' platform section (`PlatformSettingsSection.swift`) says whether the widgets can read the app's data.
@@ -179,29 +183,29 @@ Each slice is one task packet. Slices 1 to 3 are iOS, 4 to 6 are Android, and 7 
    - PlatformTests and BedPlanTests updated.
 3. **Medium widget targets (iOS).** Two deck rows as links, and a 44 pt Review button. Screenshots in CI.
 4. **Digest on Android.**
-   - Port `GlanceDigest` and `GlanceShelf` to `data/`, with their tests.
+   - Port `GlanceDigest` (with `goal` and the home-style exam name) and `GlanceShelf` to `data/`, with their tests.
    - `StudyStore` writes the digest on save. No UI.
 5. **Links on Android.** `AppLink` in Kotlin, the intent filter, `MainActivity` and `initialScreen`. Unit tests, and an instrumented test that opens `stethoscore://due`.
 6. **Glance widgets.**
    - The Glance library and receivers; Due cards, Exam countdown and Done today.
    - Emulator screenshots at both sizes, in light and dark.
-7. **Wear OS module and sync (D2).**
+7. **Wear OS module and sync (D2; release with slice 9 under D1).**
    - `:wear` in `settings.gradle.kts`, `android/wear/build.gradle.kts` with the same application ID as the phone app (the Data Layer pairs by package and signing key), and the Data Layer send and receive.
    - Tests for encoding and decoding the digest.
 8. **Wear OS screen, tile and complications.** Wear emulator screenshots, round and square.
-9. **Apple Watch app (D1).**
+9. **Apple Watch app (release with slice 7 under D1).**
    - New `StethoscoreWatch` target in `project.yml`: an application, platform watchOS, `com.cramdown.app.watchkitapp`, with its own App Group entitlement.
    - Shares `GlanceDigest.swift`; `WCSession` send from `GlancePublisher`; the app's one screen.
-   - Not embedded in the .ipa until D1 is answered. Simulator screenshots.
+   - Not embedded in the .ipa until D1 releases both watches. Simulator screenshots.
 10. **Apple Watch complications.** New `StethoscoreWatchWidgets` app-extension target (watchOS, `com.cramdown.app.watchkitapp.widgets`), reusing the accessory views.
 
 ### Build changes in brief
 
 - **`ios/project.yml`:**
   - slices 1 to 3: sources only, adding `RedPen/Shared/Learn/WardWords.swift` to `StethoscoreWidgets`;
-  - slices 9 and 10: two targets, with `deploymentTarget` gaining `watchOS: "26.0"`, and the app's dependency list gaining the watch app only when D1 says so.
+  - slices 9 and 10: two targets, with `deploymentTarget` gaining `watchOS: "26.0"`, and the app's dependency list gaining the watch app only when D1 releases both watches;
 - **Android:**
-  - `app/build.gradle.kts` gains `androidx.glance:glance-appwidget` (slice 6), and `play-services-wearable` with D2 (slice 7);
+  - `app/build.gradle.kts` gains `androidx.glance:glance-appwidget` (slice 6), and `play-services-wearable` with D2 (slice 7), in the build the owner installs only after D1;
   - the new `android/wear` module uses Wear Compose Material 3, Tiles with ProtoLayout, and the complications data source library;
   - each version is the newest stable one, checked when its slice starts;
   - the manifest gains the `stethoscore` intent filter, and the widget receivers with `res/xml` widget info files.
