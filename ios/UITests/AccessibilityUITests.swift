@@ -199,7 +199,13 @@ final class AccessibilityUITests: XCTestCase {
         if choose("cards"), openSet("anki") {
             let reveal = app.buttons["Reveal"].firstMatch
             if reveal.waitForExistence(timeout: 6) { reveal.tap() }
+            // the card's front flagged as partly Dynamic Type on some runs
+            // and not others (T0198): audited only once the opened card
+            // has stopped moving, its frame logged before and after
+            let front = element("ankiCardFront")
+            settle(front, "card front")
             try audit("card, revealed")
+            print("CARD-SETTLE card front after audit frame=\(front.exists ? "\(front.frame)" : "gone")")
             goHome()
         }
         let menu = element("libraryMenu")
@@ -373,6 +379,27 @@ final class AccessibilityUITests: XCTestCase {
         }
         let pressable: Bool = target.exists && target.isHittable
         return pressable && (!clearOfSearch || searchOverlap(target) <= 0)
+    }
+
+    /// Waits until `target` is there and its frame reads the same twice,
+    /// half a second apart, at most eight reads; logs what it found, so a
+    /// run shows whether the screen was still moving.
+    private func settle(_ target: XCUIElement, _ name: String) {
+        _ = target.waitForExistence(timeout: 5)
+        var last: CGRect = target.exists ? target.frame : .null
+        var reads = 1
+        var still = false
+        while reads < 8 {
+            usleep(500_000)
+            let now: CGRect = target.exists ? target.frame : .null
+            reads += 1
+            if now == last && !now.isNull {
+                still = true
+                break
+            }
+            last = now
+        }
+        print("CARD-SETTLE \(name) still=\(still) reads=\(reads) frame=\(last)")
     }
 
     /// Scrolls back up the page, a slow swipe at a time, until `target` can
