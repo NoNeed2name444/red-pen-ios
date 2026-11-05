@@ -65,6 +65,15 @@ class AppLinkTest {
         assertTrue("an unrouted link is not taken as a file", AppLink.isLink(Intent(Intent.ACTION_VIEW, Uri.parse("redpen://quiz"))))
     }
 
+    @Test fun coldStartFollowsTheLinkOnce() {
+        val due = Intent(Intent.ACTION_VIEW, Uri.parse("stethoscore://due"))
+        assertEquals(AppLink.ReviewDue, MainActivity.coldLink(due, restored = false))
+        assertNull("a recreated activity has had it", MainActivity.coldLink(due, restored = true))
+        val fromRecents = Intent(due).addFlags(Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY)
+        assertNull("reopened from Recents: not played again", MainActivity.coldLink(fromRecents, restored = false))
+        assertNull(MainActivity.coldLink(null, restored = false))
+    }
+
     @Test fun coldStartScreen() {
         assertEquals("due", AppLink.initialScreen(AppLink.ReviewDue))
         assertEquals("home", AppLink.initialScreen(AppLink.ExamPlan))

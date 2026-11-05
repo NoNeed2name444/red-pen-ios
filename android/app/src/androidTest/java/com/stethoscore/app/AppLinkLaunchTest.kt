@@ -9,6 +9,8 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertSame
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -16,7 +18,8 @@ import org.junit.runner.RunWith
 
 /**
  * stethoscore://due, the Due cards widget's tap, reaches the due screen when it
- * starts the app (cold) and when the app is already open on home (warm, onNewIntent).
+ * starts the app (cold) and when the app is already open on home (warm: the same
+ * activity takes it in onNewIntent, as the widgets' SINGLE_TOP | CLEAR_TOP intents will).
  * The library is empty, so the due screen says it has nothing due, words home never shows.
  */
 @RunWith(AndroidJUnit4::class)
@@ -46,11 +49,18 @@ class AppLinkLaunchTest {
     }
 
     @Test fun linkWhileOpenOpensDue() {
-        ActivityScenario.launch(MainActivity::class.java).use {
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             compose.waitForIdle()
             assertFalse("home first", shown(dueScreen))
-            instrumentation.targetContext.startActivity(link(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP))
+            var before: MainActivity? = null
+            scenario.onActivity { before = it }
+            instrumentation.targetContext.startActivity(link(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP))
             waitForDue("warm")
+            var after: MainActivity? = null
+            scenario.onActivity { after = it }
+            // the open activity took the link (onNewIntent), not a second one started cold
+            assertNotNull(before)
+            assertSame("the same activity", before, after)
         }
     }
 }

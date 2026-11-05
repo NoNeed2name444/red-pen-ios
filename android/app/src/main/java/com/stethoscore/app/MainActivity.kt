@@ -36,8 +36,11 @@ class MainActivity : ComponentActivity() {
         // a table or a backup opened from another app waits for the library to show it
         if (savedInstanceState == null && !AppLink.isLink(intent)) IncomingFiles.take(intent)
         // a stethoscore:// link (a widget's tap): the due queue opens as the first
-        // screen, the others once the app is up; a recreated activity has had it
-        val link = if (savedInstanceState == null) AppLink.from(intent) else null
+        // screen, the others once the app is up; a recreated activity, or one
+        // reopened from Recents, has had it
+        val link = coldLink(intent, restored = savedInstanceState != null)
+        // a learning sheet left open in this process would cover the due screen (as StethoscoreApp's link effect)
+        if (link == AppLink.ReviewDue) com.stethoscore.app.ui.learn.LearnRouter.close()
         if (link != null && link != AppLink.ReviewDue) AppLinks.pending = link
         // cloud jobs finished while the app was closed become sets (iOS RedPenApp)
         CloudJobCollector.start(this, store)
@@ -52,6 +55,17 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
+        /**
+         * The link a starting activity follows: none when it was restored from
+         * saved state, or reopened from Recents (the system hands back the
+         * intent that first started the task, so its link would play again).
+         */
+        internal fun coldLink(intent: Intent?, restored: Boolean): AppLink? {
+            if (restored || intent == null) return null
+            if (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0) return null
+            return AppLink.from(intent)
+        }
+
         /**
          * Sets the window's background to home's ground in [dark], and from
          * Android 12 tells the system the app's mode, so the next starting
