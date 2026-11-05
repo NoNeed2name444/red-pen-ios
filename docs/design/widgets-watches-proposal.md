@@ -85,7 +85,7 @@ All four show the same three things, which the digest already carries: cards due
   - due: `StudyStore.dueAcross` (`StudyStore.kt:374`), the same queue as `DueTodayScreen` (`AnkiReviewScreen.kt:140`);
   - exam date: `StudyStore.examDate` (`StudyStore.kt:52`); exam name: `ExamCountdown.examName` (`HomeRound.kt:30`);
   - today: `LibraryStats.streakAndToday` (`LibraryStats.kt:185`), taking the today half only;
-  - goal: `StudyStreak.goal(stored)` (`StudyStreak.kt:132-135`), from what Settings stored under `DailyGoal.key`, read the same way as iOS `DailyGoal.current` (50 until one is chosen, clamped to the range).
+  - goal: `GoalProgress.goal(stored)` (`StudyStreak.kt:132-135`, in `GoalProgress`, declared at `:123`), from what Settings stored under `DailyGoal.key`, read the same way as iOS `DailyGoal.current` (50 until one is chosen, clamped to the range).
 
   The Kotlin digest has the same fields as the Swift one, `goal` included, so the widget's "of 50 done today" and the watch's copy read the goal from the digest, never from Settings.
 - **Links (new):** Android has none today. The slice will:
@@ -147,7 +147,7 @@ All four show the same three things, which the digest already carries: cards due
 - Against it, one third-party sideloaded app says its widget "needs a paid Apple Developer account for App Groups" ([ai_usage ios-0.5.1](https://github.com/Neoo-Blue/ai_usage/releases/tag/ios-0.5.1)).
 - One risk is specific to this code. A sideloading app may rename the group (often by adding the team ID). It does not know about our `RedPenAppGroup` Info.plist key (`project.yml:247` for the app, `:303` for the widgets; read at `GlanceDigest.swift:130-134`). The entitlement values it must match are at `project.yml:91` and `:297`. The app and the widget would then each fall back to their own caches and never meet. Slice 1 makes this visible on the device before anything else is built on it.
 
-**Watch hardware.** The owner has an iPhone and an iPad (`CLAUDE.md`, line 1), and no Apple Watch or Wear OS watch is mentioned. Both watch apps can be checked only in simulators and emulators on CI, by screenshots. Every change lands on iOS and Android together, so the two watch apps are built side by side and released together, or not at all (decision D1).
+**Watch hardware.** The owner has an iPhone and an iPad (`CLAUDE.md`, line 3), and no Apple Watch or Wear OS watch is mentioned. Both watch apps can be checked only in simulators and emulators on CI, by screenshots. Every change lands on iOS and Android together, so the two watch apps are built side by side and released together, or not at all (decision D1).
 
 **Touch targets.**
 - iOS: every tappable thing inside a widget, and Refresh on the watch, is at least 44 pt. Lock Screen and complication taps are whole-surface.
