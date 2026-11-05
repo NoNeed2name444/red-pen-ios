@@ -106,6 +106,48 @@ check("a text narrower than its widest word is caught, and only that one",
       broken.count == 1 && broken[0].hasPrefix("the Vitals tile's streak breaks inside a word"),
       broken.joined(separator: "; "))
 
+// MARK: - The tiles get the card's room for the bar (T0211 A3)
+
+// The review's phone (Android run 42028140747, 411 x 914 dp): the card fit,
+// but the tiles ran 648-818 with New set from 754, its line at 742, over the
+// Brain map tile mid-sentence. Three beds shown, the first ending at 369 and
+// the last at 536: one bed less lifts the tiles clear.
+let review: HomeFit.Box = box(648, 818, x0: 16, x1: 395)
+check("tiles sliced by the line, with beds to give up: a bed comes off",
+      HomeFit.tilesTrim(tiles: review, spare: 536 - 369, cut: 742))
+let reviewFaults = HomeFit.faults(card: box(250, 624), start: box(553, 609), bar: box(754, 914),
+                                  newSet: box(754, 810, x0: 258, x1: 395), tiles: review, spare: 536 - 369)
+check("the review's home is caught, the tiles and nothing else",
+      reviewFaults.count == 1 && reviewFaults[0].hasPrefix("the tiles (648-818) are sliced"),
+      reviewFaults.joined(separator: "; "))
+// after the second bed (96 tall) came off: the tiles 552-722, clear
+let trimmed: HomeFit.Box = box(552, 722, x0: 16, x1: 395)
+check("tiles clear of the line: no more beds come off",
+      !HomeFit.tilesTrim(tiles: trimmed, spare: 440 - 369, cut: 742))
+let afterTrim = HomeFit.faults(card: box(250, 528), start: box(457, 513), bar: box(754, 914),
+                               newSet: box(754, 810, x0: 258, x1: 395), tiles: trimmed, spare: 440 - 369)
+check("the trimmed home fits", afterTrim.isEmpty, afterTrim.joined(separator: "; "))
+// an iPhone SE: two beds, the tiles 500-670 and the line at 555. One bed less
+// lifts them 90, not enough: no bed is given up for nothing, and the tiles
+// pass behind the bar as before
+check("a bed that cannot lift the tiles clear stays",
+      !HomeFit.tilesTrim(tiles: box(500, 670), spare: 90, cut: 555))
+check("and that home is no fault",
+      HomeFit.faults(card: box(204, 480), start: box(420, 470), bar: box(567, 647), newSet: nil,
+                     tiles: box(500, 670), spare: 90).isEmpty)
+check("one bed left: nothing to give up", !HomeFit.tilesTrim(tiles: review, spare: 0, cut: 742))
+check("tiles wholly past the line are not sliced", !HomeFit.tilesTrim(tiles: box(760, 930), spare: 300, cut: 742))
+check("tiles ending on the line are clear", !HomeFit.tilesTrim(tiles: box(572, 742), spare: 300, cut: 742))
+check("no tiles laid out: nothing to trim", !HomeFit.tilesTrim(tiles: nil, spare: 300, cut: 742))
+check("lifting them exactly to the line is enough", HomeFit.tilesTrim(tiles: box(648, 818), spare: 76, cut: 742))
+// at the large sizes the page scrolls: the tiles are left to it
+check("at the large sizes sliced tiles are no fault",
+      HomeFit.faults(card: box(283, 700), start: box(620, 676), bar: box(708, 860), newSet: nil, large: true,
+                     tiles: box(690, 900), spare: 200).isEmpty)
+check("the app trims for the tiles at the standard sizes",
+      ((try? String(contentsOfFile: "ios/RedPen/Features/Library/LibraryView.swift", encoding: .utf8)) ?? "")
+        .contains("HomeFit.tilesTrim(tiles: Self.box(tilesFrame), spare: bedsSpare, cut: cut)"))
+
 // MARK: - Not cut above the bar (the owner, 22 Oct)
 
 // The bar's line is only where the first screen's round has to end

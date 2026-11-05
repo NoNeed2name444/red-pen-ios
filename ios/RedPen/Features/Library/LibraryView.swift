@@ -204,8 +204,14 @@ struct LibraryView: View {
     /// At large text, how many of the round's beds were taken off so the
     /// bar's line does not slice Start ward round (HomeFit.slices), and
     /// where Start was last laid out, in global points.
+    /// At the standard sizes beds come off the same way while the bar's
+    /// line slices the tiles and that can lift them clear (HomeFit.tilesTrim,
+    /// T0211 A3): where the tiles were last laid out, at rest, and how far
+    /// they would rise with one bed left.
     @State var bedsTrimmed = 0
     @State var startFrame: CGRect = .zero
+    @State var tilesFrame: CGRect = .zero
+    @State var bedsSpare: Double = 0
     /// At the accessibility text sizes the dock is one button over a list
     /// (CategoryDock), so it sits at the bottom even on a wide iPad.
     @Environment(\.dynamicTypeSize) var typeSize
@@ -516,6 +522,10 @@ struct LibraryView: View {
             // it, never sliced by it, at any text size
             .onChange(of: startFrame) { trimSlicedStart() }
             .onChange(of: barTop) { trimSlicedStart() }
+            // and at the standard sizes no tile's words sit under the bar
+            // while a bed can make room for them (T0211 A3)
+            .onChange(of: tilesFrame) { trimSlicedStart() }
+            .onChange(of: bedsSpare) { trimSlicedStart() }
             .onChange(of: typeSize) { bedsTrimmed = 0 }
             .onChange(of: span) { bedsTrimmed = 0 }
             // the category's hue (or Ideas') on the paper's grid and the
@@ -624,14 +634,27 @@ struct LibraryView: View {
     /// with the page at rest the bar's line must not fall through Start ward
     /// round: half a button would stand behind New set and the dock. Then
     /// the round gives up a bed (Plan has the whole day) and Start rises
-    /// clear. A page being scrolled is left alone.
+    /// clear. At the standard sizes the card already ends above the line;
+    /// the tiles under it get the same room (T0211 A3): while the line
+    /// slices them and fewer beds would lift them clear, a bed comes off.
+    /// A page being scrolled is left alone.
     private func trimSlicedStart() {
-        guard typeSize > .large, bedsTrimmed < 8, bandTrack.isAtRest,
-              let barTop, startFrame.height > 0 else { return }
+        guard bedsTrimmed < 8, bandTrack.isAtRest, let barTop else { return }
         let cut: Double = HomeFit.barLine(barTop: Double(barTop))
-        if HomeFit.slices(minY: Double(startFrame.minY), maxY: Double(startFrame.maxY), cut: cut) {
+        if typeSize > .large {
+            guard startFrame.height > 0 else { return }
+            if HomeFit.slices(minY: Double(startFrame.minY), maxY: Double(startFrame.maxY), cut: cut) {
+                bedsTrimmed += 1
+            }
+        } else if HomeFit.tilesTrim(tiles: Self.box(tilesFrame), spare: bedsSpare, cut: cut) {
             bedsTrimmed += 1
         }
+    }
+
+    private static func box(_ rect: CGRect) -> HomeFit.Box? {
+        guard !rect.isEmpty else { return nil }
+        return HomeFit.Box(minX: Double(rect.minX), minY: Double(rect.minY),
+                           maxX: Double(rect.maxX), maxY: Double(rect.maxY))
     }
 
     /// The base under every page, Ideas' list and board too, with the grid

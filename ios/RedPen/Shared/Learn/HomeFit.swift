@@ -16,8 +16,10 @@ import Foundation
 // above them (`lastRowBottom`). The preview checks the first screen with
 // `faults`: at the standard sizes the card and its button end `barRoom`
 // above the bar, at the large sizes the bar's line slices no button, New
-// set sits on no part of the card above that line, and no word of home's
-// text is broken across two lines.
+// set sits on no part of the card above that line, no word of home's
+// text is broken across two lines, and at the standard sizes the tiles
+// are not sliced by that line while the round can give up a bed to lift
+// them clear (`tilesTrim`).
 
 enum HomeFit {
     /// Window heights (points, inside the safe area) under this are short:
@@ -88,6 +90,21 @@ enum HomeFit {
         minY < cut && maxY > cut
     }
 
+    /// Whether the round gives up another bed so the tiles clear the bar's
+    /// line at the standard text sizes, the page at rest. The review found
+    /// New set over the Brain map tile mid-sentence on a 914 dp phone
+    /// (T0211 A3): the card ended above the line, the tiles under it did
+    /// not. So the tiles get the card's room for the bar too: while the
+    /// line slices them, a bed comes off (Plan has the whole day) and they
+    /// rise. Only while that can lift them clear: `spare` is how far they
+    /// would rise with one bed left (the shown beds' bottom less the first
+    /// bed's); on a window too short for that, no bed is given up for
+    /// nothing, and the tiles pass behind the bar and scroll clear.
+    static func tilesTrim(tiles: Box?, spare: Double, cut: Double) -> Bool {
+        guard let tiles, spare > 0, slices(minY: tiles.minY, maxY: tiles.maxY, cut: cut) else { return false }
+        return tiles.maxY - spare <= cut
+    }
+
     /// A laid-out thing's edges, in one coordinate space.
     struct Box: Equatable {
         var minX: Double
@@ -127,10 +144,14 @@ enum HomeFit {
     /// expects, but the bar's line must not slice the Start button (whole
     /// above it or wholly past it). At any size New set sits on no part of
     /// the card above the bar's line, and no word of home's text is broken
-    /// across two lines. Rows and tiles past the line are not faults: they
-    /// pass behind New set and the dock, and scroll clear (`endSpace`).
+    /// across two lines. At the standard sizes the tiles are not sliced by
+    /// the line while giving up beds would lift them clear (`tilesTrim`,
+    /// `spare` as there). Rows and tiles wholly past the line are not
+    /// faults: they pass behind New set and the dock, and scroll clear
+    /// (`endSpace`).
     static func faults(card: Box?, start: Box?, bar: Box?, newSet: Box?,
-                       large: Bool = false, words: [Words] = []) -> [String] {
+                       large: Bool = false, words: [Words] = [],
+                       tiles: Box? = nil, spare: Double = 0) -> [String] {
         guard let card else { return ["no round card was laid out"] }
         guard let start else { return ["no Start ward round button was laid out"] }
         guard let bar else { return ["no bottom bar was laid out"] }
@@ -147,6 +168,10 @@ enum HomeFit {
             }
             if card.maxY > line {
                 out.append("the round card (\(card.text)) runs past the bar's line at \(at)")
+            }
+            if let tiles, tilesTrim(tiles: tiles, spare: spare, cut: line) {
+                out.append("the tiles (\(tiles.text)) are sliced by the bar's line at \(at), "
+                           + "and the round has beds to give up")
             }
         }
         // the part of the card on the first screen: down to the bar's line

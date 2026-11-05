@@ -54,6 +54,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -289,14 +290,20 @@ import com.stethoscore.app.ui.library.LibraryEtch
                         val libSearch=com.stethoscore.app.ui.library.rememberLibrarySearch(store,revision,query,lib.scope)
                         // home: the header, today's ward round and its tiles (ui/home, iOS WardHome)
                         val shortWindow=homeShortWindow()
-                        val home=remember(revision,shortWindow,store.library,com.stethoscore.app.ui.learn.LearnRouter.version) { if(store.library.isEmpty()) null else {
+                        // at the standard text sizes the tiles get the round card's room for the bar: while its line
+                        // slices them and fewer beds would lift them clear, a bed comes off (HomeFit.tilesTrim, T0211 A3;
+                        // iOS LibraryView.trimSlicedStart); a new window or text size starts again from every bed
+                        val standardText=LocalDensity.current.fontScale<=1f
+                        val windowWidth=androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp
+                        var bedsTrimmed by remember(shortWindow,standardText,windowWidth) { mutableStateOf(0) }
+                        val home=remember(revision,shortWindow,bedsTrimmed,store.library,com.stethoscore.app.ui.learn.LearnRouter.version) { if(store.library.isEmpty()) null else {
                             val due=store.dueAcross()
                             val situation=com.stethoscore.app.ui.learn.LearnLibrary.examSituation(store,due.size,com.stethoscore.app.ui.mock.MockLibrary.recordsFile(context.filesDir))
                             val input=HomeRound.input(store,due.size,HomeRound.dueSubjects(store,due),situation=situation,track=QuizPrefs.track(context))
                             val all=com.stethoscore.app.data.BedPlan.beds(input)
                             val days=HomeRound.studyDays(store)
                             val (ideas,links)=HomeRound.brainMap(store)
-                            due.size to HomeRoundModel(all.take(HomeFit.shownBeds(all.size,shortWindow)),if(input.phase.holdsNewMaterial) input.phase.headline else null,
+                            due.size to HomeRoundModel(all.take(HomeFit.shownBeds(all.size,shortWindow,bedsTrimmed)),if(input.phase.holdsNewMaterial) input.phase.headline else null,
                                 HomeRound.streak(days),com.stethoscore.app.data.RhythmReading.read(days,java.time.Instant.now(),java.time.ZoneId.systemDefault()),ideas,links,
                                 com.stethoscore.app.ui.vitals.StoreInsight.readiness(store,due.size,QuizPrefs.track(context)))
                         } }
@@ -322,6 +329,19 @@ import com.stethoscore.app.ui.library.LibraryEtch
                         // list lets the last one scroll clear of them (HomeFit.endSpace). No
                         // soft edge under the bar either: nothing at the bottom fades.
                         var barHeight by remember { mutableStateOf(0.0) }
+                        // where the bar (New set over the dock) begins, in root dp; null while the keyboard has put it away
+                        var barTop by remember { mutableStateOf<Double?>(null) }
+                        LaunchedEffect(book.tops,barTop,atRest,standardText) {
+                            val top=barTop ?: return@LaunchedEffect
+                            if(!atRest || !standardText || bedsTrimmed>=8) return@LaunchedEffect
+                            val seen=book.ledger.sightings
+                            val tiles=seen["tiles"]?.rect?.let { HomeFit.Box(it.x,it.y,it.x+it.width,it.y+it.height) }
+                            // how far the tiles would rise with one bed left: the shown beds' bottom less the first's
+                            val beds=seen.filterKeys { it.startsWith("bed-") }.values.map { it.rect }
+                            val first=beds.minByOrNull { it.y }
+                            val spare=if(beds.size>1 && first!=null) beds.maxOf { it.y+it.height }-(first.y+first.height) else 0.0
+                            if(HomeFit.tilesTrim(tiles,spare,HomeFit.barLine(top))) bedsTrimmed+=1
+                        }
                         // a broad window stands the dock up at the leading edge (iOS railed), not at the accessibility text sizes
                         val railed=shape.dockIsRail && !lib.selecting && LocalDensity.current.fontScale<1.5f
                             LazyColumn(Modifier.fillMaxSize(),state=listState,contentPadding=PaddingValues(WardSpace.gutter.wardDp+(if(railed) WardDock.railRoom.dp else 0.dp),WardSpace.m.wardDp,WardSpace.gutter.wardDp,WardSpace.xl.wardDp),verticalArrangement=Arrangement.spacedBy(WardSpace.section.wardDp)) {
@@ -365,8 +385,8 @@ import com.stethoscore.app.ui.library.LibraryEtch
                         // while the keyboard is up the bar stays behind it, as iOS's does, so it never
                         // rides up over the search's results ("No results for…")
                         val typing=keyboardShown()
-                        if(typing) SideEffect { barHeight=0.0 }
-                        if(!typing) Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().onGloballyPositioned { barHeight=(it.size.height/barDensity).toDouble() }) { com.stethoscore.app.ui.ward.WardUnlit {
+                        if(typing) SideEffect { barHeight=0.0;barTop=null }
+                        if(!typing) Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().onGloballyPositioned { barHeight=(it.size.height/barDensity).toDouble();barTop=(it.positionInRoot().y/barDensity).toDouble() }) { com.stethoscore.app.ui.ward.WardUnlit {
                         // New set on its own row over the dock, at the trailing end, once there is something to list (iOS newSetRow)
                         // bottom-trailing beside the rail, under the right hand (iOS newSetRow: 24 in, 16 up)
                         if(!lib.selecting && store.library.isNotEmpty()) Row(Modifier.fillMaxWidth().padding(horizontal=if(railed) 24.dp else 16.dp,vertical=6.dp).padding(bottom=if(railed) 10.dp else 0.dp),horizontalArrangement=Arrangement.End) {

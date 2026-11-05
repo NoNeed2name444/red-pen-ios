@@ -21,8 +21,9 @@ import kotlin.math.min
 // above them (`lastRowBottom`). `faults` checks the first screen: at the
 // standard sizes the card and its button end `barRoom` above the bar, at
 // the large sizes the bar's line slices no button, New set sits on no part
-// of the card above that line, and no word of home's text is broken across
-// two lines.
+// of the card above that line, no word of home's text is broken across
+// two lines, and at the standard sizes the tiles are not sliced by that
+// line while the round can give up a bed to lift them clear (tilesTrim).
 
 /** Swift's `rounded()`: to the nearest, a half away from zero. */
 internal fun roundedHalfAway(x: Double): Double = if (x >= 0) floor(x + 0.5) else ceil(x - 0.5)
@@ -96,6 +97,23 @@ object HomeFit {
     /** Whether a line at [cut] falls inside something spanning [minY] to [maxY]: neither wholly above it nor wholly below. */
     fun slices(minY: Double, maxY: Double, cut: Double): Boolean = minY < cut && maxY > cut
 
+    /**
+     * Whether the round gives up another bed so the tiles clear the bar's
+     * line at the standard text sizes, the page at rest. The review found
+     * New set over the Brain map tile mid-sentence on a 914 dp phone (T0211
+     * A3): the card ended above the line, the tiles under it did not. So
+     * the tiles get the card's room for the bar too: while the line slices
+     * them, a bed comes off (Plan has the whole day) and they rise. Only
+     * while that can lift them clear: [spare] is how far they would rise
+     * with one bed left (the shown beds' bottom less the first bed's); on a
+     * window too short for that, no bed is given up for nothing, and the
+     * tiles pass behind the bar and scroll clear.
+     */
+    fun tilesTrim(tiles: Box?, spare: Double, cut: Double): Boolean {
+        if (tiles == null || !(spare > 0) || !slices(tiles.minY, tiles.maxY, cut)) return false
+        return tiles.maxY - spare <= cut
+    }
+
     /** A laid-out thing's edges, in one coordinate space. */
     data class Box(val minX: Double, val minY: Double, val maxX: Double, val maxY: Double) {
         fun overlaps(other: Box): Boolean = minX < other.maxX && other.minX < maxX && minY < other.maxY && other.minY < maxY
@@ -116,11 +134,15 @@ object HomeFit {
      * the bar and scroll, but the bar's line must not slice the Start button
      * (whole above it or wholly past it). At any size New set sits on no
      * part of the card above the bar's line, and no word of home's text is
-     * broken across two lines. Rows and tiles past the line are not faults:
-     * they pass behind New set and the dock, and scroll clear (`endSpace`).
+     * broken across two lines. At the standard sizes the tiles are not
+     * sliced by the line while giving up beds would lift them clear
+     * ([tilesTrim], [spare] as there). Rows and tiles wholly past the line
+     * are not faults: they pass behind New set and the dock, and scroll
+     * clear (`endSpace`).
      */
     fun faults(card: Box?, start: Box?, bar: Box?, newSet: Box?,
-               large: Boolean = false, words: List<Words> = emptyList()): List<String> {
+               large: Boolean = false, words: List<Words> = emptyList(),
+               tiles: Box? = null, spare: Double = 0.0): List<String> {
         if (card == null) return listOf("no round card was laid out")
         if (start == null) return listOf("no Start ward round button was laid out")
         if (bar == null) return listOf("no bottom bar was laid out")
@@ -132,6 +154,9 @@ object HomeFit {
         } else {
             if (start.maxY > line) out.add("Start ward round (${start.text}) runs past the bar's line at $at, above the bar")
             if (card.maxY > line) out.add("the round card (${card.text}) runs past the bar's line at $at")
+            if (tiles != null && tilesTrim(tiles, spare, line)) {
+                out.add("the tiles (${tiles.text}) are sliced by the bar's line at $at, and the round has beds to give up")
+            }
         }
         // the part of the card on the first screen: down to the bar's line
         if (newSet != null && card.minY < line) {

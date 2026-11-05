@@ -105,6 +105,7 @@ extension LibraryView {
                              // at rest only: Start's global frame moves with every scroll
                              // step, and each write would re-run this whole view
                              onStartFrame: { if bandTrack.isAtRest { startFrame = $0 } },
+                             onSpare: { if $0 != bedsSpare { bedsSpare = $0 } },
                              onPlan: { LearnRouter.shared.open(.examPlan) })
     }
 
@@ -124,7 +125,9 @@ extension LibraryView {
         return HomeTiles(readiness: readiness, streak: vitals.streak.streak, rhythm: vitals.rhythm,
                          ideas: map.ideas, links: map.links,
                          onVitals: { support = .analytics },
-                         onIdeas: { goToIdeas() })
+                         onIdeas: { goToIdeas() },
+                         // at rest only, as Start's: the frame moves with every scroll step
+                         onFrame: { if bandTrack.isAtRest { tilesFrame = $0 } })
     }
 
     // MARK: what the round is made from
@@ -559,8 +562,13 @@ struct HomeRoundCard: View {
     let onOpen: (BedPlan.Bed) -> Void
     /// Where Start ward round is, in global points, as it is laid out.
     var onStartFrame: (CGRect) -> Void = { _ in }
+    /// How far what lies under the card would rise with only the first bed
+    /// left, in points: the beds' height less the first's (HomeFit.tilesTrim).
+    var onSpare: (Double) -> Void = { _ in }
     let onPlan: () -> Void
     @Environment(\.dynamicTypeSize) private var typeSize
+    @State private var rowsHeight: CGFloat = 0
+    @State private var firstHeight: CGFloat = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: WardSpace.m) {
@@ -580,6 +588,15 @@ struct HomeRoundCard: View {
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
             HomeFitProbe.shared.card = $0
         }
+        .onChange(of: spare, initial: true) { _, now in
+            HomeFitProbe.shared.spare = now
+            onSpare(now)
+        }
+    }
+
+    /// Heights, not frames: they hold still while the page scrolls.
+    private var spare: Double {
+        beds.count > 1 && firstHeight > 0 ? max(0, Double(rowsHeight - firstHeight)) : 0
     }
 
     /// Beside each other; at the accessibility sizes the plan's button goes
@@ -639,11 +656,15 @@ struct HomeRoundCard: View {
         VStack(spacing: 0) {
             ForEach(beds) { bed in
                 bedButton(bed)
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+                        if bed.id == beds.first?.id { firstHeight = height }
+                    }
                 if bed.id != beds.last?.id {
                     WardEtch().padding(.leading, 52)
                 }
             }
         }
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { rowsHeight = $0 }
     }
 
     private func bedButton(_ bed: BedPlan.Bed) -> some View {
@@ -737,6 +758,9 @@ struct HomeTiles: View {
     let links: Int
     let onVitals: () -> Void
     let onIdeas: () -> Void
+    /// Where the tiles are, in global points, as they are laid out
+    /// (HomeFit.tilesTrim).
+    var onFrame: (CGRect) -> Void = { _ in }
     @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View { measured }
@@ -762,6 +786,7 @@ struct HomeTiles: View {
     private var measured: some View {
         tiles.launchEntrance(inOpening: true).wardPart("the tiles").onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
             HomeFitProbe.shared.tiles = $0
+            onFrame($0)
         }
     }
 
@@ -1305,6 +1330,8 @@ final class HomeFitProbe {
     var newSet: CGRect?
     var bar: CGRect?
     var tiles: CGRect?
+    /// How far the tiles would rise with one bed left (HomeFit.tilesTrim).
+    var spare: Double = 0
     /// The text size is above the standard ones: the page may scroll.
     var large = false
     /// Each probed text's laid-out width, and its widest word's on its own.
@@ -1353,7 +1380,8 @@ final class HomeFitProbe {
         }.sorted { ($0.box.minY, $0.name) < ($1.box.minY, $1.name) }
         var faults: [String] = HomeFit.faults(card: Self.box(card), start: Self.box(start),
                                               bar: Self.box(bar), newSet: Self.box(newSet),
-                                              large: large, words: words)
+                                              large: large, words: words,
+                                              tiles: Self.box(tiles), spare: spare)
         // a probe that measured nothing would call any home fitting
         if parts.isEmpty { faults.append("no row or part of the page was measured") }
         if PreviewLaunch.pushBack {
@@ -1397,7 +1425,7 @@ final class HomeFitProbe {
         }
         let line: String = bar.map { "\(Int(HomeFit.barLine(barTop: Double($0.minY))))" } ?? "none"
         lines.append("card \(edges(card)), start \(edges(start)), new set \(edges(newSet)), "
-                     + "tiles \(edges(tiles)), bar \(edges(bar)), bar's line \(line), not cut, large text \(large)")
+                     + "tiles \(edges(tiles)) (spare \(Int(spare))), bar \(edges(bar)), bar's line \(line), not cut, large text \(large)")
         lines.append("\(parts.count) parts measured: "
                      + parts.prefix(40).map { "\($0.name) \($0.box.text)" }.joined(separator: ", "))
         lines.append("words: " + words.map { "\($0.name) \(Int($0.width))/\(Int($0.widest))" }

@@ -88,6 +88,38 @@ class HomeFitTest {
             broken.size == 1 && broken[0].startsWith("the Vitals tile's streak breaks inside a word"), broken.joined())
     }
 
+    // T0211 A3: the tiles get the card's room for the bar. The review's phone
+    // (run 42028140747, 411 x 914 dp): the tiles ran 648-818 with New set from
+    // 754, its line at 742, over the Brain map tile mid-sentence. Three beds
+    // shown, the first ending at 369 and the last at 536.
+    @Test fun theTilesGetTheCardsRoomForTheBar() = checks {
+        val review = box(648.0, 818.0, x0 = 16.0, x1 = 395.0)
+        check("tiles sliced by the line, with beds to give up: a bed comes off", HomeFit.tilesTrim(review, 536.0 - 369.0, 742.0))
+        val reviewFaults = HomeFit.faults(box(250.0, 624.0), box(553.0, 609.0), box(754.0, 914.0), box(754.0, 810.0, x0 = 258.0, x1 = 395.0),
+            tiles = review, spare = 536.0 - 369.0)
+        check("the review's home is caught, the tiles and nothing else",
+            reviewFaults.size == 1 && reviewFaults[0].startsWith("the tiles (648-818) are sliced"), reviewFaults.joined())
+        // after the second bed (96 tall) came off: the tiles 552-722, clear
+        val trimmed = box(552.0, 722.0, x0 = 16.0, x1 = 395.0)
+        check("tiles clear of the line: no more beds come off", !HomeFit.tilesTrim(trimmed, 440.0 - 369.0, 742.0))
+        val afterTrim = HomeFit.faults(box(250.0, 528.0), box(457.0, 513.0), box(754.0, 914.0), box(754.0, 810.0, x0 = 258.0, x1 = 395.0),
+            tiles = trimmed, spare = 440.0 - 369.0)
+        check("the trimmed home fits", afterTrim.isEmpty(), afterTrim.joined())
+        // a short phone: two beds, the tiles 500-670 and the line at 555. One bed
+        // less lifts them 90, not enough: no bed is given up for nothing
+        check("a bed that cannot lift the tiles clear stays", !HomeFit.tilesTrim(box(500.0, 670.0), 90.0, 555.0))
+        check("and that home is no fault",
+            HomeFit.faults(box(204.0, 480.0), box(420.0, 470.0), box(567.0, 647.0), null, tiles = box(500.0, 670.0), spare = 90.0).isEmpty())
+        check("one bed left: nothing to give up", !HomeFit.tilesTrim(review, 0.0, 742.0))
+        check("tiles wholly past the line are not sliced", !HomeFit.tilesTrim(box(760.0, 930.0), 300.0, 742.0))
+        check("tiles ending on the line are clear", !HomeFit.tilesTrim(box(572.0, 742.0), 300.0, 742.0))
+        check("no tiles laid out: nothing to trim", !HomeFit.tilesTrim(null, 300.0, 742.0))
+        check("lifting them exactly to the line is enough", HomeFit.tilesTrim(box(648.0, 818.0), 76.0, 742.0))
+        // at the large sizes the page scrolls: the tiles are left to it
+        check("at the large sizes sliced tiles are no fault",
+            HomeFit.faults(box(283.0, 700.0), box(620.0, 676.0), box(708.0, 860.0), null, large = true, tiles = box(690.0, 900.0), spare = 200.0).isEmpty())
+    }
+
     // The owner, 22 Oct: the page is not cut above the bar.
     @Test fun notCutAboveTheBar() = checks {
         // The bar's line is only where the first screen's round has to end
