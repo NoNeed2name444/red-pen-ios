@@ -428,16 +428,23 @@ struct AnkiRatingBar: View {
             Announce.say("Rated " + spoken + ".")
         }
         // the word, then when the card comes back; what it means is
-        // VoiceOver's, in the same one label
+        // VoiceOver's, in the same one label. One line each, down to 80%;
+        // at the accessibility sizes, one button to a row, any number of
+        // lines at full size, the button as tall as they are
+        let large: Bool = typeSize.isAccessibilitySize
+        let lines: Int? = large ? nil : 1
+        let least: CGFloat = large ? 1 : 0.8
         let label = VStack(spacing: 2) {
             Text(Self.title(rating))
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+                .lineLimit(lines)
+                .minimumScaleFactor(least)
+                .fixedSize(horizontal: false, vertical: large)
             Text(SpokenText.bareInterval(when))
                 .font(WardType.caption.monospacedDigit())
                 .foregroundStyle(Color.wardInkSecondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+                .lineLimit(lines)
+                .minimumScaleFactor(least)
+                .fixedSize(horizontal: false, vertical: large)
         }
         Button(action: action) { label }
             .buttonStyle(AnkiRatingButtonStyle(tone: Self.tone(rating), bold: rating == .good))

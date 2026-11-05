@@ -54,6 +54,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.stethoscore.app.data.*
+import com.stethoscore.app.ui.ward.wardAccessibilitySize
 import com.stethoscore.app.ui.ward.*
 
 // One card's face, front and back, and the bar under it that turns it over and rates it.
@@ -282,7 +283,8 @@ private const val hintsKey = "anki.ratingHintsShown"
         .padding(horizontal = 4.dp, vertical = 8.dp), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
             // one line each, never clipped: they shrink to CardReview.leastWordScale of their size
-            // before they would cross the button's edge, as iOS's minimumScaleFactor does
+            // before they would cross the button's edge, as iOS's minimumScaleFactor does; at the
+            // accessibility sizes they wrap instead
             val word = WardTextStyle.headline.textStyle(if (rating == AnkiRating.GOOD) WardWeight.bold else WardWeight.semibold)
                 .copy(color = wardColor(WardToken.ink), textAlign = TextAlign.Center)
             ShrinkingLine(CardReview.title(rating), word)
@@ -294,6 +296,12 @@ private const val hintsKey = "anki.ratingHintsShown"
 }
 
 @Composable private fun ShrinkingLine(text: String, style: TextStyle) {
+    // at the accessibility sizes, one button to a row: any number of lines at full size, wrapping
+    // by word, the button as tall as they are (iOS AnkiRatingBar.button)
+    if (wardAccessibilitySize()) {
+        androidx.compose.foundation.text.BasicText(text, style = style)
+        return
+    }
     androidx.compose.foundation.text.BasicText(text, style = style, maxLines = 1, softWrap = false,
         autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(
             minFontSize = style.fontSize * CardReview.leastWordScale, maxFontSize = style.fontSize, stepSize = 0.25.sp))

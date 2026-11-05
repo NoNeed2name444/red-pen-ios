@@ -557,6 +557,7 @@ struct HomeRoundCard: View {
     /// Where Start ward round is, in global points, as it is laid out.
     var onStartFrame: (CGRect) -> Void = { _ in }
     let onPlan: () -> Void
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         VStack(alignment: .leading, spacing: WardSpace.m) {
@@ -578,28 +579,43 @@ struct HomeRoundCard: View {
         }
     }
 
+    /// Beside each other; at the accessibility sizes the plan's button goes
+    /// under the heading, so neither is squeezed into a word a line.
+    @ViewBuilder
     private var heading: some View {
-        HStack(alignment: .firstTextBaseline, spacing: WardSpace.s) {
-            Text("Today\u{2019}s revision \u{00B7} " + BedPlan.summary(beds))
-                .homeSmallCaps()
-                .accessibilityLabel(BedPlan.spokenSummary(beds))
-                .accessibilityAddTraits(.isHeader)
-            Spacer(minLength: WardSpace.s)
-            planButton
+        if typeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: WardSpace.s) {
+                headingTitle
+                planButton
+            }
+        } else {
+            HStack(alignment: .firstTextBaseline, spacing: WardSpace.s) {
+                headingTitle
+                Spacer(minLength: WardSpace.s)
+                planButton
+            }
         }
+    }
+
+    private var headingTitle: some View {
+        Text("Today\u{2019}s revision \u{00B7} " + BedPlan.summary(beds))
+            .homeSmallCaps()
+            .accessibilityLabel(BedPlan.spokenSummary(beds))
+            .accessibilityAddTraits(.isHeader)
     }
 
     private var planButton: some View {
         Button(action: onPlan) {
             // a 44-point target that takes only the words' height in the
             // heading's row, so the row is no taller than its two lines and
-            // the round's button stays clear of New set
+            // the round's button stays clear of New set; on its own line at
+            // the accessibility sizes it keeps its whole target's height
             Label("Open plan", systemImage: "chart.line.uptrend.xyaxis")
                 .font(WardType.face(.footnote, weight: .semibold))
                 .foregroundStyle(Color.wardPrimaryInk)
                 .padding(.vertical, 12)
                 .contentShape(Rectangle())
-                .padding(.vertical, -12)
+                .padding(.vertical, typeSize.isAccessibilitySize ? 0 : -12)
         }
         .buttonStyle(.borderless)
         .hoverEffect(.highlight)
@@ -996,8 +1012,23 @@ struct SetRow: View {
     let due: Int
     /// 0...1, or nil for a mode that keeps no place.
     let progress: Double?
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
+        Group {
+            if typeSize.isAccessibilitySize {
+                stacked
+            } else {
+                inline
+            }
+        }
+        .padding(.vertical, WardSpace.xs)
+        // a whole row to aim at, not only its words
+        .frame(minHeight: 56)
+        .contentShape(Rectangle())
+    }
+
+    private var inline: some View {
         HStack(alignment: .top, spacing: WardSpace.m) {
             WardIconSquare(symbol: set.kind.symbol, tone: .blue, size: 40)
                 .accessibilityHidden(true)
@@ -1011,10 +1042,57 @@ struct SetRow: View {
                 HomeChip(text: "\(due) due", tone: .warning)
             }
         }
-        .padding(.vertical, WardSpace.xs)
-        // a whole row to aim at, not only its words
-        .frame(minHeight: 56)
-        .contentShape(Rectangle())
+    }
+
+    /// At the accessibility sizes (as HomeRow's): the icon and the cards due
+    /// on a line of their own, then the name, its exam and "MCQ · 42
+    /// questions" across the whole row, each wrapping by word.
+    private var stacked: some View {
+        VStack(alignment: .leading, spacing: WardSpace.xs) {
+            HStack {
+                WardIconSquare(symbol: set.kind.symbol, tone: .blue, size: 40)
+                    .accessibilityHidden(true)
+                Spacer(minLength: WardSpace.s)
+                if due > 0 {
+                    HomeChip(text: "\(due) due", tone: .warning)
+                }
+            }
+            Text(set.name)
+                .font(WardType.face(.subheadline, weight: .semibold))
+                .foregroundStyle(Color.wardInk)
+                .fixedSize(horizontal: false, vertical: true)
+            if let exam = ExamCatalog.exam(set.exam) {
+                HomeChip(text: exam.shortName, tone: .blue)
+                    .accessibilityLabel("Written for \(exam.name)")
+            }
+            stackedKindLine
+            if let progress { progressLine(progress) }
+        }
+        .multilineTextAlignment(.leading)
+    }
+
+    /// The kind line as one run of words, so it wraps between them rather
+    /// than inside them.
+    private var stackedKindLine: some View {
+        let kind = Text(set.kind.label).font(WardType.face(.caption2, weight: .semibold))
+        let rest: String = kindParts.dropFirst().map { " \u{00B7} " + $0 }.joined()
+        return HStack(alignment: .firstTextBaseline, spacing: WardSpace.s) {
+            Text("\(kind)\(rest)")
+                .font(WardType.face(.caption2, weight: .regular))
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityLabel(kindParts.joined(separator: ", "))
+            HomeAccuracySetMark(set: set)
+        }
+        .foregroundStyle(Color.wardInkSecondary)
+    }
+
+    /// "MCQ", "42 questions" and the subject, when it is not General.
+    private var kindParts: [String] {
+        let plural: String = set.itemCount == 1 ? "" : "s"
+        let subject: String = set.subject.trimmingCharacters(in: .whitespacesAndNewlines)
+        var parts: [String] = [set.kind.label, "\(set.itemCount) \(set.itemNoun)\(plural)"]
+        if !subject.isEmpty && subject != "General" { parts.append(subject) }
+        return parts
     }
 
     private var nameLine: some View {

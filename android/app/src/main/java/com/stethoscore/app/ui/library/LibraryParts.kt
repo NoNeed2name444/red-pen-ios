@@ -37,6 +37,7 @@ import com.stethoscore.app.ui.ward.WardChip
 import com.stethoscore.app.ui.ward.WardCircleButton
 import com.stethoscore.app.ui.ward.WardGroove
 import com.stethoscore.app.ui.ward.WardIconSquare
+import com.stethoscore.app.ui.ward.wardAccessibilitySize
 import com.stethoscore.app.ui.ward.WardLift
 import com.stethoscore.app.ui.ward.WardRadius
 import com.stethoscore.app.ui.ward.WardSmallCapsText
@@ -98,6 +99,39 @@ import com.stethoscore.app.ui.ward.wardRaised
  * student is, and a deck's cards due.
  */
 @Composable fun LibrarySetRow(set: StudySet, due: Int, progress: Double?, modifier: Modifier = Modifier) {
+    val progressLine: @Composable () -> Unit = {
+        if (progress != null) {
+            val percent = Math.round(progress.coerceIn(0.0, 1.0) * 100).toInt()
+            Row(horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), verticalAlignment = Alignment.CenterVertically) {
+                LibraryProgressStrip(progress, Modifier.widthIn(max = 160.dp).weight(1f, fill = false))
+                Text("$percent%", style = WardTextStyle.caption2.textStyle(WardWeight.semibold, mono = true),
+                    color = wardColor(WardToken.inkSecondary), modifier = Modifier.semantics { contentDescription = "$percent percent done" })
+            }
+        }
+    }
+    val examChip: @Composable () -> Unit = {
+        set.exam?.takeIf { it.isNotBlank() }?.let { exam ->
+            WardChip(exam.uppercase(), Modifier.semantics { contentDescription = "Written for $exam" }, tone = WardTone.Blue)
+        }
+    }
+    // at the accessibility sizes (as HomeBedRow's, iOS SetRow.stacked): the icon and the cards
+    // due on a line of their own, then the name, its exam and the kind line across the whole
+    // row, each wrapping by word
+    if (wardAccessibilitySize()) {
+        Column(modifier.fillMaxWidth().heightIn(min = 56.dp).padding(vertical = WardSpace.xs.wardDp),
+            verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                WardIconSquare(modeIcon(set.kind), tone = WardTone.Blue, size = 40.0)
+                Spacer(Modifier.weight(1f))
+                if (due > 0) WardChip("$due due", tone = WardTone.Warning)
+            }
+            Text(set.name, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.ink))
+            examChip()
+            Text(kindLine(set), style = WardTextStyle.caption2.textStyle(), color = wardColor(WardToken.inkSecondary))
+            progressLine()
+        }
+        return
+    }
     Row(modifier.fillMaxWidth().heightIn(min = 56.dp).padding(vertical = WardSpace.xs.wardDp),
         horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp), verticalAlignment = Alignment.Top) {
         WardIconSquare(modeIcon(set.kind), tone = WardTone.Blue, size = 40.0)
@@ -105,20 +139,11 @@ import com.stethoscore.app.ui.ward.wardRaised
             Row(horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), verticalAlignment = Alignment.CenterVertically) {
                 Text(set.name, style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.ink),
                     maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-                set.exam?.takeIf { it.isNotBlank() }?.let { exam ->
-                    WardChip(exam.uppercase(), Modifier.semantics { contentDescription = "Written for $exam" }, tone = WardTone.Blue)
-                }
+                examChip()
             }
             Text(kindLine(set), style = WardTextStyle.caption2.textStyle(), color = wardColor(WardToken.inkSecondary), maxLines = 1,
                 overflow = TextOverflow.Ellipsis)
-            if (progress != null) {
-                val percent = Math.round(progress.coerceIn(0.0, 1.0) * 100).toInt()
-                Row(horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), verticalAlignment = Alignment.CenterVertically) {
-                    LibraryProgressStrip(progress, Modifier.widthIn(max = 160.dp).weight(1f, fill = false))
-                    Text("$percent%", style = WardTextStyle.caption2.textStyle(WardWeight.semibold, mono = true),
-                        color = wardColor(WardToken.inkSecondary), modifier = Modifier.semantics { contentDescription = "$percent percent done" })
-                }
-            }
+            progressLine()
         }
         if (due > 0) WardChip("$due due", tone = WardTone.Warning)
     }

@@ -298,9 +298,14 @@ fun LazyListScope.homeRoundItems(model: HomeRoundModel, tiles: Boolean, book: Ho
     WardCardFace(modifier.fillMaxWidth().homePart(book, "card", "the round card"), lift = WardLift.low,
         spacing = WardSpace.m.wardDp) {
         val spoken = BedPlan.spokenSummary(beds)
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
-            HomeSmallCaps("Today’s revision · " + BedPlan.summary(beds),
-                Modifier.weight(1f).semantics { heading(); contentDescription = spoken })
+        // beside each other; at the accessibility sizes the plan's button goes under the heading,
+        // so neither is squeezed into a word a line (iOS HomeRoundCard.heading)
+        val title = "Today’s revision · " + BedPlan.summary(beds)
+        if (wardAccessibilitySize()) Column(verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
+            HomeSmallCaps(title, Modifier.semantics { heading(); contentDescription = spoken })
+            HomePlanButton(onPlan)
+        } else Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
+            HomeSmallCaps(title, Modifier.weight(1f).semantics { heading(); contentDescription = spoken })
             HomePlanButton(onPlan)
         }
         if (beds.isEmpty()) {
@@ -332,10 +337,12 @@ fun LazyListScope.homeRoundItems(model: HomeRoundModel, tiles: Boolean, book: Ho
  * target that takes only the words' height in the heading's row.
  */
 @Composable private fun HomePlanButton(onPlan: () -> Unit) {
+    val large = wardAccessibilitySize()
     Row(Modifier.layout { measurable, constraints ->
-            // the words' height in the row, the target 12 above and below it
+            // the words' height in the row, the target 12 above and below it; on its own line at
+            // the accessibility sizes it keeps its whole target's height
             val placeable = measurable.measure(constraints)
-            val trim = 24.dp.roundToPx()
+            val trim = if (large) 0 else 24.dp.roundToPx()
             layout(placeable.width, maxOf(0, placeable.height - trim)) { placeable.place(0, -trim / 2) }
         }.clickable(role = Role.Button, onClickLabel = "Opens the exam plan and forecast", onClick = onPlan)
         .padding(vertical = 12.dp),
