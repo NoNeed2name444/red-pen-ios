@@ -111,14 +111,20 @@ final class AccessibilityUITests: XCTestCase {
             goHome()
             return
         }
+        // At the AX sizes the header and the deck stand in the card's page
+        // (AnkiReviewView's decksInline), so Reveal can be under the fold:
+        // it is scrolled to, as the ratings are (run 41949124483)
+        _ = self.reveal(reveal)
         assertInWindow(reveal, "Reveal")
         reveal.tap()
-        // Turned over, the question is still there to read, before anything
-        // is scrolled: at AX5 the fixed deck once covered the whole card
-        // (run 41876986518). It can be pressed where it is, and it stands
-        // above the ratings, not under them.
+        // Turned over, the question is still there to read: at AX5 the fixed
+        // deck once covered the whole card (run 41876986518). Scrolled down
+        // to Reveal, the page is drawn back to the question first. It can be
+        // pressed where it is, and it stands above the ratings, not under
+        // them.
         let front = element("ankiCardFront")
         XCTAssertTrue(front.waitForExistence(timeout: 5), "no card question after Reveal")
+        revealAbove(front)
         assertInWindow(front, "the card's question")
         let again = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Again,")).firstMatch
         if front.exists && again.waitForExistence(timeout: 5) {
@@ -132,7 +138,11 @@ final class AccessibilityUITests: XCTestCase {
             let named = NSPredicate(format: "label BEGINSWITH %@", "\(title),")
             let rating = app.buttons.matching(named).firstMatch
             XCTAssertTrue(rating.waitForExistence(timeout: 5), "no \(title) rating")
-            _ = self.reveal(rating, swipes: 4)
+            // at AX5 the open back stands between the question and Again:
+            // four slow swipes stopped one short of it (run 41949124483,
+            // Hard pressable after a fifth); up to ten, stopping as soon as
+            // it can be pressed
+            _ = self.reveal(rating, swipes: 10)
             assertInWindow(rating, "the \(title) rating")
         }
         snap("card-revealed")
@@ -363,6 +373,16 @@ final class AccessibilityUITests: XCTestCase {
         }
         let pressable: Bool = target.exists && target.isHittable
         return pressable && (!clearOfSearch || searchOverlap(target) <= 0)
+    }
+
+    /// Scrolls back up the page, a slow swipe at a time, until `target` can
+    /// be pressed, at most `swipes` times. Stops at once if it already can.
+    private func revealAbove(_ target: XCUIElement, swipes: Int = 8) {
+        for _ in 0..<swipes {
+            if target.exists && target.isHittable { return }
+            app.swipeDown(velocity: .slow)
+            usleep(500_000)
+        }
     }
 
     /// How far `target`'s top stands above the bottom of the pinned search
