@@ -1320,7 +1320,7 @@ final class PopTrace: NSObject {
         guard pan.state == .began else { return }
         // once the pop it began is under way: did the lift finish or cancel it
         DispatchQueue.main.async {
-            let stack: UINavigationController? = sequence(first: view as UIResponder?, next: { $0?.next })
+            let stack: UINavigationController? = sequence(first: view as UIResponder, next: { $0.next })
                 .lazy.compactMap { $0 as? UINavigationController }.first
             guard let coordinator = stack?.transitionCoordinator else {
                 print("POP-END \(name) no transition t=" + Self.f(ProcessInfo.processInfo.systemUptime, 3))

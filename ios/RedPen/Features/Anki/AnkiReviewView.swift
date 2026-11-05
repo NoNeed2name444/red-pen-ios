@@ -25,6 +25,7 @@ struct AnkiReviewView: View {
     @EnvironmentObject var reviews: ReviewStore
     @Environment(\.dismiss) private var dismiss
     @Environment(\.windowSpan) private var span
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     /// Cards whose next appearance is this close still come back before you
     /// put the phone down; further out and the sitting is over for them.
@@ -44,7 +45,8 @@ struct AnkiReviewView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            header
+            // in the card's page at the accessibility sizes (decksInline)
+            if !decksInline || current == nil { header }
             if let current {
                 cardScroll(current)
             } else {
@@ -128,6 +130,7 @@ struct AnkiReviewView: View {
     /// The card, scrolling under the bar that turns it over and rates it.
     private func cardScroll(_ item: AnkiQueueItem) -> some View {
         ScrollView {
+            if decksInline { header }
             AnkiCardFace(card: item.card, images: studySet.images,
                          revealed: revealed,
                          sources: studySet.sources,
@@ -155,9 +158,17 @@ struct AnkiReviewView: View {
                 .padding(.bottom, 24)
                 .readableColumn()
             }
+            // the deck's Reveal, then the ratings, in the page at the
+            // accessibility sizes, where they scroll with the card
+            if decksInline {
+                footer(item)
+                    .padding(.horizontal, WardSpace.gutter)
+                    .padding(.bottom, 24)
+                    .readableColumn()
+            }
         }
         .reviewUndoChip(until: $undoUntil, action: undo)
-        .studyBar(folds: true) { footer(item) }
+        .studyBar(folds: true, shown: !decksInline) { footer(item) }
     }
 
     /// The finish: what happened, the way to a quiz on the same cards, and
@@ -223,6 +234,13 @@ struct AnkiReviewView: View {
         let minutes = next.timeIntervalSinceNow / 60
         return "Next card back in " + AnkiScheduler.formatInterval(minutes) + "."
     }
+
+    /// At the accessibility sizes the header and the deck stand in the page
+    /// and scroll with it, as on the quiz (MCQQuizView's decksInline). Fixed
+    /// over and under the card at AX5, they took the whole screen between
+    /// them and the deck covered the card's question (a11y.xcresult of run
+    /// 41876986518, "card, revealed").
+    private var decksInline: Bool { typeSize.isAccessibilitySize }
 
     private var header: some View {
         let left = queue.count

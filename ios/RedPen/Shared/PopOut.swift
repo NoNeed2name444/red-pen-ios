@@ -199,8 +199,9 @@ extension View {
     }
 
     /// The floating bottom slab for any screen; the content scrolls under it.
-    func studyBar<C: View>(@ViewBuilder _ content: () -> C) -> some View {
-        let bar = StudyActionBar(content: content)
+    /// Not `shown`, it takes no height.
+    func studyBar<C: View>(shown: Bool = true, @ViewBuilder _ content: () -> C) -> some View {
+        let bar = StudyActionBar(shown: shown, content: content)
         return safeAreaInset(edge: .bottom, spacing: 0) { bar }
     }
 

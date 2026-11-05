@@ -14,6 +14,7 @@ struct DueTodayView: View {
     @EnvironmentObject var reviews: ReviewStore
     @Environment(\.dismiss) private var dismiss
     @Environment(\.windowSpan) private var span
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     private static let sittingMinutes: Double = 20
 
@@ -29,7 +30,8 @@ struct DueTodayView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            header
+            // in the card's page at the accessibility sizes (decksInline)
+            if !decksInline || queue.first == nil { header }
             if let due = queue.first {
                 dueScroll(due)
             } else {
@@ -78,6 +80,7 @@ struct DueTodayView: View {
 
     private func cardScroll(_ due: ReviewPlan.Due) -> some View {
         ScrollView {
+            if decksInline { header }
             VStack(alignment: .leading, spacing: 8) {
                 Text(due.setName)
                     .wardSmallCaps()
@@ -102,9 +105,16 @@ struct DueTodayView: View {
                 .padding(.bottom, 24)
                 .readableColumn()
             }
+            // the deck in the page at the accessibility sizes (decksInline)
+            if decksInline {
+                footer(due)
+                    .padding(.horizontal, WardSpace.gutter)
+                    .padding(.bottom, 24)
+                    .readableColumn()
+            }
         }
         .reviewUndoChip(until: $undoUntil, action: undo)
-        .studyBar { footer(due) }
+        .studyBar(shown: !decksInline) { footer(due) }
         .saveToIdeasHost()
     }
 
@@ -161,6 +171,13 @@ struct DueTodayView: View {
         let plural: String = reviewedCount == 1 ? "" : "s"
         return "\(reviewedCount) card\(plural) reviewed across your decks."
     }
+
+    /// At the accessibility sizes the header and the deck stand in the page
+    /// and scroll with it, as on the quiz (MCQQuizView's decksInline). Fixed
+    /// over and under the card at AX5, they took the whole screen between
+    /// them and the deck covered the card's question (a11y.xcresult of run
+    /// 41876986518, "card, revealed").
+    private var decksInline: Bool { typeSize.isAccessibilitySize }
 
     private var header: some View {
         let left = queue.count
