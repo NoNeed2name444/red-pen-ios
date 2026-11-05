@@ -87,6 +87,11 @@ class StudyStore(private val directory: File) {
     /** Told when a new digest was written, so the widgets can update; never on a save that changed nothing they show. */
     var onGlanceWritten: ((GlanceDigest) -> Unit)? = null
 
+    companion object {
+        /** Told of every store's new digest, as [onGlanceWritten]: the home-screen widgets' updates (widget/WidgetUpdates), set once when the process starts. */
+        @Volatile var onAnyGlanceWritten: ((GlanceDigest) -> Unit)? = null
+    }
+
     init { load(); publishGlance() }
 
     @Synchronized fun load() {
@@ -208,6 +213,7 @@ class StudyStore(private val directory: File) {
         glanceLast = digest
         // the library is already on disk: a failing listener must not turn the save into a failure
         runCatching { onGlanceWritten?.invoke(digest) }
+        runCatching { onAnyGlanceWritten?.invoke(digest) }
         return true
     }
     /** Saves a background change; a failure is reported through [onSaveError] instead of thrown. */

@@ -47,5 +47,20 @@
         </activity>
         <!-- records a lecture in the background and with the screen off; started only from the app in front -->
         <service android:name=".audio.RecordingService" android:exported="false" android:foregroundServiceType="microphone" />
+        <!-- the home-screen widgets (docs/design/widgets-watches-proposal.md §2): Due cards, Exam countdown, Done today -->
+        <receiver android:name=".widget.DueCardsReceiver" android:exported="false" android:label="@string/widget_due_label">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_due" />
+        </receiver>
+        <receiver android:name=".widget.ExamCountdownReceiver" android:exported="false" android:label="@string/widget_countdown_label">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_countdown" />
+        </receiver>
+        <receiver android:name=".widget.DoneTodayReceiver" android:exported="false" android:label="@string/widget_today_label">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_today" />
+        </receiver>
+        <!-- hands each new digest to the widgets when the process starts; serves no data -->
+        <provider android:name=".widget.WidgetUpdatesStarter" android:authorities="${applicationId}.widget-updates" android:exported="false" />
     </application>
 </manifest>

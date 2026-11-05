@@ -38,4 +38,11 @@
 
     <!-- Settings, Review: the FSRS-5 note, word for word as iOS's ReviewSettingsSection (T0160) -->
     <string name="scheduler_fsrs_note" formatted="false">FSRS-5 is the scheduler modern Anki uses: it learns how well you remember each card and aims for 90% recall. Your existing schedule carries over.</string>
+    <!-- The home-screen widgets: their names and descriptions in the widget picker, as iOS's (ios/StethoscoreWidgets) -->
+    <string name="widget_due_label">Due cards</string>
+    <string name="widget_due_description">How many cards are waiting, and where.</string>
+    <string name="widget_countdown_label">Exam countdown</string>
+    <string name="widget_countdown_description">Days until your exam.</string>
+    <string name="widget_today_label">Done today</string>
+    <string name="widget_today_description">Today’s count against your daily goal.</string>
 </resources>

@@ -37,6 +37,8 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     // the window's fold (WindowShape): 1.5.1, released 19 Nov 2025, the newest stable; it asks only core 1.8 and coroutines 1.8
     implementation("androidx.window:window:1.5.1")
+    // the home-screen widgets (T0200): 1.2.0, the newest stable on Maven Google on 5 Nov 2026
+    implementation("androidx.glance:glance-appwidget:1.2.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
