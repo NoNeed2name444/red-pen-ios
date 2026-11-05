@@ -95,7 +95,7 @@ jobs:
           {
             echo '=== APP-TRACE (StandardOutputAndStandardError-com.cramdown.app.txt in ui.xcresult)'
             find ui-diag -name 'StandardOutputAndStandardError-*.txt' -print0 2>/dev/null \
-              | xargs -0 grep -hE "^(QUIZSET-CHANGE|POP-GESTURE|POP-END) " 2>/dev/null || echo 'no trace lines found'
+              | xargs -0 grep -hE "^(QUIZSET-CHANGE|POP-GESTURE|POP-END|HANG-WATCH) " 2>/dev/null || echo 'no trace lines found'
           } | tee -a uitest.log
           rm -rf ui-diag
       # its own step, so it is written also when the step above ran out of time
