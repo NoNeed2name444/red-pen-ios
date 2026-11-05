@@ -28,8 +28,9 @@ enum GlancePublisher {
         let today: Int = StudyLog.shared.today
         let streak: Int = StudyLog.shared.streak
         let examDate: Date? = ExamCap.storedDate()
-        let track: ExamTrack = ExamTrack.current
-        let examName: String = track == .general ? "Your exam" : track.title
+        // home's name for the exam, so the widgets say what home says
+        let examName: String? = ExamCountdown.examName
+        let goal: Int = DailyGoal.current
         running?.cancel()
         running = Task {
             let digest: GlanceDigest = await Task.detached(priority: .utility) { () -> GlanceDigest in
@@ -39,7 +40,7 @@ enum GlancePublisher {
                 let pairs: [(id: UUID, name: String)] = due.map { (id: $0.setID, name: $0.setName) }
                 let upcoming: Date? = records.values.lazy.map(\.due).filter { $0 > now }.min()
                 return GlanceDigest.make(now: now, due: pairs, nextDue: upcoming, examName: examName,
-                                         examDate: examDate, today: today, streak: streak)
+                                         examDate: examDate, today: today, streak: streak, goal: goal)
             }.value
             guard !Task.isCancelled else { return }
             save(digest)
@@ -84,7 +85,7 @@ enum ExamDayActivity {
             return
         }
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
-        let attributes = ExamDayAttributes(examName: digest.examName ?? "Your exam", examDay: exam)
+        let attributes = ExamDayAttributes(examName: digest.examName ?? WardWords.defaultExam, examDay: exam)
         _ = try? Activity.request(attributes: attributes, content: content, pushType: nil)
         #endif
     }

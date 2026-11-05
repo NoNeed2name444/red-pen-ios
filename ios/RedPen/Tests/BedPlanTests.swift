@@ -308,6 +308,19 @@ check("countdown names the chosen exam", WardWords.countdown(days: 23, exam: "PL
 check("countdown tomorrow and today",
       WardWords.countdown(days: 1) == "Finals tomorrow" && WardWords.countdown(days: 0, exam: "Step 1") == "Step 1 today")
 check("a blank exam name is finals", WardWords.countdown(days: 3, exam: "  ") == "Finals in 3 days")
+// the widgets say home's sentence: home's exam name and the days home counts
+var widgetCalendar = Calendar(identifier: .gregorian)
+widgetCalendar.timeZone = TimeZone(identifier: "UTC")!
+let widgetNow = Date(timeIntervalSince1970: 1_700_000_000)
+let widgetExam = widgetNow.addingTimeInterval(90 * 86_400)
+let widgetDays = ExamWeekPlanner.daysLeft(to: widgetExam, now: widgetNow, calendar: widgetCalendar)
+check("the widget's countdown is home's", WardWords.countdown(days: widgetDays, exam: "Step 1") == "Step 1 in 90 days")
+check("with no exam chosen the widget says finals, as home",
+      WardWords.countdown(days: widgetDays, exam: nil) == "Finals in 90 days")
+check("the widget says tomorrow as home does",
+      WardWords.countdown(days: ExamWeekPlanner.daysLeft(to: widgetNow.addingTimeInterval(86_400), now: widgetNow,
+                                                        calendar: widgetCalendar), exam: "Step 1") == "Step 1 tomorrow")
+check("the default exam is finals", WardWords.defaultExam == "Finals")
 
 check("greeting by the hour", WardWords.greeting(hour: 8) == "Good morning"
       && WardWords.greeting(hour: 14) == "Good afternoon" && WardWords.greeting(hour: 21) == "Good evening"

@@ -155,6 +155,59 @@ let futureData = try! GlanceShelf.encoder.encode(future)
 check("a newer file is not misread", GlanceShelf.decode(futureData) == nil)
 check("garbage is nothing", GlanceShelf.decode(Data("nope".utf8)) == nil)
 
+// MARK: the digest's goal and home's exam name (widget slice 2)
+
+let goalDigest = GlanceDigest.make(now: now, due: due, nextDue: nil, examName: "Step 1",
+                                   examDate: exam, today: 32, streak: 4, goal: 80)
+check("the goal is kept", goalDigest.goal == 80 && goalDigest.goalShown == 80)
+let goalData = try! GlanceShelf.encoder.encode(goalDigest)
+let goalJSON = String(decoding: goalData, as: UTF8.self)
+check("the goal's key is Android's", goalJSON.contains("\"goal\":80"), goalJSON)
+check("a file with a goal round-trips", GlanceShelf.decode(goalData) == goalDigest)
+check("a goal does not change the version", goalDigest.version == 1 && GlanceDigest.currentVersion == 1)
+check("no goal, no key", !String(decoding: data, as: UTF8.self).contains("\"goal\""))
+let oldFile = """
+{"dueNow":3,"examDate":"2023-11-24T22:13:20Z","examName":"PLAB 1","madeAt":"2023-11-14T22:13:20Z",\
+"streak":4,"today":12,"topDecks":[],"version":1}
+"""
+let oldDigest: GlanceDigest? = GlanceShelf.decode(Data(oldFile.utf8))
+check("an old file without a goal still decodes", oldDigest != nil && oldDigest?.goal == nil && oldDigest?.today == 12)
+check("an old file's goal is the default 50", oldDigest?.goalShown == 50)
+var odd = goalDigest
+odd.goal = 0
+check("a zero goal reads as 50", odd.goalShown == 50)
+odd.goal = 5
+check("a goal under the range is raised to it", odd.goalShown == 10)
+odd.goal = 1000
+check("a goal over the range is lowered to it", odd.goalShown == 300)
+/// The fields an older widget's GlanceDigest decoded, before `goal`.
+struct OlderDigest: Codable {
+    var version: Int
+    var madeAt: Date
+    var dueNow: Int
+    var topDecks: [GlanceDigest.DueDeck]
+    var nextDue: Date?
+    var examName: String?
+    var examDate: Date?
+    var today: Int
+    var streak: Int
+}
+let olderRead: OlderDigest? = try? GlanceShelf.decoder.decode(OlderDigest.self, from: goalData)
+check("an older widget still reads a file with a goal", olderRead?.today == 32 && olderRead?.version == 1)
+let finals = GlanceDigest.make(now: now, due: [], nextDue: nil, examName: nil, examDate: exam,
+                               today: 0, streak: 0, goal: 50)
+check("no chosen exam keeps no name, so the widget says finals as home does",
+      finals.examName == nil && finals.examDate == exam)
+check("home's name is stored as given", goalDigest.examName == "Step 1")
+
+// MARK: the medium widget's deck rows (D4)
+
+let deckID = UUID(uuidString: "6F9619FF-8B86-D011-B42D-00C04FC964FF")!
+check("a deck row links to redpen://set/<id>",
+      AppLink.openSet(deckID).url.absoluteString == "redpen://set/6F9619FF-8B86-D011-B42D-00C04FC964FF",
+      AppLink.openSet(deckID).url.absoluteString)
+check("the deck row's link opens that deck", AppLink.parse(AppLink.openSet(deckID).url) == .openSet(deckID))
+
 // MARK: what a widget says (T0192): no file is not "nothing due"
 
 check("no file is its own state", GlanceState.of(nil, at: now) == .noFile)

@@ -15,17 +15,33 @@ struct DueCardsWidget: Widget {
         .description("How many cards are waiting, and where.")
         .supportedFamilies([.systemSmall, .systemMedium, .accessoryCircular,
                             .accessoryRectangular, .accessoryInline])
+        // the view puts the system's margins back itself, with less above and
+        // below on the medium widget, so two rows and the button fit
+        .contentMarginsDisabled()
     }
 }
 
 struct DueCardsView: View {
     let entry: GlanceEntry
     @Environment(\.widgetFamily) private var family
+    @Environment(\.widgetContentMargins) private var margins
 
     private var due: Int { entry.digest.dueShown(at: entry.date) }
     private var hasFile: Bool { entry.hasFile }
 
     var body: some View {
+        content.padding(insets)
+    }
+
+    /// The system's margins, except the medium widget's top and bottom.
+    private var insets: EdgeInsets {
+        guard family == .systemMedium else { return margins }
+        return EdgeInsets(top: GlanceStyle.mediumVerticalMargin, leading: margins.leading,
+                          bottom: GlanceStyle.mediumVerticalMargin, trailing: margins.trailing)
+    }
+
+    @ViewBuilder
+    private var content: some View {
         switch family {
         case .accessoryCircular:
             VStack(spacing: 0) {
@@ -56,29 +72,47 @@ struct DueCardsView: View {
         case .systemMedium:
             HStack(alignment: .top, spacing: 16) {
                 bigCount
-                VStack(alignment: .leading, spacing: 6) {
-                    ForEach(entry.digest.topDecks) { deck in
-                        HStack {
-                            Text(deck.name).lineLimit(1)
-                            Spacer(minLength: 4)
-                            Text("\(deck.count)").monospacedDigit()
-                        }
-                        .font(.subheadline)
-                    }
-                    Spacer(minLength: 0)
-                    if due > 0 {
-                        // interactive: opens the app on the due cards
-                        Button(intent: ReviewDueIntent()) {
-                            Label("Review", systemImage: "play.fill")
-                                .font(.subheadline.weight(.semibold))
-                        }
-                        .tint(GlanceStyle.pen)
-                    }
+                // two deck rows and the button, each a 44 pt target, when
+                // they fit; on a shorter widget one row, then the button alone
+                ViewThatFits(in: .vertical) {
+                    mediumColumn(decks: 2)
+                    mediumColumn(decks: 1)
+                    mediumColumn(decks: 0)
                 }
                 .foregroundStyle(GlanceStyle.ink)
             }
         default:
             bigCount
+        }
+    }
+
+    /// Up to `decks` deck rows, each opening its deck (owner decision D4),
+    /// and the Review button.
+    private func mediumColumn(decks: Int) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(entry.digest.topDecks.prefix(decks)) { deck in
+                Link(destination: AppLink.openSet(deck.id).url) {
+                    HStack {
+                        Text(deck.name).lineLimit(1)
+                        Spacer(minLength: 4)
+                        Text("\(deck.count)").monospacedDigit()
+                    }
+                    .font(.subheadline)
+                    .frame(maxWidth: .infinity, minHeight: GlanceStyle.minTarget)
+                    .contentShape(Rectangle())
+                }
+                .accessibilityLabel("\(deck.name), \(cardWords(deck.count)) due")
+            }
+            Spacer(minLength: 0)
+            if due > 0 {
+                // interactive: opens the app on the due cards
+                Button(intent: ReviewDueIntent()) {
+                    Label("Review", systemImage: "play.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: GlanceStyle.minTarget)
+                }
+                .tint(GlanceStyle.pen)
+            }
         }
     }
 

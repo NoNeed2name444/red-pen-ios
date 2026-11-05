@@ -19,33 +19,44 @@ struct ExamCountdownView: View {
     let entry: GlanceEntry
     @Environment(\.widgetFamily) private var family
 
-    private var days: Int? { entry.digest.daysToExam(now: entry.date) }
-    private var name: String { entry.digest.examName ?? "Your exam" }
+    /// Days to the exam, nil with no date or once it has passed (home shows
+    /// no countdown then either).
+    private var days: Int? { entry.digest.daysToExam(now: entry.date).flatMap { $0 >= 0 ? $0 : nil } }
+    /// Home's name for the exam: the chosen one's short name, or finals.
+    private var name: String { entry.digest.examName ?? WardWords.defaultExam }
+    /// Home's sentence: "Step 1 in 90 days", "Finals tomorrow".
+    private var sentence: String? { WardWords.countdown(days: days, exam: entry.digest.examName) }
     private var hasFile: Bool { entry.hasFile }
 
-    private var phrase: String {
+    private var caption: String {
+        guard hasFile else { return GlanceWords.openApp + " to see your countdown" }
         guard let days else { return "Set your exam date" }
-        if days == 0 { return "Exam day" }
-        if days == 1 { return "Tomorrow" }
-        return "\(days) days"
+        if days == 0 { return sentence ?? name }
+        return (days == 1 ? "day to " : "days to ") + name
     }
 
     var body: some View {
         switch family {
         case .accessoryCircular:
             VStack(spacing: 0) {
-                Text(days.map { "\($0)" } ?? "\u{2013}")
+                Text(days.map { "\($0)" } ?? GlanceWords.noNumber)
                     .font(.system(.title2, design: .rounded).weight(.bold))
                     .minimumScaleFactor(0.5)
                 Text("days").font(.caption2)
             }
             .widgetAccentable()
+            // the en dash is never read out: no file, or no date, is said in words
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(!hasFile ? GlanceWords.openApp : (sentence ?? "No exam date"))
         case .accessoryInline:
-            Text(!hasFile ? GlanceWords.openApp : (days == nil ? "No exam date" : name + ": " + phrase))
+            Text(!hasFile ? GlanceWords.openApp : (sentence ?? "No exam date"))
         case .accessoryRectangular:
             VStack(alignment: .leading, spacing: 2) {
-                Text(hasFile ? name : GlanceWords.openApp).font(.headline).lineLimit(1).widgetAccentable()
-                Text(hasFile ? phrase : "to see your countdown").font(.body)
+                Text(hasFile ? (sentence ?? "Set your exam date") : GlanceWords.openApp)
+                    .font(.headline).lineLimit(2).widgetAccentable()
+                if !hasFile {
+                    Text("to see your countdown").font(.body)
+                }
             }
         default:
             VStack(alignment: .leading, spacing: 4) {
@@ -53,12 +64,12 @@ struct ExamCountdownView: View {
                     .font(.headline)
                     .foregroundStyle(GlanceStyle.pen)
                 Spacer(minLength: 0)
-                Text(days.map { "\($0)" } ?? "\u{2013}")
+                Text(days.map { "\($0)" } ?? GlanceWords.noNumber)
                     .font(.system(size: 44, weight: .bold, design: .rounded))
                     .minimumScaleFactor(0.5)
                     .foregroundStyle(GlanceStyle.ink)
-                Text(!hasFile ? GlanceWords.openApp + " to see your countdown"
-                     : (days == nil ? "Set your exam date" : (days == 1 ? "day to " : "days to ") + name))
+                    .accessibilityHidden(days == nil)
+                Text(caption)
                     .font(.caption)
                     .lineLimit(2)
                     .foregroundStyle(GlanceStyle.inkSecondary)

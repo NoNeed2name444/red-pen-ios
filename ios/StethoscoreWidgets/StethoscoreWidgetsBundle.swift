@@ -14,7 +14,7 @@ struct StethoscoreWidgetsBundle: WidgetBundle {
     var body: some Widget {
         DueCardsWidget()
         ExamCountdownWidget()
-        TodayStreakWidget()
+        DoneTodayWidget()
         ReviewDueControl()
         ExamDayLiveActivity()
         WardRoundLiveActivity()

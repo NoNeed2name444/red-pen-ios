@@ -129,9 +129,9 @@ struct PlatformSettingsSection: View {
         case .noContainer:
             reason = "The widgets\u{2019} shared space didn\u{2019}t open on this device, so they show \u{201C}Open \(Brand.name)\u{201D} instead of your cards."
         case .noFile:
-            reason = "The app hasn\u{2019}t saved anything for the widgets yet. It saves when your cards change."
+            reason = "The app hasn\u{2019}t saved anything for the widgets yet. It saves when you open the app or your cards change. Until then, the widgets show \u{201C}Open \(Brand.name)\u{201D}."
         case .unreadable:
-            reason = "The widgets\u{2019} file couldn\u{2019}t be read. The app saves it again when your cards change."
+            reason = "The widgets\u{2019} file couldn\u{2019}t be read. The app saves it again when you open it or your cards change. Until then, the widgets show \u{201C}Open \(Brand.name)\u{201D}."
         case .ready, nil:
             return base
         }

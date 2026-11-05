@@ -32,12 +32,32 @@ struct GlanceDigest: Codable, Equatable {
     var topDecks: [DueDeck]
     /// When the next card not yet due comes due, if any.
     var nextDue: Date?
-    /// The exam's name and day, when the student set one.
+    /// Home's name for the exam (ExamCountdown.examName: the chosen exam's
+    /// short name, the track's, or nil for finals) and its day, when the
+    /// student set a day. The widgets put it into home's sentence
+    /// (WardWords.countdown).
     var examName: String?
     var examDate: Date?
-    /// Cards and questions done today, and the streak of days.
+    /// Cards and questions done today.
     var today: Int
+    /// Kept so older files still decode; no widget shows it.
     var streak: Int
+    /// The daily goal (DailyGoal.current). Optional, so a file written
+    /// before it decodes, and an older widget reads a file that has it; the
+    /// key is "goal", as Android's GlanceDigest.kt writes it.
+    var goal: Int? = nil
+
+    /// DailyGoal's default and range, repeated here because the widget
+    /// extension does not build DailyGoal.swift; they must stay DailyGoal's.
+    static let defaultGoal: Int = 50
+    static let goalRange: ClosedRange<Int> = 10...300
+
+    /// The goal to show: 50 for a file written before the goal was, and
+    /// always within DailyGoal.range (Android's goalShown).
+    var goalShown: Int {
+        guard let goal, goal > 0 else { return GlanceDigest.defaultGoal }
+        return min(max(goal, GlanceDigest.goalRange.lowerBound), GlanceDigest.goalRange.upperBound)
+    }
 
     /// Nothing known yet: the gallery preview and a fresh install.
     static let empty = GlanceDigest(madeAt: Date(timeIntervalSince1970: 0), dueNow: 0, topDecks: [],
@@ -49,7 +69,7 @@ struct GlanceDigest: Codable, Equatable {
         topDecks: [DueDeck(id: UUID(), name: "Cardiology", count: 14),
                    DueDeck(id: UUID(), name: "Renal", count: 10)],
         nextDue: nil, examName: "PLAB 1", examDate: Date().addingTimeInterval(38 * 86_400),
-        today: 32, streak: 6)
+        today: 32, streak: 0, goal: 50)
 
     /// Whole days from `now` to the exam, counted in the student's calendar:
     /// 0 on the day, negative after it, nil without a date.
@@ -80,7 +100,8 @@ struct GlanceDigest: Codable, Equatable {
     }
 
     /// Whether the streak is still alive at `now` (anything today, or a
-    /// streak that ended yesterday and can still be kept tonight).
+    /// streak that ended yesterday and can still be kept tonight). Kept for
+    /// older readers of the file; no widget shows it.
     func streakShown(at now: Date, calendar: Calendar = .current) -> Int {
         let made: Date = calendar.startOfDay(for: madeAt)
         let day: Date = calendar.startOfDay(for: now)
@@ -98,7 +119,8 @@ struct GlanceDigest: Codable, Equatable {
     /// Worked out from the app's figures. `due` is every due card's deck id
     /// and name, in any order; the decks are counted and the busiest kept.
     static func make(now: Date, due: [(id: UUID, name: String)], nextDue: Date?,
-                     examName: String?, examDate: Date?, today: Int, streak: Int) -> GlanceDigest {
+                     examName: String?, examDate: Date?, today: Int, streak: Int,
+                     goal: Int? = nil) -> GlanceDigest {
         var counts: [UUID: Int] = [:]
         var names: [UUID: String] = [:]
         for one in due {
@@ -113,7 +135,7 @@ struct GlanceDigest: Codable, Equatable {
         let exam: Date? = (examDate ?? now) >= Calendar.current.startOfDay(for: now) ? examDate : nil
         return GlanceDigest(madeAt: now, dueNow: due.count, topDecks: Array(decks.prefix(3)),
                             nextDue: nextDue, examName: exam == nil ? nil : examName, examDate: exam,
-                            today: today, streak: streak)
+                            today: today, streak: streak, goal: goal)
     }
 }
 

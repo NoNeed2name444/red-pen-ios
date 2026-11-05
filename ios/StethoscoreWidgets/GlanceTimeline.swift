@@ -71,6 +71,13 @@ enum GlanceStyle {
     /// Vital Coral #FF6B6B and Care Blue #3B82F6 (docs/design/palette-2026-10-21.md).
     static let pen = Color(red: 255 / 255, green: 107 / 255, blue: 107 / 255)
     static let star = Color(red: 59 / 255, green: 130 / 255, blue: 246 / 255)
+    /// The smallest tap target inside a widget: 44 pt (Apple's minimum, and
+    /// the owner's rule).
+    static let minTarget: CGFloat = 44
+    /// The medium Due widget's top and bottom margin, smaller than the
+    /// system's so two 44 pt deck rows and the 44 pt Review button fit
+    /// (132 pt) on a 148 pt widget; a shorter one shows fewer rows.
+    static let mediumVerticalMargin: CGFloat = 8
 
     private static func dynamic(light: UInt32, dark: UInt32) -> UIColor {
         UIColor { traits in
