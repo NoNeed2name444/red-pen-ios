@@ -23,24 +23,30 @@ struct DueCardsView: View {
     @Environment(\.widgetFamily) private var family
 
     private var due: Int { entry.digest.dueShown(at: entry.date) }
+    private var hasFile: Bool { entry.hasFile }
 
     var body: some View {
         switch family {
         case .accessoryCircular:
             VStack(spacing: 0) {
-                Text("\(due)")
+                Text(hasFile ? "\(due)" : GlanceWords.noNumber)
                     .font(.system(.title2, design: .rounded).weight(.bold))
                     .minimumScaleFactor(0.5)
                 Text("due").font(.caption2)
             }
             .widgetAccentable()
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(hasFile ? cardWords(due) + " due" : GlanceWords.openApp)
         case .accessoryInline:
-            Text(due == 0 ? "Nothing due" : cardWords(due) + " due")
+            Text(!hasFile ? GlanceWords.openApp : (due == 0 ? "Nothing due" : cardWords(due) + " due"))
         case .accessoryRectangular:
             VStack(alignment: .leading, spacing: 2) {
-                Text(due == 0 ? "All caught up" : cardWords(due) + " due")
+                Text(!hasFile ? GlanceWords.openApp : (due == 0 ? "All caught up" : cardWords(due) + " due"))
                     .font(.headline)
                     .widgetAccentable()
+                if !hasFile {
+                    Text("to see your cards").font(.caption)
+                }
                 ForEach(entry.digest.topDecks.prefix(2)) { deck in
                     Text("\(deck.name) \u{00B7} \(deck.count)")
                         .font(.caption)
@@ -82,13 +88,15 @@ struct DueCardsView: View {
                 .font(.headline)
                 .foregroundStyle(GlanceStyle.pen)
             Spacer(minLength: 0)
-            Text("\(due)")
+            Text(hasFile ? "\(due)" : GlanceWords.noNumber)
                 .font(.system(size: 44, weight: .bold, design: .rounded))
                 .minimumScaleFactor(0.5)
                 .foregroundStyle(GlanceStyle.ink)
                 .contentTransition(.numericText())
-            Text(due == 0 ? "All caught up" : "due now")
+                .accessibilityHidden(!hasFile)
+            Text(!hasFile ? GlanceWords.openApp + " to see your cards" : (due == 0 ? "All caught up" : "due now"))
                 .font(.caption)
+                .lineLimit(2)
                 .foregroundStyle(GlanceStyle.inkSecondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)

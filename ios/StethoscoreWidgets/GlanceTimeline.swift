@@ -5,9 +5,17 @@ import WidgetKit
 /// One moment of the digest.
 struct GlanceEntry: TimelineEntry {
     let date: Date
-    let digest: GlanceDigest
+    /// The file the app wrote into the App Group; nil when the widget
+    /// cannot read one (GlanceState.noFile).
+    let stored: GlanceDigest?
     /// The gallery's preview, with example numbers.
     let isPreview: Bool
+
+    /// The numbers to draw; zeros when there is no file, and then `state`
+    /// says so, so no widget reads them as "nothing due".
+    var digest: GlanceDigest { stored ?? .empty }
+    var state: GlanceState { GlanceState.of(stored, at: date) }
+    var hasFile: Bool { state != .noFile }
 }
 
 /// Reads the digest the app last wrote. The app asks WidgetKit to reload
@@ -16,19 +24,25 @@ struct GlanceEntry: TimelineEntry {
 /// at the next card's due time (the due count may have grown).
 struct GlanceProvider: TimelineProvider {
     func placeholder(in context: Context) -> GlanceEntry {
-        GlanceEntry(date: Date(), digest: .sample, isPreview: true)
+        GlanceEntry(date: Date(), stored: .sample, isPreview: true)
     }
 
     func getSnapshot(in context: Context, completion: @escaping (GlanceEntry) -> Void) {
-        let stored: GlanceDigest? = GlanceShelf.read()
-        let preview: Bool = context.isPreview || stored == nil
-        let digest: GlanceDigest = preview ? .sample : (stored ?? .empty)
-        completion(GlanceEntry(date: Date(), digest: digest, isPreview: preview))
+        // example numbers only in the gallery; on the Home Screen a missing
+        // file is shown as missing, never as the sample
+        if context.isPreview {
+            completion(GlanceEntry(date: Date(), stored: .sample, isPreview: true))
+        } else {
+            completion(GlanceEntry(date: Date(), stored: GlanceShelf.readShared(), isPreview: false))
+        }
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<GlanceEntry>) -> Void) {
         let now = Date()
-        let digest: GlanceDigest = GlanceShelf.read() ?? .empty
+        // the shared file only: without it the widget says "open the app"
+        // (GlanceState.noFile), not "All caught up"
+        let stored: GlanceDigest? = GlanceShelf.readShared()
+        let digest: GlanceDigest = stored ?? .empty
         var dates: [Date] = [now]
         let calendar = Calendar.current
         if let midnight = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now)) {
@@ -36,7 +50,7 @@ struct GlanceProvider: TimelineProvider {
         }
         if let next = digest.nextDue, next > now { dates.append(next) }
         dates.sort()
-        let entries: [GlanceEntry] = dates.map { GlanceEntry(date: $0, digest: digest, isPreview: false) }
+        let entries: [GlanceEntry] = dates.map { GlanceEntry(date: $0, stored: stored, isPreview: false) }
         // a fresh look within a few hours even if the app is never opened
         let refresh: Date = now.addingTimeInterval(4 * 3600)
         completion(Timeline(entries: entries, policy: .after(refresh)))
@@ -75,6 +89,14 @@ extension View {
             GlanceStyle.ground
         }
     }
+}
+
+/// What a widget says when it has no file from the app. The app's name is
+/// spelled out as in ReviewDueControl; the extension does not build Brand.
+enum GlanceWords {
+    static let openApp = "Open Stethoscore"
+    /// The small widgets' number when there is none to show.
+    static let noNumber = "\u{2013}"
 }
 
 /// "12 cards", "1 card".

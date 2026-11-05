@@ -155,6 +155,47 @@ let futureData = try! GlanceShelf.encoder.encode(future)
 check("a newer file is not misread", GlanceShelf.decode(futureData) == nil)
 check("garbage is nothing", GlanceShelf.decode(Data("nope".utf8)) == nil)
 
+// MARK: what a widget says (T0192): no file is not "nothing due"
+
+check("no file is its own state", GlanceState.of(nil, at: now) == .noFile)
+var caughtUp = digest
+caughtUp.dueNow = 0
+caughtUp.nextDue = nil
+check("a file with nothing due", GlanceState.of(caughtUp, at: now) == .nothingDue)
+check("a file with cards due", GlanceState.of(digest, at: now) == .due(15))
+check("an empty digest read from a file is nothing due, not no file",
+      GlanceState.of(.empty, at: now) == .nothingDue)
+var comingDue = caughtUp
+comingDue.nextDue = now.addingTimeInterval(3600)
+check("a card come due since the file was written counts",
+      GlanceState.of(comingDue, at: now.addingTimeInterval(7200)) == .due(1))
+check("the three states differ",
+      GlanceState.noFile != .nothingDue && GlanceState.nothingDue != .due(0) && GlanceState.noFile != .due(0))
+
+// MARK: can the widgets read the app's file (T0192)
+
+let group = "group.example.shared"
+let box = URL(fileURLWithPath: "/tmp/glance-check")
+check("no group named", GlanceShelfCheck.evaluate(groupID: nil, container: box, fileExists: true, data: data) == .noGroup)
+check("the group's container does not open",
+      GlanceShelfCheck.evaluate(groupID: group, container: nil, fileExists: false, data: nil) == .noContainer)
+check("no file in the container",
+      GlanceShelfCheck.evaluate(groupID: group, container: box, fileExists: false, data: nil) == .noFile)
+check("a file that cannot be opened",
+      GlanceShelfCheck.evaluate(groupID: group, container: box, fileExists: true, data: nil) == .unreadable)
+check("a file that does not decode",
+      GlanceShelfCheck.evaluate(groupID: group, container: box, fileExists: true, data: Data("nope".utf8)) == .unreadable)
+check("a newer app's file is unreadable",
+      GlanceShelfCheck.evaluate(groupID: group, container: box, fileExists: true, data: futureData) == .unreadable)
+let readable = GlanceShelfCheck.evaluate(groupID: group, container: box, fileExists: true, data: data)
+check("a readable file", readable == .ready && readable.widgetsCanRead)
+check("only ready means yes",
+      [GlanceShelfCheck.noGroup, .noContainer, .noFile, .unreadable].allSatisfy { !$0.widgetsCanRead })
+#if !canImport(Darwin)
+check("off Apple platforms there is no shared container", GlanceShelf.sharedContainer == nil
+      && GlanceShelf.readShared() == nil)
+#endif
+
 // MARK: exam-day window
 
 var dayCal = Calendar(identifier: .gregorian)

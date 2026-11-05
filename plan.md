@@ -3661,6 +3661,32 @@ mode's colour as an underline under it, on both apps.
   island at WardRadius.bar on both (WardDeck.kt bareIsland, WardSurfaces.swift
   WardBareIsland), in the joined deck's wash and stroke.
 
+### Widgets and watches (T0190 proposal, slices from T0192)
+
+The proposal is docs/design/widgets-watches-proposal.md. The owner took
+every default:
+- D1: build both watch apps and check them by screenshots on CI, but keep
+  both out of the .ipa and the Android build until they are released
+  together. No watch App ID is registered before then.
+- D2: the Wear OS app may use Google Play services, `play-services-wearable`
+  only.
+- D3: the watches only show; no reviewing on the watch.
+- D4: in the medium widget, tapping a deck opens that deck
+  (`redpen://set/<id>`).
+
+- [x] Slice 1 (T0192): the shared file check on iOS. Settings > Widgets has
+  a "Widgets can read your cards" row (GlanceShelf.check: the App Group is
+  named, its container opens, the digest file is there and decodes), with
+  the reason in the footer when it says no. The widgets read the shared
+  container only (GlanceShelf.readShared) and tell three states apart
+  (GlanceState: no file, nothing due, cards due); with no file each widget
+  says "Open Stethoscore" instead of "All caught up". Tests in PlatformTests.
+  The owner checks the row once on the next .ipa; only a Mac run draws it.
+- [ ] Slice 2: widget wording from home, Done today in place of the streak.
+- [ ] Slice 3: medium widget targets (two deck rows, a 44 pt Review button).
+- [ ] Slices 4 to 6: digest, links and Glance widgets on Android.
+- [ ] Slices 7 to 10: Wear OS and Apple Watch, held under D1.
+
 ### Waiting on the owner
 
 - Deploying the Worker with T0132 attempts 3 and 4 (only the owner is written for; 3.8 Flash, audio on it alone): built and tested here, not deployed.

@@ -117,6 +117,45 @@ struct GlanceDigest: Codable, Equatable {
     }
 }
 
+// MARK: - What a widget has to say
+
+/// The three things a widget can honestly say: it has no file from the app
+/// (the App Group did not open, or the app has not written yet), the file
+/// says nothing is due, or cards are due. Only the second is "All caught up".
+enum GlanceState: Equatable {
+    case noFile
+    case nothingDue
+    case due(Int)
+
+    static func of(_ stored: GlanceDigest?, at now: Date) -> GlanceState {
+        guard let stored else { return .noFile }
+        let count: Int = stored.dueShown(at: now)
+        return count > 0 ? .due(count) : .nothingDue
+    }
+}
+
+/// Whether the widgets can read what the app writes, as Settings reports it:
+/// the App Group is named, its container opens, and the digest file in it is
+/// there and decodes. The app's own caches never count; a widget cannot read
+/// them.
+enum GlanceShelfCheck: Equatable {
+    case ready
+    case noGroup
+    case noContainer
+    case noFile
+    case unreadable
+
+    var widgetsCanRead: Bool { self == .ready }
+
+    static func evaluate(groupID: String?, container: URL?, fileExists: Bool, data: Data?) -> GlanceShelfCheck {
+        guard groupID != nil else { return .noGroup }
+        guard container != nil else { return .noContainer }
+        guard fileExists else { return .noFile }
+        guard let data, GlanceShelf.decode(data) != nil else { return .unreadable }
+        return .ready
+    }
+}
+
 // MARK: - Where it is kept
 
 /// The shared file. The App Group's name comes from Info.plist
@@ -157,9 +196,40 @@ enum GlanceShelf {
         return d
     }()
 
+    /// The App Group's own container, with no fallback: nil when the group
+    /// is unnamed or its container does not open (a sideloader that renamed
+    /// the group, or a build without the entitlement).
+    static var sharedContainer: URL? {
+        #if canImport(Darwin)
+        if let group = groupID {
+            return FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: group)
+        }
+        #endif
+        return nil
+    }
+
     static func read() -> GlanceDigest? {
         guard let url = fileURL, let data = try? Data(contentsOf: url) else { return nil }
         return decode(data)
+    }
+
+    /// What the widgets read: the shared file only. The extension's own
+    /// caches never hold the app's numbers, so reading them would show an
+    /// empty digest as if nothing were due.
+    static func readShared() -> GlanceDigest? {
+        guard let container = sharedContainer,
+              let data = try? Data(contentsOf: container.appendingPathComponent(fileName)) else { return nil }
+        return decode(data)
+    }
+
+    /// The Settings row's answer, read from the shared container as a widget
+    /// would read it.
+    static func check() -> GlanceShelfCheck {
+        let container: URL? = sharedContainer
+        let file: URL? = container?.appendingPathComponent(fileName)
+        let exists: Bool = file.map { FileManager.default.fileExists(atPath: $0.path) } ?? false
+        let data: Data? = exists ? file.flatMap { try? Data(contentsOf: $0) } : nil
+        return GlanceShelfCheck.evaluate(groupID: groupID, container: container, fileExists: exists, data: data)
     }
 
     static func decode(_ data: Data) -> GlanceDigest? {

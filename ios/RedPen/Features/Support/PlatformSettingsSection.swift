@@ -2,7 +2,8 @@ import AppIntents
 import SwiftUI
 
 /// Settings > "iPhone and iPad", as Form sections: Siri and Spotlight, the
-/// exam-day Live Activity, Face ID lock and mindful minutes in Health.
+/// widgets' shared file and the exam-day Live Activity, Face ID lock and
+/// mindful minutes in Health.
 ///
 /// Drop into the settings Form: `PlatformSettingsSection()`. Needs the Store
 /// in the environment (the Spotlight toggle re-indexes the library).
@@ -17,6 +18,8 @@ struct PlatformSettingsSection: View {
     @AppStorage(AppLock.key) private var appLock = false
     @AppStorage(MindfulMinutes.key) private var mindful = false
     @State private var healthRefused = false
+    /// Whether the widgets can read the app's shared file (GlanceShelf.check).
+    @State private var shelf: GlanceShelfCheck?
 
     private static var isPlaygrounds: Bool {
         #if SWIFT_PACKAGE
@@ -53,14 +56,19 @@ struct PlatformSettingsSection: View {
 
         if !Self.isPlaygrounds {
             Section {
+                if let shelf {
+                    widgetDataRow(shelf)
+                }
                 Toggle("Exam-day Live Activity", isOn: $liveActivity)
                     .accessibilityIdentifier("platformLiveActivity")
             } header: {
                 Text(l10n: "Widgets")
             } footer: {
-                Text("From 6 pm the evening before your exam, the Lock Screen shows the countdown and the cards still due. Add the widgets from the Home Screen, and the Review due button from Control Centre.")
+                Text(widgetsFooter)
             }
             .wardRowBackground()
+            // read where a widget reads, each time the page shows
+            .onAppear { shelf = GlanceShelf.check() }
         }
 
         if AppLock.supported || MindfulMinutes.available {
@@ -90,6 +98,44 @@ struct PlatformSettingsSection: View {
             }
             .wardRowBackground()
         }
+    }
+
+    // MARK: rows
+
+    /// As LibraryDataSettingsSection's "Last backup": a chip for the answer,
+    /// and the reason in the footer when it is no.
+    private func widgetDataRow(_ shelf: GlanceShelfCheck) -> some View {
+        let ok: Bool = shelf.widgetsCanRead
+        let tone: WardTone = ok ? .green : .warning
+        return LabeledContent {
+            WardChip(text: ok ? "Yes" : "No", tone: tone, symbol: ok ? "checkmark" : "exclamationmark.triangle.fill")
+        } label: {
+            Label {
+                Text("Widgets can read your cards")
+            } icon: {
+                Image(systemName: ok ? "checkmark.shield" : "exclamationmark.triangle.fill").foregroundStyle(tone.color)
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("platformWidgetData")
+    }
+
+    private var widgetsFooter: String {
+        let base: String = "From 6 pm the evening before your exam, the Lock Screen shows the countdown and the cards still due. Add the widgets from the Home Screen, and the Review due button from Control Centre."
+        let reason: String
+        switch shelf {
+        case .noGroup:
+            reason = "This copy of the app has no shared space for widgets, so they show \u{201C}Open \(Brand.name)\u{201D} instead of your cards."
+        case .noContainer:
+            reason = "The widgets\u{2019} shared space didn\u{2019}t open on this device, so they show \u{201C}Open \(Brand.name)\u{201D} instead of your cards."
+        case .noFile:
+            reason = "The app hasn\u{2019}t saved anything for the widgets yet. It saves when your cards change."
+        case .unreadable:
+            reason = "The widgets\u{2019} file couldn\u{2019}t be read. The app saves it again when your cards change."
+        case .ready, nil:
+            return base
+        }
+        return reason + " " + base
     }
 
     private var siriFooter: String {

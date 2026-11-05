@@ -21,6 +21,7 @@ struct ExamCountdownView: View {
 
     private var days: Int? { entry.digest.daysToExam(now: entry.date) }
     private var name: String { entry.digest.examName ?? "Your exam" }
+    private var hasFile: Bool { entry.hasFile }
 
     private var phrase: String {
         guard let days else { return "Set your exam date" }
@@ -40,11 +41,11 @@ struct ExamCountdownView: View {
             }
             .widgetAccentable()
         case .accessoryInline:
-            Text(days == nil ? "No exam date" : name + ": " + phrase)
+            Text(!hasFile ? GlanceWords.openApp : (days == nil ? "No exam date" : name + ": " + phrase))
         case .accessoryRectangular:
             VStack(alignment: .leading, spacing: 2) {
-                Text(name).font(.headline).lineLimit(1).widgetAccentable()
-                Text(phrase).font(.body)
+                Text(hasFile ? name : GlanceWords.openApp).font(.headline).lineLimit(1).widgetAccentable()
+                Text(hasFile ? phrase : "to see your countdown").font(.body)
             }
         default:
             VStack(alignment: .leading, spacing: 4) {
@@ -56,7 +57,8 @@ struct ExamCountdownView: View {
                     .font(.system(size: 44, weight: .bold, design: .rounded))
                     .minimumScaleFactor(0.5)
                     .foregroundStyle(GlanceStyle.ink)
-                Text(days == nil ? "Set your exam date" : (days == 1 ? "day to " : "days to ") + name)
+                Text(!hasFile ? GlanceWords.openApp + " to see your countdown"
+                     : (days == nil ? "Set your exam date" : (days == 1 ? "day to " : "days to ") + name))
                     .font(.caption)
                     .lineLimit(2)
                     .foregroundStyle(GlanceStyle.inkSecondary)

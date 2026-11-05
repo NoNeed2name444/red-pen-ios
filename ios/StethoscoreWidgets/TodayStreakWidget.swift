@@ -22,33 +22,42 @@ struct TodayStreakView: View {
 
     private var today: Int { entry.digest.todayShown(at: entry.date) }
     private var streak: Int { entry.digest.streakShown(at: entry.date) }
+    private var hasFile: Bool { entry.hasFile }
 
     var body: some View {
         switch family {
         case .accessoryCircular:
             VStack(spacing: 0) {
-                Image(systemName: "flame.fill").font(.caption)
-                Text("\(streak)")
+                if hasFile {
+                    Image(systemName: "flame.fill").font(.caption)
+                }
+                Text(hasFile ? "\(streak)" : GlanceWords.noNumber)
                     .font(.system(.title3, design: .rounded).weight(.bold))
+                    .accessibilityLabel(hasFile ? "\(streak)" : GlanceWords.openApp)
             }
             .widgetAccentable()
         case .accessoryInline:
-            Text("\(today) today \u{00B7} \(streak)-day streak")
+            Text(hasFile ? "\(today) today \u{00B7} \(streak)-day streak" : GlanceWords.openApp)
         default:
             VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 4) {
-                    Image(systemName: "flame.fill")
-                    Text("\(streak)").monospacedDigit()
+                if hasFile {
+                    HStack(spacing: 4) {
+                        Image(systemName: "flame.fill")
+                        Text("\(streak)").monospacedDigit()
+                    }
+                    .font(.headline)
+                    .foregroundStyle(GlanceStyle.pen)
                 }
-                .font(.headline)
-                .foregroundStyle(GlanceStyle.pen)
                 Spacer(minLength: 0)
-                Text("\(today)")
+                Text(hasFile ? "\(today)" : GlanceWords.noNumber)
                     .font(.system(size: 44, weight: .bold, design: .rounded))
                     .minimumScaleFactor(0.5)
                     .foregroundStyle(GlanceStyle.ink)
-                Text(streak == 1 ? "done today \u{00B7} 1 day" : "done today \u{00B7} \(streak) days")
+                    .accessibilityHidden(!hasFile)
+                Text(!hasFile ? GlanceWords.openApp + " to see today\u{2019}s count"
+                     : (streak == 1 ? "done today \u{00B7} 1 day" : "done today \u{00B7} \(streak) days"))
                     .font(.caption)
+                    .lineLimit(2)
                     .foregroundStyle(GlanceStyle.inkSecondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
