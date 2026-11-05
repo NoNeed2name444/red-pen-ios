@@ -294,8 +294,7 @@ import com.stethoscore.app.ui.library.LibraryEtch
                         // slices them and fewer beds would lift them clear, a bed comes off (HomeFit.tilesTrim, T0211 A3;
                         // iOS LibraryView.trimSlicedStart); a new window or text size starts again from every bed
                         val standardText=LocalDensity.current.fontScale<=1f
-                        val windowWidth=androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp
-                        var bedsTrimmed by remember(shortWindow,standardText,windowWidth) { mutableStateOf(0) }
+                        var bedsTrimmed by remember(shortWindow,standardText,shape.width) { mutableStateOf(0) }
                         // the exam setup, opened from the header's slot while there is no date (T0211 A6)
                         var examSetUp by remember { mutableStateOf(false) }
                         val home=remember(revision,shortWindow,bedsTrimmed,store.library,com.stethoscore.app.ui.learn.LearnRouter.version) { if(store.library.isEmpty()) null else {
