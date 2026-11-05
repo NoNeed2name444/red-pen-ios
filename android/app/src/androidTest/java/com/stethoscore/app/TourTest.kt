@@ -375,7 +375,7 @@ class TourTest {
             val q = stores.getValue(m).first(StudySetKind.MCQ).questions.first()
             // the options run below the fold, under the deck; Check answer is on the deck (T0211 A2)
             tour.tapInView("the right answer's option", hasClickAction() and hasContentDescription(": " + q.options[q.correctIndex], substring = true))
-            tour.tapInView("the quiz's check button", hasText(ChartQuiz.primaryTitle(false, true, false, false, false)) and hasClickAction())
+            tour.tapOnDeck("the quiz's check button", hasText(ChartQuiz.primaryTitle(false, true, false, false, false)) and hasClickAction())
             tour.waitFor("the checked answer's next button", hasText(ChartQuiz.primaryTitle(true, true, false, false, false)))
             tour.shot(43, "quiz-checked", m)
         }

@@ -14,6 +14,7 @@ import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -118,10 +119,17 @@ class TourCapture(private val compose: ComposeContentTestRule) {
      */
     fun tapInView(what: String, matcher: SemanticsMatcher, timeoutMs: Long = 15_000) {
         waitFor(what, matcher, timeoutMs)
-        val node = compose.onAllNodes(matcher).onFirst()
-        // brought into view where it scrolls; a deck's button (Check answer since T0211 A2) is always in view
-        try { node.performScrollTo() } catch (_: AssertionError) {}
-        node.performClick()
+        compose.onAllNodes(matcher).onFirst().performScrollTo().performClick()
+        compose.waitForIdle()
+    }
+
+    /**
+     * Taps [matcher] on a study deck, which sits under the scrolling page, not in it
+     * (Check answer since T0211 A2): nothing to scroll, so it must already be shown.
+     */
+    fun tapOnDeck(what: String, matcher: SemanticsMatcher, timeoutMs: Long = 15_000) {
+        waitFor(what, matcher, timeoutMs)
+        compose.onAllNodes(matcher).onFirst().assertIsDisplayed().performClick()
         compose.waitForIdle()
     }
 
