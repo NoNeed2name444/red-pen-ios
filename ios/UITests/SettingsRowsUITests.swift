@@ -32,6 +32,7 @@ final class SettingsRowsUITests: XCTestCase {
         // second walks back up to it)
         let crashReports = app.buttons["crashReports"]
         reach(crashReports)
+        logReach(crashReports)
         crashReports.tap()
         XCTAssertTrue(app.navigationBars["Diagnostics"].waitForExistence(timeout: 10),
                       "the crash reports row did not open its page")
@@ -46,12 +47,45 @@ final class SettingsRowsUITests: XCTestCase {
     /// the 2.5 s settle after the first swipe down, then no movement), past
     /// the crash reports row, which is below the first screen, and every
     /// later swipe down did nothing.
+    ///
+    /// Hittable is not enough: the walk back up brings a row in from the
+    /// top, and XCTest can call a row hittable while it is still under the
+    /// navigation bar: the masthead (WardMasthead) over it takes no touches
+    /// and is hidden from accessibility, but the bar itself takes the tap
+    /// (likeliest reading of App build 42001724201 on 9316cf73: crashReports
+    /// hittable after the eighth step up, tapped at t 118.05 with the app
+    /// idle, and no Diagnostics page; SETTINGS-REACH logs the frames).
+    /// So the row must also lie wholly between the bar and the window's
+    /// foot; one step (a third of the screen) is shorter than that band, so
+    /// a step always lands it there.
     private func reach(_ element: XCUIElement) {
         var steps = 0
-        while !(element.exists && element.isHittable) && steps < 30 { scroll(down: true); steps += 1 }
+        while !inReach(element) && steps < 30 { scroll(down: true); steps += 1 }
         steps = 0
-        while !(element.exists && element.isHittable) && steps < 30 { scroll(down: false); steps += 1 }
+        while !inReach(element) && steps < 30 { scroll(down: false); steps += 1 }
     }
+
+    /// The element exists, can be hit, and lies wholly below the navigation
+    /// bar and above the home indicator's strip.
+    private func inReach(_ element: XCUIElement) -> Bool {
+        guard element.exists && element.isHittable else { return false }
+        let frame: CGRect = element.frame
+        let window: CGRect = app.windows.firstMatch.frame
+        let bar = app.navigationBars.firstMatch
+        let top: CGFloat = bar.exists ? bar.frame.maxY : window.minY
+        return frame.minY >= top && frame.maxY <= window.maxY - Self.footClearance
+    }
+
+    /// For the next run's log: where the row and the bar were at the tap.
+    private func logReach(_ element: XCUIElement) {
+        let bar = app.navigationBars.firstMatch
+        let barFrame: CGRect = bar.exists ? bar.frame : .null
+        print("SETTINGS-REACH row=\(element.frame) bar=\(barFrame) window=\(app.windows.firstMatch.frame) hittable=\(element.isHittable)")
+    }
+
+    /// The home indicator's strip at the window's foot (34 points on a
+    /// Face ID iPhone), kept clear so a tap is never read as its swipe.
+    private static let footClearance: CGFloat = 34
 
     /// Moves the page about a third of the screen: `down` shows what is
     /// below. The drag runs in the page's leading margin, left of the

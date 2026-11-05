@@ -54,7 +54,12 @@ final class DesignTourUITests: XCTestCase {
         }
         app = XCUIApplication()
         app.keepTraceOffConsole()
-        app.launchArguments += ["-personalBuild"]
+        // -hangWatch: a probe (T0201). After Ideas > Space every query
+        // slowed, and after the switch back to the list the app never idled
+        // and three 30 s queries timed out (App build 42001724201, :627);
+        // the app's own watch prints where its main thread is (HANG-WATCH
+        // lines in ui.xcresult's app output)
+        app.launchArguments += ["-personalBuild", "-hangWatch"]
         app.launch()
         signIn()
         XCTAssertTrue(dock.waitForLibrary(timeout: 20), "the library didn't open")

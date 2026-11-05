@@ -155,6 +155,8 @@ struct Graph3DView: View {
             }
         }
         .task(id: signature) { await rebuild() }
+        // the hang watch, under -hangWatch only (GraphHangReporter); once
+        .onAppear { GraphHangReporter.start() }
         // back in front with a shader check that failed while away (not
         // kept, GraphProbeMemo): check again and build again (Chat-me audit
         // row 112)

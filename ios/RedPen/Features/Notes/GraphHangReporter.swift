@@ -19,7 +19,15 @@ import os
 /// frame records are read, and nothing is allocated, logged or locked
 /// meanwhile. tools/hang_watch.sh keeps the log.
 nonisolated enum GraphHangReporter {
-    static let isOn: Bool = GraphPreview.isOn
+    static let isOn: Bool = GraphPreview.isOn || toConsole
+
+    /// `-hangWatch` (the design tour, T0201): the same watch in the whole
+    /// app, from the 3D map's first showing, its lines printed to stdout as
+    /// "HANG-WATCH ..." (the UI tests turn os_log off, QuietConsole), where
+    /// ui.xcresult keeps them. The tour's queries stalled for minutes after
+    /// Ideas > Space (App build 42001724201), and nothing said where the
+    /// main thread was.
+    static let toConsole: Bool = ProcessInfo.processInfo.arguments.contains("-hangWatch")
 
     /// Starts the watch, once; called on the main thread, which it then
     /// knows as the one to watch.
@@ -327,7 +335,14 @@ nonisolated final class GraphHangWatch: @unchecked Sendable {
         }
     }
 
-    private func say(_ text: String) { log.error("\(text, privacy: .public)") }
+    private func say(_ text: String) {
+        log.error("\(text, privacy: .public)")
+        guard GraphHangReporter.toConsole else { return }
+        // flushed at once: a piped stdout is buffered, and a stuck app may
+        // be ended before the buffer fills
+        fputs("HANG-WATCH \(text)\n", stdout)
+        fflush(stdout)
+    }
     private static func now() -> UInt64 { DispatchTime.now().uptimeNanoseconds }
     private static func since(_ then: UInt64, _ now: UInt64) -> UInt64 { then == 0 || then > now ? 0 : now - then }
     private static func seconds(_ nanoseconds: UInt64) -> String { String(format: "%.1f", Double(nanoseconds) / 1e9) }
