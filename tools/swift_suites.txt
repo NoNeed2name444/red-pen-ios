@@ -440,6 +440,8 @@ suite saveideas SaveToIdeasTests.swift $S/Ideas/SaveToIdeas.swift $S/Ideas/IdeaE
 # the first run: who sees the first-run pages and when, the daily
 # goal's key and range, and tips that wait for a familiar screen
 suite firstrun FirstRunTests.swift $S/FirstRunRules.swift $S/DailyGoal.swift
+# a ring's words in the largest square inside its groove (T0211 A5)
+suite wardringfit WardRingFitTests.swift $S/Ward/WardRingFit.swift
 # the Ward Round palette: contrast promises in light and dark, and the
 # AccentColor asset drawn from the same table
 suite wardpalette WardPaletteTests.swift $S/Ward/WardPalette.swift $S/Ward/WardLook.swift $S/Ward/WardRelief.swift

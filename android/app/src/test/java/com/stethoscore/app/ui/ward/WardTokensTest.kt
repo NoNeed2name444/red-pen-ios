@@ -79,6 +79,28 @@ class WardTokensTest {
             WardControlSize.iconRadius(56.0) == WardRadius.icon)
         check("a ring's groove clears its arc by 2, or a third of a thin one",
             WardControlSize.ringClear(8.0) == 2.0 && WardControlSize.ringClear(3.0) == 1.0)
+        // T0211 A5: a ring's words get the largest square inside its groove's hole (iOS WardRingFitTests), at
+        // every size the app draws: Vitals' (8 wide, up to 120), home's (6, 56), the round's (6, 180; 3, 22)
+        for (lineWidth in listOf(3.0, 6.0, 8.0)) {
+            var d = 20.0
+            while (d <= 200.0) {
+                val hole = WardControlSize.ringHole(d, lineWidth)
+                val corner = WardControlSize.ringLabelSide(d, lineWidth) / 2 * kotlin.math.sqrt(2.0)
+                check("$d across, $lineWidth wide: the words' corners are inside the groove's hole", corner <= hole + 1e-9, "$corner > $hole")
+                check("$d across, $lineWidth wide: and touch it, the largest square", hole == 0.0 || kotlin.math.abs(corner - hole) < 1e-9)
+                check("$d across, $lineWidth wide: the hole is inside the arc and its clearance",
+                    hole == 0.0 || kotlin.math.abs(hole - (d / 2 - lineWidth - 2 * WardControlSize.ringClear(lineWidth))) < 1e-9)
+                d += 0.5
+            }
+        }
+        // before: the words were inset by 1.5 lines and the clearance, a square whose corners crossed the groove
+        val old = 76.0 - 2 * (8.0 * 1.5 + 2.0)
+        check("the old inset crossed the groove on a 76-wide Vitals ring", old / 2 * kotlin.math.sqrt(2.0) > WardControlSize.ringHole(76.0, 8.0))
+        val ring = java.io.File("src/main/java/com/stethoscore/app/ui/ward/WardControls.kt").readText()
+            .substringAfter("@Composable fun WardRing(").substringBefore("\n}\n")
+        check("WardRing gives its words the square and shrinks them to fit",
+            ring.contains("val side = WardControlSize.ringLabelSide(minOf(maxWidth.value, maxHeight.value).toDouble(), lineWidth)") &&
+                ring.contains("Column(Modifier.size(side.dp)") && ring.split("autoSize = ").size == 3 && !ring.contains(".padding((lineWidth * 1.5"))
         check("the timer: Time at zero, minutes, hours over an hour",
             wardTimerText(0) == "Time" && wardTimerText(59) == "0:59" && wardTimerText(3900) == "1:05:00")
     }

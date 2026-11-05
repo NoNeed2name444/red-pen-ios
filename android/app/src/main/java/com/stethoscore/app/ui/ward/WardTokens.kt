@@ -155,6 +155,15 @@ object WardControlSize {
 
     /** A ring's groove clearance either side of the arc. */
     fun ringClear(lineWidth: Double): Double = min(2.0, lineWidth / 3)
+
+    /** The radius of a ring's groove hole, [diameter] across: the arc and its clearance either side, in from the edge. */
+    fun ringHole(diameter: Double, lineWidth: Double): Double = kotlin.math.max(0.0, diameter / 2 - lineWidth - 2 * ringClear(lineWidth))
+
+    /**
+     * The side of the square a ring's words get, the largest inside its groove's hole (r√2), so they never
+     * cross the arc (T0211 A5: "67%" and "Readiness" crossed it). iOS WardRingFit.labelSide is the same sum.
+     */
+    fun ringLabelSide(diameter: Double, lineWidth: Double): Double = ringHole(diameter, lineWidth) * kotlin.math.sqrt(2.0)
 }
 
 /**

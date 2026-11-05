@@ -599,14 +599,22 @@ fun wardTimerText(seconds: Int): String {
                 val inset = w / 2
                 drawArc(arc, -90f, 360f * sweep, false, topLeft = Offset(inset, inset),
                     size = Size(size.width - 2 * inset, size.height - 2 * inset), style = Stroke(lw, cap = StrokeCap.Round))
-            }
-            .padding((lineWidth * 1.5 + clear).wardDp),
+            },
         contentAlignment = Alignment.Center,
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(shown, style = WardTypeSpec(WardTextStyle.title2, WardWeight.semibold, mono = true).textStyle().copy(fontSize = WardControlSize.ringNumeral.sp),
-                color = wardColor(WardToken.ink), maxLines = 1)
-            if (label != null) Text(label, style = WardTextStyle.caption2.textStyle(), color = wardColor(WardToken.inkSecondary), maxLines = 1)
+        // the words in the largest square inside the groove's hole, shrinking to fit it, so they never cross
+        // the arc (T0211 A5; iOS RingWords): the numeral two shares of its height, the label one
+        androidx.compose.foundation.layout.BoxWithConstraints(Modifier.matchParentSize(), contentAlignment = Alignment.Center) {
+            val side = WardControlSize.ringLabelSide(minOf(maxWidth.value, maxHeight.value).toDouble(), lineWidth)
+            val numeral = WardTypeSpec(WardTextStyle.title2, WardWeight.semibold, mono = true).textStyle()
+                .copy(fontSize = WardControlSize.ringNumeral.sp, color = wardColor(WardToken.ink), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            val caption = WardTextStyle.caption2.textStyle().copy(color = wardColor(WardToken.inkSecondary), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            Column(Modifier.size(side.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                androidx.compose.foundation.text.BasicText(shown, Modifier.fillMaxWidth().weight(2f, fill = false), style = numeral, maxLines = 1, softWrap = false,
+                    autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize = (WardControlSize.ringNumeral * 0.25).sp, maxFontSize = WardControlSize.ringNumeral.sp))
+                if (label != null) androidx.compose.foundation.text.BasicText(label, Modifier.fillMaxWidth().weight(1f, fill = false), style = caption, maxLines = 1, softWrap = false,
+                    autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(minFontSize = (WardTextStyle.caption2.size * 0.5).sp, maxFontSize = WardTextStyle.caption2.size.sp))
+            }
         }
     }
 }

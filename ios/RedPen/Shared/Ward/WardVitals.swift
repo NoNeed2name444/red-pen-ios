@@ -31,12 +31,15 @@ struct WardRing: View {
         let percent: Int = Int((v * 100).rounded())
         let shown: String = centre ?? "\(percent)%"
         // the groove is the arc's width and a little clearance either side
-        let clear: CGFloat = min(2, lineWidth / 3)
-        ZStack {
+        let clear: CGFloat = CGFloat(WardRingFit.clear(lineWidth: Double(lineWidth)))
+        RingWords(lineWidth: lineWidth) {
             Circle()
                 .trim(from: 0, to: v)
                 .stroke(tone.color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .rotationEffect(.degrees(-90))
+                .padding(lineWidth / 2 + clear)
+            // the words in the square inside the groove's hole, shrinking to
+            // fit it, so they never cross the arc (T0211 A5)
             VStack(spacing: 0) {
                 Text(shown)
                     .font(.system(size: numeral, weight: .semibold, design: .monospaced))
@@ -46,10 +49,8 @@ struct WardRing: View {
                     .foregroundStyle(Color.wardInk)
                 if let label { Text(label).font(WardType.face(.caption2, weight: .regular)).lineLimit(1).foregroundStyle(Color.wardInkSecondary) }
             }
-            .padding(lineWidth)
             .minimumScaleFactor(0.5)
         }
-        .padding(lineWidth / 2 + clear)
         .background {
             WardReliefFace(shape: WardAnnulus(width: lineWidth + 2 * clear), lift: .low, inset: true)
         }
@@ -57,6 +58,31 @@ struct WardRing: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label ?? "Progress")
         .accessibilityValue(spoken ?? "\(percent) percent")
+    }
+}
+
+/// A ring's arc over its whole frame and its words in the square inside the
+/// groove's hole (WardRingFit.labelSide). Offered no size, the ring is the
+/// circle round its words' own size.
+private struct RingWords: Layout {
+    let lineWidth: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let words: CGSize = subviews.count > 1 ? subviews[1].sizeThatFits(.unspecified) : .zero
+        let own = CGFloat(WardRingFit.diameter(labelSide: Double(max(words.width, words.height)),
+                                               lineWidth: Double(lineWidth)))
+        return CGSize(width: proposal.width ?? own, height: proposal.height ?? own)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let centre = CGPoint(x: bounds.midX, y: bounds.midY)
+        if let arc = subviews.first {
+            arc.place(at: centre, anchor: .center, proposal: ProposedViewSize(bounds.size))
+        }
+        guard subviews.count > 1 else { return }
+        let side = CGFloat(WardRingFit.labelSide(diameter: Double(min(bounds.width, bounds.height)),
+                                                 lineWidth: Double(lineWidth)))
+        subviews[1].place(at: centre, anchor: .center, proposal: ProposedViewSize(width: side, height: side))
     }
 }
 
