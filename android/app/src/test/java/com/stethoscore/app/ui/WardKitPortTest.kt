@@ -108,8 +108,13 @@ class WardKitPortTest {
         for (name in listOf("AnkiReviewScreen.kt", "mock/MockSittingScreen.kt", "mock/MockResultsScreen.kt", "osce/OsceReviewScreen.kt",
             "book/BookReaderScreen.kt", "narrate/NarrateReviewScreen.kt"))
             assertTrue("$name folds its deck", File(ui, name).readText().contains("StudyActionBar(folds = true)"))
-        assertTrue("How sure? is the folding deck, hidden once checked",
-            File(ui, "MCQQuizScreen.kt").readText().contains("StudyActionBar(folds = true, shown = p != null || (!a.checked && asksConfidence))"))
+        // How sure? folds away once checked, but the deck stays while it holds Back and the main
+        // action, below the accessibility sizes (T0211 A2)
+        assertTrue("How sure? is the folding deck, hidden once checked unless the deck holds the main action",
+            File(ui, "MCQQuizScreen.kt").readText().let {
+                it.contains("StudyActionBar(folds = true, shown = p != null || !actionsInline || (!a.checked && asksConfidence))") &&
+                    it.contains("if (!a.checked && asksConfidence) FirstThatFits(")
+            })
     }
 
     @Test fun theDecksLineJoinsTheFrame() {
