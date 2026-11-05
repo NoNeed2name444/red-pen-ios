@@ -1,6 +1,9 @@
 package com.stethoscore.app.data
 
+import com.stethoscore.app.exam.ExamDefaults
+import com.stethoscore.app.exam.MemoryExamDefaults
 import com.stethoscore.app.ideas.NoteFolder
+import com.stethoscore.app.ui.home.ExamCountdown
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -74,7 +77,17 @@ class StudyStore(private val directory: File) {
     /** Told of each answer checked and card rated, so a running ward round can count them (iOS StudyLog.recorded). */
     var onStudied: ((Int) -> Unit)? = null
 
-    init { load() }
+    /** The widgets' digest (glance-digest.json), beside the library. */
+    val glanceShelf = GlanceShelf(directory)
+    private var glanceLast: GlanceDigest? = null
+    private var glanceLastRead = false
+    /** Where the chosen exam is kept, for home's exam name in the digest (ExamChoice.defaults(context) in the app). */
+    var examDefaults: ExamDefaults = MemoryExamDefaults()
+        set(value) { field = value; publishGlance() }
+    /** Told when a new digest was written, so the widgets can update; never on a save that changed nothing they show. */
+    var onGlanceWritten: ((GlanceDigest) -> Unit)? = null
+
+    init { load(); publishGlance() }
 
     @Synchronized fun load() {
         if (!file.exists()) return
@@ -166,6 +179,35 @@ class StudyStore(private val directory: File) {
             temporary.delete()
             throw if (e is IllegalStateException) e else IllegalStateException("Could not save your library: ${e.message.orEmpty()}", e)
         }
+        publishGlance()
+    }
+    /**
+     * The digest from what is here now (iOS GlancePublisher.publish): the due
+     * queue, home's exam name and day, today's count and the daily goal.
+     */
+    @Synchronized fun glanceDigest(now: Long = System.currentTimeMillis()): GlanceDigest {
+        val due = dueAcross(now).map { it.setId to it.setName }
+        val upcoming = reviews.values.asSequence().map { it.due }.filter { it > now }.minOrNull()
+        val (streak, today) = LibraryStats.streakAndToday(this, now)
+        return GlanceDigest.make(
+            now = now, due = due, nextDue = upcoming, examName = ExamCountdown.examName(examDefaults), examDate = examDate,
+            today = today, streak = streak, goal = GoalProgress.goal(DailyGoal.store.int(DailyGoal.key)),
+        )
+    }
+    /**
+     * Writes the digest when its content changed since the last one written
+     * (iOS GlancePublisher.save). A digest that cannot be worked out or
+     * written never fails the save it follows; the widgets keep the last file.
+     */
+    @Synchronized fun publishGlance(now: Long = System.currentTimeMillis()): Boolean {
+        if (loadError != null) return false
+        val digest = runCatching { glanceDigest(now) }.getOrNull() ?: return false
+        if (!glanceLastRead) { glanceLast = glanceShelf.read(); glanceLastRead = true }
+        if (glanceLast?.sameContent(digest) == true) return false
+        if (!glanceShelf.write(digest)) return false
+        glanceLast = digest
+        onGlanceWritten?.invoke(digest)
+        return true
     }
     /** Saves a background change; a failure is reported through [onSaveError] instead of thrown. */
     private fun saveQuietly() {
