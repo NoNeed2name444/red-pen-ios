@@ -66,9 +66,13 @@ enum PhotonRim {
 struct ModeBackdrop: View {
     let kind: StudySetKind
     var seed: UInt64 = 0
-    var body: some View {
-        WardModeWashView(look: WardModeWashLook(section: WardSection(kindRaw: kind.rawValue),
+    @ViewBuilder var body: some View {
+        if WardProbe.noWash {
+            WardBackground()
+        } else {
+            WardModeWashView(look: WardModeWashLook(section: WardSection(kindRaw: kind.rawValue),
                                                 mesh: WardModeWash.mesh(seed: seed)))
+        }
     }
 }
 
@@ -93,7 +97,7 @@ extension View {
             .wardMasthead()
             // the bar, and the status bar over it, named light or dark with
             // the page, so they switch with it rather than fading
-            .modifier(WardBarScheme())
+            .modifier(WardBarScheme(applies: !WardProbe.oldBar))
             // the mode's wash (WardModeWash), this screen's own, the faces
             // see-through over it, one tone with it
             .modifier(WardScreenGround(wash: WardSection(kindRaw: kind.rawValue)))
@@ -101,6 +105,8 @@ extension View {
             .environment(\.modeTint, Color.wardPrimaryInk)
             // the mode's hue on the paper's grid and the controls' edges
             .wardSection(WardSection(kindRaw: kind.rawValue))
+            // the probe's old order: the bar's scheme last, outermost
+            .modifier(WardBarScheme(applies: WardProbe.oldBar))
     }
 
     /// Slides up, solid, on first appearance, staggered by `index` so a
@@ -114,15 +120,26 @@ extension View {
 private struct WardBarScheme: ViewModifier {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.wardModeWash) private var modeWash
+    /// Whether this one draws: the probe's -probeOldBar moves it outermost.
+    var applies = true
 
-    func body(content: Content) -> some View {
+    @ViewBuilder func body(content: Content) -> some View {
+        if applies {
+            barred(content)
+        } else {
+            content
+        }
+    }
+
+    private func barred(_ content: Content) -> some View {
         content
             .toolbarColorScheme(scheme, for: .navigationBar)
             // the bar's own base, always shown: with it the bar, not iOS's
             // guess from the content under it, owns the status bar's style;
             // over a mode's wash, the wash along its top edge, as the
             // masthead
-            .toolbarBackground(modeWash?.edge(dark: scheme == .dark, bottom: false) ?? Color.wardWash, for: .navigationBar)
+            .toolbarBackground(WardProbe.oldBar ? Color.wardWash
+                                : modeWash?.edge(dark: scheme == .dark, bottom: false) ?? Color.wardWash, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
     }
 }

@@ -125,6 +125,21 @@ struct WardModeWashView: View {
     }
 }
 
+/// Diagnostic switches for the quiz audit probe (A11yQuizProbeUITests).
+/// Each is on only when its launch argument is present, so a normal launch
+/// is unchanged; each undoes one part of the mode wash.
+enum WardProbe {
+    private static let arguments = ProcessInfo.processInfo.arguments
+    /// The plain base under every screen, and no wash in the environment.
+    static let noWash: Bool = arguments.contains("-probeNoWash")
+    /// The bar's old base (Color.wardWash), its modifier outermost again.
+    static let oldBar: Bool = arguments.contains("-probeOldBar")
+    /// The faces' old opaque fills, never see-through.
+    static let opaqueFaces: Bool = arguments.contains("-probeOpaqueFaces")
+    /// The chart's vitals and labs on their old opaque backgrounds.
+    static let oldCharts: Bool = arguments.contains("-probeOldCharts")
+}
+
 /// A screen's ground: with `wash`, that section's mode wash from a seed the
 /// screen keeps while it is shown (so nothing changes on a redraw, a turn
 /// or a change of mode), the faces on it see-through; `over`, a wash that
@@ -135,7 +150,17 @@ struct WardScreenGround: ViewModifier {
     var over: WardModeWashLook?
     @State private var seed = UInt64.random(in: .min ... .max)
 
-    func body(content: Content) -> some View {
+    @ViewBuilder func body(content: Content) -> some View {
+        if WardProbe.noWash {
+            content
+                .background(WardBackground())
+                .environment(\.wardModeWash, nil)
+        } else {
+            washed(content)
+        }
+    }
+
+    @ViewBuilder private func washed(_ content: Content) -> some View {
         let look: WardModeWashLook? = over ?? wash.map { WardModeWashLook(section: $0, mesh: WardModeWash.mesh(seed: seed)) }
         content
             .background {
@@ -260,7 +285,7 @@ struct WardPressFace<S: InsettableShape>: View {
         let look = WardGlide.drawn(rest: restLook, live: WardLookStore.shared.glide)
         let night: Double = look.night(dark: scheme == .dark, held: held)
         // over a mode's wash a face in the base's tone is see-through
-        let through = modeWash != nil && !unlit && (fillColor?.isWardBase(dark: scheme == .dark) ?? false)
+        let through = !WardProbe.opaqueFaces && modeWash != nil && !unlit && (fillColor?.isWardBase(dark: scheme == .dark) ?? false)
         WardPressRelief(shape: shape, lift: lift, depth: pressed ? 1 : 0, fill: fill, fillColor: fillColor,
                         night: night, dark: scheme == .dark, settled: look.settled,
                         strong: contrast == .increased, control: control,
@@ -448,7 +473,7 @@ struct WardReliefFace<S: InsettableShape>: View {
                                  : rim ? WardRelief.rim(lift, night: night, highContrast: strong)
                                        : WardRelief.raised(lift, night: night, highContrast: strong, control: control)
         // over a mode's wash a face in the base's tone is see-through
-        let through: Bool = modeWash != nil && !unlit && (fillColor?.isWardBase(dark: dark) ?? false)
+        let through: Bool = !WardProbe.opaqueFaces && modeWash != nil && !unlit && (fillColor?.isWardBase(dark: dark) ?? false)
         let live = WardReliefDrawing(shape: shape, lift: lift, inset: inset, flat: flat, fill: fill, control: control,
                                      night: night, strong: strong, unlit: unlit, edge: .wardEdgeInk,
                                      seeThrough: through)

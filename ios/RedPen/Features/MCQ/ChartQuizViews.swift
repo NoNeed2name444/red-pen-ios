@@ -129,7 +129,7 @@ struct ChartVitalsGrid: View {
         }
         .padding(WardSpace.m)
         // over a mode's wash, see-through: one tone with the ground
-        .background(modeWash == nil ? Color.wardBackground : Color.clear,
+        .background(modeWash == nil || WardProbe.oldCharts ? Color.wardBackground : Color.clear,
                     in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
     }
 }
@@ -148,7 +148,7 @@ struct ChartLabsTable: View {
         .padding(WardSpace.m)
         .frame(maxWidth: .infinity, alignment: .leading)
         // over a mode's wash, see-through: one tone with the ground
-        .background(modeWash == nil ? Color.wardBackground : Color.clear,
+        .background(modeWash == nil || WardProbe.oldCharts ? Color.wardBackground : Color.clear,
                     in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
     }
 

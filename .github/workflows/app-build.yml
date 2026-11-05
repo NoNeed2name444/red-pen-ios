@@ -44,89 +44,18 @@ jobs:
           # the errors, where they can be read without downloading anything
           { echo '### Compile errors'; echo '```'; grep -E "error:" ../build.log | sed -E 's#^.*/ios/##' | sort -u | head -60 || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           grep -q "BUILD SUCCEEDED" ../build.log
-      # The simulator tap-through takes most of the run; a design branch gets the
-      # compile check only. design/integration is the one version the owner gets,
-      # so it runs the full suite on every push: a failure there is never hidden.
-      #
-      # What a stuck test may cost, so a failure shows by name instead of
-      # eating the job:
-      # - grep --line-buffered: each Test Case line reaches the log as it
-      #   happens (a plain grep in a pipe holds its output in a block, and on
-      #   23 Oct the cancel threw that block away: no Test Case line at all);
-      # - XCTest's own limit per test, 16 minutes (the longest passing test,
-      #   testDepthMeasure, took 12.6 before T0164 split it in three; the million proof tests wait up to 15
-      #   for their map and then fail by name), so a test that hangs is
-      #   stopped and named and the suite goes on;
-      # - this step's limit is under the job's, so the summary and the
-      #   upload after it still run when it is reached.
-      - name: Tap through sign-in and the terms on a simulator
-        id: ui
-        if: ${{ (!startsWith(github.ref_name, 'design/') || github.ref_name == 'design/integration') }}
-        timeout-minutes: 110
+      # T0186, this probe branch only: the full tap-through and the
+      # accessibility run are left out; only the quiz audit probe runs, and
+      # its QPROBE lines go to the summary.
+      - name: Quiz audit probe at the largest text size
+        id: qprobe
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        timeout-minutes: 45
         working-directory: ios
         run: |
           set -o pipefail
           DEVICE=$(xcrun simctl list devices available | grep -m1 -E "iPhone" | sed -E 's/^ *([^(]+) \(.*/\1/' | sed 's/ *$//')
           echo "Simulator: $DEVICE"
-          xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
-            -destination "platform=iOS Simulator,name=$DEVICE" -derivedDataPath build-sim \
-            -resultBundlePath ../ui.xcresult \
-            -skipMacroValidation -skipPackagePluginValidation \
-            SWIFT_ENABLE_EXPLICIT_MODULES=NO CLANG_ENABLE_EXPLICIT_MODULES=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            -test-timeouts-enabled YES \
-            -default-test-execution-time-allowance 960 \
-            -maximum-test-execution-time-allowance 960 \
-            -skip-testing:RedPenUITests/AccessibilityUITests \
-            -skip-testing:RedPenUITests/A11yProbeUITests \
-            test 2>&1 | tee ../uitest.log | grep --line-buffered -E "error:|Test Case|TEST |\*\* " || true
-          grep -q "TEST SUCCEEDED" ../uitest.log
-      # The app's own standard output (its QUIZSET-CHANGE, POP-GESTURE and
-      # POP-END trace lines under -uiPreviewScreen) is not in uitest.log:
-      # XCTest keeps it in ui.xcresult as the diagnostic
-      # "StandardOutputAndStandardError-com.cramdown.app.txt" (run
-      # 41876986518). Its trace lines are copied to the end of uitest.log.
-      - name: The app's trace lines from the UI run
-        if: ${{ always() && steps.ui.outcome != 'skipped' }}
-        run: |
-          [ -d ui.xcresult ] || { echo 'no ui.xcresult'; exit 0; }
-          rm -rf ui-diag
-          xcrun xcresulttool export diagnostics --path ui.xcresult --output-path ui-diag || true
-          {
-            echo '=== APP-TRACE (StandardOutputAndStandardError-com.cramdown.app.txt in ui.xcresult)'
-            find ui-diag -name 'StandardOutputAndStandardError-*.txt' -print0 2>/dev/null \
-              | xargs -0 grep -hE "^(QUIZSET-CHANGE|POP-GESTURE|POP-END) " 2>/dev/null || echo 'no trace lines found'
-          } | tee -a uitest.log
-          rm -rf ui-diag
-      # its own step, so it is written also when the step above ran out of time
-      - name: Summary of the tap-through
-        if: ${{ always() && steps.ui.outcome != 'skipped' }}
-        run: |
-          {
-            echo '### Sign-in and terms tap test'
-            echo '```'
-            if [ -f uitest.log ]; then
-              # every failure, then the last tests run (the one running at a timeout among them)
-              grep -E "error:" uitest.log | sed -E 's#^.*/ios/##' | head -40 || true
-              grep -E "Test Case|TEST (SUCCEEDED|FAILED)" uitest.log | tail -20 || true
-            else
-              echo 'no uitest.log'
-            fi
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-      # The accessibility walk and audit at the largest text size: an audit
-      # finding shows up here, in the summary, and as a red run. It must pass before the App
-      # Store accessibility labels are claimed (docs/launch/accessibility.md).
-      # Like the tap-through, it runs on personal and design/integration. A failure
-      # here turns the run red: a green run must mean every check passed.
-      - name: Accessibility at the largest text size
-        id: a11y
-        if: ${{ !cancelled() && steps.build.outcome == 'success' && (!startsWith(github.ref_name, 'design/') || github.ref_name == 'design/integration') }}
-        timeout-minutes: 20
-        working-directory: ios
-        run: |
-          set -o pipefail
-          DEVICE=$(xcrun simctl list devices available | grep -m1 -E "iPhone" | sed -E 's/^ *([^(]+) \(.*/\1/' | sed 's/ *$//')
           xcodebuild -project RedPen.xcodeproj -scheme RedPen -configuration Debug \
             -destination "platform=iOS Simulator,name=$DEVICE" -derivedDataPath build-sim \
             -resultBundlePath ../a11y.xcresult \
@@ -136,23 +65,15 @@ jobs:
             -test-timeouts-enabled YES \
             -default-test-execution-time-allowance 480 \
             -maximum-test-execution-time-allowance 480 \
-            -only-testing:RedPenUITests/AccessibilityUITests \
-            -only-testing:RedPenUITests/A11yProbeUITests \
-            test 2>&1 | tee ../a11y.log | grep --line-buffered -E "error:|Test Case|TEST |\*\* |PROBE-" || true
-          grep -q "TEST SUCCEEDED" ../a11y.log
-      - name: Summary of the accessibility run
-        if: ${{ always() && steps.a11y.outcome != 'skipped' }}
-        run: |
+            -only-testing:RedPenUITests/A11yQuizProbeUITests \
+            test 2>&1 | tee ../a11y.log | grep --line-buffered -E "error:|Test Case|TEST |\*\* |QPROBE" || true
           {
-            echo '### Accessibility (AX5 text, audit)'
+            echo '### Quiz audit probe (AX5)'
             echo '```'
-            if [ -f a11y.log ]; then
-              grep -E "Test Case|error:|TEST (SUCCEEDED|FAILED)" a11y.log | tail -30 || true
-            else
-              echo 'no a11y.log'
-            fi
+            grep -E "QPROBE|Test Case|TEST (SUCCEEDED|FAILED)" ../a11y.log || echo 'no QPROBE lines'
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+          grep -q "TEST SUCCEEDED" ../a11y.log
       # the logs go with the result bundles: a bundle cut off by a time limit
       # has no summary of its own, and the log says which test was running
       - uses: actions/upload-artifact@v4
