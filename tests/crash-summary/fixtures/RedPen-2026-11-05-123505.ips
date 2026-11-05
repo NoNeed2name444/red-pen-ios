@@ -18,7 +18,7 @@
   "parentProc" : "launchd_sim",
   "exception" : {"codes":"0x0000000000000001, 0x0000000100a0b0c0","rawCodes":[1,4305498304],"type":"EXC_BREAKPOINT","signal":"SIGTRAP"},
   "termination" : {"flags":0,"code":5,"namespace":"SIGNAL","indicator":"Trace/BPT trap: 5","byProc":"exc handler","byPid":40001},
-  "asi" : {"libswiftCore.dylib":["RedPen/FixtureModel.swift:12: Fatal error: synthetic fixture, not a real crash"]},
+  "asi" : {"libswiftCore.dylib":["/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/FixtureModel.swift:12: Fatal error: synthetic fixture, not a real crash"]},
   "faultingThread" : 1,
   "threads" : [
     {"id":1001,"queue":"com.apple.main-thread","frames":[{"imageOffset":4000,"symbol":"decoy_main_thread_frame","symbolLocation":8,"imageIndex":3}]},

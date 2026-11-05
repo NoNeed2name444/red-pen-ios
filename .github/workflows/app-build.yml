@@ -186,7 +186,9 @@ jobs:
             cat "$RUNNER_TEMP/crash-summary.txt"
             { echo '### Crash reports of the app'; echo '```'; cat "$RUNNER_TEMP/crash-summary.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           }
-          # <process>-<date>.ips, and the legacy <process>_<date>_<host>.crash
+          # <process>-<date>.ips, the legacy <process>_<date>_<host>.crash, a
+          # fault the app survived (ExcUserFault_<process>-<date>.ips) and a
+          # CPU limit report (<process>.cpu_resource-<date>.ips, or .diag)
           host=()
           for dir in "$HOME/Library/Logs/DiagnosticReports" \
                      "$HOME"/Library/Developer/CoreSimulator/Devices/*/data/Library/Logs/DiagnosticReports; do
@@ -195,7 +197,8 @@ jobs:
               name=$(basename "$f")
               [ -e "$out/$name" ] && continue
               cp -p "$f" "$out/$name" 2>/dev/null && host+=("$out/$name")
-            done < <(find "$dir" -maxdepth 2 -type f \( -name 'RedPen[-_]*.ips' -o -name 'RedPen[-_]*.crash' \) "${since[@]}" -print0 2>/dev/null)
+            done < <(find "$dir" -maxdepth 2 -type f \( -name 'RedPen[-_]*.ips' -o -name 'RedPen[-_]*.crash' \
+              -o -name 'ExcUserFault_RedPen[-_]*.ips' -o -name 'RedPen.cpu_resource[-_]*' \) "${since[@]}" -print0 2>/dev/null)
           done
           if [ ${#host[@]} -gt 0 ]; then
             summarise "${host[@]}"

@@ -27,6 +27,8 @@ on:
       - '.github/workflows/server-tests.yml'
       # the transcription benchmark's scorer, and the app prompt it rebuilds
       - 'tools/asr_bench.mjs'
+      # the App build's crash summary, which tests/crash-summary runs
+      - 'tools/crash_summary.py'
       - 'ios/RedPen/Shared/CloudTranscript.swift'
       - 'ios/RedPen/Shared/LectureTranscriber.swift'
       # the Ward Swift source checks in tests/ward/

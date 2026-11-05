@@ -22,7 +22,7 @@ Application Specific Information:
 Hand-made synthetic fixture for tests/crash-summary: not a real crash report.
 
 Thread 0 Crashed::  Dispatch queue: com.apple.main-thread
-0   RedPen.debug.dylib            	0x0000000100a01000 FixtureView.body.getter + 40
+0   RedPen.debug.dylib            	0x0000000100a01000 FixtureView.body.getter + 40 (/Users/runner/work/red-pen-ios/red-pen-ios/ios/RedPen/FixtureView.swift:40)
 1   SwiftUICore                   	0x0000000180000100 fixture_frame_1 + 1
 2   SwiftUICore                   	0x0000000180000200 fixture_frame_2 + 2
 3   SwiftUICore                   	0x0000000180000300 fixture_frame_3 + 3

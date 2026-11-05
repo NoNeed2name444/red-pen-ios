@@ -1,0 +1,10 @@
+{"app_name":"RedPen","timestamp":"2026-11-05 12:35:10.00 +0000","app_version":"1.0","build_version":"1","bundleID":"com.cramdown.app","bug_type":"309","os_version":"macOS 26.0 (25A000)","name":"RedPen","incident_id":"00000000-0000-4000-8000-000000000030"}
+{
+  "_note" : "Hand-made synthetic fixture for tests/crash-summary: not a real report.",
+  "procName" : "RedPen",
+  "bundleInfo" : {"CFBundleIdentifier":"com.cramdown.app"},
+  "exception" : {"type":"EXC_GUARD","signal":"SIGKILL","codes":"0x0000000000000000, 0x0000000000000000","subtype":"GUARD_TYPE_USER (synthetic)"},
+  "faultingThread" : 0,
+  "threads" : [{"triggered":true,"queue":"com.apple.main-thread","frames":[{"imageOffset":2048,"symbol":"FixtureGuard.trip()","symbolLocation":16,"imageIndex":0}]}],
+  "usedImages" : [{"source":"P","arch":"arm64","name":"RedPen.debug.dylib","path":"/Users/runner/Library/Developer/CoreSimulator/Devices/00000000-0000-0000-0000-000000000000/data/Containers/Bundle/Application/00000000-0000-0000-0000-000000000003/RedPen.app/RedPen.debug.dylib"}]
+}

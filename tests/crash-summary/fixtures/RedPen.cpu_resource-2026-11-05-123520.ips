@@ -1,0 +1,23 @@
+{"bug_type":"202","timestamp":"2026-11-05 12:35:20.00 +0000","os_version":"macOS 26.0 (25A000)","name":"RedPen","incident_id":"00000000-0000-4000-8000-000000000040"}
+Date/Time:        2026-11-05 12:33:20.000 +0000
+End time:         2026-11-05 12:35:20.000 +0000
+OS Version:       macOS 26.0 (25A000)
+Architecture:     arm64
+Report Version:   44
+Incident Identifier: 00000000-0000-4000-8000-000000000040
+Note:             Hand-made synthetic fixture for tests/crash-summary: not a real report.
+
+Data Source:      Microstackshots
+Command:          RedPen
+Path:             /Users/runner/Library/Developer/CoreSimulator/Devices/00000000-0000-0000-0000-000000000000/data/Containers/Bundle/Application/00000000-0000-0000-0000-000000000003/RedPen.app/RedPen
+Identifier:       com.cramdown.app
+PID:              40003
+
+Event:            cpu usage
+Action taken:     none
+CPU:              90 seconds cpu time over 120 seconds (75% cpu average), exceeding limit of 50% cpu over 180 seconds
+CPU limit:        90s
+Duration:         120.00s
+
+Heaviest stack for the target process:
+  100  fixture_heaviest_frame + 1 (RedPen.debug.dylib + 1)

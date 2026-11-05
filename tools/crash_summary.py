@@ -4,7 +4,10 @@
 #
 #   python3 -I tools/crash_summary.py <report> [<report> ...]
 #
-# Every line starts "APP-CRASH ", and there are at most 40 in all.
+# Every line starts "APP-CRASH ", and there are at most 40 in all, shared
+# evenly between the reports: each keeps at least its first two lines (the
+# file, process and time; then the exception), and when there are too many
+# reports even for that, the last line says how many were left out.
 # A .ips report (a one-line JSON header, then a JSON body) gives:
 #   the file, the process and when it died;
 #   the exception's type, signal and codes (and subtype, when there is one);
@@ -12,13 +15,17 @@
 #   the message the app left (Application Specific Information), if any;
 #   the faulting thread's top 12 frames, "<image> <symbol>+<offset>", or
 #   "<image> +0x<offset in the image>" where the frame has no symbol.
-# A legacy .crash text report gives its process and date, its Exception Type,
-# Exception Codes and Termination Reason lines, and the first 12 lines of the
-# crashed thread. Which of the two a file is, is read from its content.
+# A text report (a legacy .crash, or a .ips whose body after the header is
+# text, as a CPU limit report's is) gives its process and date, the Event,
+# Action taken, CPU, Exception Type, Exception Codes and Termination Reason
+# lines it has, and the first 12 lines of the crashed thread. Which kind a
+# file is, is read from its content.
 # A report that cannot be read gets one line saying so. The exit is always 0:
-# this explains a red run, it never makes one. The report's own paths (the
-# process path, each image's path) are left out: they name the runner's home;
-# file and image names stand for them.
+# this explains a red run, it never makes one.
+# Paths: the process path and the images' paths are never printed (an image
+# is named by its name), and any absolute path in what is printed (a message,
+# a reason, a line of a text report) is cut to its last part, so no line names
+# the runner's home.
 # Standard library only.
 import json
 import os
@@ -30,11 +37,21 @@ MAX_LINES = 40
 FRAMES = 12
 WIDTH = 240          # the longest line printed, prefix included
 MAX_BYTES = 16 << 20  # a crash report is well under 1 MB
+# an absolute path's folders: "/" or "~/" not inside a word, a URL or "a/b",
+# then one or more "<name>/"; what follows (the file's name) is kept
+FOLDERS = re.compile(r'''(?<![\w:/.~])~?/(?:[^/\s'"()<>]+/)+''')
+# the lines a text report is read for, and the ones of them printed, in order
+TEXT_KEYS = ('Process', 'Command', 'Date/Time', 'Event', 'Action taken', 'CPU',
+             'Exception Type', 'Exception Codes', 'Termination Reason')
+TEXT_SHOWN = ('Event', 'Action taken', 'CPU', 'Exception Type', 'Exception Codes',
+              'Termination Reason')
 
 
 def one_line(value):
-    """Printable text on one line, cut to fit WIDTH (a run of spaces becomes one)."""
-    text = re.sub(r'\s+', ' ', re.sub(r'[\x00-\x08\x0b-\x1f\x7f]', '', str(value))).rstrip()
+    """Printable text on one line, absolute paths cut to their last part, cut
+    to fit WIDTH (a run of spaces becomes one)."""
+    text = re.sub(r'[\x00-\x08\x0b-\x1f\x7f]', '', str(value))
+    text = re.sub(r'\s+', ' ', FOLDERS.sub('', text)).rstrip()
     room = WIDTH - len(PREFIX)
     return text if len(text) <= room else text[:room - 3] + '...'
 
@@ -77,6 +94,9 @@ def summarise_ips(name, text):
         except ValueError as error:
             return unreadable(name, f'not JSON: {error}')
     elif rest.strip():
+        if not rest.lstrip().startswith('{'):
+            # a text body (a CPU limit report's), read like a legacy report
+            return summarise_text(name, rest, header)
         try:
             body = json.loads(rest)
         except ValueError as error:
@@ -145,7 +165,8 @@ def summarise_ips(name, text):
     label = thread.get('queue') or thread.get('name')
     frames = thread.get('frames') if isinstance(thread.get('frames'), list) else []
     images = body.get('usedImages') if isinstance(body.get('usedImages'), list) else []
-    lines.append(f'faulting thread {index}' + (f' ({label})' if label else '') + f', {len(frames)} frames:')
+    lines.append(f'faulting thread {index}' + (f' ({label})' if label else '')
+                 + f", {len(frames)} frame{'' if len(frames) == 1 else 's'}:")
     for k, frame in enumerate(frames[:FRAMES]):
         lines.append(f'{k:2d} {frame_text(frame, images)}')
     if len(frames) > FRAMES:
@@ -153,23 +174,29 @@ def summarise_ips(name, text):
     return lines
 
 
-def summarise_crash(name, text):
+def summarise_text(name, text, header=None):
+    header = header if isinstance(header, dict) else {}
     fields = {}
     for line in text.splitlines():
         key, sep, value = line.partition(':')
-        if sep and key.strip() in ('Process', 'Date/Time', 'Exception Type', 'Exception Codes',
-                                   'Termination Reason') and key.strip() not in fields:
-            fields[key.strip()] = value.strip()
+        key = key.strip()
+        if sep and key in TEXT_KEYS and key not in fields:
+            fields[key] = value.strip()
     rows = text.splitlines()
     crashed = next((i for i, row in enumerate(rows) if re.match(r'Thread \d+ Crashed', row)), None)
-    if crashed is None and not any(k in fields for k in ('Exception Type', 'Termination Reason')):
-        return unreadable(name, 'no Exception Type, Termination Reason or crashed thread in it')
-    lines = [f"{name}: {fields.get('Process', '?')} at {fields.get('Date/Time', '?')}"]
-    for key in ('Exception Type', 'Exception Codes', 'Termination Reason'):
+    said = header.get('name') or header.get('app_name')
+    if crashed is None and not any(k in fields for k in ('Exception Type', 'Termination Reason', 'Event')):
+        return unreadable(name, 'no Exception Type, Termination Reason, Event or crashed thread in it'
+                          + (f'; the header names {said}' if said else ''))
+    process = fields.get('Process') or fields.get('Command') or said or '?'
+    when = fields.get('Date/Time') or header.get('timestamp') or '?'
+    lines = [f'{name}: {process} at {when}']
+    for key in TEXT_SHOWN:
         if key in fields:
             lines.append(f'{key}: {fields[key]}')
     if crashed is None:
-        lines.append('crashed thread: not in the report')
+        if 'Event' not in fields:  # a resource report has no crashed thread
+            lines.append('crashed thread: not in the report')
         return lines
     lines.append(rows[crashed])
     taken = 0
@@ -190,28 +217,47 @@ def summarise(path):
         return unreadable(name, error.strerror or type(error).__name__)
     if len(data) > MAX_BYTES:
         return unreadable(name, f'larger than {MAX_BYTES >> 20} MB')
-    text = data.decode('utf-8', errors='replace').lstrip('﻿')
+    text = data.decode('utf-8', errors='replace').lstrip('\ufeff')
     if not text.strip():
         return unreadable(name, 'empty')
     try:
         if text.lstrip().startswith('{'):
             return summarise_ips(name, text)
-        return summarise_crash(name, text)
+        return summarise_text(name, text)
     except Exception as error:  # a report shaped in a way not foreseen
         return unreadable(name, f'{type(error).__name__}: {error}')
 
 
+def share(blocks, budget=MAX_LINES):
+    """The reports' lines, at most `budget` of them, shared evenly: each report
+    keeps its first two, then one more each in turn while room is left; the
+    last line says what was cut."""
+    total = sum(len(block) for block in blocks)
+    if total <= budget:
+        return [line for block in blocks for line in block]
+    room = budget - 1
+    shown = blocks[:max(1, room // 2)]
+    keep = [min(2, len(block)) for block in shown]
+    left = room - sum(keep)
+    while left > 0:
+        grown = False
+        for i, block in enumerate(shown):
+            if left > 0 and keep[i] < len(block):
+                keep[i] += 1
+                left -= 1
+                grown = True
+        if not grown:
+            break
+    lines = [line for block, k in zip(shown, keep) for line in block[:k]]
+    hidden = len(blocks) - len(shown)
+    note = f'({total - len(lines)} more lines cut'
+    note += f', {hidden} reports not shown at all' if hidden else ''
+    return lines + [note + '; the reports themselves hold them)']
+
+
 def main(paths):
-    lines = []
-    for path in paths:
-        lines.extend(summarise(path))
-    if not paths:
-        lines.append('no crash reports given')
-    lines = [one_line(line) for line in lines]
-    if len(lines) > MAX_LINES:
-        cut = len(lines) - (MAX_LINES - 1)
-        lines = lines[:MAX_LINES - 1] + [f'({cut} more lines cut; the reports themselves hold them)']
-    for line in lines:
+    blocks = [[one_line(line) for line in summarise(path)] for path in paths]
+    for line in share(blocks or [['no crash reports given']]):
         print(PREFIX + line)
 
 
