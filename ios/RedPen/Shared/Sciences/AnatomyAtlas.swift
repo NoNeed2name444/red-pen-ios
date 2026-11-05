@@ -123,6 +123,27 @@ struct AnatomyStructure: Decodable, Hashable {
     let group: String
     let inner: Bool
     let triangles: Int
+    /// Its own look where it is not its tissue's (the eye's parts, tools/anatomy_eyes.py): its colour in sRGB
+    /// ("#F2EEE6"), how see-through (0 to 1) and how rough to the light (0 to 1).
+    let ownColour: String?
+    let ownOpacity: Double?
+    let ownRoughness: Double?
+
+    private enum CodingKeys: String, CodingKey {
+        case node, label, uberon, tissue, group, inner, triangles
+        case ownColour = "colour", ownOpacity = "opacity", ownRoughness = "roughness"
+    }
+
+    /// The colour it is drawn in, sRGB 0...1: its own, else its tissue's.
+    var colour: (red: Double, green: Double, blue: Double) {
+        guard let own = ownColour?.trimmingCharacters(in: CharacterSet(charactersIn: "#")), own.count == 6,
+              let hex = Int(own, radix: 16) else { return tissue.colour }
+        return (Double((hex >> 16) & 0xFF) / 255, Double((hex >> 8) & 0xFF) / 255, Double(hex & 0xFF) / 255)
+    }
+    /// How opaque it is drawn: its own, else its tissue's.
+    var opacity: Double { ownOpacity ?? tissue.opacity }
+    /// How rough its surface is to the light: its own, else its tissue's.
+    var roughness: Double { ownRoughness ?? tissue.roughness }
 
     /// The label as a title: the first letter capitalised.
     var title: String { label.prefix(1).uppercased() + label.dropFirst() }
@@ -160,7 +181,8 @@ enum AnatomySystem: String, Decodable, CaseIterable, Identifiable {
     }
 }
 
-/// What a structure is made of; the atlas is coloured by it.
+/// What a structure is made of; the atlas is coloured by it, but for a
+/// structure with a look of its own (the eye's parts).
 enum AnatomyTissue: String, Decodable, CaseIterable, Identifiable {
     case skin, fat, bone, cartilage, ligament, muscle, artery, vein, heart, nerve, brain
     case organ, gland, duct, airway, lung, gut, lymph, eye, fluid, tooth
@@ -530,8 +552,8 @@ struct AnatomyMesh: Hashable {
 /// lays them along the way its fibres run: per vertex, where it lies across
 /// the bundles (one bundle a unit, the seams between bundles at whole
 /// numbers) and how far it is tendon rather than belly (0 to 1; -1 in the
-/// few triangles where bundles fork, which the shader leaves plain); and the
-/// bundles' width in metres.
+/// few triangles where bundles fork in the belly, which the shader leaves
+/// plain); and the bundles' width in metres.
 struct AnatomyStripes: Hashable {
     var across: [Float]
     var tendon: [Float]

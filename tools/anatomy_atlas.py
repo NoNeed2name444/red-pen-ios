@@ -28,8 +28,12 @@ added by tools/anatomy_gaps.py, tools/anatomy_skull.py,
 tools/anatomy_limbs.py, tools/anatomy_elbows.py and tools/anatomy_feet.py,
 fitted into each body and kept clear of what is already there; then the
 skull, vertebrae, sacrum and coccyx are replaced by scans of real bone,
-each fitted onto the one it replaces, by tools/anatomy_bones.py; see their
-headers.
+each fitted onto the one it replaces, by tools/anatomy_bones.py, the eyes
+and their muscles made anew to the textbook's measures by
+tools/anatomy_eyes.py, the gluteus maximus made anew from its
+attachments on each body's own bones by tools/anatomy_gluteus.py, and each
+tube closed at its cut ends and the pelvis's structures kept out of one
+another by tools/anatomy_apart.py; see their headers.
 
 Repairs on the way (checked by rendering the result single-sided, as the
 app draws it): stray debris left out; each structure simplified piece by
@@ -652,7 +656,23 @@ CHANGES = (
     "tarsals, metatarsals, phalanges and the great toe's sesamoids found the same way in the CT of one "
     "foot per body (a fifth scan for the man's), set "
     "on the body's tibia and fibula at the ankle and fitted into the skin's foot, toe by toe, the other "
-    "side their mirror image."
+    "side their mirror image; each eye and its muscles made anew on the organ set's eyeball, to the measures of "
+    "Gray's Anatomy (1918, public domain): the sclera, a clear cornea, the iris and pupil, the lens and ciliary "
+    "body, the choroid, retina, optic disc and macula, each with its own colour, and the six muscles from the "
+    "common tendinous ring (the obliques from the trochlea and the orbit's floor) to tendons inserted where the "
+    "textbook puts them, clear of the eyeball, the optic nerve and each other, and eased off the orbit's walls; "
+    "each gluteus maximus made anew from its attachments on the body's own bones (Gray's Anatomy, 1918, and "
+    "Gerrish's Text-book of Anatomy, 1902, both public domain), a thick rhomboid from the back of the ilium, the "
+    "sacrum, the coccyx and the sacrotuberous ligament down and out to the iliotibial tract and the gluteal "
+    "tuberosity, laid on what lies under it, as thick as MRI measures it in living adults (Belzunce et al. 2023), "
+    "its borders rounded and its surface smooth, clear of the bones, the other muscles and the skin, the two apart "
+    "over the coccyx; each vessel and gut tube, cut open by the organ set where it meets the next, closed at "
+    "its cut ends (a low dome over a cut across it, a smooth sheet over a branch's mouth); and in the pelvis "
+    "nothing passing into anything else: the woman's sacrum drawn out of her hip bones at its joints, a joint's "
+    "width off them; the organs and the gut eased off the bones and the discs, the vessels off those and the "
+    "organs (only a duct, or a vessel in its own organ, running through one), the ducts off all of these, each "
+    "a few millimetres at most and none stretched, and the hip muscles, fitted from other people's scans, "
+    "grooved where the body's own vessels and organs lie."
 )
 
 
@@ -699,6 +719,16 @@ def main():
     # maximus and iliopsoas arise on them
     import anatomy_bones
     anatomy_bones.replace(a.out, a.vhskull, a.ka25, a.ka25_cache, atlas=sys.modules[__name__])
+    # the eyes and their muscles, made to the textbook's measures: after the skull, which the muscles keep clear of
+    import anatomy_eyes
+    print(anatomy_eyes.remake(a.out, quiet=True))
+    # the gluteus maximus, made from its attachments: after the sacrum and coccyx it arises on, before the fibres
+    import anatomy_gluteus
+    print(anatomy_gluteus.remake(a.out, quiet=True))
+    # each tube closed and the pelvis's structures out of one another: after the bones and the gluteus maximus
+    # they keep clear of, before the fibres (the hip muscles that give way are laid after)
+    import anatomy_apart
+    print(anatomy_apart.remake(a.out, quiet=True))
     # the skeletal muscles' fibres, in bundles: last, as it rewrites the muscles' files
     import anatomy_fibres
     anatomy_fibres.annotate(a.out, quiet=True)

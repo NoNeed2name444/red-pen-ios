@@ -1,8 +1,9 @@
 // tools/atlas_lab's reader: the chosen parts of one atlas body, read and
 // shaded the way the app reads them (AnatomyAtlas.meshes, each part's
 // structures welded into one surface by AnatomyMesh.normals(welding:)),
-// written for scene.cpp: "ATL3", the structure count, then per structure its
-// tissue's linear colour and roughness, its surface (0 plain, 1 bone, 2
+// written for scene.cpp: "ATL3", the structure count, then per structure (what
+// is drawn opaque: not the skin, fat or the eye's clear parts) its linear colour
+// and roughness (its own or its tissue's), its surface (0 plain, 1 bone, 2
 // muscle), its long axis, the bundles' width and tendon's colour over
 // muscle's (the muscle shader's rpBundle and rpTendon), its name, and its
 // vertices, normals, the relief's shade at each vertex (AtlasRelief, from
@@ -30,7 +31,7 @@ for part in body.parts where wanted.contains(part.id) || wanted.contains("all") 
     if let fibres = part.fibres {
         stripes = try! AnatomyAtlas.stripes(of: part, meshes: meshes, from: Data(contentsOf: folder.appendingPathComponent(fibres.file)))
     }
-    for (k, structure) in part.structures.enumerated() where structure.tissue != .skin && structure.tissue != .fat {
+    for (k, structure) in part.structures.enumerated() where structure.opacity == 1 {
         chosen.append((structure, meshes[k], normals[k], bends[k].flatMap { c -> [Float] in
             let s = AtlasRelief.shade(c)
             return [s.x, s.y, s.z]
@@ -39,13 +40,13 @@ for part in body.parts where wanted.contains(part.id) || wanted.contains("all") 
 }
 put(UInt32(chosen.count))
 for (structure, mesh, normals, relief, stripes) in chosen {
-    let c = structure.tissue.colour
-    put(linear(c.red)); put(linear(c.green)); put(linear(c.blue)); put(Float(structure.tissue.roughness))
+    let c = structure.colour
+    put(linear(c.red)); put(linear(c.green)); put(linear(c.blue)); put(Float(structure.roughness))
     put(UInt32(structure.tissue == .bone ? 1 : structure.tissue == .muscle ? 2 : 0))
     let axis = mesh.longAxis()
     let bundle: Float = stripes?.bundle ?? 0
     let coordinates: [Float] = stripes?.coordinates() ?? [Float](repeating: 0, count: 2 * mesh.vertexCount)
-    let tendon = AnatomyStripes.tendonRatio(muscle: structure.tissue.colour)
+    let tendon = AnatomyStripes.tendonRatio(muscle: structure.colour)
     put(axis.x); put(axis.y); put(axis.z); put(bundle); put(tendon.x); put(tendon.y); put(tendon.z)
     let name = Array(structure.node.utf8)
     put(UInt32(name.count)); out.append(contentsOf: name)

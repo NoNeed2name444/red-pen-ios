@@ -308,7 +308,8 @@ private struct AtlasSceneView: UIViewRepresentable {
 }
 
 /// The scene: every structure a node named "part/structure", in materials by
-/// tissue, under a camera that orbits the body and a light that rides with
+/// its look (its tissue's, or its own: the eye's parts), under a camera that
+/// orbits the body and a light that rides with
 /// it. Reading and building happen off the main thread; showing, hiding and
 /// choosing on it.
 @MainActor
@@ -430,17 +431,20 @@ final class AtlasModel: NSObject, ObservableObject {
     /// Every part's nodes, built off the main thread.
     nonisolated private static func build(_ parts: [AtlasPart]) -> [(part: AtlasPart, nodes: [SCNNode])] {
         let detail = NSNumber(value: GraphQuality.current.shaderDetail)
-        var materials: [AnatomyTissue: SCNMaterial] = [:]
-        func material(_ tissue: AnatomyTissue) -> SCNMaterial {
-            if let made = materials[tissue] { return made }
-            let c = tissue.colour
+        var materials: [String: SCNMaterial] = [:]
+        func material(_ structure: AnatomyStructure) -> SCNMaterial {
+            let tissue: AnatomyTissue = structure.tissue
+            // one material for each look: a tissue's, or a structure's own (the eye's parts)
+            let key = "\(tissue.rawValue) \(structure.ownColour ?? "") \(structure.opacity) \(structure.roughness)"
+            if let made = materials[key] { return made }
+            let c = structure.colour
             let m = SCNMaterial()
-            // physically based: the tissue's colour and how rough it is, never metal
+            // physically based: its colour and how rough it is, never metal
             m.lightingModel = .physicallyBased
             m.diffuse.contents = UIColor(red: c.red, green: c.green, blue: c.blue, alpha: 1)
             // muscle's colour as a texture, so its shader gets the bundles' texture coordinates
             if tissue == .muscle, let image = swatch(c) { m.diffuse.contents = image }
-            m.roughness.contents = NSNumber(value: tissue.roughness)
+            m.roughness.contents = NSNumber(value: structure.roughness)
             m.metalness.contents = NSNumber(value: 0.0)
             // bone and muscle with their own surface, fixed to the body so it
             // has no seams (AtlasShaders); a muscle's bundles' width is set per muscle
@@ -456,13 +460,13 @@ final class AtlasModel: NSObject, ObservableObject {
             }
             // both faces of what is solid, so an open end (a vessel cut where
             // the organ set stops) shows its inside rather than a hole
-            m.isDoubleSided = tissue.opacity == 1
-            if tissue.opacity < 1 {
-                m.transparency = tissue.opacity
+            m.isDoubleSided = structure.opacity == 1
+            if structure.opacity < 1 {
+                m.transparency = structure.opacity
                 m.writesToDepthBuffer = false
                 m.blendMode = .alpha
             }
-            materials[tissue] = m
+            materials[key] = m
             return m
         }
         return parts.compactMap { part in
@@ -480,7 +484,7 @@ final class AtlasModel: NSObject, ObservableObject {
             }
             let made: [SCNNode] = zip(part.structures, zip(meshes, zip(normals, bends))).enumerated().map { k, item in
                 let (structure, shaded) = item
-                var surface: SCNMaterial = material(structure.tissue)
+                var surface: SCNMaterial = material(structure)
                 // each muscle's bundles their own width
                 let bundles: AnatomyStripes? = structure.tissue == .muscle ? stripes[k] : nil
                 if let bundles, let own = surface.copy() as? SCNMaterial {
@@ -488,16 +492,23 @@ final class AtlasModel: NSObject, ObservableObject {
                     surface = own
                 }
                 // the relief's shade as a vertex colour, which SceneKit multiplies
-                // into the material's (the see-through skin and fat left even)
-                let relief: [Float]? = structure.tissue.opacity < 1 ? nil : shaded.1.1.flatMap { bend -> [Float] in
+                // into the material's (what is see-through left even)
+                let relief: [Float]? = structure.opacity < 1 ? nil : shaded.1.1.flatMap { bend -> [Float] in
                     let shade: SIMD3<Float> = AtlasRelief.shade(bend)
                     return [shade.x, shade.y, shade.z]
                 }
                 let node = SCNNode(geometry: geometry(shaded.0, normals: shaded.1.0, relief: relief,
                                                       coordinates: bundles?.coordinates(), surface))
                 node.name = part.id + "/" + structure.node
-                // the see-through skin is drawn after what it covers
-                if structure.tissue == .skin { node.renderingOrder = 10 }
+                // what is see-through is drawn after what it covers (the fat, the
+                // cornea), the skin last; an inner one (the lens, the humours) is
+                // shown with what covers it faded, which still writes depth, so it
+                // keeps its place among them
+                if structure.tissue == .skin {
+                    node.renderingOrder = 10
+                } else if structure.opacity < 1 && !structure.inner {
+                    node.renderingOrder = 5
+                }
                 return node
             }
             return (part, made)
@@ -583,9 +594,9 @@ final class AtlasModel: NSObject, ObservableObject {
         let hits: [SCNHitTestResult] = view.hitTest(point, options: [
             .searchMode: SCNHitTestSearchMode.all.rawValue, .ignoreHiddenNodes: true,
         ])
-        // past the see-through skin and anything faded, to what is solid
+        // past the see-through skin, the eye's clear parts and anything faded, to what is solid
         let solid: SCNNode? = hits.map(\.node).first { node in
-            node.opacity == 1 && entries[node.name ?? ""]?.structure.tissue != .skin
+            node.opacity == 1 && (entries[node.name ?? ""]?.structure.opacity ?? 1) >= 0.3
         }
         choose((solid ?? hits.first?.node)?.name)
     }

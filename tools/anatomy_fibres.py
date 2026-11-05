@@ -77,13 +77,19 @@ CONTACT, WIDER, FINE = 0.004, 0.007, 0.0045
 
 # (muscle, origin's bones, insertion's bones, options): regular expressions on structure names
 RULES = [
-    (r"gluteus_maximus", r"ilium|hip_bone|_hip_|sacrum|coccyx", r"femur", {}),
+    # (tools/anatomy_gluteus.py makes it: its tendon the sheet it thins to at its insertion, so found as the eye
+    # muscles' are, where it is thin)
+    (r"gluteus_maximus", r"ilium|hip_bone|_hip_|sacrum|coccyx", r"femur", {"tendon": "thin"}),
     (r"gluteus_medius", r"ilium|hip_bone|_hip_", r"femur", {}),
     (r"gluteus_minimus", r"ilium|hip_bone|_hip_", r"femur", {}),
     (r"iliopsoas", r"lumbar_vertebra|ilium|hip_bone|_hip_", r"femur", {"far": 0.4}),
 ]
 # muscle that is not skeletal: the heart's, the eye's ciliary, the bladder's smooth muscle
 NOT_SKELETAL = re.compile(r"papillary|ciliary|smooth_muscle|gyrus")
+# the eye's muscles (tools/anatomy_eyes.py): their tendons flat (the recti's, curving on the eyeball) or long and
+# round (the superior oblique's, which bends at the trochlea), so their ends are the far ends of their longest way
+# along them and their tendon where they are thin, not narrow
+THIN_TENDONS = re.compile(r"extraocular")
 
 
 # MARK: reading and writing parts
@@ -277,6 +283,20 @@ def ends(name, v, bones):
     return t <= lo, t >= hi, "tips"
 
 
+def far_ends(v, f):
+    """The vertices held at u = 0 and 1 for a muscle that may bend: about the two ends of its longest way along its
+    surface (shortest paths swept from a vertex to the farthest, and from that one to the farthest again)."""
+    from scipy.sparse.csgraph import dijkstra
+    e = edges_of(f)
+    g = sp.coo_matrix((np.linalg.norm(v[e[:, 0]] - v[e[:, 1]], axis=1), (e[:, 0], e[:, 1])), shape=(len(v), len(v))).tocsr()
+    far = lambda d: int(np.argmax(np.where(np.isfinite(d), d, -1)))
+    a = far(dijkstra(g, directed=False, indices=0))
+    da = dijkstra(g, directed=False, indices=a)
+    b = far(da)
+    db = dijkstra(g, directed=False, indices=b)
+    return da < 0.03 * da[b], db < 0.03 * da[b], "far ends"
+
+
 def harmonic(v, f, held0, held1):
     w = cotan_weights(v, f)
     L = sp.diags(np.asarray(w.sum(1)).ravel()) - w
@@ -353,6 +373,40 @@ def tendon_share(v, u, origin=True):
         t = np.clip((x - e0) / (e1 - e0), 0, 1)
         return t * t * (3 - 2 * t)
     return smooth(0.45, 0.25, thin) * smooth(0.25, 0.08, np.minimum(u, 1 - u) if origin else 1 - u)
+
+
+def thin_share(v, f, u):
+    """Each vertex's share of tendon by how thin the muscle is there: its thickness at each vertex the distance to the
+    nearest point of the opposite face, the median of it across each slice along u against the thickest slice's. A
+    flat tendon is as wide as its belly and a sixth as thick, a round one narrower; tendon runs in from either end
+    while its slices stay thin."""
+    vn, _ = normals(v, f)
+    k = min(64, len(v))
+    d, i = cKDTree(v).query(v, k=k)
+    opposite = np.einsum("ij,ikj->ik", vn, vn[i]) < -0.7
+    thick = np.where(opposite, d, np.inf).min(1)
+    thick = np.where(np.isfinite(thick), thick, d[:, -1])
+    bins = 40
+    b = np.minimum(bins - 1, (u * bins).astype(int))
+    med = np.array([np.median(thick[b == j]) if (b == j).sum() >= 4 else np.nan for j in range(bins)])
+    have = ~np.isnan(med)
+    if not have.any():
+        return np.zeros(len(v))
+    ratio = np.interp(np.arange(bins), np.flatnonzero(have), med[have] / med[have].max())
+    thin = np.clip((0.5 - ratio) / 0.15, 0, 1)
+    thin = thin * thin * (3 - 2 * thin)
+    reach = np.zeros(bins, bool)
+    for order in (range(bins), range(bins - 1, -1, -1)):
+        for j in order:
+            if ratio[j] >= 0.5:
+                break
+            reach[j] = True
+    share = np.where(reach, thin, 0.0)
+    x = np.clip(u * bins - 0.5, 0, bins - 1)
+    i0 = np.floor(x).astype(int)
+    i1 = np.minimum(i0 + 1, bins - 1)
+    w = x - i0
+    return share[i0] * (1 - w) + share[i1] * w
 
 
 # MARK: bundles (stripe patterns)
@@ -540,7 +594,7 @@ def lay(name, v, f, bones, level=None):
     if level:
         v = taubin(v, f)
     vn, _ = normals(v, f)
-    held0, held1, how = ends(name, v, bones)
+    held0, held1, how = far_ends(v, f) if THIN_TENDONS.search(name) else ends(name, v, bones)
     u = harmonic(v, f, held0, held1)
     way = fibre_way(v, f, u, vn)
     across = np.cross(vn, way)
@@ -548,7 +602,9 @@ def lay(name, v, f, bones, level=None):
     along = v @ (way.mean(0) / max(np.linalg.norm(way.mean(0)), 1e-12))
     bundle = float(np.clip(np.ptp(along) / 30, 0.0015, 0.006))
     phase, *_ = stripes(v, f, across, bundle)
-    tendon = tendon_share(v, u, origin=how != "bones")
+    rule = next((r for r in RULES if re.search(r[0], name)), None)
+    thin = THIN_TENDONS.search(name) or (rule is not None and rule[3].get("tendon") == "thin")
+    tendon = thin_share(v, f, u) if thin else tendon_share(v, u, origin=how != "bones")
     coord, fork = corners(v, f, across, phase, bundle)
     forks = int(fork.sum())
     for _ in range(2):
@@ -559,7 +615,9 @@ def lay(name, v, f, bones, level=None):
     src = np.array([o[0] for o in origin])
     pos = v[src]
     acr = np.array([o[1] for o in origin], np.float32)
-    ten = np.where(np.array([o[2] for o in origin]), -1.0, tendon[src]).astype(np.float32)
+    # a fork's corners -1 (the shader leaves the pattern plain there), but not in tendon: the shader reads -1 as
+    # belly, a red speck on the white, and the tendon's cords are faint enough to fork unseen
+    ten = np.where(np.array([o[2] for o in origin]) & (tendon[src] < 0.5), -1.0, tendon[src]).astype(np.float32)
     log = (f"{name}: {level} split{'s' * (level != 1)}, {len(f)} triangles, {len(pos)} vertices ({len(pos) - len(v)} split "
            f"at seams), fibres from {how}, bundles {bundle * 1000:.1f} mm, {forks} forks ({int(fork.sum())} after "
            f"refining), "

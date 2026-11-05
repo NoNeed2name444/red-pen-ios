@@ -88,6 +88,17 @@ The spine, for each body:
    (by up to 6 mm in the man), the sacrum's points inside the vertebra are
    pushed out of it, then the vertebra's out of the sacrum, each by a field
    smooth over the points near them (6 mm), to a joint's width (1 mm).
+   Before that, the lumbar vertebrae are stretched along the column where
+   the spaces between them are taller than the body's discs: each was
+   fitted to the organ set's by one scale, and KA 25's bodies are flatter
+   than the man's (his L3 to L5 2 to 5.5 mm short), so his spaces came out
+   up to 18 mm where his discs are 7 to 14. Each endplate is moved out
+   along its vertebra (stretched about its body's middle), by at most what
+   the vertebra lacks of the organ set's height and 15% of its own, so the
+   spaces come nearest the mean of the organ set's lumbar discs (least
+   squares; the last lumbar vertebra's lower endplate held, as the sacrum
+   is seated by it). The man's spaces from T12 down, 8.3 to 18.4 mm, come
+   to 8.3 to 12.8; the woman's are left as they are.
 4. The discs are the organ sets', set right: the male organ set names each
    nucleus pulposus a level down (and two the wrong way round), so each is
    named for the disc it lies in; his fourth lumbar disc, left with none,
@@ -95,7 +106,28 @@ The spine, for each body:
    lumbar vertebra is the one above it carried into the space between the
    vertebra's lower endplate and S1's top, each point keeping its place
    across the disc and its share of the way from one face to the other,
-   so it fills the space, wedge and all.
+   so it fills the space, wedge and all. Then every disc is made anew
+   between the scanned bones above and below it, as the organ sets' were
+   fitted to their own vertebrae (they overhung the scanned bodies by up
+   to 7 mm in front and stood up to 4 mm off them): fans of rays from the
+   disc's middle plane find each endplate, where each ray first meets its
+   bone squarely; an endplate ends where its run of such rays out from the
+   middle breaks (the bone turning away, lying 4 mm further off than at the
+   middle, or stepping 2.5 mm from one ray to the next, as onto the
+   underside of a pedicle), held within 1.5 mm outside and 5 mm inside its
+   body's wall (found in slices 2.5 to 4.5 mm into the bone), and each
+   face's outline within 2 mm of the other's (S1's top runs on into the
+   sacral alae at about its level: the fifth lumbar vertebra's endplate,
+   which has walls, says where the disc ends). Each outline is smoothed as
+   a closed curve (its first six Fourier terms, the far-off rays weighed
+   out). The middle plane is the one square to the line between the two
+   endplates' fitted planes, through the middle of their outlines, found
+   three times over. The disc's faces follow the endplates out to their
+   rims, sunk 0.4 mm into the bone, and its wall runs from rim to rim,
+   bulging by up to a millimetre (8% of its height; three fifths of that
+   at the back, toward the spinal canal), as an annulus fibrosus does; its
+   nucleus pulposus is a lens within it, a little behind its middle, 55%
+   of its width and 75% of its height.
 5. What the new bones run into gives way, by the field tools/anatomy_gaps.py
    moves the scans' parts out of what they cut into (each bone or disc a
    solid of its own), each point's pull weighted by the surface it stands
@@ -204,7 +236,10 @@ CHANGES = (
     "then bent by a field smooth through space, so its auricular surfaces lie 2.5 mm from the ilia. The "
     "man's nuclei pulposi named for the discs they lie in (the organ set names them a level down), his "
     "fourth lumbar disc given its neighbour's nucleus, and a disc laid under his fifth lumbar vertebra, the "
-    "one above carried there to fill the space. Where the last lumbar vertebra's facets and the sacrum's ran "
+    "one above carried there to fill the space. His lumbar vertebrae stretched along the column where the "
+    "spaces between them were taller than his discs (by at most 15% of each), and every disc of both bodies "
+    "made anew between the scanned bones, its faces on their endplates and its wall from rim to rim, its "
+    "nucleus a lens within it. Where the last lumbar vertebra's facets and the sacrum's ran "
     "into each other, each pushed out of the other by a smooth field to a joint's width; and the hip and back "
     "muscles, and the gut and vessels about the sacrum, moved out of the new bones by the field that moves "
     "the scans' parts out of what they cut into."
@@ -1138,6 +1173,502 @@ def discs(body, column, new):
     return "; ".join(said) or "as they were"
 
 
+
+# MARK: the discs fitted to the scanned bones, and the lumbar spaces evened out
+
+DISC_SINK = 0.0004      # each face of a disc set this far into its bone, so no seam of light shows between them
+DISC_TILT = 60.0        # an endplate ends where its surface turns further than this from the disc's axis
+DISC_REACH = 0.014      # how far from the disc's middle plane a ray looks for an endplate
+DISC_RISE = 0.004       # nor is a ray counted in where its bone lies this much further off than at the middle,
+DISC_JUMP = 0.0025      # or this much nearer or further than at the ray before it
+DISC_WALL = (0.0025, 0.0035, 0.0045)  # a body's wall found in slices this far into its bone past its endplate
+DISC_PAST = 0.0015      # an endplate taken to end no further than this outside its body's wall,
+DISC_SHORT = 0.005      # nor further than this inside it (a crack in the endplate is no end of it)
+DISC_CAP = 0.002        # and neither face of a disc further out than this past the other's outline
+NUCLEUS_ACROSS = 0.55   # a nucleus pulposus this share of its disc's width and depth,
+NUCLEUS_TALL = 0.75     # this share of its height,
+NUCLEUS_BACK = 0.06     # and its middle this share of the disc's depth behind the disc's
+LUMBAR_STRETCH = 0.15   # a scanned lumbar vertebra stretched along the column by at most this share of its height
+LUMBAR_SLACK = 0.002    # the lumbar spaces left alone unless one is this much taller than the body's discs
+
+
+def first_hits(v, f, o, d, reach, chunk=64):
+    """For rays from the points o (n, 3) along the unit direction d: the distance to the first of the triangles f
+    (of the vertices v) each meets within `reach` (inf where none), and how square that triangle is to the ray
+    (the cosine of the angle between its normal and the ray, unsigned)."""
+    v = np.asarray(v, np.float64)
+    p0 = v[f[:, 0]]
+    e1, e2 = v[f[:, 1]] - p0, v[f[:, 2]] - p0
+    n = np.cross(e1, e2)
+    n /= np.linalg.norm(n, axis=1, keepdims=True) + 1e-18
+    pv = np.cross(d, e2)
+    det = (e1 * pv).sum(1)
+    keep = np.abs(det) > 1e-15
+    p0, e1, e2, pv, det, n = p0[keep], e1[keep], e2[keep], pv[keep], det[keep], n[keep]
+    best, square = np.full(len(o), np.inf), np.zeros(len(o))
+    if not len(p0):
+        return best, square
+    for s in range(0, len(o), chunk):
+        tv = o[s:s + chunk, None, :] - p0[None]
+        u = (tv * pv[None]).sum(2) / det
+        q = np.cross(tv, e1[None])
+        w = (q @ d) / det
+        t = (q * e2[None]).sum(2) / det
+        t = np.where((u >= 0) & (w >= 0) & (u + w <= 1) & (t > 0) & (t < reach), t, np.inf)
+        j = t.argmin(1)
+        best[s:s + chunk] = t[np.arange(len(j)), j]
+        square[s:s + chunk] = np.abs(n[j] @ d)
+    return best, square
+
+
+def polar_rays(bone, c, a, across, forward, angles, radii, reach):
+    """Rays from the plane through c square to the unit axis a, at each angle (from forward toward across) and
+    radius, cast along a: where each first meets the bone (v, f), (len(angles), len(radii)) distances (inf for
+    none) and how square the bone is to the axis there (cosines)."""
+    v, f = np.asarray(bone[0], np.float64), np.asarray(bone[1], np.int64)
+    r = v - c
+    h = r @ a
+    rad = np.linalg.norm(r - h[:, None] * a, axis=1)
+    near = (rad < radii[-1] + 0.003) & (h > -0.003) & (h < reach + 0.003)
+    tri = f[near[f].any(1)]
+    dirs = np.cos(angles)[:, None] * forward + np.sin(angles)[:, None] * across
+    o = (c + radii[None, :, None] * dirs[:, None, :]).reshape(-1, 3)
+    t, sq = first_hits(v, tri, o, a, reach)
+    return t.reshape(len(angles), len(radii)), sq.reshape(len(angles), len(radii))
+
+
+def endplate_rim(t, sq, radii, inner, gap=2):
+    """Where an endplate ends along each angle of a polar fan of rays (t, sq: polar_rays' distances and
+    cosines): the last ray of the run out from the middle that meets the bone squarely (within DISC_TILT of the
+    axis), no more than DISC_RISE further off than the middle does (the median within `inner`) and no more than
+    DISC_JUMP nearer or further than the ray before it in the run (a step that size is another surface: past the
+    rim of a body's endplate, the underside of a pedicle or a transverse process), up to `gap` rays that do not
+    bridged. Returns (each angle's rim radius, which rays count, the middle's distance)."""
+    ok = np.isfinite(t) & (sq >= np.cos(np.radians(DISC_TILT)))
+    mid = radii <= inner
+    ref = np.median(t[:, mid][ok[:, mid]]) if ok[:, mid].any() else np.median(t[ok])
+    ok &= t <= ref + DISC_RISE
+    rim = np.zeros(len(t))
+    for j in range(len(t)):
+        last, miss, was = 0, 0, None
+        for k in range(len(radii)):
+            if ok[j, k] and (was is None or abs(t[j, k] - was) <= DISC_JUMP):
+                last, miss, was = k, 0, t[j, k]
+            else:
+                ok[j, k] = False
+                miss += 1
+                if miss > gap:
+                    break
+        rim[j] = radii[last]
+        ok[j, last + 1:] = False
+    return rim, ok, ref
+
+
+def plane_segments(v, f, p, n):
+    """The segments ((m, 2, 3): their ends) along which the plane through p square to n cuts the triangles f of
+    the vertices v."""
+    d = (v - p) @ n
+    above = d[f] > 0
+    cut = above.any(1) & ~above.all(1)
+    tri, dd = f[cut], d[f[cut]]
+    vv = v[tri]
+    ends = []
+    for i, j in ((0, 1), (1, 2), (2, 0)):
+        x = (dd[:, i] > 0) != (dd[:, j] > 0)
+        s = dd[:, i] / np.where(x, dd[:, i] - dd[:, j], 1.0)
+        ends.append(np.where(x[:, None], vv[:, i] + s[:, None] * (vv[:, j] - vv[:, i]), np.nan))
+    ends = np.stack(ends, 1)
+    have = ~np.isnan(ends[..., 0])
+    two = have.sum(1) == 2
+    order = np.argsort(~have[two], axis=1, kind="stable")[:, :2]
+    return np.take_along_axis(ends[two], order[..., None], 1)
+
+
+def body_wall(bone, c, a, ref, across, forward, angles):
+    """How far out along each of `angles` (from forward toward across, in the plane square to a through c) its
+    bone's body's wall stands (bone: (v, f) on the side a points to; ref: its endplate's distance from the middle
+    plane at the middle): where a line out from the middle leaves the bone, in slices DISC_WALL past the
+    endplate, the median of the slices whose line starts inside it (inf where none does). An endplate ends at
+    its body's wall: what lies on past it at about its level, a sacral ala or the root of a transverse process,
+    is none of the disc's seat."""
+    v, f = bone
+    dx, dy = np.cos(angles)[:, None], np.sin(angles)[:, None]
+    rows = []
+    for depth in DISC_WALL:
+        seg = plane_segments(v, f, c + (ref + depth) * a, a)
+        if not len(seg):
+            continue
+        p0 = np.stack([(seg[:, 0] - c) @ forward, (seg[:, 0] - c) @ across], 1)
+        e = np.stack([(seg[:, 1] - c) @ forward, (seg[:, 1] - c) @ across], 1) - p0
+        den = dx * e[None, :, 1] - dy * e[None, :, 0]
+        den = np.where(np.abs(den) > 1e-15, den, np.inf)
+        s = (p0[None, :, 0] * e[None, :, 1] - p0[None, :, 1] * e[None, :, 0]) / den
+        u = (p0[None, :, 0] * dy - p0[None, :, 1] * dx) / den
+        hit = (s > 0) & (u >= 0) & (u < 1)
+        first = np.where(hit, s, np.inf).min(1)
+        rows.append(np.where(hit.sum(1) % 2 == 1, first, np.nan))
+    if not rows:
+        return np.full(len(angles), np.inf)
+    rows = np.array(rows)
+    have = ~np.isnan(rows)
+    out = np.full(len(angles), np.inf)
+    for j in np.flatnonzero(have.any(0)):
+        out[j] = np.median(rows[have[:, j], j])
+    return out
+
+
+def disc_rims(upper, lower, c, a, across, forward, angles, radii, inner):
+    """Both endplates a disc between the bones upper and lower (each (v, f)) meets, seen from its middle c along
+    its axis a: polar_rays' fans, endplate_rim's runs (bridging up to 1.6 mm of rays that do not count), each
+    held within its body's wall (body_wall: no more than DISC_PAST outside it, nor DISC_SHORT inside), and each
+    face's outline within DISC_CAP of the other's, so that neither runs on over a ledge of its bone the other
+    has no match for. Returns (tu, tl, ru, rl, oku, okl): each fan's distances, rims and rays counted in."""
+    step = radii[1] - radii[0]
+    gap = max(2, int(round(0.0016 / step)))
+    out = []
+    for bone, sgn in ((upper, 1.0), (lower, -1.0)):
+        t, sq = polar_rays(bone, c, sgn * a, across, forward, angles, radii, DISC_REACH)
+        rim, ok, ref = endplate_rim(t, sq, radii, inner, gap)
+        wall = body_wall(bone, c, sgn * a, ref, across, forward, angles)
+        fin = np.isfinite(wall)
+        rim[fin] = np.clip(rim[fin], np.maximum(wall[fin] - DISC_SHORT, 0), wall[fin] + DISC_PAST)
+        out.append((t, rim, ok))
+    (tu, ru, oku), (tl, rl, okl) = out
+    ru, rl = np.minimum(ru, rl + DISC_CAP), np.minimum(rl, ru + DISC_CAP)
+    oku &= radii[None] <= ru[:, None] + 1e-9
+    okl &= radii[None] <= rl[:, None] + 1e-9
+    return tu, tl, ru, rl, oku, okl
+
+
+def smooth_outline(r, angles, harmonics=6, rounds=8):
+    """An outline's radii r round `angles` as a smooth closed curve: the sum of its first `harmonics` Fourier
+    terms that fits them best, the far-off ones weighed out (Tukey's biweight on the residuals, iterated). A
+    run of rays that ended a ray early or late, at the corner of a body where its endplate meets a pedicle's
+    root, left a step of up to 7 mm between neighbouring angles, a fold down the disc's wall."""
+    cols = [np.ones_like(angles)]
+    for k in range(1, harmonics + 1):
+        cols += [np.cos(k * angles), np.sin(k * angles)]
+    basis = np.stack(cols, 1)
+    w = np.ones(len(r))
+    for _ in range(rounds):
+        sw = np.sqrt(w)
+        coef = np.linalg.lstsq(basis * sw[:, None], r * sw, rcond=None)[0]
+        res = r - basis @ coef
+        scale = max(1.4826 * np.median(np.abs(res)), 0.0004)
+        u = res / (4.685 * scale)
+        w = np.where(np.abs(u) < 1, (1 - u * u) ** 2, 0.0)
+    return basis @ coef
+
+
+def heights_at(t, ok, radii, where):
+    """Each angle's distances (t, ok: polar_rays' and the rays counted in) at the radii where[j, i], from the rays
+    counted in, joined by straight lines."""
+    out = np.empty(where.shape)
+    for j in range(len(t)):
+        k = np.flatnonzero(ok[j])
+        out[j] = np.interp(where[j], radii[k], t[j, k]) if len(k) else np.nan
+    if np.isnan(out).any():
+        out = np.where(np.isnan(out), np.nanmedian(out, axis=0, keepdims=True), out)
+    return out
+
+
+def polygon_middle(rim, angles, across, forward):
+    """The middle (centroid) of the outline at radii `rim` along `angles`, as an offset in the plane."""
+    x, y = rim * np.cos(angles), rim * np.sin(angles)
+    cr = x * np.roll(y, -1) - np.roll(x, -1) * y
+    area = cr.sum() / 2
+    cx, cy = ((x + np.roll(x, -1)) * cr).sum() / (6 * area), ((y + np.roll(y, -1)) * cr).sum() / (6 * area)
+    return cx * forward + cy * across
+
+
+def disc_mesh(c, a, dirs, ru, rl, rho, top, bottom, centre_top, centre_bottom, rows, bulge):
+    """A closed disc: its upper face out from c + centre_top a over rings at radii ru rho (heights top, one row per
+    angle of dirs), its wall in `rows` steps from that face's rim to the lower's bulging out by `bulge` at its
+    middle, and its lower face back in to c + centre_bottom a. Returns (vertices, triangles wound to face out)."""
+    rings = len(rho)
+    ring = [c + (ru * rho[i])[:, None] * dirs + top[:, i][:, None] * a for i in range(rings)]
+    for m in range(1, rows):
+        s = m / rows
+        r = (1 - s) * ru + s * rl + bulge * np.sin(np.pi * s)
+        h = (1 - s) * top[:, -1] + s * bottom[:, -1]
+        ring.append(c + r[:, None] * dirs + h[:, None] * a)
+    ring += [c + (rl * rho[i])[:, None] * dirs + bottom[:, i][:, None] * a for i in reversed(range(rings))]
+    return closed_rings(c + centre_top * a, ring, c + centre_bottom * a)
+
+
+def closed_rings(top, ring, bottom):
+    """A closed mesh from a point, rings of points (each (n, 3), all alike in n and turning the same way) and
+    another point: (vertices, triangles wound to face out)."""
+    v = np.vstack([top] + ring + [bottom])
+    n, R = len(ring[0]), len(ring)
+    j = np.arange(n)
+    k = (j + 1) % n
+    tris = [np.stack([np.zeros(n, int), 1 + j, 1 + k], 1)]
+    for r in range(R - 1):
+        p, q = 1 + r * n, 1 + (r + 1) * n
+        tris.append(np.stack([p + j, q + j, q + k], 1))
+        tris.append(np.stack([p + j, q + k, p + k], 1))
+    last = len(v) - 1
+    tris.append(np.stack([np.full(n, last), 1 + (R - 1) * n + k, 1 + (R - 1) * n + j], 1))
+    f = np.vstack(tris)
+    vol = np.einsum("ij,ij->i", v[f[:, 0]], np.cross(v[f[:, 1]], v[f[:, 2]])).sum()
+    return v, (f if vol > 0 else f[:, ::-1])
+
+
+def fit_disc(upper, lower, c, a, size):
+    """A disc made anew between the scanned bones above and below it (upper, lower: (v, f)), from its old middle
+    c, axis a (toward the upper bone) and radius `size` (metres), and its nucleus pulposus within it. Fans of
+    rays from its middle plane find each bone's endplate, the surface it meets (disc_rims); the plane square to
+    the line between the endplates' fitted planes, through the middle of their outlines, is its middle plane,
+    found again from there twice. Its upper and lower faces follow the endplates out to where each ends, each
+    DISC_SINK into its bone, and its wall runs from the one's rim to the other's, bulging out by up to a
+    millimetre at its middle (8% of the disc's height; three fifths of that at the back, where it faces the
+    spinal canal), as an annulus fibrosus does. The nucleus is a lens about a point NUCLEUS_BACK of the disc's
+    depth behind its middle, its outline the disc's drawn in to NUCLEUS_ACROSS, NUCLEUS_TALL of the disc's
+    height at its middle (the gel lies a little behind the middle, within a thick annulus). Returns (vertices, triangles (wound to face out), the
+    nucleus's (vertices, triangles), its middle, axis, the faces' planes ((centre, normal out of the disc):
+    upper, lower), its width and depth (metres), an account)."""
+    c, a = np.asarray(c, np.float64), np.asarray(a, np.float64) / np.linalg.norm(a)
+    a0, inner = a.copy(), 0.45 * size
+    for _ in range(3):
+        across, forward = frame(a)
+        angles = np.linspace(0, 2 * np.pi, 48, endpoint=False)
+        radii = np.arange(0, max(1.7 * size, 0.012), 0.0008)
+        tu, tl, ru, rl, oku, okl = disc_rims(upper, lower, c, a, across, forward, angles, radii, inner)
+        dirs = np.cos(angles)[:, None] * forward + np.sin(angles)[:, None] * across
+        base = c + radii[None, :, None] * dirs[:, None, :]
+        planes = []
+        for t, ok, sgn in ((tu, oku, 1.0), (tl, okl, -1.0)):
+            q = (base + sgn * np.where(ok, t, 0)[..., None] * a)[ok]
+            m = q.mean(0)
+            n = np.linalg.svd(q - m)[2][2]
+            planes.append((m, n if n @ (sgn * a) > 0 else -n))
+        a = planes[0][1] - planes[1][1]
+        a /= np.linalg.norm(a)
+        across, forward = frame(a)
+        shift = 0.5 * (polygon_middle(smooth_outline(ru, angles), angles, across, forward)
+                       + polygon_middle(smooth_outline(rl, angles), angles, across, forward))
+        mid = 0.5 * (planes[0][0] + planes[1][0])
+        c = c + shift
+        c = c + ((mid - c) @ a) * a
+        inner = 0.45 * max(np.median(ru), np.median(rl))
+    across, forward = frame(a)
+    width = np.median(np.concatenate([ru, rl]))
+    count = int(np.clip(round(2 * np.pi * width / 0.0026 / 4) * 4, 32, 64))
+    rings = int(np.clip(round(width / 0.0032), 4, 7))
+    angles = np.linspace(0, 2 * np.pi, 2 * count, endpoint=False)
+    radii = np.arange(0, max(1.7 * size, 0.012), 0.0004)
+    tu, tl, ru, rl, oku, okl = disc_rims(upper, lower, c, a, across, forward, angles, radii, inner)
+    ru, rl = smooth_outline(ru, angles), smooth_outline(rl, angles)
+    ru, rl = np.minimum(ru, rl + DISC_CAP)[::2] - 0.0002, np.minimum(rl, ru + DISC_CAP)[::2] - 0.0002
+    angles, tu, tl, oku, okl = angles[::2], tu[::2], tl[::2], oku[::2], okl[::2]
+    rho = 1 - (1 - np.arange(1, rings + 1) / rings) ** 1.5
+    top = heights_at(tu, oku, radii, ru[:, None] * rho[None]) + DISC_SINK
+    bottom = -(heights_at(tl, okl, radii, rl[:, None] * rho[None]) + DISC_SINK)
+    from scipy.ndimage import gaussian_filter1d
+    top, bottom = gaussian_filter1d(top, 1.0, axis=0, mode="wrap"), gaussian_filter1d(bottom, 1.0, axis=0, mode="wrap")
+    centre_top = np.median(tu[:, 0][np.isfinite(tu[:, 0])]) + DISC_SINK
+    centre_bottom = -(np.median(tl[:, 0][np.isfinite(tl[:, 0])]) + DISC_SINK)
+    least = 2 * DISC_SINK + 0.0005                  # never thinner than half a millimetre between the bones
+    thin = top - bottom < least
+    m = 0.5 * (top + bottom)
+    top[thin], bottom[thin] = m[thin] + least / 2, m[thin] - least / 2
+    if centre_top - centre_bottom < least:
+        m = 0.5 * (centre_top + centre_bottom)
+        centre_top, centre_bottom = m + least / 2, m - least / 2
+    tall = centre_top - centre_bottom - 2 * DISC_SINK
+    bulge = min(0.001, 0.08 * tall) * (0.6 + 0.4 * np.cos(angles / 2) ** 2)
+    rows = int(np.clip(round(tall / 0.0016), 3, 6))
+    dirs = np.cos(angles)[:, None] * forward + np.sin(angles)[:, None] * across
+    v, f = disc_mesh(c, a, dirs, ru, rl, rho, top, bottom, centre_top, centre_bottom, rows, bulge)
+    faces = ((c + centre_top * a, a), (c + centre_bottom * a, -a))
+    wide = (ru + rl) / 2
+    dims = np.array([wide[np.argmin(np.abs(angles - np.pi / 2))] + wide[np.argmin(np.abs(angles - 3 * np.pi / 2))],
+                     wide[0] + wide[np.argmin(np.abs(angles - np.pi))]])
+    # the nucleus: a lens about a point behind the disc's middle, its outline the disc's drawn in, as tall as
+    # the disc's middle drawn in alike, rounding off to its rim
+    mid_h = 0.5 * (centre_top + centre_bottom)
+    middle = c + mid_h * a - NUCLEUS_BACK * dims[1] * forward
+    rim_n = NUCLEUS_ACROSS * np.minimum(ru, rl)[::2]
+    up_n, down_n = NUCLEUS_TALL * (centre_top - mid_h), NUCLEUS_TALL * (mid_h - centre_bottom)
+    phi = np.linspace(np.pi / 2, -np.pi / 2, 9)[1:-1]
+    ring = [middle + (rim_n * np.cos(ph))[:, None] * dirs[::2] + (np.sin(ph) * (up_n if ph > 0 else down_n)) * a
+            for ph in phi]
+    nv, nf = closed_rings(middle + up_n * a, ring, middle - down_n * a)
+    nv = keep_inside(nv, v, f, c, a)
+    said = (f"{tall * 1000:.1f} mm at its middle, {dims[0] * 1000:.0f} by {dims[1] * 1000:.0f} mm, "
+            f"its axis {np.degrees(np.arccos(np.clip(a @ a0, -1, 1))):.0f} degrees from the old disc's")
+    return v, f, (nv, nf), c, a, faces, dims, said
+
+
+def disc_order(body):
+    """The column's discs top to bottom, each with the bones above and below it: [(disc, upper, lower)]."""
+    pre = "VH_M_" if body["id"] == "male" else "VH_F_"
+    lumbar = 5 if body["id"] == "male" else 6
+    seq = ([f"cervical_vertebra_{i}" for i in range(2, 8)] + [f"thoracic_vertebra_{i}" for i in range(1, 13)]
+           + [f"lumbar_vertebra_{i}" for i in range(1, lumbar + 1)] + ["sacrum"])
+    out = []
+    for up, low in zip(seq[:-1], seq[1:]):
+        kind, num = up.split("_")[0], int(up.rsplit("_", 1)[1])
+        disc = "intervertebral_disk_of_axis" if up == "cervical_vertebra_2" else \
+            f"intervertebral_disk_of_{ORDINALS[num - 1]}_{kind}_vertebra"
+        out.append((pre + disc, pre + up, pre + low))
+    return out
+
+
+def old_disc(v, f, toward):
+    """An organ set's disc's middle, axis (its thinnest, turned toward the point `toward`) and radius."""
+    p = sample(np.asarray(v, np.float64), f, 6000, seed=5)[0]
+    c = p.mean(0)
+    a = np.linalg.eigh(np.cov((p - c).T))[1][:, 0]
+    a = a if (toward - c) @ a > 0 else -a
+    r = p - c
+    rad = np.linalg.norm(r - (r @ a)[:, None] * a, axis=1)
+    return c, a, np.percentile(rad, 98)
+
+
+def fit_discs(body, column, new):
+    """Every disc of the column (column: its part, with its meshes, changed in place; new: the scanned bones by
+    node) made anew between the scanned bones above and below it, its nucleus pulposus with it (fit_disc). The
+    organ sets' discs were fitted to their own vertebrae, which the scans replace: so they overhung the scanned
+    bodies by up to 7 mm in front and stood up to 4 mm off them. Returns an account."""
+    sts, meshes = column["structures"], column["meshes"]
+    nodes = [s["node"] for s in sts]
+    pre = "VH_M_" if body["id"] == "male" else "VH_F_"
+    f64 = lambda m: (np.asarray(m[0], np.float64), np.asarray(m[1], np.int64))
+    said, done = [], 0
+    for disc, up, low in disc_order(body):
+        if disc not in nodes or up not in new or low not in new:
+            said.append(f"no {disc[len(pre):]} or its bones")
+            continue
+        k = nodes.index(disc)
+        upper, lower = f64(new[up]), f64(new[low])
+        c, a, size = old_disc(*f64(meshes[k]), upper[0].mean(0))
+        v, f, nucleus, c, a, faces, dims, line = fit_disc(upper, lower, c, a, size)
+        meshes[k] = (v, f)
+        nk = pre + "nucleus_pulposus_of_" + disc[len(pre):]
+        if nk in nodes:
+            meshes[nodes.index(nk)] = nucleus
+        done += 1
+        log(f"      {disc[len(pre) + len('intervertebral_disk_of_'):]}: {line}")
+    return f"{done} discs fitted to the scanned bones" + ("; " + "; ".join(said) if said else "")
+
+
+def keep_inside(p, v, f, c, a):
+    """A nucleus's points p drawn in about the disc's middle (c, axis a) until they lie inside the disc (v, f) with
+    room to spare: each point a tenth again as far out from the middle still inside it."""
+    from anatomy_gaps import Solid
+    solid = Solid([(v, f)], h=0.0004, close=1)
+    h = (v - c) @ a
+    mid = c + 0.5 * (h.max() + h.min()) * a
+    q = p - mid
+    s = 1.0
+    while s > 0.3 and not solid.inside(mid + 1.1 * s * q).all():
+        s *= 0.95
+    return mid + s * q
+
+
+def body_axis_heights(v, f, axis, grid=3):
+    """A vertebra's body: its middle (the middle of its front third's points, on the line along `axis`) and its
+    height there (from the middle out to its endplates along the axis, the median over rays within 3 mm of it)."""
+    v = np.asarray(v, np.float64)
+    p = sample(v, f, 30000, seed=7)[0]
+    across, forward = frame(axis)
+    zf = p @ forward
+    front = p[zf > np.percentile(zf, 66)]
+    m = front.mean(0)
+    offs = np.array([(i, j) for i in np.linspace(-0.003, 0.003, grid) for j in np.linspace(-0.003, 0.003, grid)])
+    o = m + offs[:, :1] * across + offs[:, 1:] * forward
+    up = first_hits(v, f, o, axis, 0.06)[0]
+    down = first_hits(v, f, o, -axis, 0.06)[0]
+    ok = np.isfinite(up) & np.isfinite(down)
+    if not ok.any():
+        return m, np.nan, np.nan, np.nan
+    hu, hd = np.median(up[ok]), np.median(down[ok])
+    return m + 0.5 * (hu - hd) * axis, hu + hd, hu, hd
+
+
+def even_lumbar(out, column, pre):
+    """The scanned lumbar vertebrae (out: {node: (v, f)}, changed in place) stretched along the column where the
+    spaces between them are too tall for the body's discs. Each was fitted to the organ set's by one scale, and
+    KA 25's bodies are flatter than the man's (L3 to L5 2 to 5.5 mm shorter): the spaces between them came out
+    up to 18 mm, the organ set's discs there 7 to 14 mm. Where a space between T12 and the last lumbar vertebra
+    is more than LUMBAR_SLACK taller than the mean of the body's lumbar discs (the organ set's, at their middles),
+    each endplate is moved out along its vertebra's axis (never in: the vertebra stretched about its body's
+    middle, and moved), each vertebra by at most what it lacks of the organ set's height and LUMBAR_STRETCH of
+    its own, so the spaces come nearest that mean (least squares; the last lumbar vertebra's lower endplate held,
+    as the sacrum is seated by it). Returns an account."""
+    lumbar = sorted((n for n in out if "_lumbar_vertebra_" in n), key=lambda n: int(n.rsplit("_", 1)[1]))
+    chain = [pre + "thoracic_vertebra_12"] + lumbar
+    if any(n not in out or n not in column for n in chain):
+        return "the lumbar spaces left as they were (a vertebra missing)"
+    f64 = lambda m: (np.asarray(m[0], np.float64), np.asarray(m[1], np.int64))
+    mids = [f64(out[n])[0].mean(0) for n in chain]
+    axes = []
+    for i in range(len(chain)):
+        d = mids[max(i - 1, 0)] - mids[min(i + 1, len(chain) - 1)]
+        axes.append(d / np.linalg.norm(d))
+    scan = [body_axis_heights(*f64(out[n]), axes[i]) for i, n in enumerate(chain)]
+    organ = [body_axis_heights(*f64(column[n]), axes[i]) for i, n in enumerate(chain)]
+    if any(np.isnan(s[1]) for s in scan + organ):
+        return "the lumbar spaces left as they were (a body not found)"
+    gaps = []
+    for i in range(len(chain) - 1):
+        (m0, _, _, d0), (m1, _, u1, _) = scan[i], scan[i + 1]
+        low0, top1 = m0 - d0 * axes[i], m1 + u1 * axes[i + 1]
+        ax = axes[i] + axes[i + 1]
+        gaps.append((low0 - top1) @ (ax / np.linalg.norm(ax)))
+    gaps = np.array(gaps)
+    discs = []
+    for i in range(1, len(chain) - 1):
+        node = f"{pre}intervertebral_disk_of_{ORDINALS[i - 1]}_lumbar_vertebra"
+        if node in column:
+            v, f = f64(column[node])
+            c, a, _ = old_disc(v, f, mids[i])
+            r = v - c
+            near = np.linalg.norm(r - (r @ a)[:, None] * a, axis=1) < 0.003
+            if near.sum() > 3:
+                discs.append(np.ptp((r @ a)[near]))
+    target = float(np.mean(discs)) if discs else 0.011
+    if gaps.max() <= target + LUMBAR_SLACK:
+        return f"the lumbar spaces left as they were ({', '.join(f'{g * 1000:.1f}' for g in gaps)} mm; discs {target * 1000:.1f})"
+    n = len(lumbar)
+    lack = np.array([max(0.0, organ[i + 1][1] - scan[i + 1][1]) for i in range(n)])
+    cap = np.minimum(lack, LUMBAR_STRETCH * np.array([scan[i + 1][1] for i in range(n)]))
+
+    def spaces(x):
+        up, low = x[:n], x[n:]
+        g = gaps.copy()
+        g[0] -= up[0]
+        for i in range(n - 1):
+            g[i + 1] -= low[i] + up[i + 1]
+        return g
+
+    def cost(x):
+        up, low = x[:n], x[n:]
+        over = np.maximum(up + low - cap, 0)
+        return np.concatenate([spaces(x) - target, 10 * over, 0.05 * x])
+    hi = np.concatenate([cap, cap])
+    hi[2 * n - 1] = 0                                   # the last vertebra's lower endplate held
+    x0 = np.zeros(2 * n)
+    x = least_squares(cost, x0, bounds=(np.zeros(2 * n), np.maximum(hi, 1e-9))).x
+    up, low = x[:n], x[n:]
+    scale = np.minimum(up + low, cap)
+    up, low = up * scale / np.maximum(up + low, 1e-12), low * scale / np.maximum(up + low, 1e-12)
+    moved = []
+    for i, node in enumerate(lumbar):
+        m, h, _, _ = scan[i + 1]
+        ax = axes[i + 1]
+        k = 1 + (up[i] + low[i]) / h
+        v, f = f64(out[node])
+        w = v + ((k - 1) * ((v - m) @ ax) + 0.5 * (up[i] - low[i]))[:, None] * ax
+        out[node] = (w, f)
+        moved.append(f"L{node.rsplit('_', 1)[1]} x{k:.3f} {0.5 * (up[i] - low[i]) * 1000:+.1f} mm")
+    after = spaces(np.concatenate([up, low]))
+    return (f"lumbar spaces {', '.join(f'{g * 1000:.1f}' for g in gaps)} -> {', '.join(f'{g * 1000:.1f}' for g in after)} mm "
+            f"(the body's lumbar discs {target * 1000:.1f}): {'; '.join(moved)}")
+
+
 def settle(folder, body, parts, column):
     """Each of SETTLE's parts' structures that the new bones run into, pushed out of them by a field smooth
     over the points near them (tools/anatomy_gaps.py push_out, each bone or disc a solid of its own, as
@@ -1265,8 +1796,10 @@ def spine(body, parts, folder, cache, atlas):
         out[node] = (placed(fv, fit), ff)
         log("    " + report(f"{node[len(pre):]} from {name}", found) + f", {len(ff)} triangles")
         if name == "Sacrum":
-            # seated by its joints: the disc under the last lumbar vertebra (laid by discs() where the
-            # organ set has none) and the sacroiliac joints
+            # the lumbar vertebrae stretched where the spaces between them are taller than the body's discs,
+            # the last one's lower endplate held; then the sacrum seated by its joints: the disc under the
+            # last lumbar vertebra (laid by discs() where the organ set has none) and the sacroiliac joints
+            log(f"    {even_lumbar(out, column, pre)}")
             lumbar = sorted((n for n in out if "_lumbar_vertebra_" in n), key=lambda n: int(n.rsplit("_", 1)[1]))
             num = int(lumbar[-1].rsplit("_", 1)[1])
             disc = None if f"{pre}intervertebral_disk_of_{ORDINALS[num - 1]}_lumbar_vertebra" in column else DISC_MM * 1e-3
@@ -1324,6 +1857,7 @@ def replace(folder, vhskull, ka25, cache=None, atlas=None):
             template = made
         new.update(spine(body, parts, ka25, cache, atlas))
         log(f"    discs: {discs(body, parts['vertebral-column'], new)}")
+        log(f"    {fit_discs(body, parts['vertebral-column'], new)}")
         # the scan's teeth join the skull, under the names the organ sets' had in the mouth
         skull_part, mouth = parts["skull"], parts["mouth"]
         moving = [st for st in mouth["structures"] if st["node"] in new]
