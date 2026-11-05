@@ -183,6 +183,21 @@ import com.stethoscore.app.ui.library.LibraryEtch
     val modeSwitch=com.stethoscore.app.ui.library.ModeSwitch
     LaunchedEffect(modeSwitch.opening) { modeSwitch.opening?.let { set -> modeSwitch.opening=null;refresh();open(set) } }
     LaunchedEffect(modeSwitch.writing) { modeSwitch.writing?.let { p -> modeSwitch.writing=null;newPreset=p;screen="new" } }
+    // a stethoscore:// link that came in while the app was up, or after a cold start's
+    // first frame (iOS AppRouter.perform): the due queue, the exam plan or one set
+    LaunchedEffect(com.stethoscore.app.AppLinks.pending) {
+        val link=com.stethoscore.app.AppLinks.pending ?: return@LaunchedEffect
+        com.stethoscore.app.AppLinks.pending=null
+        when(link) {
+            com.stethoscore.app.AppLink.ReviewDue -> { com.stethoscore.app.ui.learn.LearnRouter.close();screen="due" }
+            com.stethoscore.app.AppLink.ExamPlan -> com.stethoscore.app.ui.learn.LearnRouter.open(com.stethoscore.app.ui.learn.LearnRoute.ExamPlan)
+            is com.stethoscore.app.AppLink.OpenSet -> {
+                val set=store.library.firstOrNull { it.id.equals(link.id,ignoreCase=true) }
+                if(set==null) notice="That set is no longer in your library."
+                else { com.stethoscore.app.ui.learn.LearnRouter.close();refresh();open(set) }
+            }
+        }
+    }
     BackHandler(screen=="home" && lib.selecting) { lib.stopSelecting() }
     BackHandler(screen!="home") { when(screen) { "sources" -> if(sourcesFrom=="home") goHome() else screen="settings"; "exam" -> screen="settings"; "licences" -> screen=licencesFrom; else -> goHome() } }
     // Each part of the app wears its section's colours (WardSection): a set

@@ -160,6 +160,13 @@ object DailyGoal {
         override fun remove(key: String) { values.remove(key) }
     }
 
+    /** The goal kept in SharedPreferences, as iOS keeps it in UserDefaults; the app hands this to [store] (ProcessStore). */
+    class PrefsStore(private val prefs: android.content.SharedPreferences) : Store {
+        override fun int(key: String): Int = runCatching { prefs.getInt(key, 0) }.getOrDefault(0)
+        override fun set(key: String, value: Int) { prefs.edit().putInt(key, value).apply() }
+        override fun remove(key: String) { prefs.edit().remove(key).apply() }
+    }
+
     var store: Store = MemoryStore()
 
     /** The goal, 50 until one is chosen, always within [range]. */

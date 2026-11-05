@@ -11,6 +11,14 @@
     <application android:theme="@style/AppTheme" android:label="Stethoscore" android:icon="@drawable/ic_launcher" android:allowBackup="false" android:supportsRtl="true" android:usesCleartextTraffic="false">
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
+            <!-- stethoscore:// links, the widgets' taps (iOS AppLink: redpen is iOS's first scheme, stethoscore the name people see) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="stethoscore" />
+                <data android:scheme="redpen" />
+            </intent-filter>
             <!-- a Quizlet / CSV / TSV table or a library backup opened or shared from another app (iOS IncomingImport),
                  and a lecture (PDF, Word, PowerPoint) to make questions from (iOS ImportRouter's inbox sheet) -->
             <intent-filter>
