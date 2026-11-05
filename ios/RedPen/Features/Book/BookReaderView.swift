@@ -130,15 +130,19 @@ struct BookReaderView: View {
                 .font(Self.headingFont(level))
                 .padding(.top, WardSpace.s)
         case .bullet(let text, let marker):
+            // a dot is drawn, not read; a number is read with its line, but
+            // not when the line holds a link, which then stays its own
+            // element so VoiceOver's Links rotor still reaches it
+            let line: AttributedString = md(text)
+            let combined: Bool = marker != nil && !line.runs.contains { $0.link != nil }
             HStack(alignment: .top, spacing: 8) {
                 Text(marker ?? "\u{2022}")
                     .font(marker == nil ? WardType.body : WardType.body.monospacedDigit())
                     .foregroundStyle(Color.wardInkSecondary)
-                    // a dot is drawn, not read; a number is read with its line
                     .accessibilityHidden(marker == nil)
-                Text(md(text))
+                Text(line)
             }
-            .accessibilityElement(children: marker == nil ? .contain : .combine)
+            .accessibilityElement(children: combined ? .combine : .contain)
         case .row(let cells, let header):
             HStack(alignment: .top, spacing: 12) {
                 ForEach(Array(cells.enumerated()), id: \.offset) { i, cell in

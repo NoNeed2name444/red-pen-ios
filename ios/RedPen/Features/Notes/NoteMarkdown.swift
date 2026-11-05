@@ -36,14 +36,19 @@ struct NoteMarkdownView: View {
                 .font(Self.headingFont(level))
                 .padding(.top, level == 1 ? 6 : 2)
         case .bullet(let depth, let marker, let line):
-            // a dot is drawn, not read; a number ("2.") is read with its line
+            // a dot is drawn, not read; a number ("2.") is read with its
+            // line, but not when the line holds a link ([[Title]] or a
+            // Markdown link), which then stays its own element so
+            // VoiceOver's Links rotor still reaches it
             let dot: Bool = marker == "\u{2022}"
+            let styled: AttributedString = NoteMarkdown.inline(line)
+            let combined: Bool = !dot && !styled.runs.contains { $0.link != nil }
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(marker).foregroundStyle(Color.wardInkSecondary)
                     .accessibilityHidden(dot)
-                Text(NoteMarkdown.inline(line))
+                Text(styled)
             }
-            .accessibilityElement(children: dot ? .contain : .combine)
+            .accessibilityElement(children: combined ? .combine : .contain)
             .padding(.leading, CGFloat(depth) * 18)
         case .quote(let line):
             Text(NoteMarkdown.inline(line))

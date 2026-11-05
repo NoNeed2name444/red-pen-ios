@@ -222,8 +222,10 @@ final class AccessibilityUITests: XCTestCase {
     /// card's front was flagged "Dynamic Type font sizes are partially
     /// unsupported" in 3 of 3 runs at AX5, and in 2 of 3 at AX5 with the
     /// card screens' inline decks held off, against 0 of 3 at the default
-    /// size and 0 of 2 at AccessibilityM (and 1 of 3 at XXXL, in the run
-    /// that also flagged the back's lines). Its face is Font.custom relative
+    /// size and 0 of 2 at AccessibilityM (and 1 of 3 at
+    /// UICTContentSizeCategoryXXXL, the largest size short of the
+    /// accessibility ones and not AX5, in the run that also flagged the
+    /// back's lines). Its face is Font.custom relative
     /// to its text style, with no cap on it (T0198): at AX5 there is no
     /// larger size for the check to step to, so it cannot measure the text
     /// growing there. testMainScreensAtTheLargestTextSize still checks AX5's
@@ -235,17 +237,30 @@ final class AccessibilityUITests: XCTestCase {
     }
 
     /// The library, a quiz, the example card revealed and Settings, each
-    /// audited for `types`.
+    /// audited for `types`. A screen it cannot reach is not audited, and
+    /// says so in one AUDIT-SKIP line rather than failing the test.
     private func auditMainScreens(_ types: XCUIAccessibilityAuditType) throws {
         try audit("library", types)
 
-        if choose("questions"), openSet("mcq") {
+        if !choose("questions") {
+            skipped("quiz", "Questions could not be chosen from the dock")
+        } else if !openSet("mcq") {
+            skipped("quiz", "the example question set did not open")
+        } else {
             try audit("quiz", types)
-            goHome()
+            backHome(after: "quiz")
         }
-        if choose("cards"), openSet("anki") {
+        if !choose("cards") {
+            skipped("card", "Cards could not be chosen from the dock")
+        } else if !openSet("anki") {
+            skipped("card", "the example deck did not open")
+        } else {
             let reveal = app.buttons["Reveal"].firstMatch
-            if reveal.waitForExistence(timeout: 6) { reveal.tap() }
+            if reveal.waitForExistence(timeout: 6) {
+                reveal.tap()
+            } else {
+                skipped("card-back", "no Reveal button, so the card is audited unrevealed")
+            }
             // the card's front flagged as partly Dynamic Type on some runs
             // and not others (T0198): audited only once the opened card
             // has stopped moving, its frame logged before and after
@@ -253,20 +268,40 @@ final class AccessibilityUITests: XCTestCase {
             settle(front, "card front")
             try audit("card, revealed", types)
             print("CARD-SETTLE card front after audit frame=\(front.exists ? "\(front.frame)" : "gone")")
-            goHome()
+            backHome(after: "card")
         }
         let menu = element("libraryMenu")
-        if menu.waitForExistence(timeout: 6) {
-            menu.tap()
-            let named = NSPredicate(format: "label == %@", "Settings")
-            let item = app.buttons.matching(named).firstMatch
-            if item.waitForExistence(timeout: 4) {
-                item.tap()
-                if app.navigationBars["Settings"].waitForExistence(timeout: 8) {
-                    try audit("settings", types)
-                }
+        guard menu.waitForExistence(timeout: 6) else {
+            skipped("settings", "no account menu (libraryMenu)")
+            return
+        }
+        menu.tap()
+        let named = NSPredicate(format: "label == %@", "Settings")
+        let item = app.buttons.matching(named).firstMatch
+        if !item.waitForExistence(timeout: 4) {
+            skipped("settings", "no Settings item in the account menu")
+        } else {
+            item.tap()
+            if app.navigationBars["Settings"].waitForExistence(timeout: 8) {
+                try audit("settings", types)
+            } else {
+                skipped("settings", "the Settings bar did not show after its menu item")
             }
-            goHome()
+        }
+        backHome(after: "settings")
+    }
+
+    /// One line in a11y.log for a screen the audit walk did not audit:
+    /// `AUDIT-SKIP <size> <screen> <why>`. Not a failure.
+    private func skipped(_ screen: String, _ why: String) {
+        print("AUDIT-SKIP \(size == .largest ? "AX5" : "default") \(screen) \(why)")
+    }
+
+    /// Back to the library after `screen`, saying so when it could not get
+    /// there, since the screens after it may then be skipped too.
+    private func backHome(after screen: String) {
+        if !goHome() {
+            skipped(screen, "no way back to the library after it; the screens after it may be skipped")
         }
     }
 
@@ -414,9 +449,11 @@ final class AccessibilityUITests: XCTestCase {
     }
 
     /// Back to the library: Cancel or Done on a sheet, Back on a pushed page.
-    private func goHome() {
+    /// True when the library is on screen at the end.
+    @discardableResult
+    private func goHome() -> Bool {
         for _ in 0..<6 {
-            if atLibrary() { return }
+            if atLibrary() { return true }
             let cancel = app.buttons["Cancel"].firstMatch
             let done = app.buttons["learnDone"].firstMatch
             let back = app.navigationBars.buttons.element(boundBy: 0)
@@ -431,6 +468,7 @@ final class AccessibilityUITests: XCTestCase {
             }
             sleep(1)
         }
+        return atLibrary()
     }
 
     /// Scrolls until `target` can be pressed. True if it can.
