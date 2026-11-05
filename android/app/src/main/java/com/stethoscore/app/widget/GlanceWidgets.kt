@@ -8,7 +8,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceId
+import androidx.glance.ColorFilter
 import androidx.glance.GlanceModifier
+import androidx.glance.Image
+import androidx.glance.ImageProvider
 import androidx.glance.LocalContext
 import androidx.glance.LocalSize
 import androidx.glance.action.clickable
@@ -29,11 +32,14 @@ import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
+import androidx.glance.layout.size
 import androidx.glance.layout.width
+import androidx.glance.unit.ColorProvider
 import androidx.glance.semantics.contentDescription
 import androidx.glance.semantics.semantics
 import androidx.glance.text.Text
 import com.stethoscore.app.AppLink
+import com.stethoscore.app.R
 import com.stethoscore.app.data.GlanceShelf
 import com.stethoscore.app.data.GlanceState
 
@@ -47,8 +53,8 @@ import com.stethoscore.app.data.GlanceState
 internal object WidgetSizes {
     val small = DpSize(110.dp, 110.dp)
     val medium = DpSize(250.dp, 110.dp)
-    /** A 4x2 widget in portrait: room for both deck rows and the button. */
-    val mediumTall = DpSize(250.dp, 180.dp)
+    /** A 4x2 widget at least 160 dp tall: both deck rows and the button, 48 dp each, with 8 dp above and below. */
+    val mediumTall = DpSize(250.dp, 160.dp)
     val oneLine = DpSize(110.dp, 48.dp)
     /** Below this height a widget draws its one-line size. */
     const val oneLineHeight = 100.0
@@ -82,13 +88,22 @@ private fun Ground(link: AppLink, spoken: String, vertical: Double = WidgetStyle
     ) { content() }
 }
 
-/** The big number and the caption under it, at the widget's foot (iOS's bigCount). */
+/** The glyph at the top, then the big number and the caption under it at the widget's foot (iOS's bigCount). */
 @Composable
-private fun NumberAndCaption(number: String, caption: String, modifier: GlanceModifier = GlanceModifier.fillMaxSize()) {
-    Column(modifier = modifier, verticalAlignment = Alignment.Bottom, horizontalAlignment = Alignment.Start) {
+private fun NumberAndCaption(glyph: Int, number: String, caption: String, modifier: GlanceModifier = GlanceModifier.fillMaxSize()) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.Start) {
+        Glyph(glyph, WidgetStyle.pen)
+        Spacer(GlanceModifier.defaultWeight())
         Text(number, style = WidgetStyle.number, maxLines = 1)
         Text(caption, style = WidgetStyle.caption, maxLines = 2)
     }
+}
+
+/** A Material glyph in place of iOS's SF Symbol, decorative: the words beside it say what it means. */
+@Composable
+private fun Glyph(glyph: Int, colour: ColorProvider) {
+    Image(ImageProvider(glyph), contentDescription = null, colorFilter = ColorFilter.tint(colour),
+        modifier = GlanceModifier.size(WidgetStyle.dp(WidgetStyle.glyph)))
 }
 
 /** The one-line size: a sentence, centred in the height. */
@@ -113,13 +128,13 @@ class DueCardsWidget : GlanceAppWidget() {
 internal fun DueCards(face: DueFace) {
     val size = LocalSize.current
     if (!DueLayout.isMedium(size.width.value.toDouble())) {
-        Ground(face.link, face.spoken) { NumberAndCaption(face.number, face.caption) }
+        Ground(face.link, face.spoken) { NumberAndCaption(R.drawable.ic_widget_stack, face.number, face.caption) }
         return
     }
     val rows = DueLayout.rows(size.height.value.toDouble(), face.decks.size, face.showsReview)
     Ground(face.link, face.spoken, vertical = WidgetStyle.mediumVerticalMargin) {
         Row(modifier = GlanceModifier.fillMaxSize()) {
-            NumberAndCaption(face.number, face.caption,
+            NumberAndCaption(R.drawable.ic_widget_stack, face.number, face.caption,
                 GlanceModifier.defaultWeight().fillMaxHeight().padding(vertical = WidgetStyle.dp(WidgetStyle.margin - WidgetStyle.mediumVerticalMargin)))
             Spacer(GlanceModifier.width(WidgetStyle.dp(WidgetStyle.margin)))
             Column(modifier = GlanceModifier.defaultWeight().fillMaxHeight()) {
@@ -153,7 +168,14 @@ private fun ReviewButton() {
             .background(WidgetStyle.penWash).cornerRadius(WidgetStyle.dp(WidgetStyle.target / 2))
             .opens(AppLink.ReviewDue).semantics { contentDescription = "Review" },
         contentAlignment = Alignment.Center,
-    ) { Text("Review", style = WidgetStyle.review, maxLines = 1) }
+    ) {
+        // Chart Ink on the wash: coral is kept for the capsule (WidgetStyle.review)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Glyph(R.drawable.ic_widget_play, WidgetStyle.ink)
+            Spacer(GlanceModifier.width(WidgetStyle.dp(WidgetStyle.gap)))
+            Text("Review", style = WidgetStyle.review, maxLines = 1)
+        }
+    }
 }
 
 class DueCardsReceiver : GlanceAppWidgetReceiver() {
@@ -177,7 +199,7 @@ internal fun ExamCountdown(face: CountdownFace) {
     if (LocalSize.current.height.value < WidgetSizes.oneLineHeight) {
         Ground(face.link, face.line, vertical = WidgetStyle.mediumVerticalMargin) { OneLine(face.line) }
     } else {
-        Ground(face.link, face.spoken) { NumberAndCaption(face.number, face.caption) }
+        Ground(face.link, face.spoken) { NumberAndCaption(R.drawable.ic_widget_calendar, face.number, face.caption) }
     }
 }
 
@@ -202,7 +224,7 @@ internal fun DoneToday(face: TodayFace) {
     if (LocalSize.current.height.value < WidgetSizes.oneLineHeight) {
         Ground(face.link, face.line, vertical = WidgetStyle.mediumVerticalMargin) { OneLine(face.line) }
     } else {
-        Ground(face.link, face.line) { NumberAndCaption(face.number, face.caption) }
+        Ground(face.link, face.line) { NumberAndCaption(R.drawable.ic_widget_check, face.number, face.caption) }
     }
 }
 

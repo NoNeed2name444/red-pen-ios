@@ -60,7 +60,5 @@
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_today" />
         </receiver>
-        <!-- hands each new digest to the widgets when the process starts; serves no data -->
-        <provider android:name=".widget.WidgetUpdatesStarter" android:authorities="${applicationId}.widget-updates" android:exported="false" />
     </application>
 </manifest>

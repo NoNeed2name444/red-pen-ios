@@ -19,8 +19,8 @@ import com.stethoscore.app.ui.ward.WardWeight
 
 /**
  * The widgets' look, as iOS's GlanceStyle: the app's flat ground and ink by
- * day and at night, and Vital Coral for the glyph-less accent and the Review
- * button, every colour taken from the Ward palette, never repeated here.
+ * day and at night, and Vital Coral for the glyphs and the Review capsule's
+ * wash, every colour taken from the Ward palette, never repeated here.
  * Sizes are the Ward scale's; the 44 sp number is iOS's widget number.
  */
 object WidgetStyle {
@@ -34,6 +34,8 @@ object WidgetStyle {
     const val margin = WardScale.l
     /** The big count, as iOS's widgets draw it (44 pt, bold, no theme face of that size). */
     const val numberSize = 44.0
+    /** The glyphs' size: Material's 24 dp. */
+    const val glyph = WardScale.xl
     /** The Review capsule's coral wash, as iOS's pen.opacity(0.15). */
     const val reviewWash = 0.15f
 
@@ -49,7 +51,8 @@ object WidgetStyle {
     /** The one-line sizes' sentence: headline, as iOS's rectangular widget. */
     val line: TextStyle get() = style(WardType.headline, ink)
     val deck: TextStyle get() = style(WardType.segment, ink)
-    val review: TextStyle get() = style(WardType.buttonSmall, pen)
+    /** The Review label: Chart Ink on the coral wash, 10.5:1 by day and 12.5:1 at night (coral itself was 2.1:1 by day). */
+    val review: TextStyle get() = style(WardType.buttonSmall, ink)
 
     fun dp(value: Double): Dp = value.dp
 

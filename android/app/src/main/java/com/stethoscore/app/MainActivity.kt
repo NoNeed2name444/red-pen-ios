@@ -19,6 +19,7 @@ import com.stethoscore.app.ui.StethoscoreApp
 import com.stethoscore.app.ui.WardGroundDrawable
 import com.stethoscore.app.ui.library.IncomingFiles
 import com.stethoscore.app.ui.ward.WardGround
+import com.stethoscore.app.widget.WidgetUpdates
 import java.io.File
 
 class MainActivity : ComponentActivity() {
@@ -45,6 +46,12 @@ class MainActivity : ComponentActivity() {
         // cloud jobs finished while the app was closed become sets (iOS RedPenApp)
         CloudJobCollector.start(this, store)
         setContent { StethoscoreApp(store, initialScreen = AppLink.initialScreen(link)) }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // back in front: the widgets catch up with what changed meanwhile (the day, cards come due)
+        WidgetUpdates.republish(ProcessStore.get(this))
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -101,6 +108,8 @@ object ProcessStore {
      */
     fun get(context: Context): StudyStore {
         val app = context.applicationContext
+        // each new digest updates the home-screen widgets, from the store's first one on
+        WidgetUpdates.install(app)
         return get(app.filesDir, ExamChoice.defaults(app),
             DailyGoal.PrefsStore(app.getSharedPreferences("appearance", Context.MODE_PRIVATE)))
     }

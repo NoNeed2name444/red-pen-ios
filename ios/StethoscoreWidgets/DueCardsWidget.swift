@@ -110,9 +110,11 @@ struct DueCardsView: View {
                     // plain, with the look drawn on the label: a bordered
                     // style's own padding would make the target 56 pt and
                     // push the second deck row out
+                    // ink on the coral wash, 10.5:1 by day and 12.5:1 at night;
+                    // coral text was 2.1:1 by day, so coral stays the fill only
                     Label("Review", systemImage: "play.fill")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(GlanceStyle.pen)
+                        .foregroundStyle(GlanceStyle.ink)
                         .frame(maxWidth: .infinity, minHeight: GlanceStyle.minTarget)
                         .background(GlanceStyle.pen.opacity(0.15), in: Capsule())
                 }

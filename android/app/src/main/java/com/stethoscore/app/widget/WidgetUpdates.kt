@@ -1,10 +1,6 @@
 package com.stethoscore.app.widget
 
-import android.content.ContentProvider
-import android.content.ContentValues
 import android.content.Context
-import android.database.Cursor
-import android.net.Uri
 import androidx.glance.appwidget.updateAll
 import com.stethoscore.app.data.StudyStore
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -51,10 +47,19 @@ object WidgetUpdates {
     /** Counts the digests the widgets were told of; a drawn widget reads the file again when it moves. */
     val version = MutableStateFlow(0L)
 
-    /** Every store's new digest updates the widgets (StudyStore.onAnyGlanceWritten). */
+    /** Every store's new digest updates the widgets (StudyStore.onAnyGlanceWritten); ProcessStore installs it before it makes the store. */
     fun install(context: Context) {
         val app = context.applicationContext
         StudyStore.onAnyGlanceWritten = { debouncer.submit { updateNow(app) } }
+    }
+
+    /**
+     * The app came back to the foreground (iOS AppIntentsRouting.swift:241-250):
+     * the digest is worked out again off the main thread, through the same
+     * debounce; it is written, and the widgets told, only if it changed.
+     */
+    fun republish(store: StudyStore) {
+        debouncer.submit { store.publishGlance() }
     }
 
     /** Redraws every placed widget from the file on disk; no widget placed is a no-op. */
@@ -66,21 +71,4 @@ object WidgetUpdates {
             }
         }
     }
-}
-
-/**
- * Installs [WidgetUpdates] when the app's process starts, before any activity
- * makes the store, as androidx.startup's provider does; it serves no data.
- */
-class WidgetUpdatesStarter : ContentProvider() {
-    override fun onCreate(): Boolean {
-        context?.let(WidgetUpdates::install)
-        return true
-    }
-
-    override fun query(uri: Uri, projection: Array<out String>?, selection: String?, selectionArgs: Array<out String>?, sortOrder: String?): Cursor? = null
-    override fun getType(uri: Uri): String? = null
-    override fun insert(uri: Uri, values: ContentValues?): Uri? = null
-    override fun delete(uri: Uri, selection: String?, selectionArgs: Array<out String>?): Int = 0
-    override fun update(uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<out String>?): Int = 0
 }

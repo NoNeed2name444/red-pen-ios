@@ -67,6 +67,18 @@ adb shell am instrument -w -r -e class com.stethoscore.app.ScreenshotTest com.st
 adb pull /sdcard/Download/stethoscore-screenshots/. screenshots/ || true
 grep -qF "OK ($tests tests)" test-results/instrumentation.txt
 test "$(find screenshots -name '*.png' | wc -l)" -eq "$shots"
+# The home-screen widgets (WidgetShots, T0200): drawn by Glance in the app's process, light and dark,
+# into the app's external files; pulled into screenshots/widgets and counted apart from the ones above.
+widget_source=app/src/androidTest/java/com/stethoscore/app/WidgetShots.kt
+widget_tests=$(grep -c '@Test' "$widget_source")
+widget_shots=$(( $(grep -o 'shots("[^"]*"' "$widget_source" | sort -u | wc -l) * 2 ))
+echo "expecting OK ($widget_tests tests) and $widget_shots widget pictures" | tee test-results/expected-widgets.txt
+[ "$widget_tests" -gt 0 ] && [ "$widget_shots" -gt 0 ]
+mkdir -p screenshots/widgets
+adb shell am instrument -w -r -e class com.stethoscore.app.WidgetShots "$runner" | tee test-results/instrumentation-widgets.txt
+adb pull /sdcard/Android/data/com.stethoscore.app/files/widgets/. screenshots/widgets/ || true
+grep -qF "OK ($widget_tests tests)" test-results/instrumentation-widgets.txt
+test "$(find screenshots/widgets -name '*.png' | wc -l)" -eq "$widget_shots"
 exit 0
 fi
 
