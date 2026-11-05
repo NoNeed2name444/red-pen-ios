@@ -1,6 +1,8 @@
 package com.stethoscore.app.ui.exam
 
+import android.os.Build
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -133,16 +135,25 @@ import java.util.Date
  * The sheet's own window draws under the bars, so it sets them as
  * MainActivity.showBars does for the app: clear (its theme would lay
  * ward_ground over them before Android 15) with icons for the app's mode.
+ * It also meets a cutout as the app's window does (enableEdgeToEdge's mode):
+ * left at the default, a side cutout in landscape would show a dimmed strip
+ * beside the sheet (Android 9 to 14).
  */
 @Composable private fun SheetBars() {
     val window = (LocalView.current.parent as? DialogWindowProvider)?.window ?: return
     val dark = LocalWardDark.current
+    val app = LocalActivity.current?.window
     SideEffect {
         @Suppress("DEPRECATION") window.statusBarColor = android.graphics.Color.TRANSPARENT
         @Suppress("DEPRECATION") window.navigationBarColor = android.graphics.Color.TRANSPARENT
         WindowCompat.getInsetsController(window, window.decorView).run {
             isAppearanceLightStatusBars = !dark
             isAppearanceLightNavigationBars = !dark
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && app != null) {
+            val mode = app.attributes.layoutInDisplayCutoutMode
+            if (window.attributes.layoutInDisplayCutoutMode != mode)
+                window.attributes = window.attributes.apply { layoutInDisplayCutoutMode = mode }
         }
     }
 }

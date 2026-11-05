@@ -112,10 +112,6 @@ object IncomingFiles {
     /** Files handed over and refused (accepts), not yet told; the library says so once (IncomingImportHost). */
     var refused by mutableIntStateOf(0)
 
-    /** Why a handed file was refused, as the library shows it. */
-    const val refusedTitle = "Couldn’t open this file"
-    const val refusedBody = "Stethoscore can’t safely open a file sent this way. Share it from a files app instead."
-
     /** Takes the file an Open with or Share intent carries, if any and if [accepts] it. */
     fun take(intent: Intent?, context: Context) = take(intent) { owns(context, it) }
 
@@ -166,6 +162,10 @@ object IncomingWords {
 
     /** Where a lecture is taken (iOS ImportInboxSheet.elsewhere, .lecture). */
     const val lectureElsewhere = "Read it and make questions from it. Nothing is added until you make them."
+
+    /** Why a handed file was refused (IncomingFiles.accepts), as the library shows it. */
+    const val refusedTitle = "Couldn’t open this file"
+    const val refusedBody = "Stethoscore can’t safely open a file sent this way. Share it from a files app instead."
 
     /** The file's size as iOS's ByteCountFormatter (.file) writes it: "512 bytes", "245 KB", "1.2 MB". */
     fun size(bytes: Long): String {
@@ -300,7 +300,7 @@ private fun describePicked(context: Context, uri: Uri): Pair<String, Long> {
     LaunchedEffect(refusing) {
         if (!refusing) return@LaunchedEffect
         IncomingFiles.refused = 0
-        message = IncomingMessage(IncomingFiles.refusedTitle, IncomingFiles.refusedBody)
+        message = IncomingMessage(IncomingWords.refusedTitle, IncomingWords.refusedBody)
     }
 
     reading?.let { name ->

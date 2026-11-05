@@ -91,7 +91,7 @@ import kotlinx.coroutines.delay
     var body by rememberSaveable(id) { mutableStateOf(note.body) }
     var menu by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf(false) }
-    var picking by remember { mutableStateOf(false) }
+    var picking by rememberSaveable { mutableStateOf(false) }
     var cardsMessage by remember { mutableStateOf<String?>(null) }
     val book = model.book
     val reading = settings.reading
