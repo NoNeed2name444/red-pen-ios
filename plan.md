@@ -3078,6 +3078,26 @@ for screenshots.
         sternum (4.9 before, the scan's 3.4), and settling it turned it
         the 46.6 degrees. A girdle should ride on what the ribs under it
         did, now that conform_trunk squeezes the organs in from the cage.
+        - [x] The code (5 Nov, tools/anatomy_gaps.py): each girdle rides
+          on the bone under it (its joint goes with the sternum, and it
+          turns about that joint as the bone within 30 mm of it turned, by
+          Kabsch), the ribs turn at most 4 degrees (15 before), and
+          settle_girdles holds each clavicle's run backward near 20
+          degrees (Ludewig et al. 2009). The ribs and the girdles are one
+          person's scan, which fit each other: ribs turned further push
+          into the shoulder blades, and settling then swings the girdle
+          back round them. The chest steps alone, on the last base (a
+          scratch harness with the warps cached): the woman's girdles turn
+          17.0 degrees with the ribs at 4 (16.8 with none; 26.6 with 8, and
+          38 with 15, failing), her clavicles 136 and 141 mm out and 44 and
+          45 back, her humeri's heads 320 mm apart (217 with 8); the man's
+          23.2 degrees (21.1 with none, 20.4 with 8, 31 with 15, all
+          passing), his clavicles 137 and 146 mm out and 50 and 46 back,
+          his humeri's heads 326 mm apart. The organs barely mind: the
+          lungs move at most 79 and 75 mm with 4 degrees, 84 and 81 with
+          none.
+        - [ ] The full rebuild with it; then the rib and girdle mirror
+          checks into the suite, and the arms' pose checked.
       - Suite, meanwhile: each clavicle runs out to the side (10 cm or
         more further out at its outer end, at most 7 cm behind its inner
         end); the humeri's heads 28 to 42 cm apart.

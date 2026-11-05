@@ -1409,23 +1409,33 @@ def girdles(body, folder, w, rows):
     return structures, meshes, {"frames": frames, "joints": joints}
 
 
-def widen_cage(body, ribs, riders=(), joints=(), sternum=(), cap=np.radians(15)):
+def widen_cage(body, ribs, riders=(), joints=(), sternum=(), cap=np.radians(4)):
     """Widen the rib cage until it clears the organs inside it, never
     closer than 6 mm to the skin, every rib staying rigid: turned about its
     head (its joint with the spine) toward where a smooth widening by height
     and angle about the chest's axis would take its points (the best turn,
     by Kabsch), the two of a pair alike as mirror images, at most `cap` in
     all; the costal cartilages follow the ribs' far ends and the sternum the
-    cartilages beside it. What rides on the cage (each side's shoulder
-    girdle) moves with the widening as one rigid piece: turned as the
-    widening would turn its points, at best, and shifted so its joint with
-    the cage goes where the widening takes that point (turning a girdle
-    about its middle would carry its sternoclavicular joint off the
-    sternum). ribs: the ribs' part (rib_cage's), its meshes changed in
-    place; riders: lists of [positions, triangles], one per piece, changed
-    in place; joints: each piece's joint, a list, changed in place;
-    sternum: its [positions, triangles], changed in place. Returns each
-    piece's motion (rotation, shift)."""
+    cartilages beside it. The cap is small because the ribs and the
+    shoulder girdles are one person's scan, which fit each other: ribs
+    turned further out push into the scapulae, and settle_girdles() then
+    draws the girdle back round them. With 8 degrees the woman's clavicles
+    ran 95 and 101 mm back and her humeri's heads stood 217 mm apart; with
+    4, 44 and 45 mm and 320 mm (with none, 48, 50 and 311). The organs
+    give way instead (conform_trunk()), barely further: her lungs at most
+    84 mm with no turn, 79 with 4 degrees. What rides on the cage (each
+    side's shoulder girdle) moves with the bone under it as one rigid
+    piece: its joint with the cage (the sternoclavicular joint) goes with
+    the sternum, and the piece turns about it as the bone within 30 mm of
+    it turned this round, at best, the nearer counting more. (Moved by the
+    widening itself, a girdle went wherever the widening reached; with the
+    ribs rigid, which clear the organs less, it reached further every
+    round: the man's left girdle rode 28 mm forward and turned 9 degrees,
+    its joint 15 mm off the sternum.) ribs: the ribs' part (rib_cage's),
+    its meshes changed in place; riders: lists of [positions, triangles],
+    one per piece, changed in place; joints: each piece's joint, a list,
+    changed in place; sternum: its [positions, triangles], changed in
+    place. Returns each piece's motion (rotation, shift)."""
     from scipy.spatial.transform import Rotation
     organs = [Solid([m for m in body.part(o)["meshes"]]) for o in ("lungs", "liver", "heart", "spleen", "kidneys", "colon")
               if body.part(o) is not None]
@@ -1466,15 +1476,25 @@ def widen_cage(body, ribs, riders=(), joints=(), sternum=(), cap=np.radians(15))
         src = np.concatenate([before[i][ends[i]] for i in idx])
         dsp = np.concatenate([meshes[i][0][ends[i]] - before[i][ends[i]] for i in idx])
         cb = np.array(meshes[ci][0]); meshes[ci][0] = cb + _spread(cb, src, dsp, wz)
+        shift = np.zeros(3); s0 = [np.array(m[0]) for m in sternum]
         if len(sternum):   # the sternum goes with the cartilages beside it, rigidly
             near = cKDTree(np.concatenate([m[0] for m in sternum])).query(cb)[0] < 0.015
             if near.any():
-                d = (meshes[ci][0][near] - cb[near]).mean(0)
+                shift = (meshes[ci][0][near] - cb[near]).mean(0)
                 for m in sternum:
-                    m[0] = m[0] + d
+                    m[0] = m[0] + shift
+        bone0 = np.concatenate([before[i] for i in idx] + [cb] + s0)
+        bone1 = np.concatenate([meshes[i][0] for i in idx] + [meshes[ci][0]] + [m[0] for m in sternum])
         for i, piece in enumerate(riders):
-            p = np.concatenate([m[0] for m in piece]); q = moved(p)
-            _, Q, _ = umeyama(p, q); to = moved(joints[i][None])[0]; d = to - Q @ joints[i]
+            p = np.concatenate([m[0] for m in piece]); to = joints[i] + shift
+            dist = cKDTree(p).query(bone0)[0]; near = dist < 0.03
+            Q = np.eye(3)
+            if near.sum() >= 3:   # the turn about the joint that best follows the bone under the piece
+                a, b, wt = bone0[near] - joints[i], bone1[near] - to, 1 - dist[near] / 0.03
+                U, _, Vt = np.linalg.svd((b * wt[:, None]).T @ a); D = np.eye(3)
+                D[2, 2] = -1.0 if np.linalg.det(U @ Vt) < 0 else 1.0
+                Q = U @ D @ Vt
+            d = to - Q @ joints[i]
             for m in piece:
                 m[0] = m[0] @ Q.T + d
             motions[i] = (Q @ motions[i][0], Q @ motions[i][1] + d); joints[i] = to
@@ -1545,13 +1565,17 @@ def conform_trunk(body, cage, margin=0.002, depth=0.03):
 # (metres: both lie just under it); the shoulder blade at least this clear of
 # the ribs and every point of the girdle at least this far under the skin;
 # the clavicle near level, rising this much from the sternum to the acromion,
-# and the shoulder blade's medial border near upright, about parallel to the
-# spine, this far from it (degrees).
-REST = dict(clavicle=0.006, acromion=0.008, rib=0.003, skin=0.002, rise=10.0, tilt=5.0)
+# and running back this much from the frontal plane (about 20 degrees at rest:
+# Ludewig et al. 2009, J Bone Joint Surg Am 91:378); and the shoulder blade's
+# medial border near upright, about parallel to the spine, this far from it
+# (degrees). Without the clavicle's angle back, a girdle could swing about its
+# joint until the shoulder blade cleared the ribs (the reference woman's ran
+# back 46 and 53 degrees, her humeri's heads 19 cm apart).
+REST = dict(clavicle=0.006, acromion=0.008, rib=0.003, skin=0.002, rise=10.0, back=20.0, tilt=5.0)
 # How far each may stray at the cost of one unit: those, the girdle's turn
 # about its joint (degrees) and its joint's distance to the sternum from the
 # scan's own.
-SPREAD = dict(clavicle=0.004, acromion=0.005, rib=0.0015, skin=0.001, rise=6.0, tilt=6.0, turn=20.0, gap=0.003)
+SPREAD = dict(clavicle=0.004, acromion=0.005, rib=0.0015, skin=0.001, rise=6.0, back=8.0, tilt=6.0, turn=20.0, gap=0.003)
 
 
 class _Signed:
@@ -1600,6 +1624,7 @@ class _Girdle:
                     inrib=float(np.mean(rd < 0)), rib=float(np.mean(np.maximum(0, REST["rib"] - rd) ** 2)),
                     rib5=float(np.percentile(rd, 5)), gap=float(sternum.query(J)[0]),
                     rise=float(np.degrees(np.arctan2(cl[1] - cm[1], abs(cl[0] - cm[0])))),
+                    back=float(np.degrees(np.arctan2(cm[2] - cl[2], abs(cl[0] - cm[0])))),
                     tilt=float(np.degrees(np.arctan2((inf[0] - sup[0]) * self.sign, sup[1] - inf[1]))))
 
     def cost(self, mm, turn):
@@ -1607,6 +1632,7 @@ class _Girdle:
         return (400 * mm["skin"] / s["skin"] ** 2 + 400 * mm["rib"] / s["rib"] ** 2
                 + ((mm["clavicle"] - REST["clavicle"]) / s["clavicle"]) ** 2 + ((mm["acromion"] - REST["acromion"]) / s["acromion"]) ** 2
                 + ((mm["gap"] - self.gap) / s["gap"]) ** 2 + ((mm["rise"] - REST["rise"]) / s["rise"]) ** 2
+                + ((mm["back"] - REST["back"]) / s["back"]) ** 2
                 + ((mm["tilt"] - REST["tilt"]) / s["tilt"]) ** 2 + (turn / s["turn"]) ** 2)
 
 
@@ -1673,7 +1699,7 @@ def settle_girdles(body, shoulders, arms):
         for tag, mm in (("as placed", gd.measure(skin, ribs, sternum, *zero)), ("settled", gd.measure(skin, ribs, sternum, R, d))):
             log(f"    {side} girdle {tag}: joint {mm['gap'] * 1000:.1f} mm from the sternum (the scan's {gd.gap * 1000:.1f}); "
                 f"{mm['out']:.1%} outside the skin; clavicle {mm['clavicle'] * 1000:.0f} mm and acromion {mm['acromion'] * 1000:.0f} mm deep; "
-                f"{mm['inrib']:.1%} of the scapula inside the ribs; clavicle rising {mm['rise']:.0f} degrees, medial border {mm['tilt']:+.0f}")
+                f"{mm['inrib']:.1%} of the scapula inside the ribs; clavicle rising {mm['rise']:.0f} degrees and running back {mm['back']:.0f}, medial border {mm['tilt']:+.0f}")
         log(f"    {side} girdle turned {np.linalg.norm(best.x[:3]):.1f} degrees about its joint, moved {np.linalg.norm(best.x[3:]):.1f} mm")
         for n in ("clavicle", "scapula"):
             i = at(shoulders, f"TS_{n}_{s}"); shoulders["meshes"][i][0] = gd.moved(shoulders["meshes"][i][0], R, d)
