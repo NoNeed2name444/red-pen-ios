@@ -255,7 +255,12 @@ struct AnkiReviewView: View {
     /// over and under the card at AX5, they took the whole screen between
     /// them and the deck covered the card's question (a11y.xcresult of run
     /// 41876986518, "card, revealed").
-    private var decksInline: Bool { typeSize.isAccessibilitySize }
+    private var decksInline: Bool { typeSize.isAccessibilitySize && !Self.probeNoInlineDecks }
+
+    /// A probe switch (T0203, the card audit probe branch only): with the
+    /// launch argument -probeNoInlineDecks the header and the deck stay
+    /// fixed at every size. Read only when present; no effect without it.
+    private static let probeNoInlineDecks: Bool = ProcessInfo.processInfo.arguments.contains("-probeNoInlineDecks")
 
     private var header: some View {
         let left = queue.count
