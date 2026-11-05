@@ -47,7 +47,10 @@ struct AnalyticsView: View {
     private var dataKey: String {
         var studied: Int = 0
         for count in log.days.values { studied += count }
-        return "\(store.changeCount)-\(reviews.changeCount)-\(log.days.count)-\(studied)"
+        // the minutes too: a ward round's day counts for the streak (StudyVitals)
+        var minutes: Int = 0
+        for count in log.minutes.values { minutes += count }
+        return "\(store.changeCount)-\(reviews.changeCount)-\(log.days.count)-\(studied)-\(log.minutes.count)-\(minutes)"
     }
 
     var body: some View {
@@ -342,6 +345,7 @@ struct AnalyticsView: View {
                                  readiness: store.readiness(dueCards: due),
                                  lastMonth: lastMonth,
                                  dayCounts: dayCounts,
+                                 vitals: StudyVitals.read(days: dayCounts, minutes: log.minutes, now: now),
                                  today: dayCounts[StudyLog.key(for: now)] ?? 0,
                                  sparks: sparks,
                                  calibration: store.calibration(),
@@ -401,13 +405,13 @@ struct AnalyticsView: View {
     }
 
     /// The study rhythm on the monitor, from the days studied as the Time
-    /// section counts them (the study log and the dated answers).
+    /// section counts them (the study log and the dated answers), and the
+    /// streak beside it from the same days (StudyVitals).
     private func monitorSection(_ s: AnalyticsSnapshot) -> some View {
-        let reading: RhythmReading.Reading = RhythmReading.read(days: s.dayCounts, now: Date())
         let goal: (target: Int, fromExam: Bool) = dailyTarget()
-        let monitor = RhythmMonitor(reading: reading, readiness: s.readiness?.center,
+        let monitor = RhythmMonitor(reading: s.vitals.rhythm, readiness: s.readiness?.center,
                                     accuracy: monthAccuracy(s), today: s.today,
-                                    target: goal.target, streak: log.streak)
+                                    target: goal.target, streak: s.vitals.streak.streak)
         return Section {
             monitor
                 .wardCardRow()
@@ -870,7 +874,7 @@ struct AnalyticsView: View {
         let average = active.isEmpty ? 0 : Int((Double(total) / Double(active.count)).rounded())
         return Section {
             HStack(spacing: 0) {
-                figure("\(log.streak)", log.streak == 1 ? "day streak" : "days streak",
+                figure("\(s.vitals.streak.streak)", s.vitals.streak.streak == 1 ? "day streak" : "days streak",
                        symbol: "flame.fill", color: Color.wardBeam)
                 figure("\(s.studiedThisMonth)", "days this month",
                        symbol: "calendar", color: Color.wardPrimaryInk)
@@ -878,7 +882,7 @@ struct AnalyticsView: View {
                        symbol: "chart.bar.fill", color: Color.wardSuccess)
             }
             .padding(.vertical, 4)
-            StudyHeatmap(counts: s.dayCounts, restDays: log.restDaysUsed, focusDays: Set(log.minutes.keys))
+            StudyHeatmap(counts: s.dayCounts, restDays: s.vitals.streak.restDays, focusDays: Set(log.minutes.keys))
                 .padding(.vertical, WardSpace.s)
         } header: {
             Text("Time")
@@ -917,6 +921,9 @@ private struct AnalyticsSnapshot {
     var lastMonth: Tally
     /// Amount studied per day, keyed like StudyLog.
     var dayCounts: [String: Int]
+    /// The study rhythm and the streak, both from `dayCounts` (and the ward
+    /// round's minutes), so they agree.
+    var vitals: StudyVitals.Reading
     /// Amount studied today.
     var today: Int
     /// Each subject's accuracy day by day over the last 14 days.

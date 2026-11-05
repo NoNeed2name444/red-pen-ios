@@ -477,6 +477,11 @@ suite wardlightslice WardLightSliceTests.swift $S/Ward/WardLightSlice.swift $S/W
 # the study rhythm read from StudyLog's days; the countdown and greeting
 suite bedplan BedPlanTests.swift $S/ExamTrack.swift $S/Learn/ExamWeekPlanner.swift \
       $S/Learn/BedPlan.swift $S/Learn/RhythmReading.swift $S/Learn/WardWords.swift
+# the study rhythm and the streak from one set of days (T0211 A4): every
+# pattern of the last twelve days and 2,000 seeded ones over forty, in two
+# time zones, and the two readings never disagree
+suite studyvitals StudyVitalsTests.swift $S/Learn/StudyVitals.swift $S/Learn/RhythmReading.swift $S/StudyStreak.swift \
+      $S/DailyGoal.swift
 # home on a short phone: which windows are short, how many beds the round
 # shows there, and the preview's check that the card and its button end
 # above the bar with New set off the card

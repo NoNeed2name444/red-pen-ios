@@ -116,9 +116,12 @@ extension LibraryView {
         let readiness: ReadinessEstimate? = store.readiness(dueCards: due)
         let days: [String: Int] = StudyDays.merged(log: studyLog.days, answers: store.answerLog,
                                                    version: store.changeCount)
-        let rhythm: RhythmReading.Reading = RhythmReading.read(days: days, now: Date())
+        // the rhythm and the streak from the same days, as Vitals reads them
+        // (StudyVitals): the log's own streak missed answers synced from
+        // another phone, and read "No streak yet" beside a full strip
+        let vitals: StudyVitals.Reading = StudyVitals.read(days: days, minutes: studyLog.minutes, now: Date())
         let map: (ideas: Int, links: Int) = BrainMapCount.counts(noteStore)
-        return HomeTiles(readiness: readiness, streak: studyLog.streak, rhythm: rhythm,
+        return HomeTiles(readiness: readiness, streak: vitals.streak.streak, rhythm: vitals.rhythm,
                          ideas: map.ideas, links: map.links,
                          onVitals: { support = .analytics },
                          onIdeas: { goToIdeas() })
