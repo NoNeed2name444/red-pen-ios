@@ -3113,6 +3113,26 @@ for screenshots.
         muscle's narrow contact with its bone looked like tendon, and the
         man's left gluteus maximus was pale over a third of its origin,
         his right not at all.
+      - [x] Finer (5 Nov; the owner: "these are too large surface muscle
+        fibers they should be very small"). The shader splits each bundle
+        in two, and in two again, down to cords 0.35 to 0.7 mm across (1.4
+        to 2.8 mm at the Smooth budget), and draws the finest split whose
+        cords lie at least 4 pixels apart, the next finer fading in from 2:
+        close up the cords are 1.5 mm and finer where the 6 mm bundles
+        stood, and a whole thigh keeps a fine striation where cords of one
+        fixed width faded to a smooth surface. The bundles' own seams stay
+        as a faint line. Each cord's height and slope are averaged over the
+        pixel's span across it (exactly, from the arch's integral): shaded
+        once a pixel, as on the phone and the tablet, the cords had
+        shimmered and, on the thigh, made moiré (the lab shades 2 by 2); now
+        once a pixel looks as the lab does, about a third of the error on a
+        test wall. A review also found the fold that takes a whole bundle's
+        jump off the pattern's change between pixels read bundles closer
+        than 2 pixels as wide ones, drawing fine cords far off; it now folds
+        only a change larger than the place's own could be. Each bundle's
+        tint stays as the view comes closer, the cords' half as strong.
+        Laying narrower bundles in the build instead (2 mm at most) looked
+        the same close up but cost about 100,000 triangles a body.
       - [ ] Mac: screenshots of the hip and thigh close up; check the
         bundles on the device.
     - Whole model: bones rigid, soft tissue fitted round them, every part

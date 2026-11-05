@@ -9,17 +9,22 @@ import Foundation
 //   little warmer, and close up a fine grain a millimetre or two across,
 //   in colour and in how glossy it is, kept faint so it reads as a surface
 //   and not as noise;
-// - muscle: its fibres in bundles (fascicles) a few millimetres across,
-//   each a rounded cord with a dark seam (the perimysium) between it and
-//   the next, running the way the fibres run and converging where the
-//   muscle narrows, finer fibres within each bundle close up; where the
-//   muscle turns into tendon, white and glossy, its bundles fainter. The
-//   bundles come from the build (tools/anatomy_fibres.py lays them along
-//   the fibres as a stripe pattern; AnatomyStripes): the texture
-//   coordinates say where a point lies across them, one bundle a unit, and
-//   how far it is tendon. The cords' relief tilts the normal (a bump) across
-//   the bundles, the way found from how that coordinate changes between
-//   pixels.
+// - muscle: its fibres in fine rounded cords, each with a dark seam
+//   between it and the next, running the way the fibres run and
+//   converging where the muscle narrows; where the muscle turns into
+//   tendon, white and glossy, its cords fainter. The bundles (fascicles),
+//   a few millimetres across, come from the build (tools/anatomy_fibres.py
+//   lays them along the fibres as a stripe pattern; AnatomyStripes): the
+//   texture coordinates say where a point lies across them, one bundle a
+//   unit, and how far it is tendon. Each bundle splits in two, and in two
+//   again, down to cords 0.35 to 0.7 mm across, and the finest split whose
+//   cords lie a few pixels apart is drawn: close up the finest, further off
+//   the coarser cords they make, so the cords stay fine at any distance;
+//   the bundles' own seams (the perimysium) a faint line between them. Each
+//   cord is averaged over the pixel's span across it, so its seams do not
+//   shimmer where a pixel is shaded once (as on the phone and the tablet).
+//   The cords' relief tilts the normal (a bump) across them, the way found
+//   from how that coordinate changes between pixels.
 // The pattern is fixed to the body: it comes from the point's place in the
 // body's own frame (scn_node's inverse model-view), not from texture
 // coordinates, so it runs on unbroken where two pieces of a bone meet and
@@ -29,7 +34,8 @@ import Foundation
 //
 // Arguments: rpProbe (0; the shaders suite wants every surface modifier's
 // diffuse to carry it), rpDetail (the Graphics budget's shaderDetail: 0
-// leaves out the fine grain), and for muscle rpBundle (the bundles' width in
+// leaves out the fine grain, and a muscle's cords go no finer than
+// 1.4 mm), and for muscle rpBundle (the bundles' width in
 // metres, AnatomyStripes.bundle; under 1.5 mm reads as 1.5) and rpTendon
 // (tendon's linear colour over muscle's, per channel). Muscle reads its
 // texture coordinates (AnatomyStripes.coordinates), so its material carries
@@ -91,51 +97,92 @@ nonisolated enum AtlasShaders {
         // jump, where the pattern's pieces meet, taken off)
         float rp_ax = dfdx(rp_tx);
         float rp_ay = dfdy(rp_tx);
-        rp_ax = rp_ax - round(rp_ax);
-        rp_ay = rp_ay - round(rp_ay);
+        // (only a change larger than the place's own could be: where bundles lie closer than a couple of
+        // pixels, a true change, folded, would read as a small one)
+        float rp_lim = 2.5 * rp_px / rp_w + 0.5;
+        rp_ax = abs(rp_ax) > rp_lim ? rp_ax - round(rp_ax) : rp_ax;
+        rp_ay = abs(rp_ay) > rp_lim ? rp_ay - round(rp_ay) : rp_ay;
         float3 rp_cx = cross(rp_dpy, rp_n);
         float3 rp_cy = cross(rp_n, rp_dpx);
         float rp_det = dot(rp_dpx, rp_cx);
         float3 rp_g = abs(rp_det) > 1e-14 ? (rp_cx * rp_ax + rp_cy * rp_ay) / rp_det : float3(0.0);
         float3 rp_gw = rp_g * rp_w;
         float rp_gl = length(rp_gw);
-        // bundles where they are over a few pixels wide and the coordinate runs; fainter in tendon
-        float rp_k = rp_open * (1.0 - smoothstep(0.15 * rp_w, 0.45 * rp_w, rp_px)) * smoothstep(0.15, 0.35, rp_gl);
+        // the pattern where that coordinate runs (not at a fork, nor where it barely changes); fainter in tendon
+        float rp_k = rp_open * smoothstep(0.15, 0.35, rp_gl);
         rp_gw = rp_gl > 2.5 ? rp_gw * (2.5 / rp_gl) : rp_gw;
         float rp_kb = rp_k * (1.0 - 0.65 * rp_tendon);
-        // how deep the seams run, in patches a few centimetres across: here the bundles stand
+        // how deep the seams run, in patches a few centimetres across: here the cords stand
         // apart, there they lie close and read as one
 
         """ + GraphShaderKit.lattice("rp_sd", "rp_p * 28.0 + float3(5.3, 1.1, 7.9)") + """
         float rp_depth = mix(0.35, 1.35, rp_sd);
-        // the bundle a rounded cord: its height across it (0 at its seams, 1 on its crown), and its slope
-        float rp_x = fract(rp_tx);
-        float rp_cord = sin(3.14159265 * rp_x);
-        float rp_slope = 3.14159265 * cos(3.14159265 * rp_x);
-        // finer fibres within each bundle, close up and at High
-        float rp_fine = rpDetail * rp_k * (1.0 - smoothstep(0.04 * rp_w, 0.12 * rp_w, rp_px));
-        float rp_fx = 31.415927 * rp_x;
-        // the normal tilted by the cords' relief
-        float3 rp_nb = normalize(rp_n - rp_gw * (0.14 * rp_kb * rp_depth * rp_slope + 0.035 * rp_fine * cos(rp_fx)));
+        // Each bundle splits in two, each half in two again, and so on down to cords 0.35 to 0.7 mm
+        // across (1.4 to 2.8 mm without the fine detail). Drawn is the finest split whose cords lie at least
+        // 4 pixels apart, the next finer fading in from 2 pixels, so a muscle shows fine cords at any
+        // distance: close up its fibres, further off the cords they make, and never a stripe finer
+        // than the screen can show. rp_bp: a bundle's width in pixels; rp_lf, rp_lc: the finer and
+        // the coarser split drawn (0 the bundle itself), rp_wf and rp_wc their shares.
+        float rp_bp = 1.0 / max(length(float2(rp_ax, rp_ay)), 1e-5);
+        float rp_top = max(floor(log2(rp_w / mix(0.0014, 0.00035, rpDetail))), 0.0);
+        float rp_lv = log2(rp_bp / 2.0);
+        float rp_kp = floor(rp_lv);
+        float rp_sp = smoothstep(1.0, 2.0, exp2(rp_lv - rp_kp));
+        float rp_lf = min(rp_kp, rp_top);
+        float rp_lc = clamp(rp_kp - 1.0, 0.0, rp_top);
+        float rp_wf = rp_kp > rp_top ? 1.0 : (rp_kp < 0.0 ? 0.0 : rp_sp);
+        float rp_wc = rp_kp > rp_top ? 0.0 : (rp_kp < 1.0 ? 0.0 : 1.0 - rp_sp);
+        float rp_on = rp_wf + rp_wc;
+        // and once the cords show, a faint seam between each bundle and the next (the perimysium),
+        // a line a pixel or two wide
+        float rp_x0 = fract(rp_tx);
+        float rp_s1 = smoothstep(1.0, 2.0, exp2(rp_lv - 1.0));
+        float rp_seam = rp_s1 * (1.0 - smoothstep(0.5, 1.5, min(rp_x0, 1.0 - rp_x0) * rp_bp));
+        // each cord rounded, an arch sin(pi x) across it (0 at its seams, 1 on its crown): its height and
+        // its slope averaged over the pixel's span across it (exactly, from the arch's integral), so a
+        // seam does not flicker as the one sample a pixel falls on it or beside it; and each cord a
+        // little unlike the one beside it (the same cord on either side of a place where the pattern's
+        // pieces meet mirrored: n and -1 - n)
+        float rp_cord = 0.0;
+        float rp_slope = 0.0;
+        float rp_bsl = 0.0;
+        float rp_tint = 0.0;
+        for (int rp_i = 0; rp_i < 3; rp_i++) {
+            float rp_l = rp_i == 0 ? rp_lf : (rp_i == 1 ? rp_lc : 0.0);
+            float rp_s = exp2(rp_l);
+            float rp_d = max(rp_s / rp_bp, 0.001);
+            float rp_a = rp_tx * rp_s - 0.5 * rp_d;
+            float rp_fa = fract(rp_a);
+            float rp_fb = fract(rp_a + rp_d);
+            float rp_wt = rp_i == 0 ? rp_wf : (rp_i == 1 ? rp_wc : 0.0);
+            rp_cord += rp_wt * (2.0 * (floor(rp_a + rp_d) - floor(rp_a)) + cos(3.14159265 * rp_fa)
+                                - cos(3.14159265 * rp_fb)) / (3.14159265 * rp_d);
+            // (the last, the bundles' own, only for the faint seam between them, below)
+            float rp_sl = (sin(3.14159265 * rp_fb) - sin(3.14159265 * rp_fa)) / rp_d;
+            rp_slope += rp_wt * rp_sl;
+            rp_bsl = rp_i == 2 ? rp_sl : rp_bsl;
+            int rp_b = int(floor(rp_tx * rp_s));
+            rp_b = rp_b < 0 ? -1 - rp_b : rp_b;
+            uint rp_h = uint(rp_b + 4096 + 65536 * (rp_i == 2 ? 31 : int(rp_l))) * 0x8da6b343u;
+            rp_h = (rp_h ^ (rp_h >> 16)) * 0x7feb352du;
+            rp_h = (rp_h ^ (rp_h >> 15)) * 0x846ca68bu;
+            rp_h = rp_h ^ (rp_h >> 16);
+            // the bundles' share steady as the view comes closer, the cords' half that
+            rp_tint += (rp_i == 2 ? 1.0 : 0.5 * rp_wt) * (float(rp_h >> 8) * (1.0 / 16777216.0) - 0.5);
+        }
+        // the normal tilted by the cords' relief, each split's cords as deep for their width
+        float3 rp_nb = normalize(rp_n - rp_gw * (0.13 * rp_kb * rp_depth * rp_slope + 0.03 * rp_kb * rp_s1 * rp_bsl));
         _surface.normal = normalize((scn_node.modelViewTransform * float4(rp_nb, 0.0)).xyz);
-        // each bundle a little unlike its neighbours (the same bundle on either side of a
-        // place where the pattern's pieces meet mirrored: n and -1 - n)
-        int rp_b = int(floor(rp_tx));
-        rp_b = rp_b < 0 ? -1 - rp_b : rp_b;
-        uint rp_h = uint(rp_b + 4096) * 0x8da6b343u;
-        rp_h = (rp_h ^ (rp_h >> 16)) * 0x7feb352du;
-        rp_h = (rp_h ^ (rp_h >> 15)) * 0x846ca68bu;
-        rp_h = rp_h ^ (rp_h >> 16);
-        float rp_tint = float(rp_h >> 8) * (1.0 / 16777216.0);
         // and a broad faint variation
 
         """ + GraphShaderKit.latticeFbm("rp_m", "rp_p * 20.0", octaves: "2") + """
-        // the seams between bundles darker
-        float rp_shade = mix(1.0, mix(1.0 - 0.4 * rp_depth, 1.0, sqrt(rp_cord)) * (1.0 + 0.14 * (rp_tint - 0.5)), rp_kb);
-        rp_shade = rp_shade * (1.0 + 0.06 * rp_fine * sin(rp_fx)) * (1.0 + 0.1 * (rp_m - 0.5));
+        // the seams between cords darker, and between bundles a little more
+        float rp_crown = sqrt(max(rp_cord, 0.0) / max(rp_on, 0.001));
+        float rp_shade = mix(1.0, mix(1.0 - 0.32 * rp_depth, 1.0, rp_crown) * (1.0 + 0.08 * rp_tint), rp_kb * rp_on);
+        rp_shade = rp_shade * (1.0 - 0.12 * rp_kb * rp_depth * rp_seam) * (1.0 + 0.1 * (rp_m - 0.5));
         float3 rp_colour = _surface.diffuse.rgb * mix(float3(1.0), rpTendon, rp_tendon);
         _surface.diffuse = float4(rp_colour * rp_shade + float3(rpProbe), _surface.diffuse.a);
-        // the fascia over the bundles' crowns, and tendon, catch the light more
-        _surface.roughness = clamp(_surface.roughness - 0.1 * rp_kb * (rp_cord - 0.5) - 0.25 * rp_tendon, 0.15, 1.0);
+        // the fascia over the cords' crowns, and tendon, catch the light more
+        _surface.roughness = clamp(_surface.roughness - 0.1 * rp_kb * (rp_cord - 0.5 * rp_on) - 0.25 * rp_tendon, 0.15, 1.0);
         """
 }
