@@ -98,8 +98,11 @@ class TurnIntoReachTest {
         compose.setContent { CompositionLocalProvider(LocalLLMService provides llm) { StethoscoreApp(store, forceDark = false) } }
     }
 
+    // A wall-clock budget: the lecture's read (IncomingImport, Dispatchers.IO), the import preview
+    // (Dispatchers.Default) and the job's post run on real threads, not on mainClock, so a loaded
+    // machine slows them in real time; 20 s ran out once in a full suite that took 213 s, not 147 s.
     private fun until(done: () -> Boolean) {
-        compose.waitUntil(timeoutMillis = 20_000) {
+        compose.waitUntil(timeoutMillis = 60_000) {
             if (!done()) compose.mainClock.advanceTimeBy(500)
             done()
         }
