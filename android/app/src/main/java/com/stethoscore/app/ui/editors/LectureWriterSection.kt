@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.NoteAdd
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material.icons.rounded.UnfoldMore
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.DropdownMenu
@@ -269,7 +270,8 @@ import kotlinx.coroutines.withContext
                     CountField("How many ${noun}s", count, if (book) 1..1_000 else 1..10_000, { count = it }, enabled = !working)
                 }
                 // the same as its floating copy in the dock
-                WardButtonBox({ start() }, Modifier.fillMaxWidth(), kind = WardButtonKind.primary, enabled = canWrite && !working && !reading) {
+                FloatingActionRegistration("writer", actionTitle, canWrite && !working && !reading, working, Icons.Rounded.EditNote) { start() }
+                WardButtonBox({ start() }, Modifier.fillMaxWidth().floatingActionAnchor("writer"), kind = WardButtonKind.primary, enabled = canWrite && !working && !reading) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         if (reading || working) EcgLoader()
                         Text(when {

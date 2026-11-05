@@ -43,6 +43,9 @@ import com.stethoscore.app.data.CaseMaker
 import com.stethoscore.app.data.OsceGenerator
 import com.stethoscore.app.data.OsceStations
 import com.stethoscore.app.exam.ExamChoice
+import com.stethoscore.app.ui.editors.FloatingActionRegistration
+import com.stethoscore.app.ui.editors.LectureStep
+import com.stethoscore.app.ui.editors.floatingActionAnchor
 import com.stethoscore.app.ui.editors.rememberLLMService
 import com.stethoscore.app.ui.mock.CountField
 import com.stethoscore.app.ui.ward.WardBanner
@@ -74,9 +77,11 @@ import java.util.zip.ZipInputStream
 // whether "auscultate in four areas" was taught as one step or four. They
 // edit, then create.
 //
-// New set on Android is one page rather than iOS's steps, so the file
-// (iOS step 2) and the count with its Make button (step 3) stand one under
-// the other. Stations are written by the writer route (OsceGenerator.writer),
+// New set gives the step (iOS step: the file in step 2, the count with its
+// Make button in step 3, nothing in step 1); with none, as in the editor's
+// settings, the two stand one under the other. Make floats in New set's dock
+// once a file is read (iOS floatingAction "osce").
+// Stations are written by the writer route (OsceGenerator.writer),
 // in the shape of the student's exam; while it is blocked, Make says why, as
 // the question and case forms do.
 
@@ -176,7 +181,7 @@ internal object OsceSourceReader {
 
 @Composable
 fun OsceGenerateSection(bodyText: String, onBodyText: (String) -> Unit, subject: String, onSubject: (String) -> Unit,
-                        presetText: String = "", presetName: String = "") {
+                        presetText: String = "", presetName: String = "", step: LectureStep? = null) {
     val context = LocalContext.current
     val llm = rememberLLMService()
     val scope = rememberCoroutineScope()
@@ -259,33 +264,43 @@ fun OsceGenerateSection(bodyText: String, onBodyText: (String) -> Unit, subject:
         Text(text, Modifier.padding(horizontal = WardSpace.l.wardDp), style = WardTextStyle.footnote.textStyle(), color = wardColor(WardToken.inkSecondary))
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
-        // the skills lecture or mark sheet
-        WardSectionLabel("Add a file")
-        WardCardFace(Modifier.fillMaxWidth(), spacing = WardSpace.m.wardDp) {
-            WardButtonBox({ picker.launch(arrayOf("application/pdf",
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                "application/vnd.openxmlformats-officedocument.presentationml.presentation")) },
-                Modifier.fillMaxWidth(), kind = WardButtonKind.secondary, enabled = !working) {
-                Icon(Icons.Rounded.NoteAdd, null, Modifier.size(20.dp))
-                Text(if (sourceName.isEmpty()) "Choose a skills lecture or mark sheet" else "Choose a different file")
+    val showsAdd = step == null || step == LectureStep.material
+    val showsMake = step == null || step == LectureStep.make
+    // only once a file is read is there a button to float (iOS "osce-unread" before)
+    FloatingActionRegistration(if (sourceName.isEmpty()) "osce-unread" else "osce", makeTitle, canGenerate, working, Icons.Rounded.EditNote, ::start)
+
+    if (showsAdd || showsMake) Column(verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
+        if (showsAdd) {
+            // the skills lecture or mark sheet
+            WardSectionLabel("Add a file")
+            WardCardFace(Modifier.fillMaxWidth(), spacing = WardSpace.m.wardDp) {
+                WardButtonBox({ picker.launch(arrayOf("application/pdf",
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    "application/vnd.openxmlformats-officedocument.presentationml.presentation")) },
+                    Modifier.fillMaxWidth(), kind = WardButtonKind.secondary, enabled = !working) {
+                    Icon(Icons.Rounded.NoteAdd, null, Modifier.size(20.dp))
+                    Text(if (sourceName.isEmpty()) "Choose a skills lecture or mark sheet" else "Choose a different file")
+                }
+                if (sourceName.isNotEmpty()) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(Icons.Rounded.CheckCircle, null, Modifier.size(16.dp), tint = wardColor(WardToken.inkSecondary))
+                    Text(sourceName, style = WardTextStyle.footnote.textStyle(), color = wardColor(WardToken.inkSecondary))
+                }
+                // each step says what happened, as iOS's messages; on one page, once
+                if (step != null || sourceName.isEmpty()) Messages()
             }
-            if (sourceName.isNotEmpty()) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Icon(Icons.Rounded.CheckCircle, null, Modifier.size(16.dp), tint = wardColor(WardToken.inkSecondary))
-                Text(sourceName, style = WardTextStyle.footnote.textStyle(), color = wardColor(WardToken.inkSecondary))
-            }
-            if (sourceName.isEmpty()) Messages()
+            Footer("PDF, Word or PowerPoint. A skills lecture or a mark sheet works best.")
         }
-        Footer("PDF, Word or PowerPoint. A skills lecture or a mark sheet works best.")
 
         // how many stations, the one big button, and More options
-        WardCardFace(Modifier.fillMaxWidth().padding(top = WardSpace.m.wardDp), spacing = WardSpace.m.wardDp) {
+        if (showsMake) WardCardFace(Modifier.fillMaxWidth().padding(top = if (step == null) WardSpace.m.wardDp else 0.dp), spacing = WardSpace.m.wardDp) {
             if (sourceName.isEmpty()) {
                 Text("Nothing to write from yet — go Back and add a file.", style = WardTextStyle.footnote.textStyle(),
                     color = wardColor(WardToken.inkSecondary))
+                if (step != null) Messages()
             } else {
                 CountField("How many stations", stationCount, { stationCount = it }, 1..OsceGenerator.maxStationsTotal, enabled = !working)
-                WardButtonBox(::start, Modifier.fillMaxWidth(), kind = WardButtonKind.primary, enabled = canGenerate) {
+                // the same as its floating copy in the dock
+                WardButtonBox(::start, Modifier.fillMaxWidth().floatingActionAnchor("osce"), kind = WardButtonKind.primary, enabled = canGenerate) {
                     Icon(Icons.Rounded.EditNote, null, Modifier.size(20.dp))
                     Text(makeTitle)
                 }
@@ -299,6 +314,6 @@ fun OsceGenerateSection(bodyText: String, onBodyText: (String) -> Unit, subject:
             }
             if (showMore) WardTextField(subject, onSubject, Modifier.fillMaxWidth(), placeholder = "Subject, e.g. Cardiology", enabled = !working)
         }
-        Footer("The stations appear below to check before you save the set.")
+        if (showsMake) Footer("The stations appear below to check before you save the set.")
     }
 }

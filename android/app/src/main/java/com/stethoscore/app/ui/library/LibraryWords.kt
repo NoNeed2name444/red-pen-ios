@@ -202,18 +202,25 @@ enum class NewSetPath(val title: String, val blurb: String) {
 
 object NewSetWords {
     /**
-     * The paths a kind offers (iOS NewSetView.paths(for:)). iOS offers From a
-     * lecture file first for every kind but Narrate. Here it is offered where
-     * its writer reaches Stethoscore Cloud: questions (MCQGenerateForm) and
-     * patients (CaseMakeSection). Cards, textbooks and OSCE stations have
-     * their writers (LectureWriterSection, OsceGenerateSection, T0189) but
-     * are not hosted on this path yet, so they offer typing and a file.
+     * The paths a kind offers (iOS NewSetView.paths(for:), NewSetView.swift:546-552):
+     * From a lecture file first for every kind but Narrate, whose lecture is
+     * recorded in Narrate itself; a patient has no line format to type, so
+     * cases offer a lecture or a shared set. The lecture path hosts each
+     * kind's writer: MCQGenerateForm, CaseMakeSection, LectureWriterSection
+     * (cards, textbooks) and OsceGenerateSection (stations).
      */
     fun paths(kind: StudySetKind): List<NewSetPath> = when (kind) {
-        StudySetKind.MCQ -> listOf(NewSetPath.LECTURE, NewSetPath.TYPE, NewSetPath.IMPORT_FILE)
+        StudySetKind.NARRATE -> listOf(NewSetPath.TYPE, NewSetPath.IMPORT_FILE)
         StudySetKind.CASES -> listOf(NewSetPath.LECTURE, NewSetPath.IMPORT_FILE)
-        else -> listOf(NewSetPath.TYPE, NewSetPath.IMPORT_FILE)
+        else -> NewSetPath.entries.toList()
     }
+
+    /**
+     * Whether a lecture section does the writing, and so holds the subject
+     * and the other extra choices itself (iOS NewSetView.usesWriter).
+     */
+    fun usesWriter(path: NewSetPath, kind: StudySetKind): Boolean =
+        path == NewSetPath.LECTURE && kind != StudySetKind.NARRATE
 
     /**
      * The path New set opens on: the kind's first, or typing when it opens on
@@ -274,14 +281,22 @@ object NewSetWords {
     }
 
     /**
-     * Whose Make the dock floats on step 3 of the lecture path (iOS
-     * NewSetView.floatingID, NewSetView.swift:562-575): the questions' or the
-     * patients' writer; the other kinds have no writer here yet.
+     * Which button the dock floats on step 3 (iOS NewSetView.floatingID,
+     * NewSetView.swift:581-593): the lecture section's writer while there is
+     * nothing to save yet, then Save ("create") once there is; Save alone
+     * where no writer is hosted. [hasDraft]: a draft or picture cards to save.
      */
-    fun floatingID(kind: StudySetKind): String? = when (kind) {
-        StudySetKind.MCQ -> "mcq"
-        StudySetKind.CASES -> "cases"
-        else -> null
+    fun floatingID(step: NewSetStep, path: NewSetPath, kind: StudySetKind, showsCreate: Boolean, hasDraft: Boolean): String? {
+        if (step != NewSetStep.MAKE) return null
+        val generator: String? = if (path != NewSetPath.LECTURE) null else when (kind) {
+            StudySetKind.MCQ -> "mcq"
+            StudySetKind.OSCE -> "osce"
+            StudySetKind.ANKI, StudySetKind.BOOK -> "writer"
+            StudySetKind.CASES -> "cases"
+            StudySetKind.NARRATE -> null
+        }
+        if (showsCreate && (generator == null || hasDraft)) return "create"
+        return generator
     }
 
     /** The dock's hint while the material step cannot go on. */

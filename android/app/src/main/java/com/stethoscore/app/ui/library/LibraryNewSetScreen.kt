@@ -56,6 +56,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.stethoscore.app.data.DiagramCards
 import com.stethoscore.app.data.ImportPreview
 import com.stethoscore.app.data.ImportSource
 import com.stethoscore.app.data.LibraryImport
@@ -74,6 +75,7 @@ import com.stethoscore.app.ui.editors.GenerationHUD
 import com.stethoscore.app.ui.editors.LocalGenerationOwner
 import com.stethoscore.app.ui.editors.rememberGenerationOwner
 import com.stethoscore.app.ui.editors.LectureStep
+import com.stethoscore.app.ui.editors.LectureWriterSection
 import com.stethoscore.app.ui.editors.LocalFloatingAction
 import com.stethoscore.app.ui.editors.MCQGenerateForm
 import com.stethoscore.app.ui.modeIcon
@@ -111,8 +113,9 @@ import kotlinx.coroutines.withContext
 //
 // From a lecture file hosts the writers that reach Stethoscore Cloud:
 // MCQGenerateForm for questions, whose questions open in the quiz unsaved
-// with Save there, and CaseMakeSection for patients, saved as they are made.
-// The other kinds offer typing and a file (NewSetWords.paths).
+// with Save there, CaseMakeSection for patients, saved as they are made, and
+// LectureWriterSection (cards, textbooks) and OsceGenerateSection (stations),
+// whose drafts land in Check and edit above Save (NewSetWords.paths).
 
 /**
  * New set, opening on [startKind] chosen and still on the first step, or on
@@ -147,6 +150,8 @@ import kotlinx.coroutines.withContext
     var questionCount by rememberSaveable { mutableIntStateOf(8) }
     var highYield by rememberSaveable { mutableStateOf(false) }
     var readSource by remember { mutableStateOf(preset?.lecture) }
+    // the cards writer's picture cards from the lecture's diagrams (iOS diagrams)
+    var diagrams by remember { mutableStateOf(DiagramCards()) }
     // what this screen starts is its own: closing it stops that, and not a
     // generation started elsewhere (iOS NewSetView.generationOwner, GenerationRules.closingStops);
     // a rotation keeps it, so the work goes on in the recreated activity
@@ -164,6 +169,7 @@ import kotlinx.coroutines.withContext
             // each mode's draft is in its own format, so a draft never carries over to another mode
             GenerationCenter.cancel(startedBy = generationOwner)
             bodyText = ""
+            diagrams = DiagramCards()
             if (path !in NewSetWords.paths(option)) path = NewSetWords.paths(option).first()
         }
         kind = option
@@ -178,10 +184,10 @@ import kotlinx.coroutines.withContext
     }
     BackHandler { if (step == NewSetStep.KIND) onCancel() else goBack() }
 
-    val itemCount = remember(kind, bodyText) {
+    val itemCount = remember(kind, bodyText, diagrams) {
         when (kind) {
             StudySetKind.MCQ -> PlainTextImport.parseAnyMCQ(bodyText).size
-            StudySetKind.ANKI -> PlainTextImport.parseAnyCards(bodyText).size
+            StudySetKind.ANKI -> PlainTextImport.parseAnyCards(bodyText).size + if (diagrams.included) diagrams.cards.size else 0
             StudySetKind.BOOK -> if (bodyText.isBlank()) 0 else LibraryImport.bookPageCount(bodyText)
             StudySetKind.OSCE -> PlainTextImport.parseOsce(bodyText).size
             StudySetKind.NARRATE -> PlainTextImport.parseNarrate(bodyText).size
@@ -201,6 +207,8 @@ import kotlinx.coroutines.withContext
         !(path == NewSetPath.LECTURE && (kind == StudySetKind.MCQ || kind == StudySetKind.CASES))
     val canCreate = name.isNotBlank() && itemCount > 0
     val saveTitle = NewSetWords.saveTitle(kind)
+    val usesWriter = NewSetWords.usesWriter(path, kind)
+    val floatingID = NewSetWords.floatingID(step, path, kind, showsCreate, bodyText.isNotEmpty() || diagrams.included)
 
     var recordingLecture by remember { mutableStateOf(false) }
     var recordedLecture by remember { mutableStateOf(false) }
@@ -222,12 +230,19 @@ import kotlinx.coroutines.withContext
         var set = StudySet(name = name, subject = subject.ifEmpty { "General" }, kind = kind)
         set = when (kind) {
             StudySetKind.MCQ -> set.copy(questions = PlainTextImport.parseAnyMCQ(bodyText))
-            StudySetKind.ANKI -> set.copy(cards = PlainTextImport.parseAnyCards(bodyText))
+            StudySetKind.ANKI -> {
+                val cards = set.copy(cards = PlainTextImport.parseAnyCards(bodyText))
+                // image occlusion cards from the lecture's diagrams, with their pictures
+                if (diagrams.included) cards.copy(cards = cards.cards + diagrams.cards, images = diagrams.images) else cards
+            }
             StudySetKind.BOOK -> set.copy(bookMarkdown = bodyText)
             StudySetKind.OSCE -> set.copy(osceChecklists = PlainTextImport.parseOsce(bodyText))
             StudySetKind.NARRATE -> set.copy(narrateSegments = PlainTextImport.parseNarrate(bodyText))
             StudySetKind.CASES -> return
         }
+        // the lecture it was written from goes with it: page citations and the accuracy check read it
+        val lecture = readSource
+        if (path == NewSetPath.LECTURE && lecture != null) set = set.copy(sources = listOf(lecture.doc()))
         keep(set, onSaved)
     }
 
@@ -329,19 +344,6 @@ import kotlinx.coroutines.withContext
                         WardSectionLabel("Name your set")
                         WardTextField(name, { name = it }, Modifier.fillMaxWidth().semantics { contentDescription = "Name" }, placeholder = "e.g. Cardiology week 3")
                     }
-                    if (showsCreate) LibraryFormSection(footer = NewSetWords.readiness(kind, itemCount, name)) {
-                        Row(Modifier.fillMaxWidth().heightIn(min = WardControlSize.target.wardDp).clickable(role = Role.Button) { moreOptions = !moreOptions },
-                            verticalAlignment = Alignment.CenterVertically) {
-                            Text("More options", style = WardTextStyle.body.textStyle(), color = wardColor(WardToken.ink), modifier = Modifier.weight(1f))
-                            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = wardColor(WardToken.primaryInk),
-                                modifier = Modifier.size(18.dp).rotate(if (moreOptions) 90f else 0f))
-                        }
-                        if (moreOptions) WardTextField(subject, { subject = it }, Modifier.fillMaxWidth().semantics { contentDescription = "Subject" },
-                            placeholder = "Subject, e.g. Cardiology")
-                        WardButtonBox(::create, Modifier.fillMaxWidth(), kind = WardButtonKind.primary, enabled = canCreate) {
-                            Icon(Icons.Rounded.Check, null, Modifier.size(18.dp)); Text(saveTitle)
-                        }
-                    }
                 }
             }
             // the lecture sections are always here, drawing only their part of
@@ -359,7 +361,33 @@ import kotlinx.coroutines.withContext
                         if (set.questions.isNotEmpty()) { generatedSaved = false; GenerationCenter.hold(generationOwner, set) }
                     }
                     StudySetKind.CASES -> CaseMakeSection(subject, { subject = it }, name, lectureStep) { set -> keep(set, onSaved) }
-                    else -> {}
+                    StudySetKind.OSCE -> com.stethoscore.app.ui.osce.OsceGenerateSection(bodyText, { bodyText = it }, subject, { subject = it },
+                        presetText = preset?.text ?: "", presetName = preset?.name ?: "", step = lectureStep)
+                    StudySetKind.ANKI, StudySetKind.BOOK -> LectureWriterSection(kind, bodyText, { bodyText = it }, readSource, { readSource = it },
+                        name, { name = it }, diagrams, { diagrams = it }, subject, { subject = it }, lectureStep, presetNotes = preset?.notes ?: "")
+                    StudySetKind.NARRATE -> {}
+                }
+            }
+            // after the writer, as iOS lists them: its draft to check, then Save
+            if (step == NewSetStep.MAKE) {
+                // a writer's draft, to check before it is saved (iOS draftSection(title: "Check and edit"))
+                if (usesWriter && showsCreate && bodyText.isNotEmpty())
+                    DraftSection("Check and edit", kind, bodyText, { bodyText = it }, showFormat) { showFormat = !showFormat }
+                if (showsCreate) LibraryFormSection(footer = NewSetWords.readiness(kind, itemCount, name)) {
+                    // a lecture section holds the subject itself (iOS createSection, usesWriter)
+                    if (!usesWriter) {
+                        Row(Modifier.fillMaxWidth().heightIn(min = WardControlSize.target.wardDp).clickable(role = Role.Button) { moreOptions = !moreOptions },
+                            verticalAlignment = Alignment.CenterVertically) {
+                            Text("More options", style = WardTextStyle.body.textStyle(), color = wardColor(WardToken.ink), modifier = Modifier.weight(1f))
+                            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = wardColor(WardToken.primaryInk),
+                                modifier = Modifier.size(18.dp).rotate(if (moreOptions) 90f else 0f))
+                        }
+                        if (moreOptions) WardTextField(subject, { subject = it }, Modifier.fillMaxWidth().semantics { contentDescription = "Subject" },
+                            placeholder = "Subject, e.g. Cardiology")
+                    }
+                    WardButtonBox(::create, Modifier.fillMaxWidth(), kind = WardButtonKind.primary, enabled = canCreate) {
+                        Icon(Icons.Rounded.Check, null, Modifier.size(18.dp)); Text(saveTitle)
+                    }
                 }
             }
             Spacer(Modifier.height(8.dp))
@@ -380,14 +408,14 @@ import kotlinx.coroutines.withContext
                     WardButtonBox(::goForward, kind = WardButtonKind.primary, fills = false, enabled = canGoOn) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowForward, null, Modifier.size(18.dp)); Text("Next")
                     }
-                showsCreate ->
+                floatingID == "create" ->
                     WardButtonBox(::create, kind = WardButtonKind.primary, fills = false, enabled = canCreate) {
                         Icon(Icons.Rounded.Check, null, Modifier.size(18.dp))
                         Text(saveTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
-                // step 3 on the lecture path: the floating copy of the writer's Make
-                // while the real one is scrolled out of sight (iOS NewSetView.floatingID)
-                path == NewSetPath.LECTURE -> FloatingMake(floating, NewSetWords.floatingID(kind))
+                // step 3 on the lecture path, before there is a draft: the floating copy of
+                // the writer's Make while the real one is scrolled out of sight (iOS NewSetView.floatingID)
+                else -> FloatingMake(floating, floatingID)
             }
         }
     } }
