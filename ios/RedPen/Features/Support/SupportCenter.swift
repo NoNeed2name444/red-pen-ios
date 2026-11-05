@@ -630,7 +630,8 @@ private struct HelpBullet: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
-            Text("\u{2022}").foregroundStyle(Color.wardInkSecondary)
+            // drawn, not read: VoiceOver reads the line alone
+            Text("\u{2022}").foregroundStyle(Color.wardInkSecondary).accessibilityHidden(true)
             Text(text).font(WardType.face(.footnote, weight: .regular))
         }
     }

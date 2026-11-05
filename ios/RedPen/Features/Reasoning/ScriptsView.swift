@@ -262,7 +262,8 @@ struct ScriptCard: View {
                 heading(symbol, title)
                 ForEach(items, id: \.self) { item in
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text("\u{2022}").foregroundStyle(Color.wardInkSecondary)
+                        // drawn, not read: VoiceOver reads the line alone
+                        Text("\u{2022}").foregroundStyle(Color.wardInkSecondary).accessibilityHidden(true)
                         Text(item).font(WardType.face(.subheadline, weight: .regular)).foregroundStyle(Color.wardInk)
                             .fixedSize(horizontal: false, vertical: true)
                     }

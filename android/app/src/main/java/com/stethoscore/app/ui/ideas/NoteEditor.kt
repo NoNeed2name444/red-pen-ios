@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -303,9 +304,14 @@ import kotlinx.coroutines.delay
             when (block) {
                 is NoteMarkdown.Block.Heading -> Text(inline(block.text, link, openTitle), Modifier.semantics { heading() },
                     style = when (block.level) { 1 -> WardTextStyle.title2; 2 -> WardTextStyle.title3; else -> WardTextStyle.headline }.textStyle(WardWeight.bold), color = ink)
-                is NoteMarkdown.Block.Bullet -> Row(Modifier.padding(start = (block.depth * 16).dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(if (block.marker.firstOrNull()?.isDigit() == true) block.marker else "•", style = WardType.body.textStyle(), color = soft)
-                    Text(inline(block.text, link, openTitle), style = WardType.body.textStyle(), color = ink)
+                is NoteMarkdown.Block.Bullet -> {
+                    // a dot is drawn, not read; a number ("2.") is read with its line
+                    val numbered = block.marker.firstOrNull()?.isDigit() == true
+                    Row(Modifier.padding(start = (block.depth * 16).dp).then(if (numbered) Modifier.semantics(mergeDescendants = true) {} else Modifier),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(if (numbered) block.marker else "•", if (numbered) Modifier else Modifier.clearAndSetSemantics {}, style = WardType.body.textStyle(), color = soft)
+                        Text(inline(block.text, link, openTitle), style = WardType.body.textStyle(), color = ink)
+                    }
                 }
                 is NoteMarkdown.Block.Quote -> Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Box(Modifier.width(3.dp).fillMaxHeight().wardInset(CircleShape))

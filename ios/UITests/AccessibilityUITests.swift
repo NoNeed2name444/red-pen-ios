@@ -2,19 +2,33 @@ import XCTest
 
 /// The App Store accessibility labels, checked on a simulator: the main
 /// screens at the largest accessibility text size (AX5, "XXXL"), and
-/// Xcode's own accessibility audit on each of them.
+/// Xcode's own accessibility audit on each of them, at the default text
+/// size and at AX5.
 ///
-/// At that size the dock is one button over a list of sections (CategoryDock,
+/// At AX5 the dock is one button over a list of sections (CategoryDock,
 /// "dockList"), the tiles go one across, and the rating buttons one per row;
 /// this walks through the library, a quiz, a card, Settings and the ward
 /// round's exam plan that way, and checks each control it needs is there,
 /// can be pressed and sits inside the window rather than off its edge.
+/// At the default size the dock is the row of tabs (LibraryDock).
 ///
 /// Found by the identifiers the other UI tests use (localSignIn,
 /// acceptRecordingTerms, examOnboardingSkip, dockCategory-<place>,
 /// setRow-mcq, setRow-anki, missionPlan, libraryMenu) plus dockList.
 final class AccessibilityUITests: XCTestCase {
     private var app: XCUIApplication!
+
+    /// The text size a test launches at.
+    private enum TextSize {
+        /// The simulator's own size, with no override.
+        case standard
+        /// AX5, the largest accessibility size.
+        case largest
+    }
+
+    /// The size the running test launched at: it decides which dock the
+    /// library has.
+    private var size: TextSize = .largest
 
     /// UIKit's own override for the text size, read at launch.
     private static let largestText: [String] = ["-UIPreferredContentSizeCategoryName",
@@ -36,7 +50,7 @@ final class AccessibilityUITests: XCTestCase {
     // MARK: - The largest text size
 
     func testMainScreensAtTheLargestTextSize() {
-        launch()
+        launch(.largest)
         let list = element("dockList")
         XCTAssertTrue(list.waitForExistence(timeout: 20), "the dock is not one button over a list at AX sizes")
         assertInWindow(list, "the sections button")
@@ -187,13 +201,46 @@ final class AccessibilityUITests: XCTestCase {
 
     // MARK: - The audit
 
+    /// The library, a quiz, a revealed card and Settings, at the default
+    /// text size, audited for every type but contrast.
+    ///
+    /// The Dynamic Type check is run here, not at AX5: it looks for text
+    /// that does not grow when the size goes up, so it needs a larger size
+    /// to step to (see testAccessibilityAuditAtTheLargestTextSize).
     func testAccessibilityAuditOfMainScreens() throws {
-        launch()
+        launch(.standard)
+        XCTAssertTrue(LibraryDock(app: app).waitForLibrary(timeout: 20), "the library did not open")
+        try auditMainScreens(Self.audited)
+    }
+
+    /// The same four screens at AX5, audited for every type but contrast
+    /// and Dynamic Type.
+    ///
+    /// Dynamic Type is left out at this size only, and is checked at the
+    /// default size (testAccessibilityAuditOfMainScreens) instead of being
+    /// dropped. The evidence, probe run 42024778055 (T0203): the revealed
+    /// card's front was flagged "Dynamic Type font sizes are partially
+    /// unsupported" in 3 of 3 runs at AX5, and in 2 of 3 at AX5 with the
+    /// card screens' inline decks held off, against 0 of 3 at the default
+    /// size and 0 of 2 at AccessibilityM (and 1 of 3 at XXXL, in the run
+    /// that also flagged the back's lines). Its face is Font.custom relative
+    /// to its text style, with no cap on it (T0198): at AX5 there is no
+    /// larger size for the check to step to, so it cannot measure the text
+    /// growing there. testMainScreensAtTheLargestTextSize still checks AX5's
+    /// layout, control by control.
+    func testAccessibilityAuditAtTheLargestTextSize() throws {
+        launch(.largest)
         XCTAssertTrue(element("dockList").waitForExistence(timeout: 20), "the library did not open")
-        try audit("library")
+        try auditMainScreens(Self.audited.subtracting(.dynamicType))
+    }
+
+    /// The library, a quiz, the example card revealed and Settings, each
+    /// audited for `types`.
+    private func auditMainScreens(_ types: XCUIAccessibilityAuditType) throws {
+        try audit("library", types)
 
         if choose("questions"), openSet("mcq") {
-            try audit("quiz")
+            try audit("quiz", types)
             goHome()
         }
         if choose("cards"), openSet("anki") {
@@ -204,7 +251,7 @@ final class AccessibilityUITests: XCTestCase {
             // has stopped moving, its frame logged before and after
             let front = element("ankiCardFront")
             settle(front, "card front")
-            try audit("card, revealed")
+            try audit("card, revealed", types)
             print("CARD-SETTLE card front after audit frame=\(front.exists ? "\(front.frame)" : "gone")")
             goHome()
         }
@@ -216,17 +263,17 @@ final class AccessibilityUITests: XCTestCase {
             if item.waitForExistence(timeout: 4) {
                 item.tap()
                 if app.navigationBars["Settings"].waitForExistence(timeout: 8) {
-                    try audit("settings")
+                    try audit("settings", types)
                 }
             }
             goHome()
         }
     }
 
-    private func audit(_ screen: String) throws {
+    private func audit(_ screen: String, _ types: XCUIAccessibilityAuditType) throws {
         try XCTContext.runActivity(named: "Audit: \(screen)") { _ in
             snap("audit-\(screen)")
-            try app.performAccessibilityAudit(for: Self.audited) { [unowned self] issue in
+            try app.performAccessibilityAudit(for: types) { [unowned self] issue in
                 self.isBenign(issue)
             }
         }
@@ -256,7 +303,8 @@ final class AccessibilityUITests: XCTestCase {
 
     // MARK: - Getting around
 
-    private func launch() {
+    private func launch(_ size: TextSize) {
+        self.size = size
         // a system alert (notifications, the microphone) answered rather
         // than left standing over the screen being checked
         _ = addUIInterruptionMonitor(withDescription: "system alert") { alert in
@@ -271,20 +319,43 @@ final class AccessibilityUITests: XCTestCase {
         }
         app = XCUIApplication()
         app.keepTraceOffConsole()
-        // the example sets to open, and a still sky so a busy simulator does
-        // not drop taps
-        app.launchArguments += ["-personalBuild", "-stillSky"] + Self.largestText
+        // the example sets to open, a still sky so a busy simulator does not
+        // drop taps, and AX5's text size (none at the standard size: the
+        // simulator's own)
+        app.launchArguments += ["-personalBuild", "-stillSky"] + (size == .largest ? Self.largestText : [])
         app.launch()
         signIn()
+    }
+
+    /// The library's dock is there: the one list button at AX5, Questions'
+    /// tab on the row at the standard size.
+    private func dockShown() -> Bool {
+        switch size {
+        case .largest: return element("dockList").exists
+        case .standard: return LibraryDock(app: app).row.exists
+        }
+    }
+
+    /// The library is what is on screen, its dock there to be pressed. At
+    /// the standard size as DesignTourUITests' atLibrary: the row's tab
+    /// pressable and no learning sheet over it.
+    private func atLibrary() -> Bool {
+        switch size {
+        case .largest:
+            let list = element("dockList")
+            return list.exists && list.isHittable
+        case .standard:
+            let row = LibraryDock(app: app).row
+            return row.exists && row.isHittable && !app.buttons["learnDone"].exists
+        }
     }
 
     private func signIn() {
         let door = app.buttons["localSignIn"]
         let accept = app.buttons["acceptRecordingTerms"]
         let skipExam = app.buttons["examOnboardingSkip"]
-        let list = element("dockList")
         for _ in 0..<80 {
-            if list.exists { return }
+            if dockShown() { return }
             if door.exists && door.isHittable {
                 door.tap()
                 sleep(1)
@@ -303,8 +374,15 @@ final class AccessibilityUITests: XCTestCase {
         }
     }
 
-    /// A section from the list the dock becomes at AX sizes.
+    /// A section: from the list the dock becomes at AX sizes, or by its tab
+    /// on the row at the standard size.
     private func choose(_ place: String) -> Bool {
+        guard size == .largest else {
+            let chosen: Bool = LibraryDock(app: app).choose(place, timeout: 8, press: { self.press($0) })
+            // the section a moment to come in
+            if chosen { sleep(2) }
+            return chosen
+        }
         let list = element("dockList")
         guard list.exists || list.waitForExistence(timeout: 8) else { return false }
         list.tap()
@@ -329,14 +407,16 @@ final class AccessibilityUITests: XCTestCase {
         }
         row.tap()
         sleep(3)
-        return !element("dockList").exists
+        switch size {
+        case .largest: return !element("dockList").exists
+        case .standard: return !atLibrary()
+        }
     }
 
     /// Back to the library: Cancel or Done on a sheet, Back on a pushed page.
     private func goHome() {
         for _ in 0..<6 {
-            let list = element("dockList")
-            if list.exists && list.isHittable { return }
+            if atLibrary() { return }
             let cancel = app.buttons["Cancel"].firstMatch
             let done = app.buttons["learnDone"].firstMatch
             let back = app.navigationBars.buttons.element(boundBy: 0)
@@ -461,6 +541,22 @@ final class AccessibilityUITests: XCTestCase {
         XCTAssertGreaterThanOrEqual(frame.minX, window.minX - 1, "\(what) runs off the left edge", file: file, line: line)
         XCTAssertLessThanOrEqual(frame.maxX, window.maxX + 1, "\(what) runs off the right edge", file: file, line: line)
         XCTAssertTrue(target.isHittable, "\(what) cannot be pressed", file: file, line: line)
+    }
+
+    /// A tap on `target`, at its middle when XCTest does not call it
+    /// hittable but that middle is in the window (the dock's raised glass;
+    /// DesignTourUITests' press). False when it is not there to press.
+    private func press(_ target: XCUIElement) -> Bool {
+        guard target.exists else { return false }
+        if target.isHittable {
+            target.tap()
+            return true
+        }
+        let frame: CGRect = target.frame
+        let window: CGRect = app.windows.firstMatch.frame
+        guard !frame.isEmpty, window.contains(CGPoint(x: frame.midX, y: frame.midY)) else { return false }
+        target.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        return true
     }
 
     private func element(_ id: String) -> XCUIElement {

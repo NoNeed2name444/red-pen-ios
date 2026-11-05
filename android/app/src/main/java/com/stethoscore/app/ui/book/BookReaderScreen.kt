@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
@@ -263,8 +264,11 @@ internal fun cellStyle(header: Boolean, first: Boolean): TextStyle = when {
     when (block) {
         is BookPages.Block.Heading -> Text(inlineMarkdown(block.text), Modifier.padding(top = WardSpace.s.wardDp),
             style = headingStyle(block.level), color = ink)
-        is BookPages.Block.Bullet -> Row(horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
-            Text(block.marker ?: "•", style = WardTextStyle.body.textStyle(mono = block.marker != null), color = wardColor(WardToken.inkSecondary))
+        // a dot is drawn, not read; a number ("2.") is read with its line
+        is BookPages.Block.Bullet -> Row(if (block.marker != null) Modifier.semantics(mergeDescendants = true) {} else Modifier,
+            horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
+            Text(block.marker ?: "•", if (block.marker == null) Modifier.clearAndSetSemantics {} else Modifier,
+                style = WardTextStyle.body.textStyle(mono = block.marker != null), color = wardColor(WardToken.inkSecondary))
             Text(inlineMarkdown(block.text), style = WardType.body.textStyle(), color = ink)
         }
         is BookPages.Block.Row -> Row(

@@ -134,8 +134,11 @@ struct BookReaderView: View {
                 Text(marker ?? "\u{2022}")
                     .font(marker == nil ? WardType.body : WardType.body.monospacedDigit())
                     .foregroundStyle(Color.wardInkSecondary)
+                    // a dot is drawn, not read; a number is read with its line
+                    .accessibilityHidden(marker == nil)
                 Text(md(text))
             }
+            .accessibilityElement(children: marker == nil ? .contain : .combine)
         case .row(let cells, let header):
             HStack(alignment: .top, spacing: 12) {
                 ForEach(Array(cells.enumerated()), id: \.offset) { i, cell in

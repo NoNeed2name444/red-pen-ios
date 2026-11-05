@@ -202,7 +202,11 @@ struct AnkiCardFace: View {
             VStack(alignment: .leading, spacing: WardSpace.s) {
                 ForEach(card.bullets, id: \.self) { bullet in
                     HStack(alignment: .top, spacing: WardSpace.s) {
+                        // the dot is drawn, not read: VoiceOver reads the line
+                        // alone (the audit called each dot a 9 by 23 point
+                        // element, too small to touch)
                         Text("\u{2022}")
+                            .accessibilityHidden(true)
                         Text(Self.highlighted(bullet))
                     }
                 }

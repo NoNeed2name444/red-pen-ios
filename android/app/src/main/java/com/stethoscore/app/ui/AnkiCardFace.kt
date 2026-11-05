@@ -97,7 +97,8 @@ import com.stethoscore.app.ui.ward.*
         AnkiCardType.QA -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             card.bullets.forEach { bullet ->
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("•", style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
+                    // the dot is drawn, not read: TalkBack reads the line alone
+                    Text("•", Modifier.clearAndSetSemantics {}, style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
                     Text(highlighted(bullet), style = WardType.body.textStyle(), color = wardColor(WardToken.ink))
                 }
             }
