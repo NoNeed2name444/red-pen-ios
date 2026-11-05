@@ -47,6 +47,26 @@ class WidgetUpdatesTest {
         assertEquals(2, runs)
     }
 
+    @Test fun aRepublishDoesNotCancelAPendingUpdate() {
+        val timer = HandTimer()
+        val before = WidgetUpdates.timer
+        WidgetUpdates.timer = timer
+        try {
+            var updates = 0
+            StudyStore.onAnyGlanceWritten = WidgetUpdates.hook { updates++ }
+            val store = StudyStore(folder.root)
+            assertEquals("the load's new digest waits to update the widgets", 1, timer.waiting.size)
+            // the app comes back to the front within the delay (a rotation, a fold)
+            WidgetUpdates.republish(store)
+            assertEquals(0, timer.cancelled)
+            assertEquals(2, timer.waiting.size)
+            timer.fire()
+            assertEquals("the save's update still runs, though the republish found nothing new", 1, updates)
+        } finally {
+            WidgetUpdates.timer = before
+        }
+    }
+
     @Test fun theStoreTellsTheProcessHookOnlyOfANewDigest() {
         val written = mutableListOf<GlanceDigest>()
         StudyStore.onAnyGlanceWritten = { written += it }

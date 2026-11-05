@@ -21,7 +21,12 @@ class WidgetInstallTest {
     private val context: Context get() = ApplicationProvider.getApplicationContext()
     private var goalsBefore: DailyGoal.Store? = null
 
+    private var timerBefore: Debouncer.Timer = WidgetUpdates.timer
+
     @Before fun setUp() {
+        // the store's first digest would schedule a real redraw on the background thread: nothing runs here
+        timerBefore = WidgetUpdates.timer
+        WidgetUpdates.timer = Debouncer.Timer { _, _ -> {} }
         goalsBefore = DailyGoal.store
         ProcessStore.forget()
         StudyStore.onAnyGlanceWritten = null
@@ -31,6 +36,7 @@ class WidgetInstallTest {
         ProcessStore.forget()
         StudyStore.onAnyGlanceWritten = null
         goalsBefore?.let { DailyGoal.store = it }
+        WidgetUpdates.timer = timerBefore
     }
 
     @Test fun theProcessStoreInstallsTheWidgetHook() {

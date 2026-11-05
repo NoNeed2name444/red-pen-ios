@@ -54,10 +54,13 @@ class WidgetShots {
     private val small = DpSize(160.dp, 160.dp)
     private val medium = DpSize(320.dp, 170.dp)
     private val oneLine = DpSize(160.dp, 72.dp)
+    /** A short 4x2 (112 to 159 dp): one deck row and the button. */
+    private val mediumOneRow = DpSize(250.dp, 112.dp)
 
     @Test fun dueCards() {
         shots("w01-due-small", small) { DueCards(DueFace.of(due)) }
         shots("w02-due-medium", medium) { DueCards(DueFace.of(due)) }
+        shots("w02b-due-medium-one-row", mediumOneRow) { DueCards(DueFace.of(due)) }
         shots("w03-due-no-file", small) { DueCards(DueFace.of(GlanceState.NoFile)) }
     }
 

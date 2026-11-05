@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit
 /**
  * Runs the last of a burst of calls once, [delayMs] after the calls stop (a
  * review session writes the digest after each card). Plain Kotlin over a
- * [Timer], so it is tested on the JVM with a hand-driven one (WidgetUpdatesTest).
+ * [Debouncer.Timer], so it is tested on the JVM with a hand-driven one (WidgetUpdatesTest).
  */
 class Debouncer(private val delayMs: Long, private val timer: Timer) {
     /** Schedules [action] after a delay; the returned function cancels it if it has not run. */
@@ -38,11 +38,21 @@ object WidgetUpdates {
     const val delayMs = 2_000L
 
     private val executor = Executors.newSingleThreadScheduledExecutor { r -> Thread(r, "widget-updates").apply { isDaemon = true } }
-    private val timer = Debouncer.Timer { delay, action ->
+    private val executorTimer = Debouncer.Timer { delay, action ->
         val future: ScheduledFuture<*> = executor.schedule({ runCatching(action) }, delay, TimeUnit.MILLISECONDS)
         ({ future.cancel(false) })
     }
-    private val debouncer = Debouncer(delayMs, timer)
+    /** Where both debounces schedule their work: the background thread; a test hands in its own. */
+    @Volatile internal var timer: Debouncer.Timer = executorTimer
+    private val viaTimer = Debouncer.Timer { delay, action -> timer.schedule(delay, action) }
+    /** The widgets' redraw after a new digest. */
+    private val updates = Debouncer(delayMs, viaTimer)
+    /**
+     * The foreground's fresh digest, apart from [updates]: sharing one would let
+     * a republish soon after a save cancel that save's redraw, and the
+     * republish then finds the digest unchanged and tells no one.
+     */
+    private val republishes = Debouncer(delayMs, viaTimer)
 
     /** Counts the digests the widgets were told of; a drawn widget reads the file again when it moves. */
     val version = MutableStateFlow(0L)
@@ -50,16 +60,20 @@ object WidgetUpdates {
     /** Every store's new digest updates the widgets (StudyStore.onAnyGlanceWritten); ProcessStore installs it before it makes the store. */
     fun install(context: Context) {
         val app = context.applicationContext
-        StudyStore.onAnyGlanceWritten = { debouncer.submit { updateNow(app) } }
+        StudyStore.onAnyGlanceWritten = hook { updateNow(app) }
     }
+
+    /** The store's hook: each new digest runs [update] once the digests stop coming. */
+    internal fun hook(update: () -> Unit): (com.stethoscore.app.data.GlanceDigest) -> Unit = { updates.submit(update) }
 
     /**
      * The app came back to the foreground (iOS AppIntentsRouting.swift:241-250):
-     * the digest is worked out again off the main thread, through the same
-     * debounce; it is written, and the widgets told, only if it changed.
+     * the digest is worked out again off the main thread, debounced on its own
+     * (a rotation or a fold starts the activity again); it is written, and the
+     * widgets told, only if it changed.
      */
     fun republish(store: StudyStore) {
-        debouncer.submit { store.publishGlance() }
+        republishes.submit { store.publishGlance() }
     }
 
     /** Redraws every placed widget from the file on disk; no widget placed is a no-op. */

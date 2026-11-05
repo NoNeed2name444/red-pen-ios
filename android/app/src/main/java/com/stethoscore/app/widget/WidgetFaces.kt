@@ -110,9 +110,12 @@ data class TodayFace(
     val number: String,
     /** Under the number: "of 50 done today". */
     val caption: String,
-    /** The one-line size, and what is spoken: "32 of 50 done today". */
+    /** The one-line size: "32 of 50 done today". */
     val line: String,
 ) {
+    /** What the 2x2 size says aloud: the sentence, or with no file the caption (iOS DoneTodayWidget.swift:69). */
+    val spoken: String get() = if (hasFile) line else caption
+
     val link: AppLink get() = AppLink.ReviewDue
 
     companion object {

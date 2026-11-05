@@ -53,6 +53,8 @@ import com.stethoscore.app.data.GlanceState
 internal object WidgetSizes {
     val small = DpSize(110.dp, 110.dp)
     val medium = DpSize(250.dp, 110.dp)
+    /** A 4x2 widget 112 to 159 dp tall: one deck row and the button. */
+    val mediumOneRow = DpSize(250.dp, 112.dp)
     /** A 4x2 widget at least 160 dp tall: both deck rows and the button, 48 dp each, with 8 dp above and below. */
     val mediumTall = DpSize(250.dp, 160.dp)
     val oneLine = DpSize(110.dp, 48.dp)
@@ -117,7 +119,7 @@ private fun OneLine(text: String) {
 // MARK: - Due cards
 
 class DueCardsWidget : GlanceAppWidget() {
-    override val sizeMode = SizeMode.Responsive(setOf(WidgetSizes.small, WidgetSizes.medium, WidgetSizes.mediumTall))
+    override val sizeMode = SizeMode.Responsive(setOf(WidgetSizes.small, WidgetSizes.medium, WidgetSizes.mediumOneRow, WidgetSizes.mediumTall))
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent { DueCards(DueFace.of(glanceState())) }
@@ -224,7 +226,7 @@ internal fun DoneToday(face: TodayFace) {
     if (LocalSize.current.height.value < WidgetSizes.oneLineHeight) {
         Ground(face.link, face.line, vertical = WidgetStyle.mediumVerticalMargin) { OneLine(face.line) }
     } else {
-        Ground(face.link, face.line) { NumberAndCaption(R.drawable.ic_widget_check, face.number, face.caption) }
+        Ground(face.link, face.spoken) { NumberAndCaption(R.drawable.ic_widget_check, face.number, face.caption) }
     }
 }
 

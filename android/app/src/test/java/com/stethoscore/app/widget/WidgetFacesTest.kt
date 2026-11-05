@@ -59,6 +59,7 @@ class WidgetFacesTest {
         assertEquals("–", today.number)
         assertEquals("Open Stethoscore to see today’s count", today.caption)
         assertEquals("Open Stethoscore", today.line)
+        assertEquals("the 2x2 says the caption aloud", "Open Stethoscore to see today\u2019s count", today.spoken)
     }
 
     // nothing due
@@ -107,6 +108,9 @@ class WidgetFacesTest {
         assertFalse(DueLayout.isMedium(WidgetSizes.small.width.value.toDouble()))
         assertTrue(DueLayout.isMedium(WidgetSizes.medium.width.value.toDouble()))
         assertEquals(2, DueLayout.rows(WidgetSizes.mediumTall.height.value.toDouble(), 3, true))
+        // Responsive hands the layout one of the listed sizes: a 4x2 from 112 to 159 dp tall gets mediumOneRow
+        assertEquals(1, DueLayout.rows(WidgetSizes.mediumOneRow.height.value.toDouble(), 3, true))
+        assertEquals(0, DueLayout.rows(WidgetSizes.medium.height.value.toDouble(), 3, true))
     }
 
     // exam date
@@ -147,6 +151,7 @@ class WidgetFacesTest {
         assertEquals("32", face.number)
         assertEquals("of 40 done today", face.caption)
         assertEquals("32 of 40 done today", face.line)
+        assertEquals("32 of 40 done today", face.spoken)
         assertEquals(AppLink.ReviewDue, face.link)
     }
 
