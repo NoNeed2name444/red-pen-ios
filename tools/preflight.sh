@@ -33,14 +33,19 @@ python3 tools/swift_suite_closure.py || fail=1
 echo "== Server and governance tests"
 n=0; for t in server/tests/*.test.mjs tests/*/*.test.mjs; do
   [ -f "$t" ] || continue
-  if ! node "$t" > "$tmp/node.log" 2>&1; then echo "FAIL $t"; grep -E "^FAIL|Error" "$tmp/node.log" | head -5; fail=1; fi
+  if ! node "$t" > "$tmp/node.log" 2>&1; then echo "FAIL $t"; grep -m 5 -E "^FAIL|Error" "$tmp/node.log"; fail=1; fi
   n=$((n+1))
 done; echo "$n files run"
 echo "== Playgrounds core packages"
-if git diff --name-only "$base" -- ios tools | grep -q .; then
+# The list is taken whole, then tested. Piped into grep -q under pipefail, git
+# diff could die of SIGPIPE when grep quit early, and the step was skipped.
+# No pipe in this script feeds a reader that stops early.
+changed=$(git diff --name-only "$base" -- ios tools) \
+  || { echo "cannot list what changed since $base; building the packages anyway"; fail=1; changed=unknown; }
+if [ -n "$changed" ]; then
   for v in core core1 core2 core3; do
     out=$(python3 tools/make_swiftpm.py ios/RedPen "Stethoscore Personal" com.cramdown.personal "$tmp/$v.zip" --without "$v" 2>&1) \
-      && echo "$v: $(echo "$out" | head -1)" || { echo "$v: FAILED"; echo "$out" | tail -5; fail=1; continue; }
+      && echo "$v: ${out%%$'\n'*}" || { echo "$v: FAILED"; echo "$out" | tail -5; fail=1; continue; }
     python3 tools/playgrounds_gaps.py ios/RedPen "$tmp/swiftpm_build/Stethoscore Personal.swiftpm" \
       || { echo "$v: a kept file names a type only dropped files declare; add a stand-in (tools/playgrounds_stubs)"; fail=1; }
   done
