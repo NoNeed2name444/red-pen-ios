@@ -164,5 +164,20 @@ check("ax5: the answer row is in the page, under the choices, at those sizes",
       quizView.contains("answerButtons(proxy)\n                    .onGeometryChange(for: CGRect.self) { $0.frame(in: .scrollView) } action: { reach.row = $0 }\n                    .id(Self.answerRowID)")
         && quizView.contains("private var decksInline: Bool { typeSize.isAccessibilitySize }"))
 
+// T0211 A2: below the accessibility sizes Back and the main action are on
+// the deck, under How sure?, so Check answer is in reach from the start and
+// option D is not left under a deck that holds How sure? alone; the deck is
+// always there, as every other study deck is. At them the row stays in the
+// page (above).
+let deckPart = quizPart("private func deck(_ proxy: ScrollViewProxy) -> some View {", "private var footer: some View {")
+check("a2: the deck holds How sure? and then Back and the main action",
+      deckPart.contains("if deckShown { footer }") && deckPart.contains("if pendingResume == nil { answerButtons(proxy) }"), deckPart)
+check("a2: the deck is shown below the accessibility sizes, holding them",
+      scroller.contains(".studyBar(folds: true, shown: !decksInline) { deck(proxy) }"), scroller)
+check("a2: in the page, the answer row is there at the accessibility sizes only",
+      quizView.contains("if pendingResume == nil && decksInline {\n                answerButtons(proxy)"))
+check("a2: the folded preview scrolls to the last choice, the row being on the deck",
+      scroller.contains("proxy.scrollTo(\"\\(current)-\\(q.options.count - 1)\", anchor: .bottom)"), scroller)
+
 print(failures.isEmpty ? "\nALL CHART QUIZ TESTS PASS" : "\n\(failures.count) CHART QUIZ TEST FAILURE(S)")
 exit(failures.isEmpty ? 0 : 1)

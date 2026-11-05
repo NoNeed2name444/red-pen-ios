@@ -84,7 +84,7 @@ class ScreenshotTest {
         compose.setContent {StethoscoreTheme {Surface(Modifier.fillMaxSize()) {Box(Modifier.fillMaxSize().safeDrawingPadding()) {QuizScreen(set,store,{},minReadSeconds=0)}}}}
         shot("03-questions")
         compose.onNodeWithText(set.questions.first().options[set.questions.first().correctIndex]).performScrollTo().performClick()
-        compose.onNodeWithText("Check answer").performScrollTo().performClick()
+        compose.onNodeWithText("Check answer").performClick()  // on the deck, always in view (T0211 A2)
         compose.onNodeWithText("Correct").performScrollTo().assertIsDisplayed()
         check(store.answerHistory[set.questions.first().id]?.last()==true)
         shot("04-answer-explanation")

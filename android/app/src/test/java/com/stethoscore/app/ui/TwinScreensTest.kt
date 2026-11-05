@@ -100,7 +100,7 @@ class TwinScreensTest {
 
     private fun missAgain() {
         compose.onNode(hasContentDescription("Atenolol tablets", substring = true)).performScrollTo().performClick()
-        compose.onNodeWithText("Check answer").performScrollTo().performClick()
+        compose.onNodeWithText("Check answer").performClick()  // on the deck, always in view (T0211 A2)
         compose.waitForIdle()
     }
 
@@ -170,7 +170,7 @@ class TwinScreensTest {
         LearnRouter.close()
         compose.setContent { CompositionLocalProvider(LocalLLMService provides service("off")) { StethoscoreTheme { QuizScreen(quiz, store, onBack = {}, keepsProgress = false) } } }
         compose.onNode(hasContentDescription("Lisinopril", substring = true)).performScrollTo().performClick()
-        compose.onNodeWithText("Check answer").performScrollTo().performClick()
+        compose.onNodeWithText("Check answer").performClick()  // on the deck, always in view (T0211 A2)
         compose.waitForIdle()
         assertTrue("answered right in the Twins quiz, the twin leaves the queue", store.twinShelf.book.queue.waiting.isEmpty())
         assertEquals(true, store.twinShelf.book.queue.entries.single().answeredCorrectly)

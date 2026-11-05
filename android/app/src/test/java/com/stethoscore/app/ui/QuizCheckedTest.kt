@@ -34,8 +34,8 @@ import org.robolectric.annotation.Config
 // with its own library, as TourTest.inEachMode shows them. On a phone the options and
 // Check answer sit below the fold of the scrolling question (on the CI pixel_6 Check
 // answer is under the How sure? bar), and a tap on a node out of view lands on whatever
-// covers that spot, so each control is scrolled into view first, as a reader would
-// (TourCapture.tapInView). Robolectric's default screen is short enough to show it.
+// covers that spot, so each option is scrolled into view first, as a reader would
+// (TourCapture.tapInView); Check answer is on the deck since T0211 A2. Robolectric's default screen is short enough to show it.
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class QuizCheckedTest {
@@ -44,6 +44,12 @@ class QuizCheckedTest {
 
     private fun tapInView(matcher: SemanticsMatcher) {
         compose.onAllNodes(matcher).onFirst().performScrollTo().performClick()
+        compose.waitForIdle()
+    }
+
+    /** Check answer and Next question are on the study deck, always in view, since T0211 A2. */
+    private fun tapOnDeck(matcher: SemanticsMatcher) {
+        compose.onAllNodes(matcher).onFirst().performClick()
         compose.waitForIdle()
     }
 
@@ -75,7 +81,7 @@ class QuizCheckedTest {
             tapInView(hasClickAction() and hasContentDescription(": " + q.options[q.correctIndex], substring = true))
             val check = ChartQuiz.primaryTitle(false, true, false, false, false)
             assertTrue("$name: no $check after picking", compose.onAllNodes(hasText(check) and hasClickAction()).fetchSemanticsNodes().isNotEmpty())
-            tapInView(hasText(check) and hasClickAction())
+            tapOnDeck(hasText(check) and hasClickAction())
             val next = ChartQuiz.primaryTitle(true, true, false, false, false)
             assertTrue("$name: no $next after checking", compose.onAllNodes(hasText(next) and hasClickAction()).fetchSemanticsNodes().isNotEmpty())
         }

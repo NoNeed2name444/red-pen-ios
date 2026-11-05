@@ -1015,14 +1015,18 @@ struct MCQQuizView: View {
                     scrollContent(proxy)
                 }
             }
-            .studyBar(folds: true, shown: !decksInline && deckShown) { footer }
+            // the deck holds Back and the main action too, so it is always
+            // there below the accessibility sizes, as every other study
+            // deck is (T0211 A2: How sure? alone covered option D and left
+            // Check answer under the fold)
+            .studyBar(folds: true, shown: !decksInline) { deck(proxy) }
             .task {
                 guard PreviewLaunch.screen == "quiz-folded" else { return }
-                // Retry after layout passes so the row clears the folded button.
+                // Retry after layout passes so the last choice clears the folded button.
                 for _ in 0..<12 {
                     do { try await Task.sleep(for: .milliseconds(250)) } catch { return }
                     guard !Task.isCancelled else { return }
-                    proxy.scrollTo(Self.answerRowID, anchor: .bottom)
+                    proxy.scrollTo("\(current)-\(q.options.count - 1)", anchor: .bottom)
                 }
             }
             .task {
@@ -1072,7 +1076,9 @@ struct MCQQuizView: View {
             // at the accessibility sizes, where it scrolls with the rest
             if decksInline && deckShown { footer }
 
-            if pendingResume == nil {
+            // Back and the main action, under the choices, at the
+            // accessibility sizes; on the deck below them
+            if pendingResume == nil && decksInline {
                 answerButtons(proxy)
                     .onGeometryChange(for: CGRect.self) { $0.frame(in: .scrollView) } action: { reach.row = $0 }
                     .id(Self.answerRowID).transition(.identity)
@@ -1106,8 +1112,18 @@ struct MCQQuizView: View {
     /// scrolled into: the first option could not be reached.
     private var decksInline: Bool { typeSize.isAccessibilitySize }
 
-    /// The deck holds Start again and Resume while a saved place waits,
-    /// or How sure? before checking. Back and the main action follow the choices.
+    /// The deck below the accessibility sizes: what `footer` holds, then
+    /// Back and the main action, so Check answer is in reach from the start.
+    private func deck(_ proxy: ScrollViewProxy) -> some View {
+        VStack(spacing: 12) {
+            if deckShown { footer }
+            if pendingResume == nil { answerButtons(proxy) }
+        }
+    }
+
+    /// Start again and Resume while a saved place waits, or How sure?
+    /// before checking: on the deck, or in the page at the accessibility
+    /// sizes, where Back and the main action follow the choices.
     private var footer: some View {
         VStack(spacing: 12) {
             if let p = pendingResume {

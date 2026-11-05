@@ -118,7 +118,10 @@ class TourCapture(private val compose: ComposeContentTestRule) {
      */
     fun tapInView(what: String, matcher: SemanticsMatcher, timeoutMs: Long = 15_000) {
         waitFor(what, matcher, timeoutMs)
-        compose.onAllNodes(matcher).onFirst().performScrollTo().performClick()
+        val node = compose.onAllNodes(matcher).onFirst()
+        // brought into view where it scrolls; a deck's button (Check answer since T0211 A2) is always in view
+        try { node.performScrollTo() } catch (_: AssertionError) {}
+        node.performClick()
         compose.waitForIdle()
     }
 

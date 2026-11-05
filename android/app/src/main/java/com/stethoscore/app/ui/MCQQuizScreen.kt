@@ -393,6 +393,21 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
 
     val scroll = rememberScrollState()
     val explain = remember { BringIntoViewRequester() }
+    // Back and the main action: on the deck, or in the page at the accessibility sizes (iOS decksInline)
+    val actionsInline = com.stethoscore.app.ui.ward.wardAccessibilitySize()
+    @Composable fun answerRow() {
+        val explains = ChartQuiz.explains(a.checked, examMode)
+        val waiting = !a.checked && (holding || (a.selected == null && !examMode))
+        val title = ChartQuiz.primaryTitle(a.checked, a.selected != null, holding, examMode, current == questions.size - 1)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            QuizBigButton(if (explains) null else "Back", Icons.AutoMirrored.Rounded.ArrowBack, QuizButtonKind.companion,
+                onClick = { if (current > 0) current -= 1 }, enabled = current > 0, label = "Previous question")
+            if (explains) QuizBigButton("Explain", null, QuizButtonKind.secondary,
+                onClick = { scope.launch { explain.bringIntoView() } })
+            QuizBigButton(title, if (a.checked) Icons.AutoMirrored.Rounded.ArrowForward else Icons.Rounded.Check, QuizButtonKind.primary,
+                onClick = ::onCheckOrNext, modifier = Modifier.weight(1f), enabled = !waiting)
+        }
+    }
     // with animations off a new question simply starts at the top
     val reduce = com.stethoscore.app.ui.ward.wardReduceMotion()
     LaunchedEffect(current) { if (reduce) scroll.scrollTo(0) else scroll.animateScrollTo(0) }
@@ -534,19 +549,9 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
                 }
             }
 
-            if (pendingResume == null) {
-                val explains = ChartQuiz.explains(a.checked, examMode)
-                val waiting = !a.checked && (holding || (a.selected == null && !examMode))
-                val title = ChartQuiz.primaryTitle(a.checked, a.selected != null, holding, examMode, current == questions.size - 1)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    QuizBigButton(if (explains) null else "Back", Icons.AutoMirrored.Rounded.ArrowBack, QuizButtonKind.companion,
-                        onClick = { if (current > 0) current -= 1 }, enabled = current > 0, label = "Previous question")
-                    if (explains) QuizBigButton("Explain", null, QuizButtonKind.secondary,
-                        onClick = { scope.launch { explain.bringIntoView() } })
-                    QuizBigButton(title, if (a.checked) Icons.AutoMirrored.Rounded.ArrowForward else Icons.Rounded.Check, QuizButtonKind.primary,
-                        onClick = ::onCheckOrNext, modifier = Modifier.weight(1f), enabled = !waiting)
-                }
-            }
+            // at the accessibility sizes the deck would cover most of the page, so Back and the main action
+            // stay here, under the options; otherwise they are on the deck (T0211 A2)
+            if (pendingResume == null && actionsInline) answerRow()
 
             // in exam mode the explanation waits for the results, as it would in the real paper
             if (a.checked && !examMode) {
@@ -613,7 +618,9 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
         // on the one study deck (iOS studyBar(folds: true, shown:)): it folds away, and hidden it
         // keeps its fold for the next question
         val p = pendingResume
-        StudyActionBar(folds = true, shown = p != null || (!a.checked && asksConfidence)) {
+        // with Back and the main action on it (T0211 A2: How sure? covered option D, Check answer was under the
+        // fold), the deck shows all the time below the accessibility sizes, as every other study deck does
+        StudyActionBar(folds = true, shown = p != null || !actionsInline || (!a.checked && asksConfidence)) {
             if (p != null) {
                 val done = p.answers.count { it.checked }
                 val total = set.questions.size
@@ -638,7 +645,7 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
                         confidences = if (chosen == level) confidences - q.id else confidences + (q.id to level)
                     }, on = chosen == level, role = Role.Button)
                 }
-                FirstThatFits(
+                if (!a.checked && asksConfidence) FirstThatFits(
                     { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { SureLabel(true); SureChips() } },
                     { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { SureLabel(false); SureChips() } },
                     // past that, as before: the label and chips flow onto as many lines as they need, so no
@@ -648,6 +655,7 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
                         SureChips()
                     } },
                 )
+                if (!actionsInline) answerRow()
             }
         }
     }

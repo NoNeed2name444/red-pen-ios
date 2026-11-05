@@ -165,7 +165,7 @@ class StudyReachTest {
         assertTrue(seen.isEmpty())
         // the options are shuffled, so the answer may stand below the fold
         compose.onNode(hasContentDescription("Ramipril tablets", substring = true)).performScrollTo().performClick()
-        compose.onNodeWithText("Check answer").performScrollTo().performClick()
+        compose.onNodeWithText("Check answer").performClick()  // on the deck, always in view (T0211 A2)
         val item = checkAccuracy("mcq")
         assertEquals(stem, item.getString("stem"))
         assertEquals(2, item.getInt("key"))
