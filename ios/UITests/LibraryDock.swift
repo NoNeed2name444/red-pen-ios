@@ -18,7 +18,7 @@ struct LibraryDock {
     /// Whether the library is open with its dock as the row: Questions' tab
     /// is there and the one list button is not.
     func waitForLibrary(timeout: TimeInterval) -> Bool {
-        (row.exists || row.waitForExistence(timeout: timeout)) && !element("dockList").exists
+        row.waitForExistence(timeout: timeout) && !element("dockList").exists
     }
 
     /// Goes to a place (a category or "ideas") by its tab on the row.

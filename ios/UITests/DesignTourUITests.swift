@@ -613,7 +613,7 @@ final class DesignTourUITests: XCTestCase {
             missing("ideasSwitcherToggle")
             return false
         }
-        if list.exists || list.waitForExistence(timeout: 4) {
+        if list.waitForExistence(timeout: 4) {
             sleep(1)
             return true
         }

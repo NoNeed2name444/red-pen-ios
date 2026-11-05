@@ -63,7 +63,7 @@ final class ExamplesUITests: XCTestCase {
                 let back = app.navigationBars.buttons.firstMatch
                 if back.exists { back.tap() }
             }
-            XCTAssertTrue(hub.exists || hub.waitForExistence(timeout: 10), "\(id) didn't come back to the examples")
+            XCTAssertTrue(hub.waitForExistence(timeout: 10), "\(id) didn't come back to the examples")
             while app.buttons["example-ideas"].exists && !app.buttons["example-ideas"].isHittable { app.swipeDown() }
         }
     }
