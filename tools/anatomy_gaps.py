@@ -118,6 +118,9 @@ import re
 import numpy as np
 from scipy import ndimage
 from scipy.interpolate import RBFInterpolator
+from scipy.sparse import coo_matrix, csr_matrix, diags, identity, vstack
+from scipy.sparse.linalg import spsolve
+from scipy.sparse.csgraph import connected_components
 from scipy.spatial import cKDTree
 
 SKULL_SOURCE = {
@@ -777,7 +780,7 @@ class Solid:
         d = q - p; return d + d / np.maximum(np.linalg.norm(d, axis=1, keepdims=True), 1e-9) * margin
 
 
-def push_out(p, solids, margin=0.0015, sigma=0.010, rounds=10, step=0.003, f=None):
+def push_out(p, solids, margin=0.0015, sigma=0.010, rounds=10, step=0.003, f=None, alike=False):
     """Move a mesh's points out of the solids: each round, the points inside
     pulled toward the way out, the pull spread smoothly over the mesh, no
     point moving more than `step`. The points inside are pooled per 2 mm
@@ -792,7 +795,9 @@ def push_out(p, solids, margin=0.0015, sigma=0.010, rounds=10, step=0.003, f=Non
     millimetres apart, each pull alike, summed, and a point takes their
     mean once their weight passes one point's.) The round that leaves the
     fewest points inside is kept: a pull can drag a muscle into the next
-    bone (the gluteus minimus, between the ilium and the femur)."""
+    bone (the gluteus minimus, between the ilium and the femur). `alike`:
+    each round's pulls scaled alike rather than each held to `step`
+    (spread_moves)."""
     best = (np.inf, p)
     for done in range(rounds + 1):
         D = np.zeros_like(p); hit = np.zeros(len(p), bool)
@@ -805,22 +810,324 @@ def push_out(p, solids, margin=0.0015, sigma=0.010, rounds=10, step=0.003, f=Non
         if not hit.any() or done == rounds:
             break
         a = vertex_area(p, f)[hit] if f is not None else np.ones(hit.sum())
-        _, cell = np.unique(np.floor(p[hit] / 0.002).astype(np.int64), axis=0, return_inverse=True)
-        cell = cell.reshape(-1); wt = np.bincount(cell, weights=a)
-        src = np.stack([np.bincount(cell, weights=a * p[hit][:, k]) for k in range(3)], 1) / wt[:, None]
-        d = np.stack([np.bincount(cell, weights=a * D[hit][:, k]) for k in range(3)], 1) / wt[:, None]
-        r, _ = cKDTree(src).query(p, distance_upper_bound=3 * sigma); near = np.flatnonzero(np.isfinite(r))
-        out = np.zeros((len(near), 3)); ws = np.zeros(len(near))
-        for i in range(0, len(near), 1000):
-            g = np.exp(-((p[near[i:i + 1000], None] - src[None]) ** 2).sum(-1) / (2 * sigma ** 2)) * wt
-            out[i:i + 1000] = g @ d; ws[i:i + 1000] = g.sum(1)
-        if f is not None:
-            mv = out / ws[:, None] * np.exp(-r[near] ** 2 / (2 * sigma ** 2))[:, None]
-        else:
-            mv = out / np.maximum(ws, 1)[:, None]
-        n = np.linalg.norm(mv, axis=1, keepdims=True)
-        p = p.copy(); p[near] += mv * np.minimum(1, step / np.maximum(n, 1e-9))
+        p = spread_moves(p, p[hit], D[hit], a, sigma, step, f is not None, alike)
     return best[1]
+
+
+def spread_moves(p, at, D, a, sigma, step, by_area, alike=False):
+    """Move the points p by the moves D asked for at the points `at` (each
+    standing for a share `a` of the surface), pooled per 2 mm cell and
+    spread smoothly as push_out describes: each point within 3 sigma takes
+    their Gaussian-weighted mean, by area (fading from the nearest of them)
+    or, without, their sum capped at their mean; no point moves more than
+    `step`, each held to it on its own or, `alike`, all scaled alike so the
+    farthest moves `step`. Scaled alike the moves stay as smooth as the
+    field; held one by one, every point past `step` moves just that, so the
+    surface bends along the line where the holding starts, a crease each
+    round (the man's rectum, eased off the coccyx 1 mm a round)."""
+    _, cell = np.unique(np.floor(at / 0.002).astype(np.int64), axis=0, return_inverse=True)
+    cell = cell.reshape(-1); wt = np.bincount(cell, weights=a)
+    src = np.stack([np.bincount(cell, weights=a * at[:, k]) for k in range(3)], 1) / wt[:, None]
+    d = np.stack([np.bincount(cell, weights=a * D[:, k]) for k in range(3)], 1) / wt[:, None]
+    r, _ = cKDTree(src).query(p, distance_upper_bound=3 * sigma); near = np.flatnonzero(np.isfinite(r))
+    out = np.zeros((len(near), 3)); ws = np.zeros(len(near))
+    for i in range(0, len(near), 1000):
+        g = np.exp(-((p[near[i:i + 1000], None] - src[None]) ** 2).sum(-1) / (2 * sigma ** 2)) * wt
+        out[i:i + 1000] = g @ d; ws[i:i + 1000] = g.sum(1)
+    if by_area:
+        mv = out / ws[:, None] * np.exp(-r[near] ** 2 / (2 * sigma ** 2))[:, None]
+    else:
+        mv = out / np.maximum(ws, 1)[:, None]
+    n = np.linalg.norm(mv, axis=1, keepdims=True)
+    p = p.copy()
+    if alike:
+        p[near] += mv * min(1.0, step / max(float(n.max()) if len(n) else 0.0, 1e-9))
+    else:
+        p[near] += mv * np.minimum(1, step / np.maximum(n, 1e-9))
+    return p
+
+
+def give_way(p, f, bones, margin=0.0015, sigma=0.015, rounds=20, step=0.001, h=0.002, label=None, trace=None,
+             finest=None):
+    """Move a soft structure's surface (p, f) off the bones that run into
+    it, the soft part giving way. Each round, the points of the bones'
+    surfaces (sampled about h apart) inside it are found: its winding
+    number, its holes capped, over a half (a point beyond a thin tube's cut
+    end, near its rim, is not inside, as it would seem by the rim's
+    normal). Where they are, the mesh is first cut finer: an organ set's
+    mesh is coarse (the man's rectum has triangles four centimetres across,
+    one of them through the coccyx's tip), and a triangle can only give way
+    as far as its corners move, so within 2 sigma of them every edge longer
+    than `finest` (a third of sigma unless given) is split (refine(), each
+    new point where the surface the corners' normals describe passes; cut
+    flat, a coarse mesh shaded smooth shows its facets' edges). Each run of
+    them (points within 4 mm, inside the same structure) then pushes that
+    structure one way, from the bones near the run to the soft surface near
+    it (within 2 sigma of its middle), each point as far as the structure
+    reaches behind it that way, and `margin`: a wall the coccyx's tip has
+    pierced slides off it, where each point's own normal (the tip's sides
+    and its end) would pull it apart. The pushes spread over the mesh as
+    push_out spreads its pull (by area, sigma), each round's scaled alike
+    so the farthest moves `step` (spread_moves). Several meshes joined into p, f are told apart by
+    `label` (one per triangle); each must be wound out (wound_out). The
+    round that leaves the fewest of the bones' points inside is kept;
+    `trace`, a list, gets each round's count. Returns the points,
+    triangles and labels (new points after p's)."""
+    p = np.asarray(p, np.float64); f = np.asarray(f, np.int64)
+    label = np.zeros(len(f), np.int64) if label is None else np.asarray(label, np.int64)
+    BP = []
+    for v, g in bones:
+        v, g = np.asarray(v, np.float64), np.asarray(g, np.int64)
+        B, T, _ = face_samples(v, g, h)
+        BP.append(np.einsum("sk,skc->sc", B, v[g[T]]))
+    BP = np.concatenate(BP); bone = cKDTree(BP); reach = 2 * sigma
+    finest = sigma / 3 if finest is None else finest
+    normal = vertex_normals(p, f)
+    best = (np.inf, p, f, label)
+    for done in range(rounds + 1):
+        B, T, _ = face_samples(p, f, h); t = np.einsum("sk,skc->sc", B, p[f[T]])
+        d, _ = cKDTree(t).query(BP, distance_upper_bound=0.010)
+        near = np.isfinite(d); inside = np.zeros(len(BP), bool); owner = np.full(len(BP), -1)
+        for k in np.unique(label):
+            fk = f[label == k]; q = p[np.unique(fk)]; lo, hi = q.min(0), q.max(0)
+            c = np.flatnonzero(near & (BP >= lo).all(1) & (BP <= hi).all(1) & ~inside)
+            if len(c):
+                w = winding_number(BP[c], *capped(p, fk)) > 0.5
+                inside[c[w]] = True; owner[c[w]] = k
+        if trace is not None:
+            trace.append(int(inside.sum()))
+        if inside.sum() < best[0]:
+            best = (inside.sum(), p, f, label)
+        if not inside.any() or done == rounds:
+            break
+        i = np.flatnonzero(inside)
+        for _ in range(8):
+            close = np.unique(T[np.isfinite(cKDTree(BP[i]).query(t, distance_upper_bound=reach)[0])])
+            p, f, label, normal, cut = refine(p, f, label, close, finest, normal)
+            if not cut:
+                break
+            B, T, _ = face_samples(p, f, h); t = np.einsum("sk,skc->sc", B, p[f[T]])
+        D = np.zeros((len(i), 3))
+        for k in np.unique(owner[i]):
+            mine = i[owner[i] == k]; at = np.flatnonzero(owner[i] == k)
+            own = np.flatnonzero(label[T] == k)
+            soft = cKDTree(t[own])
+            pairs = cKDTree(BP[mine]).query_pairs(0.004, output_type="ndarray")
+            _, run = connected_components(coo_matrix((np.ones(len(pairs)), (pairs[:, 0], pairs[:, 1])),
+                                                     shape=(len(mine), len(mine))), directed=False)
+            pc, fc = capped(p, f[label == k])
+            for r in np.unique(run):
+                j = np.flatnonzero(run == r); mid = BP[mine[j]].mean(0)
+                there, hard = soft.query_ball_point(mid, reach), bone.query_ball_point(mid, reach)
+                way = (t[own[there]].mean(0) if there else mid) - (BP[hard].mean(0) if hard else mid)
+                way /= max(np.linalg.norm(way), 1e-12)
+                back = behind(BP[mine[j]], -way, pc, fc, 0.025)
+                D[at[j]] = way * (np.where(np.isfinite(back), back, d[mine[j]]) + margin)[:, None]
+        p = spread_moves(p, BP[i], D, np.full(len(i), h * h), sigma, step, True, alike=True)
+    return best[1], best[2], best[3]
+
+
+def behind(q, way, p, f, most):
+    """How far from each point q along `way` the closed mesh p, f is first
+    met (within `most`; inf beyond): from a point inside it, how far it
+    reaches that way."""
+    a, b, c = p[f[:, 0]], p[f[:, 1]], p[f[:, 2]]
+    lo, hi = q.min(0) - 1e-9 + np.minimum(way * most, 0), q.max(0) + 1e-9 + np.maximum(way * most, 0)
+    keep = ((np.maximum(np.maximum(a, b), c) >= lo).all(1) & (np.minimum(np.minimum(a, b), c) <= hi).all(1))
+    a, b, c = a[keep], b[keep], c[keep]
+    out = np.full(len(q), np.inf)
+    if not len(a):
+        return out
+    e1, e2 = b - a, c - a; pv = np.cross(way, e2); det = (e1 * pv).sum(1)
+    ok = np.abs(det) > 1e-15; inv = np.where(ok, 1 / np.where(ok, det, 1), 0)
+    for s in range(0, len(q), 256):
+        T = q[s:s + 256, None] - a[None]; qv = np.cross(T, e1[None])
+        uu = (T * pv[None]).sum(-1) * inv; vv = (qv * way).sum(-1) * inv; tt = (qv * e2[None]).sum(-1) * inv
+        hit = ok & (uu >= 0) & (vv >= 0) & (uu + vv <= 1) & (tt > 1e-9) & (tt <= most)
+        out[s:s + 256] = np.where(hit, tt, np.inf).min(1)
+    return out
+
+
+def refine(p, f, label, tris, longest, normal=None, seam=0.0006):
+    """Split the edges longer than `longest` of the triangles `tris`, each
+    triangle with a split edge cut by how many it has (one: in two; two: in
+    three, by the shorter diagonal; three: in four), so the mesh stays
+    whole; each piece keeps its triangle's label and winding. A new point
+    lies where the surface its edge's ends' normals describe passes (Phong
+    tessellation, Boubekeur and Alexa 2008, shape factor 3/4: the middle
+    pulled toward the tangent planes at the ends), its normal their mean;
+    without normals, or on a rim (where the mesh is cut open or meets the
+    next structure), at the edge's middle. A rim edge is split with the
+    rim edge of another structure that meets it (its ends within `seam`),
+    so the two stay joined; left whole, a long rim edge would have the
+    triangles beside it cut ever thinner. Returns p (the new points after
+    it), f, label, the normals (None if not given) and whether anything
+    was split."""
+    f = np.asarray(f, np.int64)
+    E = np.stack([f[:, [0, 1]], f[:, [1, 2]], f[:, [2, 0]]], 1).reshape(-1, 2)
+    key, inv, cnt = np.unique(np.sort(E, 1), axis=0, return_inverse=True, return_counts=True)
+    inv = inv.reshape(-1, 3)
+    want = np.zeros(len(key), bool); want[inv[np.asarray(tris, np.int64)].ravel()] = True
+    want &= np.linalg.norm(p[key[:, 0]] - p[key[:, 1]], axis=1) > longest
+    rim = np.flatnonzero(cnt == 1)
+    if want[rim].any():
+        lab = np.zeros(len(key), np.int64); lab[inv.ravel()] = np.repeat(label, 3)
+        ends = p[key[rim]]; mids = ends.mean(1); tree = cKDTree(mids)
+        for i, j in tree.query_pairs(seam, output_type="ndarray"):
+            ei, ej = ends[i], ends[j]
+            same = (np.linalg.norm(ei - ej, axis=1).max() <= seam) or (np.linalg.norm(ei - ej[::-1], axis=1).max() <= seam)
+            if same and lab[rim[i]] != lab[rim[j]] and (want[rim[i]] or want[rim[j]]):
+                want[rim[i]] = want[rim[j]] = True
+    if not want.any():
+        return p, f, label, normal, False
+    new = np.flatnonzero(want); at = np.full(len(key), -1); at[new] = len(p) + np.arange(len(new))
+    a, b = key[new, 0], key[new, 1]; mid = (p[a] + p[b]) / 2
+    if normal is not None:
+        na, nb = normal[a], normal[b]
+        tangent = (mid - ((mid - p[a]) * na).sum(1, keepdims=True) * na + mid - ((mid - p[b]) * nb).sum(1, keepdims=True) * nb) / 2
+        inner = (cnt[new] > 1)[:, None]
+        mid = np.where(inner, mid / 4 + tangent * 3 / 4, mid)
+        nm = na + nb; nm /= np.maximum(np.linalg.norm(nm, axis=1, keepdims=True), 1e-12)
+        normal = np.concatenate([normal, nm])
+    p = np.concatenate([p, mid])
+    m = at[inv]; s = (m >= 0).sum(1)
+    r = np.where(s == 1, np.argmax(m >= 0, 1), np.where(s == 2, (np.argmin(m >= 0, 1) + 1) % 3, 0))
+    o = (np.arange(3)[None] + r[:, None]) % 3; n = np.arange(len(f))[:, None]
+    v, m = f[n, o], m[n, o]
+    out, lab = [f[s == 0]], [label[s == 0]]
+    k = s == 1
+    out += [np.stack([v[k, 0], m[k, 0], v[k, 2]], 1), np.stack([m[k, 0], v[k, 1], v[k, 2]], 1)]; lab += [label[k]] * 2
+    k = np.flatnonzero(s == 2)
+    short = (np.linalg.norm(p[v[k, 0]] - p[m[k, 1]], axis=1) <= np.linalg.norm(p[m[k, 0]] - p[v[k, 2]], axis=1))
+    a, b = k[short], k[~short]
+    out += [np.stack([m[k, 0], v[k, 1], m[k, 1]], 1),
+            np.stack([v[a, 0], m[a, 0], m[a, 1]], 1), np.stack([v[a, 0], m[a, 1], v[a, 2]], 1),
+            np.stack([v[b, 0], m[b, 0], v[b, 2]], 1), np.stack([m[b, 0], m[b, 1], v[b, 2]], 1)]
+    lab += [label[k], label[a], label[a], label[b], label[b]]
+    k = s == 3
+    out += [np.stack([v[k, 0], m[k, 0], m[k, 2]], 1), np.stack([m[k, 0], v[k, 1], m[k, 1]], 1),
+            np.stack([m[k, 2], m[k, 1], v[k, 2]], 1), np.stack([m[k, 0], m[k, 1], m[k, 2]], 1)]
+    lab += [label[k]] * 4
+    return p, np.concatenate(out), np.concatenate(lab), normal, True
+
+
+def fair(p, f, free, normal, cap=1.0):
+    """The points `free` of the mesh p, f moved along their normals to where
+    the surface through the rest bends least: the least squares of each
+    point's offset from the mean of its neighbours (each weighted by its
+    closeness, one over the edge's length), over the free points and their
+    neighbours, a thin plate's bending (Botsch and Kobbelt 2004, Remeshing
+    for multiresolution modeling). Made for the points refine() adds: each
+    lies where its own edge's ends' normals put it, so the surfaces on
+    either side of an old edge meet at an angle, and a coarse mesh cut finer
+    shows its old triangles as creases (the man's rectum); faired, the
+    surface through the old points is smooth. A free point on a rim (where
+    the mesh is cut open or meets the next structure) stays, so a seam stays
+    joined, and none moves more than `cap` times its shortest edge. Returns
+    the points."""
+    f = np.asarray(f, np.int64); n = len(p)
+    E = np.sort(np.concatenate([f[:, [0, 1]], f[:, [1, 2]], f[:, [2, 0]]]), 1)
+    e, cnt = np.unique(E, axis=0, return_counts=True)
+    rim = np.zeros(n, bool); rim[e[cnt == 1].ravel()] = True
+    free = np.asarray(free, np.int64); free = free[~rim[free]]
+    if not len(free):
+        return p
+    i, j = np.concatenate([e[:, 0], e[:, 1]]), np.concatenate([e[:, 1], e[:, 0]])
+    length = np.maximum(np.linalg.norm(p[i] - p[j], axis=1), 1e-9)
+    W = csr_matrix((1 / length, (i, j)), shape=(n, n))
+    L = (diags(1 / np.maximum(np.asarray(W.sum(1)).ravel(), 1e-12)) @ W - identity(n)).tocsr()
+    isfree = np.zeros(n, bool); isfree[free] = True
+    rows = L[np.unique(np.concatenate([free, i[isfree[j]]]))]
+    A = vstack([rows[:, free] @ diags(normal[free, k]) for k in range(3)]).tocsr()
+    b = -(rows @ p).T.ravel()
+    M = (A.T @ A).tocsc()
+    t = spsolve(M + 1e-6 * M.diagonal().mean() * identity(len(free), format="csc"), A.T @ b)
+    short = np.full(n, np.inf); np.minimum.at(short, i, length)
+    t = np.clip(t, -cap * short[free], cap * short[free])
+    p = p.copy(); p[free] += normal[free] * t[:, None]
+    return p
+
+
+def vertex_normals(p, f):
+    """Each point's normal: its triangles' normals, weighted by their areas."""
+    n = np.cross(p[f[:, 1]] - p[f[:, 0]], p[f[:, 2]] - p[f[:, 0]])
+    out = np.zeros_like(p)
+    for k in range(3):
+        np.add.at(out, f[:, k], n)
+    return out / np.maximum(np.linalg.norm(out, axis=1, keepdims=True), 1e-12)
+
+
+def capped(p, f):
+    """The mesh with each hole closed by a fan from its rim's middle, wound as
+    the mesh is: an organ set's vessel is a tube cut open where it meets the
+    next, and its winding number at a cut end is a half, not 0 or 1."""
+    f = np.asarray(f, np.int64)
+    E = np.concatenate([f[:, [0, 1]], f[:, [1, 2]], f[:, [2, 0]]])
+    key = np.sort(E, 1); _, inv, cnt = np.unique(key, axis=0, return_inverse=True, return_counts=True)
+    rim = E[cnt[inv.reshape(-1)] == 1]
+    if not len(rim):
+        return p, f
+    _, comp = connected_components(coo_matrix((np.ones(len(rim)), (rim[:, 0], rim[:, 1])), shape=(len(p), len(p))), directed=False)
+    loops = comp[rim[:, 0]]; ids, at = np.unique(loops, return_inverse=True)
+    mid = np.stack([np.bincount(at, weights=np.r_[p[rim[:, 0], k]], minlength=len(ids)) for k in range(3)], 1) / np.bincount(at)[:, None]
+    fan = np.stack([rim[:, 1], rim[:, 0], len(p) + at], 1)
+    return np.concatenate([p, mid]), np.concatenate([f, fan])
+
+
+def winding_number(q, p, f):
+    """The mesh's generalized winding number at the points q: the solid angle
+    its triangles fill seen from each, over 4 pi (Jacobson, Kavan and
+    Sorkine-Hornung 2013; each triangle's by van Oosterom and Strackee's
+    formula): near 1 inside an outward-wound mesh, 0 outside, and in
+    between, smoothly, at an open one's mouth."""
+    f = np.asarray(f, np.int64); w = np.zeros(len(q))
+    for s in range(0, len(q), 256):
+        qq = q[s:s + 256]
+        for i in range(0, len(f), 2000):
+            a, b, c = (p[f[i:i + 2000, j]][None] - qq[:, None] for j in range(3))
+            la, lb, lc = (np.linalg.norm(x, axis=2) for x in (a, b, c))
+            det = np.einsum("qfk,qfk->qf", a, np.cross(b, c))
+            den = (la * lb * lc + np.einsum("qfk,qfk->qf", a, b) * lc + np.einsum("qfk,qfk->qf", b, c) * la
+                   + np.einsum("qfk,qfk->qf", c, a) * lb)
+            w[s:s + 256] += (2 * np.arctan2(det, den)).sum(1) / (4 * np.pi)
+    return w
+
+
+def wound_out(p, f, eps=0.0003, most=300):
+    """Whether a mesh's triangles are wound to face out: just behind and in
+    front of up to `most` of them, its winding number is near 1 and 0 when
+    they face out, -1 and 0 when in. Unlike its signed volume, this holds
+    for an open, thin, curved tube (an organ set's median sacral vein,
+    whose volume about its own middle comes out negative while it faces
+    out)."""
+    f = np.asarray(f, np.int64)
+    k = np.arange(len(f)) if len(f) <= most else np.random.default_rng(0).choice(len(f), most, replace=False)
+    N = np.cross(p[f[k, 1]] - p[f[k, 0]], p[f[k, 2]] - p[f[k, 0]])
+    N /= np.maximum(np.linalg.norm(N, axis=1, keepdims=True), 1e-12)
+    c = p[f[k]].mean(1)
+    return winding_number(np.concatenate([c - eps * N, c + eps * N]), p, f).mean() >= 0
+
+
+def face_samples(p, f, h=0.002):
+    """Points over each triangle at most about h apart: their barycentric
+    weights (n, 3), the triangle each lies on, and the share of the surface
+    each stands for."""
+    e = np.linalg.norm(p[f[:, [1, 2, 0]]] - p[f], axis=2).max(1)
+    ar = np.linalg.norm(np.cross(p[f[:, 1]] - p[f[:, 0]], p[f[:, 2]] - p[f[:, 0]]), axis=1) / 2
+    n = np.maximum(1, np.ceil(e / h)).astype(int)
+    B, T, A = [], [], []
+    for k in np.unique(n):
+        i, j = np.meshgrid(np.arange(k + 1), np.arange(k + 1), indexing="ij"); keep = i + j <= k
+        b = np.stack([i[keep], j[keep], k - i[keep] - j[keep]], 1) / k
+        tri = np.flatnonzero(n == k)
+        B.append(np.tile(b, (len(tri), 1))); T.append(np.repeat(tri, len(b))); A.append(np.repeat(ar[tri] / len(b), len(b)))
+    return np.concatenate(B), np.concatenate(T), np.concatenate(A)
+
+
+def face_points(p, f, h=0.002):
+    """face_samples' points."""
+    B, T, _ = face_samples(p, f, h)
+    return np.einsum("sk,skc->sc", B, p[f[T]])
 
 
 def vertex_area(p, f):

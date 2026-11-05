@@ -72,8 +72,53 @@ The spine, for each body:
    the woman's six lumbar vertebrae are KA 25's five, its third used twice.
    The two pieces of the coccyx (its first segment, and the second to
    fourth fused) were scanned in the sacrum's frame, so the sacrum's
-   similarity places them too, on its tip. The intervertebral discs are
-   the organ sets'.
+   similarity places them too, on its tip.
+3. The sacrum then seated by its joints. The male organ set has no disc
+   under the fifth lumbar vertebra, and the scan's sacrum (a different
+   man's) lays its top lower and further back on the organ set's sacrum
+   than his fifth lumbar vertebra needs: so it is moved, not turned, until
+   S1's top lies 11 mm below the vertebra's lower endplate (each the
+   largest flat patch there, found as a plane), centred under it. Then, in
+   both bodies, it is widened evenly across the body and moved sideways as
+   nearly as that brings its auricular surfaces 2.5 mm from the ilia
+   without driving any of it into them, and what is left is taken up by a
+   field smooth through space (10 mm), the joints pulled to the gap and
+   the rest held. The coccyx is carried with the sacrum's tip. Where the
+   last lumbar vertebra's facets and the sacrum's then run into each other
+   (by up to 6 mm in the man), the sacrum's points inside the vertebra are
+   pushed out of it, then the vertebra's out of the sacrum, each by a field
+   smooth over the points near them (6 mm), to a joint's width (1 mm).
+4. The discs are the organ sets', set right: the male organ set names each
+   nucleus pulposus a level down (and two the wrong way round), so each is
+   named for the disc it lies in; his fourth lumbar disc, left with none,
+   is given its neighbour's, laid into it; and the disc under his fifth
+   lumbar vertebra is the one above it carried into the space between the
+   vertebra's lower endplate and S1's top, each point keeping its place
+   across the disc and its share of the way from one face to the other,
+   so it fills the space, wedge and all.
+5. What the new bones run into gives way, by the field tools/anatomy_gaps.py
+   moves the scans' parts out of what they cut into (each bone or disc a
+   solid of its own), each point's pull weighted by the surface it stands
+   for and spread smoothly over 15 mm, each round's pulls scaled alike (held
+   each to 3 mm on its own, the points past it all moved alike, and the
+   surface bent along the line where that began, a crease a round), so a
+   muscle the widened sacrum runs into slides off it without a crease: the
+   hip and back muscles, which it moved out of the organ sets' column and
+   pelvis, out of every bone and disc of the new column and the sacrum and
+   coccyx; and the gut and vessels about the sacrum, which the seating
+   moves, off the sacrum, coccyx, last lumbar vertebra and the disc under
+   it, all of those near it moved as one, so a vein stays joined to the
+   next. Each patch a bone runs into slides off it one way, from the bone
+   to the soft structure about it (tools/anatomy_gaps.py give_way, by the
+   same field), so the rectum's back wall eases forward along the sacrum's
+   curve rather than wrapping the coccyx's tip; what is still inside a bone
+   is then pushed out of it. The organ sets' meshes are coarse (the man's
+   rectum has triangles four centimetres across, one through the coccyx's
+   tip), so where a bone meets one it is cut finer there; and a gut
+   structure a bone meets is first cut finer wherever the field reaches it,
+   each new point then moved along its normal to where the surface bends
+   least (anatomy_gaps.py fair: cut finer alone, the surface showed the
+   old triangles' edges as creases).
 
 On an atlas already done (its manifest lists both sources) it does nothing;
 the same inputs give the same bytes. Needs numpy, scipy and
@@ -92,6 +137,7 @@ import sys
 import numpy as np
 import fast_simplification
 from scipy.ndimage import gaussian_filter, map_coordinates
+from scipy.optimize import least_squares
 from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import connected_components, dijkstra
 from scipy.spatial import cKDTree
@@ -153,7 +199,15 @@ CHANGES = (
     "skeleton scanned at 0.15 mm (KA 25, figshare), simplified to a triangle per 2.5 mm² and placed on the "
     "organ set's by a similarity, the coccyx by the sacrum's (the man's seventh to twelfth thoracic "
     "vertebrae are the scan's eighth to thirteenth; the woman's six lumbar vertebrae are its five, its "
-    "third used twice)."
+    "third used twice). The sacrum then seated by its joints, the coccyx carried with it: the man's moved "
+    "until S1's top lies 11 mm under his fifth lumbar vertebra; in both, widened evenly and moved sideways, "
+    "then bent by a field smooth through space, so its auricular surfaces lie 2.5 mm from the ilia. The "
+    "man's nuclei pulposi named for the discs they lie in (the organ set names them a level down), his "
+    "fourth lumbar disc given its neighbour's nucleus, and a disc laid under his fifth lumbar vertebra, the "
+    "one above carried there to fill the space. Where the last lumbar vertebra's facets and the sacrum's ran "
+    "into each other, each pushed out of the other by a smooth field to a joint's width; and the hip and back "
+    "muscles, and the gut and vessels about the sacrum, moved out of the new bones by the field that moves "
+    "the scans' parts out of what they cut into."
 )
 
 CRANIUM, MANDIBLE = 90_000, 16_000   # the skull's triangles
@@ -757,6 +811,437 @@ def budget(v, f, s):
     return max(BONE_FLOOR, int(round(a * 1e6 / SPINE_MM2)))
 
 
+# MARK: the spine's joints: the sacrum seated by them, and the discs
+
+ORDINALS = ("first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth",
+            "eleventh", "twelfth")
+DISC_MM, SI_GAP_MM = 11.0, 2.5      # the disc under the last lumbar vertebra (at its middle); each sacroiliac joint
+FACET_GAP, FACET_SIGMA = 0.001, 0.006   # the last lumbar facet joints eased apart: to 1 mm, over 6 mm
+# What gives way to the scanned bones once they are in (settle): the parts tools/anatomy_gaps.py moved out of the
+# organ sets' column and pelvis, out of every bone and disc of the new column, as it did; and the gut and vessels
+# about the sacrum and coccyx, which the seating moves, out of those two
+SETTLE = {"hip-muscles": "column", "back-muscles": "column", "colon": "seat", "vessels": "seat"}
+SETTLE_SIGMA, SETTLE_ROUNDS = 0.015, 20   # their field: smooth over 15 mm, by the surface each point stands for
+# The seat's parts cut finer and faired before they give way, where a bone meets one of their structures: the gut,
+# whose organ-set meshes are coarse (the man's rectum has edges up to 4.5 cm); the vessels' tubes are finer, and
+# faired one by one they crease where they join (the vena cava's fork)
+CUT_FIRST = ("colon",)
+
+
+def largest_piece(q, link):
+    """Which of the points q are in their largest piece, points within `link` of each other joined."""
+    tree = cKDTree(q)
+    lab = -np.ones(len(q), int)
+    cur = 0
+    for s in range(len(q)):
+        if lab[s] >= 0:
+            continue
+        stack, lab[s] = [s], cur
+        while stack:
+            j = stack.pop()
+            for k in tree.query_ball_point(q[j], link):
+                if lab[k] < 0:
+                    lab[k] = cur
+                    stack.append(k)
+        cur += 1
+    return lab == np.bincount(lab).argmax()
+
+
+def flat_patch(p, n, want, cone=70.0, tol=0.0008, agree=0.9, tries=1500, link=0.004, rim=0.002):
+    """The largest flat patch among the points p (unit normals n) that face within `cone` degrees of `want`:
+    of planes through single points (with their normals), the one most points lie on (within tol, their
+    normals agreeing), its largest piece, grown to its rim (points within `rim` of its plane, normals within
+    40 degrees). Returns (centre, unit normal facing `want`, the patch's points)."""
+    rng = np.random.default_rng(1)
+    ok = (n @ want) > np.cos(np.radians(cone))
+    idx = np.flatnonzero(ok)
+    best = None
+    for i in rng.choice(idx, min(tries, len(idx)), replace=False):
+        inl = ok & (np.abs((p - p[i]) @ n[i]) < tol) & ((n @ n[i]) > agree)
+        if best is None or inl.sum() > best.sum():
+            best = inl
+    q = p[best][largest_piece(p[best], link)]
+    c = q.mean(0)
+    m = np.linalg.svd(q - c)[2][2]
+    m = m if m @ want > 0 else -m
+    grow = ok & (np.abs((p - c) @ m) < rim) & ((n @ m) > np.cos(np.radians(40)))
+    q = p[grow][largest_piece(p[grow], link)]
+    c = q.mean(0)
+    m = np.linalg.svd(q - c)[2][2]
+    return c, (m if m @ want > 0 else -m), q
+
+
+def lower_endplate(v, f, xm):
+    """A vertebra's lower endplate, the flat underside of its body (its front 40 mm, within 16 mm of the
+    middle xm, its lower 45%): (centre, normal facing down out of the bone, its points)."""
+    p, n = sample(v, f, 40000, seed=3)
+    zf = np.percentile(p[np.abs(p[:, 0] - xm) < 0.01, 2], 99)
+    body = (np.abs(p[:, 0] - xm) < 0.016) & (p[:, 2] > zf - 0.04) & (p[:, 1] < np.percentile(p[:, 1], 45))
+    return flat_patch(p[body], n[body], np.array([0, -1.0, 0]))
+
+
+def upper_endplate(v, f, xm):
+    """The sacrum's upper endplate, S1's flat top (among its upper third within 16 mm of the middle xm):
+    (centre, normal facing up and forward out of the bone, its points)."""
+    p, n = sample(v, f, 40000, seed=3)
+    top = (np.abs(p[:, 0] - xm) < 0.016) & (p[:, 1] > np.percentile(p[:, 1], 66))
+    return flat_patch(p[top], n[top], np.array([0, 0.8, 0.6]))
+
+
+def frame(up):
+    """Across (the body's left) and forward, square to `up`."""
+    a = np.array([0, 0, 1.0]) - up[2] * up
+    a /= np.linalg.norm(a)
+    return np.cross(up, a), a
+
+
+def size(points, centre, normal):
+    """A flat patch's width (across) and depth (forward), the 2nd to 98th percentiles."""
+    across, forward = frame(normal if normal[1] > 0 else -normal)
+    r = points - centre
+    return np.array([np.ptp(np.percentile(r @ across, [2, 98])), np.ptp(np.percentile(r @ forward, [2, 98]))])
+
+
+def rigid(src, dst):
+    """The turn and move (R, t) taking the points src onto dst by least squares."""
+    ms, md = src.mean(0), dst.mean(0)
+    U, _, Vt = np.linalg.svd((dst - md).T @ (src - ms))
+    D = np.eye(3)
+    D[2, 2] = np.sign(np.linalg.det(U @ Vt))
+    R = U @ D @ Vt
+    return R, md - R @ ms
+
+
+def follow(before, after, q, reach=0.015):
+    """The points q carried rigidly as the points of `before` within `reach` of them moved (to `after`)."""
+    near = cKDTree(q).query(before)[0] < reach
+    R, t = rigid(before[near], after[near])
+    return (R @ q.T).T + t
+
+
+def across_joint(w, wn, other, reach=0.015):
+    """The points of a surface (w, unit normals wn) across a joint from another bone (other: its points,
+    normals and tree): within `reach`, their normals opposed to the other's, the other straight ahead of
+    them, and facing sideways (the sacroiliac joints'). Returns (that mask, each point's gap along the
+    other's normal (outside it > 0), the other's normal at the nearest point, the distance)."""
+    H, HN, tree = other
+    dist, j = tree.query(w)
+    gap = ((w - H[j]) * HN[j]).sum(1)
+    ahead = ((H[j] - w) * wn).sum(1) / np.maximum(dist, 1e-9)
+    mask = (dist < reach) & ((wn * HN[j]).sum(1) < -0.6) & (ahead > 0.6) & (np.abs(wn[:, 0]) > 0.5)
+    return mask, gap, HN[j], dist
+
+
+def seat_sacrum(v, f, last, hips, disc):
+    """The sacrum (v, f), as its similarity laid it on the organ set's, seated by its joints. Where the body
+    has no disc under its last lumbar vertebra (last: (v, f)) the organ set left the space for one, but the
+    scan's sacrum, a different man's, lays its top lower and further back on the organ set's for the same
+    fit: so it is moved, not turned, until S1's top lies `disc` metres below the vertebra's lower endplate,
+    centred under it (disc None: left where it is, the organ set's disc lying there). Then it is widened
+    evenly across the body about its middle and moved sideways, as nearly as that brings its joint surfaces
+    SI_GAP_MM from the hip bones (hips: [(v, f)]) without driving any of it into them, and what is left is
+    taken up by a field smooth through space (10 mm), the joints pulled to the gap and the rest held.
+    Returns the new vertices and an account."""
+    w = v.copy()
+    xm = np.median(w[:, 0])
+    said = []
+    if disc is not None:
+        lc, ln, _ = lower_endplate(*last, xm)
+        sc, sn, _ = upper_endplate(w, f, xm)
+        forward = frame(sn)[1]
+        h = (lc - sc) @ sn
+        move = (h - disc) * sn + ((lc - sc - h * sn) @ forward) * forward
+        w = w + move
+        said.append(f"moved {np.linalg.norm(move) * 1000:.1f} mm so S1's top is {disc * 1000:.0f} mm under L5 "
+                    f"({h * 1000:.0f} mm before)")
+    others = []
+    for hv, hf in hips:
+        H, HN = sample(hv.astype(np.float64), hf, 60000)
+        others.append((H, HN, cKDTree(H)))
+    gap = SI_GAP_MM * 1e-3
+    xm = np.median(w[:, 0])
+    wn = vertex_normals(w, f)
+    joints = [across_joint(w, wn, o)[0] for o in others]
+
+    def misfit(x):
+        q = w.copy()
+        q[:, 0] = xm + x[0] * (w[:, 0] - xm) + x[1]
+        out = []
+        for o, J in zip(others, joints):
+            _, g, _, d = across_joint(q, wn, o)
+            out.append(g[J] - gap)
+            out.append(3.0 * np.where((d < 0.01) & (g < 0), g, 0.0))      # none of it into the hip
+        return np.concatenate(out)
+    wide, shift = least_squares(misfit, [1.0, 0.0], bounds=([0.9, -0.01], [1.2, 0.01]), loss="soft_l1",
+                                f_scale=0.002).x
+    w[:, 0] = xm + wide * (w[:, 0] - xm) + shift
+    said.append(f"widened x{wide:.3f}, moved {shift * 1000:+.1f} mm across")
+    w0 = w.copy()
+    for _ in range(5):
+        wn = vertex_normals(w, f)
+        d = np.zeros_like(w)
+        weight = np.full(len(w), 0.15)
+        for o in others:
+            J, g, hn, dist = across_joint(w, wn, o)
+            inside = (g < 0) & (dist < 0.006)
+            d[J] = -(g[J] - gap)[:, None] * hn[J]
+            d[inside] = -(g[inside] - 0.0005)[:, None] * hn[inside]
+            weight[J | inside] = 1.0
+        w = w + 0.8 * smooth_field(w, d, weight, 0.010)
+    w = w0 + smooth_field(w0, w - w0, np.ones(len(w)), 0.004)
+    wn = vertex_normals(w, f)
+    gaps = []
+    for o in others:
+        J, g, _, _ = across_joint(w, wn, o)
+        gaps.append(f"{np.median(g[J]) * 1000:.1f}")
+    said.append(f"its joints {' and '.join(gaps)} mm from the hip bones (medians)")
+    return w, "; ".join(said)
+
+
+def ease_facets(sacrum, last):
+    """The facet joints between the last lumbar vertebra and the sacrum (each (v, f)), eased apart where the
+    two run into each other: the scan's sacrum, a different man's, seated by its disc and sacroiliac joints,
+    can drive its superior articular processes into the vertebra's inferior ones (by up to 6 mm in the man).
+    The sacrum's points inside the vertebra are pushed out of it, then the vertebra's out of the sacrum,
+    each by a field smooth over the points near them (tools/anatomy_gaps.py push_out, on 1 mm voxels), to a
+    joint's width. Returns the sacrum's and the vertebra's new vertices, and an account."""
+    from anatomy_gaps import Solid, push_out
+    (sv, sf), (lv, lf) = sacrum, last
+    sv, lv = np.asarray(sv, np.float64), np.asarray(lv, np.float64)
+    into = Solid([(lv, lf)], h=0.001, close=1).inside(sv).sum()
+    s2 = push_out(sv, [Solid([(lv, lf)], h=0.001, close=1)], margin=FACET_GAP, sigma=FACET_SIGMA)
+    hold = Solid([(s2, sf)], h=0.001, close=1)
+    back = hold.inside(lv).sum()
+    l2 = push_out(lv, [hold], margin=FACET_GAP, sigma=FACET_SIGMA)
+    ds, dl = np.linalg.norm(s2 - sv, axis=1).max(), np.linalg.norm(l2 - lv, axis=1).max()
+    left = Solid([(l2, lf)], h=0.001, close=1).inside(s2).sum() + Solid([(s2, sf)], h=0.001, close=1).inside(l2).sum()
+    return s2, l2, (f"facets eased: {into} of the sacrum's points in the vertebra, moved up to {ds * 1000:.1f} mm; "
+                    f"{back} of the vertebra's in the sacrum, up to {dl * 1000:.1f} mm; {left} left in either")
+
+
+def disc_faces(v, f):
+    """A disc's upper and lower faces as planes ((centre, normal facing out of the disc): upper, lower),
+    found by their normals along the axis it is thinnest along."""
+    p, n = sample(v, f, 20000, seed=5)
+    up = np.linalg.eigh(np.cov((p - p.mean(0)).T))[1][:, 0]
+    up = up if up[1] > 0 else -up
+    faces = []
+    for s in (1, -1):
+        q = p[(n @ (s * up)) > 0.8]
+        c = q.mean(0)
+        m = np.linalg.svd(q - c)[2][2]
+        faces.append((c, m if m @ (s * up) > 0 else -m))
+    return faces
+
+
+def lay_disc(meshes, src, dst, scale):
+    """Disc meshes [(v, f)] carried from the space between one pair of planes to the space between another
+    (src, dst: (upper, lower), each (a point, its normal facing out of the disc)): each point keeps its place
+    across the disc, scaled by `scale` (across, forward), and its share of the way from the lower face to the
+    upper, so the disc fills the new space whatever its height and wedge."""
+    def space(planes):
+        (c1, n1), (c0, n0) = planes
+        up = n1 - n0
+        up /= np.linalg.norm(up)
+        return 0.5 * (c0 + c1), up, frame(up), (c1, n1), (c0, n0)
+
+    def along(o, up, x, plane):
+        """How far along `up` from o + x (x: offsets across the disc, (n, 3)) the plane lies."""
+        c, n = plane
+        return ((c - o - x) @ n) / (up @ n)
+    os_, us, (ls, fs), top_s, low_s = space(src)
+    ot, ut, (lt, ft), top_t, low_t = space(dst)
+    out = []
+    for v, f in meshes:
+        r = v - os_
+        a, b = r @ ls, r @ fs
+        x = a[:, None] * ls + b[:, None] * fs
+        lo, hi = along(os_, us, x, low_s), along(os_, us, x, top_s)
+        share = (r @ us - lo) / (hi - lo)
+        xt = (a * scale[0])[:, None] * lt + (b * scale[1])[:, None] * ft
+        lo, hi = along(ot, ut, xt, low_t), along(ot, ut, xt, top_t)
+        out.append((ot + xt + (lo + share * (hi - lo))[:, None] * ut, f))
+    return out
+
+
+def discs(body, column, new):
+    """The column's discs set right (column: its part, with its meshes, changed in place; new: the scanned
+    bones by node). Each nucleus pulposus named for the disc it lies in (the male organ set names them a
+    level down, and two of them the wrong way round); a disc with none given its nearest neighbour's,
+    laid into it; and where there is no disc under the last lumbar vertebra, the one above laid there with
+    its nucleus, at its own size, between the vertebra's lower endplate and S1's top. Returns an
+    account."""
+    pre = "VH_M_" if body["id"] == "male" else "VH_F_"
+    sts, meshes = column["structures"], column["meshes"]
+    nodes = [s["node"] for s in sts]
+    disks = [i for i, n in enumerate(nodes) if "_intervertebral_disk_of_" in n and "_nucleus_" not in n]
+    nuclei = [i for i, n in enumerate(nodes) if "_nucleus_pulposus_of_" in n]
+    f64 = lambda m: (np.asarray(m[0], np.float64), m[1])
+    mid = {i: f64(meshes[i])[0].mean(0) for i in disks + nuclei}
+    home = {}
+    for i in nuclei:
+        j = min(disks, key=lambda j: np.linalg.norm(mid[i] - mid[j]))
+        if np.linalg.norm(mid[i] - mid[j]) < 0.015:
+            home[i] = j
+    said = []
+
+    def named(st, disk):
+        """A nucleus's structure named for the disc it lies in."""
+        return dict(st, node=pre + "nucleus_pulposus_of_" + disk["node"][len(pre):],
+                    label="nucleus pulposus of " + disk["label"], group="nucleus pulposus of " + disk["group"])
+    if len(set(home.values())) < len(home):
+        said.append("the nuclei left as named (two lie in one disc)")
+        home = {}
+    moved = [i for i, j in home.items() if named(sts[i], sts[j])["node"] != sts[i]["node"]]
+    for i in moved:
+        sts[i].update(named(sts[i], sts[home[i]]))
+    if moved:
+        said.append(f"{len(moved)} nuclei named for the discs they lie in")
+    core = {j: (sts[i], meshes[i]) for i, j in home.items()}        # each disc's nucleus
+    added = []                                                      # (the node it follows, structure, mesh)
+    for j in disks:
+        if j in core or not core:
+            continue
+        k = min(core, key=lambda k: np.linalg.norm(mid[k] - mid[j]))
+        src, dst = disc_faces(*f64(meshes[k])), disc_faces(*f64(meshes[j]))
+        ps, pd = sample(*f64(meshes[k]), 8000)[0], sample(*f64(meshes[j]), 8000)[0]
+        scale = size(pd, pd.mean(0), dst[0][1]) / size(ps, ps.mean(0), src[0][1])
+        laid = lay_disc([f64(core[k][1])], src, dst, scale)[0]
+        st = named(core[k][0], sts[j])
+        added.append((core[k][0]["node"], st, laid))
+        core[j] = (st, laid)
+        said.append(f"the {sts[j]['label']} given the {sts[k]['label']}'s nucleus, laid into it")
+    lumbar = sorted((n for n in new if "_lumbar_vertebra_" in n), key=lambda n: int(n.rsplit("_", 1)[1]))
+    last, num = lumbar[-1], int(lumbar[-1].rsplit("_", 1)[1])
+    want = f"{pre}intervertebral_disk_of_{ORDINALS[num - 1]}_lumbar_vertebra"
+    if want not in nodes:
+        k = nodes.index(f"{pre}intervertebral_disk_of_{ORDINALS[num - 2]}_lumbar_vertebra")
+        sac = f64(new[pre + "sacrum"])
+        xm = np.median(sac[0][:, 0])
+        lc, ln, _ = lower_endplate(*f64(new[last]), xm)
+        sc, sn, _ = upper_endplate(*sac, xm)
+        scale = np.ones(2)      # the flat patches are too partial to size it by (L5's and L4's alike)
+        laid = lay_disc([f64(meshes[k])] + ([f64(core[k][1])] if k in core else []), disc_faces(*f64(meshes[k])),
+                        ((lc, -ln), (sc, -sn)), scale)
+        disk = dict(sts[k], node=want, label=f"intervertebral disk of {ORDINALS[num - 1]} lumbar vertebra")
+        added.append((sts[k]["node"], disk, laid[0]))
+        if k in core:
+            added.append((core[k][0]["node"], named(core[k][0], disk), laid[1]))
+        h = (lc - sc) @ sn
+        said.append(f"a disc laid under L{num}, the one above's carried there ({h * 1000:.1f} mm at the middle, "
+                    f"its faces {np.degrees(np.arccos(np.clip(-ln @ sn, -1, 1))):.0f} degrees apart)")
+    for after, st, m in added:
+        at = [s["node"] for s in sts].index(after) + 1
+        sts.insert(at, st)
+        meshes.insert(at, m)
+    assert len({s["node"] for s in sts}) == len(sts), "two of the column's structures share a name"
+    return "; ".join(said) or "as they were"
+
+
+def settle(folder, body, parts, column):
+    """Each of SETTLE's parts' structures that the new bones run into, pushed out of them by a field smooth
+    over the points near them (tools/anatomy_gaps.py push_out, each bone or disc a solid of its own, as
+    there; each round's pulls scaled alike, as none then creases the surface), and its part rewritten (column: the new column's meshes, {node: (v, f)}, the sacrum and coccyx
+    among them). "column" is every bone and disc of it, each muscle pushed on its own; "seat" what the
+    seating moved or laid: the sacrum, the coccyx, the last lumbar vertebra and the disc under it, and the
+    part's structures near it are moved as one (together()), so vessels and gut that join stay joined.
+    Returns an account."""
+    from anatomy_gaps import Solid, push_out
+    pre = "VH_M_" if body["id"] == "male" else "VH_F_"
+    solid = {n: Solid([(np.asarray(v, np.float64), f)]) for n, (v, f) in column.items() if "_nucleus_" not in n}
+    lumbar = sorted((n for n in column if "_lumbar_vertebra_" in n), key=lambda n: int(n.rsplit("_", 1)[1]))
+    disc = f"{pre}intervertebral_disk_of_{ORDINALS[int(lumbar[-1].rsplit('_', 1)[1]) - 1]}_lumbar_vertebra"
+    seat = [n for n in (pre + "sacrum", pre + "coccyx", lumbar[-1], disc) if n in solid]
+    assert len(seat) == 4, f"{body['id']}: {len(seat)} of the seat's bones and disc"
+    near = [solid[n] for n in seat]
+    box = np.concatenate([np.asarray(column[n][0], np.float64) for n in seat])
+    box = (box.min(0) - 0.010, box.max(0) + 0.010)
+    said = []
+    for pid, which in SETTLE.items():
+        part = parts.get(pid)
+        if part is None:
+            continue
+        meshes = read_part(os.path.join(folder, part["file"]))
+        if which == "seat":
+            moved = together(part, meshes, near, [column[n] for n in seat], box, fine=pid in CUT_FIRST)
+        else:
+            moved = []
+            solids = list(solid.values())
+            for i, (st, (v, f)) in enumerate(zip(part["structures"], meshes)):
+                p = np.asarray(v, np.float64)
+                inside = np.any([s.inside(p) for s in solids], 0)
+                if not inside.any():
+                    continue
+                q = push_out(p, solids, sigma=SETTLE_SIGMA, rounds=SETTLE_ROUNDS, f=f, alike=True)
+                left = np.any([s.inside(q) for s in solids], 0)
+                meshes[i] = (q, f)
+                moved.append(f"{st['node']} {inside.mean():.1%}->{left.mean():.1%} "
+                             f"(up to {np.linalg.norm(q - p, axis=1).max() * 1000:.0f} mm)")
+        if moved:
+            rewrite(folder, part, meshes)
+            said.append(f"{pid}: " + "; ".join(moved))
+    return "; ".join(said) or "nothing in the way"
+
+
+def together(part, meshes, solids, bones, box, fine=False):
+    """A part's structures within the field's reach of the seat (box), joined into one mesh, each wound to
+    face out, given way off its bones and then pushed out of the seat's solids by one field, so where two of
+    them join (the inferior vena cava and the common iliac veins) both move alike; then split again into
+    meshes, each keeping its points in order, the new ones after them. Each patch a bone runs into first
+    slides off it one way, from the bone to the soft structure about it (tools/anatomy_gaps.py give_way: an
+    organ set's mesh is coarse, so where a bone still meets one it is cut finer there), and what is still
+    inside a bone is then pushed out of it (push_out; pushed out first, a wall the coccyx's tip has pierced
+    is pushed apart, each point to the tip's nearest side). `fine`: a structure a bone meets (a bone's point
+    inside it, or a point of it inside a bone) is first cut finer wherever the field reaches it (within 3
+    sigma of the bones, to a third of sigma) and each new point faired (anatomy_gaps.py fair; cut finer
+    alone, a coarse mesh shows its old edges as creases). Returns an account of what moved."""
+    from anatomy_gaps import push_out, give_way, wound_out, refine, fair, surface_points, vertex_normals, capped, winding_number
+    lo, hi = box[0] - 3 * SETTLE_SIGMA, box[1] + 3 * SETTLE_SIGMA
+    take = [i for i, (v, f) in enumerate(meshes)
+            if (np.asarray(v).max(0) > lo).all() and (np.asarray(v).min(0) < hi).all()]
+    if not take:
+        return []
+    P, F, L, cut = [], [], [], [0]
+    for k, i in enumerate(take):
+        p, f = np.asarray(meshes[i][0], np.float64), meshes[i][1]
+        P.append(p); F.append((f if wound_out(p, f) else f[:, ::-1]).astype(np.int64) + cut[-1]); cut.append(cut[-1] + len(p))
+        L.append(np.full(len(f), k))
+    p0, f, label = np.concatenate(P), np.concatenate(F), np.concatenate(L)
+    inside = np.any([s.inside(p0) for s in solids], 0)
+    p = p0
+    if fine:
+        BP = np.concatenate([surface_points(np.asarray(v, np.float64), np.asarray(g, np.int64), 0.002) for v, g in bones])
+        met = np.zeros(len(take), bool)
+        for k in range(len(take)):
+            q = p0[cut[k]:cut[k + 1]]; c = np.flatnonzero((BP >= q.min(0)).all(1) & (BP <= q.max(0)).all(1))
+            met[k] = inside[cut[k]:cut[k + 1]].any() or (len(c) > 0 and (winding_number(BP[c], *capped(p0, F[k])) > 0.5).any())
+        reach, normal = cKDTree(BP), vertex_normals(p0, f)
+        while met.any():
+            close = np.flatnonzero(met[label] & np.isfinite(reach.query(p, distance_upper_bound=3 * SETTLE_SIGMA)[0])[f].any(1))
+            p, f, label, normal, did = refine(p, f, label, close, SETTLE_SIGMA / 3, normal)
+            if not did:
+                break
+        p = fair(p, f, np.arange(len(p0), len(p)), normal)
+    q, g, lab = give_way(p, f, bones, sigma=SETTLE_SIGMA, rounds=SETTLE_ROUNDS, label=label)
+    r = push_out(q, solids, sigma=SETTLE_SIGMA, rounds=SETTLE_ROUNDS, f=g, alike=True) \
+        if np.any([s.inside(q) for s in solids], 0).any() else q
+    left = np.any([s.inside(r[:len(p0)]) for s in solids], 0)
+    moved = []
+    for k, i in enumerate(take):
+        a, b = cut[k], cut[k + 1]
+        d = np.linalg.norm(r[a:b] - p0[a:b], axis=1)
+        gk = g[lab == k]
+        if d.max() <= 1e-5 and len(gk) == len(meshes[i][1]):
+            continue
+        extra = np.unique(gk[gk >= cut[-1]])
+        at = np.zeros(len(r), np.int64); at[a:b] = np.arange(b - a); at[extra] = b - a + np.arange(len(extra))
+        meshes[i] = (np.concatenate([r[a:b], r[extra]]), at[gk])
+        finer = f", cut finer {len(F[k])}->{len(gk)} triangles" if len(gk) != len(F[k]) else ""
+        moved.append(f"{part['structures'][i]['node']} {inside[a:b].mean():.1%}->{left[a:b].mean():.1%} "
+                     f"(up to {d.max() * 1000:.1f} mm, eased off the bones {np.linalg.norm(q[a:b] - p0[a:b], axis=1).max() * 1000:.1f}{finer})")
+    return moved
+
+
 def spine(body, parts, folder, cache, atlas):
     """The body's new vertebrae, sacrum and coccyx {node: (v, f)}."""
     pre = "VH_M_" if body["id"] == "male" else "VH_F_"
@@ -765,6 +1250,9 @@ def spine(body, parts, folder, cache, atlas):
     lumbar = sum(1 for n in column if "_lumbar_vertebra_" in n)
     jobs = [(n, ka_name(n, lumbar), column[n]) for n in column if any(n.startswith(f"{pre}{k}_vertebra_") for k in KINDS)]
     jobs.append((pre + "sacrum", "Sacrum", pelvis[pre + "sacrum"]))
+    # the sacroiliac joints are the sacrum's with the ilia (the man's hip bones are in pieces)
+    hips = [(np.asarray(v, np.float64), f) for n, (v, f) in pelvis.items() if "_ilium_" in n or "_hip_" in n]
+    assert len(hips) == 2, f"{body['id']}: {len(hips)} ilia"
     out, kept = {}, {}
     for node, name, (tv, tf) in jobs:
         if name not in kept:
@@ -777,14 +1265,27 @@ def spine(body, parts, folder, cache, atlas):
         out[node] = (placed(fv, fit), ff)
         log("    " + report(f"{node[len(pre):]} from {name}", found) + f", {len(ff)} triangles")
         if name == "Sacrum":
-            # the coccyx's two pieces, scanned in the sacrum's frame, placed by its similarity
+            # seated by its joints: the disc under the last lumbar vertebra (laid by discs() where the
+            # organ set has none) and the sacroiliac joints
+            lumbar = sorted((n for n in out if "_lumbar_vertebra_" in n), key=lambda n: int(n.rsplit("_", 1)[1]))
+            num = int(lumbar[-1].rsplit("_", 1)[1])
+            disc = None if f"{pre}intervertebral_disk_of_{ORDINALS[num - 1]}_lumbar_vertebra" in column else DISC_MM * 1e-3
+            before = out[node][0]
+            seated, said = seat_sacrum(before, ff, out[lumbar[-1]], hips, disc)
+            log(f"    sacrum seated: {said}")
+            seated, eased, said = ease_facets((seated, ff), out[lumbar[-1]])
+            out[node], out[lumbar[-1]] = (seated, ff), (eased, out[lumbar[-1]][1])
+            log(f"    {said}")
+            # the coccyx's two pieces, scanned in the sacrum's frame, placed by its similarity, then carried
+            # with its tip
             vs, fs, off = [], [], 0
             for piece in ("Coccyx1", "Coccyx2-4"):
                 cv, cf = ka_bone(folder, piece, cache)
                 cv = cv * 0.001
                 cv, cf = atlas.simplify(cv, cf, budget(cv, cf, fit[0]))
                 vs.append(placed(cv, fit)); fs.append(cf + off); off += len(cv)
-            out[pre + "coccyx"] = (np.vstack(vs), np.vstack(fs))
+            cv = np.vstack(vs)
+            out[pre + "coccyx"] = (follow(before, seated, cv), np.vstack(fs))
             log(f"    coccyx on the sacrum's tip, {sum(len(x) for x in fs)} triangles")
     return out
 
@@ -822,6 +1323,7 @@ def replace(folder, vhskull, ka25, cache=None, atlas=None):
         if template is None:
             template = made
         new.update(spine(body, parts, ka25, cache, atlas))
+        log(f"    discs: {discs(body, parts['vertebral-column'], new)}")
         # the scan's teeth join the skull, under the names the organ sets' had in the mouth
         skull_part, mouth = parts["skull"], parts["mouth"]
         moving = [st for st in mouth["structures"] if st["node"] in new]
@@ -832,9 +1334,14 @@ def replace(folder, vhskull, ka25, cache=None, atlas=None):
         missing = [st["node"] for st in skull_part["structures"] if st["node"] not in new]
         assert not missing, f"{body['id']}: no new mesh for {missing}"
         rewrite(folder, skull_part, [new[st["node"]] for st in skull_part["structures"]])
+        column, pre = {}, "VH_M_" if body["id"] == "male" else "VH_F_"
         for pid in ("vertebral-column", "pelvis"):
             part = parts[pid]
-            rewrite(folder, part, [new.get(st["node"], m) for st, m in zip(part["structures"], part["meshes"])])
+            meshes = [new.get(st["node"], m) for st, m in zip(part["structures"], part["meshes"])]
+            rewrite(folder, part, meshes)
+            column.update((st["node"], m) for st, m in zip(part["structures"], meshes)
+                          if pid == "vertebral-column" or st["node"] in (pre + "sacrum", pre + "coccyx"))
+        log(f"    out of the new bones: {settle(folder, body, parts, column)}")
         for pid in ("skull", "mouth", "vertebral-column", "pelvis"):
             del parts[pid]["meshes"]
         log(f"  {body['id']}: skull {skull_part['triangles']} triangles in {len(skull_part['structures'])} pieces, "

@@ -3384,7 +3384,7 @@ In the atlas: VH_F_intervertebral_disk_of_fifth_cervical_vertebra, VH_M_interver
 
 ## intervertebral disk of fifth lumbar vertebra
 [Wikipedia: Congenital vertebral anomaly](https://en.wikipedia.org/wiki/Congenital_vertebral_anomaly) · [Commons: Congenital malformations of the spine](https://commons.wikimedia.org/wiki/Category:Congenital_malformations_of_the_spine) · 11 images  
-In the atlas: VH_F_intervertebral_disk_of_fifth_lumbar_vertebra
+In the atlas: VH_F_intervertebral_disk_of_fifth_lumbar_vertebra, VH_M_intervertebral_disk_of_fifth_lumbar_vertebra
 
 - [Lumbarization of S1.jpg](https://commons.wikimedia.org/wiki/File:Lumbarization_of_S1.jpg): CC0, Mikael Häggström (en)
 - [Volume rendering of CT of butterfly vertebrae.jpg](https://commons.wikimedia.org/wiki/File:Volume_rendering_of_CT_of_butterfly_vertebrae.jpg): CC0, Mikael Häggström (en)
@@ -4168,7 +4168,7 @@ In the atlas: VH_F_lumbar_vertebra_5, VH_M_lumbar_vertebra_5
 
 ## nucleus pulposus of intervertebral disk of axis
 [Wikipedia: Intervertebral disc](https://en.wikipedia.org/wiki/Intervertebral_disc) · [Commons: Intervertebral discs](https://commons.wikimedia.org/wiki/Category:Intervertebral_discs) · 36 images  
-In the atlas: VH_F_nucleus_pulposus_of_intervertebral_disk_of_axis
+In the atlas: VH_F_nucleus_pulposus_of_intervertebral_disk_of_axis, VH_M_nucleus_pulposus_of_intervertebral_disk_of_axis
 
 - [Gray301.png](https://commons.wikimedia.org/wiki/File:Gray301.png): Public domain, Henry Vandyke Carter (it+ja+ru)
 - [Gray302.png](https://commons.wikimedia.org/wiki/File:Gray302.png): Public domain, Henry Vandyke Carter (en+fr+ja)
@@ -4260,7 +4260,7 @@ In the atlas: VH_F_nucleus_pulposus_of_intervertebral_disk_of_fifth_cervical_ver
 
 ## nucleus pulposus of intervertebral disk of fifth lumbar vertebra
 [Wikipedia: Intervertebral disc](https://en.wikipedia.org/wiki/Intervertebral_disc) · [Commons: Intervertebral discs](https://commons.wikimedia.org/wiki/Category:Intervertebral_discs) · 36 images  
-In the atlas: VH_F_nucleus_pulposus_of_intervertebral_disk_of_fifth_lumbar_vertebra
+In the atlas: VH_F_nucleus_pulposus_of_intervertebral_disk_of_fifth_lumbar_vertebra, VH_M_nucleus_pulposus_of_intervertebral_disk_of_fifth_lumbar_vertebra
 
 - [Gray301.png](https://commons.wikimedia.org/wiki/File:Gray301.png): Public domain, Henry Vandyke Carter (it+ja+ru)
 - [Gray302.png](https://commons.wikimedia.org/wiki/File:Gray302.png): Public domain, Henry Vandyke Carter (en+fr+ja)

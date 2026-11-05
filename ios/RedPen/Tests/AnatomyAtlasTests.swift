@@ -49,8 +49,8 @@ for body in manifest.bodies {
           Set(body.parts.map(\.system)) == Set(AnatomySystem.allCases),
           "\(Set(AnatomySystem.allCases).subtracting(body.parts.map(\.system)))")
 }
-check("1030 male structures and 1064 female",
-      male.parts.flatMap(\.structures).count == 1030 && female.parts.flatMap(\.structures).count == 1064,
+check("1033 male structures and 1064 female",
+      male.parts.flatMap(\.structures).count == 1033 && female.parts.flatMap(\.structures).count == 1064,
       "\(male.parts.flatMap(\.structures).count), \(female.parts.flatMap(\.structures).count)")
 check("the body for a topic's parts: the one that has them all",
       manifest.body(for: ["heart"]) == .male && manifest.body(for: ["heart"], preferred: .female) == .female
@@ -449,6 +449,7 @@ for body in manifest.bodies {
     var widths: [Float] = []
     var crossing: [Float] = []
     var spacing: [Float] = []
+    var cut: [String: Int] = [:]
     for part in body.parts where part.system == .muscular {
         guard let fibres = part.fibres else { problems.append("\(part.id): no bundles listed"); continue }
         if fibres.file != "\(body.id.rawValue)-\(part.id).fibres" { problems.append("\(part.id): file \(fibres.file)") }
@@ -467,6 +468,7 @@ for body in manifest.bodies {
             }
             if !skeletal { problems.append("\(structure.node): bundles, not a skeletal muscle") }
             laid += 1
+            cut[structure.node] = mesh.triangleCount
             widths.append(b.bundle)
             if !b.across.allSatisfy({ $0.isFinite }) { problems.append("\(structure.node): across not finite") }
             if !b.tendon.allSatisfy({ $0 == -1 || (0...1).contains($0) }) { problems.append("\(structure.node): tendon out of range") }
@@ -506,6 +508,14 @@ for body in manifest.bodies {
     let spacingMedian: Float = spacing.sorted()[spacing.count / 2]
     check("\(body.name): and a bundle a bundle's width (median \(String(format: "%.2f", spacingMedian)) widths a unit)",
           (0.8...1.25).contains(spacingMedian))
+    // each muscle and its mirror split alike (tools/anatomy_fibres.py): split in four on one side only, the
+    // woman's right gluteus medius had three times the left's triangles
+    let uneven = cut.keys.sorted().compactMap { node -> String? in
+        guard node.hasSuffix("_L"), let l = cut[node], let r = cut[String(node.dropLast()) + "R"] else { return nil }
+        return Double(max(l, r)) > 2 * Double(min(l, r)) ? "\(node.dropLast(2)) \(l), \(r)" : nil
+    }
+    check("\(body.name): each muscle cut as finely as its mirror (triangles within 2 times)", uneven.isEmpty,
+          uneven.joined(separator: "; "))
 }
 
 func saf(_ entries: [(across: [Float], tendon: [Float], bundle: Float)?]) -> Data {
@@ -597,6 +607,22 @@ for body in manifest.bodies {
         check("\(body.name): the \(s == "L" ? "left" : "right") humerus's head is at its shoulder (\(Int(gap * 100)) cm from the clavicle's end)",
               gap < 0.06 && (s == "L" ? top.x > 0 : top.x < 0))
     }
+    // the shoulders' width and the clavicles' line (a girdle turned 47 degrees about its joint with the sternum
+    // swung the man's clavicles to run backward, his humeri's heads 16 cm apart): each clavicle runs out to the
+    // side, its outer end 10 cm or more further out than its inner end and at most 7 cm behind it; the humeri's
+    // tops 28 to 42 cm apart
+    var tops: [Float] = []
+    for s in ["L", "R"] {
+        guard let clavicle = mesh("TS_clavicle_\(s)", in: body), let humerus = mesh("TS_humerus_\(s)", in: body) else { continue }
+        let points = (0..<clavicle.vertexCount).map(clavicle.position)
+        let outer = points.max { abs($0.x) < abs($1.x) }!, inner = points.min { abs($0.x) < abs($1.x) }!
+        let out = abs(outer.x) - abs(inner.x), back = inner.z - outer.z
+        check("\(body.name): the \(s == "L" ? "left" : "right") clavicle runs out to the side (\(Int(out * 1000)) mm out, \(Int(back * 1000)) mm back)",
+              out >= 0.10 && back <= 0.07)
+        tops.append((0..<humerus.vertexCount).map(humerus.position).max { $0.y < $1.y }!.x)
+    }
+    let apart = tops.count == 2 ? abs(tops[0] - tops[1]) : 0
+    check("\(body.name): the humeri's heads 28 to 42 cm apart (\(Int(apart * 1000)) mm)", (0.28...0.42).contains(apart))
     // the forearms and hands (tools/anatomy_limbs.py): 22 bones a side, the hand below the forearm below the
     // humerus, the radius and the thumb on the outer side (the body stands palms forward)
     let limb = body.part("arms")?.structures.filter { $0.group == "Forearm bones" || $0.group == "Hand bones" } ?? []
@@ -786,6 +812,50 @@ for body in manifest.bodies {
     check("\(body.name): the coccyx carries the column on below the sacrum",
           coccyx.centre.y < sacrum.centre.y && coccyxLow < sacrumLow - 0.01 && coccyxTop < sacrumLow + 0.015,
           "top \(Int((coccyxTop - sacrumLow) * 1000)) mm above the sacrum's lowest point, lowest \(Int((sacrumLow - coccyxLow) * 1000)) mm below it")
+    // the sacrum seated by its joints (tools/anatomy_bones.py seat_sacrum, ease_facets and discs): the disc under
+    // the last lumbar vertebra meets the vertebra and the sacrum (their nearest vertices within 1.5 mm), about as
+    // big as the disc above it; the vertebra stands on the sacrum, the middles of the faces the disc meets within
+    // 12 mm front to back (the man's lay 22 to 26 mm apart, with no disc between them); each nucleus pulposus lies
+    // in the disc it is named for; and each sacroiliac joint is closed to a joint's width, the median of the 30 of
+    // the ilium's vertices nearest the sacrum within 3 mm of it (the woman's stood 6 to 7 mm open)
+    let lumbar = ordered.filter { $0.node.hasPrefix(pre + "lumbar") }
+    if lumbar.count >= 2, let vertebra = mesh(lumbar[lumbar.count - 1].node, in: body),
+       let disc = mesh(pre + "intervertebral_disk_of_\(ordinals[lumbar.count - 1])_lumbar_vertebra", in: body),
+       let above = mesh(pre + "intervertebral_disk_of_\(ordinals[lumbar.count - 2])_lumbar_vertebra", in: body) {
+        let dp = points(disc), vp = points(vertebra)
+        let toVertebra = dp.map(PointGrid(vp).nearest).min()! * 1000, toSacrum = dp.map(sacral.nearest).min()! * 1000
+        let ratio = abs(volume([disc])) / abs(volume([above]))
+        check("\(body.name): the disc under the last lumbar vertebra meets it (\(String(format: "%.1f", toVertebra)) mm) and the sacrum (\(String(format: "%.1f", toSacrum)) mm), \(String(format: "%.2f", ratio)) times the disc above",
+              toVertebra < 1.5 && toSacrum < 1.5 && (0.7...1.6).contains(ratio))
+        let faces = PointGrid(dp)
+        let under = vp.filter { faces.nearest($0) < 0.003 }, top = sp.filter { faces.nearest($0) < 0.003 }
+        let offset = under.isEmpty || top.isEmpty ? Float.infinity : abs(middle(under).z - middle(top).z) * 1000
+        check("\(body.name): the last lumbar vertebra stands on the sacrum (\(String(format: "%.1f", offset)) mm front to back)", offset < 12)
+    } else {
+        check("\(body.name): the disc under the last lumbar vertebra is there", false)
+    }
+    let columnParts = body.part("vertebral-column")?.structures ?? []
+    let discNodes = columnParts.map(\.node).filter { $0.hasPrefix(pre + "intervertebral_disk_of_") }
+    let nucleusNodes = columnParts.map(\.node).filter { $0.hasPrefix(pre + "nucleus_pulposus_of_") }
+    let discCentres = discNodes.compactMap { n in centre(n, in: body).map { (node: n, at: $0) } }
+    func nucleus(of disc: String) -> String { pre + "nucleus_pulposus_of_" + String(disc.dropFirst(pre.count)) }
+    let astray = nucleusNodes.filter { n in
+        guard let c = centre(n, in: body),
+              let home = discCentres.min(by: { (($0.at - c) * ($0.at - c)).sum() < (($1.at - c) * ($1.at - c)).sum() }) else { return true }
+        return nucleus(of: home.node) != n || ((home.at - c) * (home.at - c)).sum().squareRoot() > 0.015
+    }
+    check("\(body.name): every disc has its nucleus pulposus, each in the disc it is named for (\(discNodes.count) discs)",
+          Set(nucleusNodes) == Set(discNodes.map(nucleus)) && astray.isEmpty, astray.joined(separator: ", "))
+    let wide = PointGrid(sp, size: 0.01)
+    for (node, side) in body.id == .male ? [("VH_M_ilium_compact_bone_L", "left"), ("VH_M_ilium_compact_bone_R", "right")]
+                                         : [("TS_hip_L", "left"), ("TS_hip_R", "right")] {
+        guard let ilium = mesh(node, in: body) else {
+            check("\(body.name): the \(side) ilium is there", false); continue
+        }
+        let closest = points(ilium).map(wide.nearest).sorted().prefix(30)
+        let gap = closest[closest.startIndex + closest.count / 2] * 1000
+        check("\(body.name): the \(side) sacroiliac joint is closed to a joint's width (\(String(format: "%.1f", gap)) mm)", gap < 3)
+    }
 }
 
 // MARK: labels

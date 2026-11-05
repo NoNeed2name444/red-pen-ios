@@ -87,7 +87,7 @@
    "sha256": "df2b613e7a91f51edf52443c0fcae65956845a464b688f1e32a492d9739a8893"
   }
  ],
- "changes": "Structures simplified to a triangle budget per part, piece by piece with their open edges kept and gently first, so the triangles stay well shaped and shade smoothly; positions quantised to 16 bits; stray debris, surface patches and inner spongy bone left out, but the patches that close a hole put back (the femur's lower end, the spleen's diaphragmatic surface, the female liver's bare area); the brain mirrored left to right so each side lies where its name says, and scaled (male 0.9, female 0.9) about a point between the medulla's foot and the optic chiasm so it fits inside the skull; labels and UBERON ids from the crosswalk, corrected where wrong for the mesh (sides swapped on the renal arteries, vas deferens and thymus lobes); the female set's placenta, which sits outside the body, left out. Added: each body's own skull, meshed from the Visible Human Project's head CT of that man or woman, laid on the NIH 3D model of the man's skull (placed by its eyes and upper teeth, and carried onto the female head by a warp fitted on the head's skin, neck vertebrae, eyes and teeth, its jaw fitted on its own and the whole bent onto the CT's thick bone); the CT's bone kept where it covers the model or is 2 mm thick or more (but not beside the teeth, which would make their sockets' thin walls count as thick), the model naming its bones, standing in where the CT's bone is thin and broken into lace or missing (the orbits' walls, the sinuses'), and giving the face's bones whole (the maxillae, zygomatic, nasal, lacrimal, ethmoid and palatine bones and the vomer, too thin for a 1 mm CT); the surface smoothed without shrinking (Taubin), kept under the skin; ribs, costal cartilages, the male sternum, clavicles, scapulae, humeri, the hip and deep back muscles, thyroid, adrenals, oesophagus and stomach meshed from two TotalSegmentator CT scans and carried into each body by a warp fitted on the structures both have, each side's clavicle and scapula as one rigid piece, both sides at one scale and turned to mirror images of each other; the female set's hip bones, its ilia alone, replaced by her scan's whole ones, each fitted to her ilium and femoral head by a similarity, the two pubic bones brought together at the midline; the rib cage widened smoothly to clear the lungs and liver, each shoulder girdle settled on the trunk about its sternoclavicular joint, kept at the sternum as in the scan, under the skin, clear of the ribs and in the resting posture, the humeri laid along the arms, each head on its glenoid as the scan's sits on its own, and the rest pushed out of the organs and bones they cut into; the radius, ulna, carpus, metacarpals and phalanges found by density in the CT of one forearm and hand per body (a third scan for the man's), joined below the elbow to the humerus and upper forearm of a scan that holds the elbow whole (a fourth for the man's), that humerus in place of the body's, its shaft lengthened or shortened so the elbow sits where the scans' arm would bend, the forearm stretched to the skin's wrist and brought onto it by turning at the shoulder and bending at the elbow about its own axis, the olecranon fossa deepened to take the olecranon, then posed into the skin's hand, finger by finger, the other side their mirror image; the tarsals, metatarsals, phalanges and the great toe's sesamoids found the same way in the CT of one foot per body (a fifth scan for the man's), set on the body's tibia and fibula at the ankle and fitted into the skin's foot, toe by toe, the other side their mirror image. Then the skull, vertebrae, sacrum and coccyx replaced by scans of real bone: the skull by NIH 3D's of the Visible Human Male's skull (3DPX-012260), simplified gently, placed on each body's own skull by a similarity, bent onto the woman's by a field smooth through space, turned to the body's plane of symmetry and its sides evened out by a smooth field, and split into the CT skull's bones along the scan's own sutures and folds, its teeth, found by their height above the biting surface, in place of the organ sets' tooth rows; each vertebra, the sacrum and the coccyx by the same bone of one dry skeleton scanned at 0.15 mm (KA 25, figshare), simplified to a triangle per 2.5 mm² and placed on the organ set's by a similarity, the coccyx by the sacrum's (the man's seventh to twelfth thoracic vertebrae are the scan's eighth to thirteenth; the woman's six lumbar vertebrae are its five, its third used twice).",
+ "changes": "Structures simplified to a triangle budget per part, piece by piece with their open edges kept and gently first, so the triangles stay well shaped and shade smoothly; positions quantised to 16 bits; stray debris, surface patches and inner spongy bone left out, but the patches that close a hole put back (the femur's lower end, the spleen's diaphragmatic surface, the female liver's bare area); the brain mirrored left to right so each side lies where its name says, and scaled (male 0.9, female 0.9) about a point between the medulla's foot and the optic chiasm so it fits inside the skull; labels and UBERON ids from the crosswalk, corrected where wrong for the mesh (sides swapped on the renal arteries, vas deferens and thymus lobes); the female set's placenta, which sits outside the body, left out. Added: each body's own skull, meshed from the Visible Human Project's head CT of that man or woman, laid on the NIH 3D model of the man's skull (placed by its eyes and upper teeth, and carried onto the female head by a warp fitted on the head's skin, neck vertebrae, eyes and teeth, its jaw fitted on its own and the whole bent onto the CT's thick bone); the CT's bone kept where it covers the model or is 2 mm thick or more (but not beside the teeth, which would make their sockets' thin walls count as thick), the model naming its bones, standing in where the CT's bone is thin and broken into lace or missing (the orbits' walls, the sinuses'), and giving the face's bones whole (the maxillae, zygomatic, nasal, lacrimal, ethmoid and palatine bones and the vomer, too thin for a 1 mm CT); the surface smoothed without shrinking (Taubin), kept under the skin; ribs, costal cartilages, the male sternum, clavicles, scapulae, humeri, the hip and deep back muscles, thyroid, adrenals, oesophagus and stomach meshed from two TotalSegmentator CT scans and carried into each body by a warp fitted on the structures both have, each side's clavicle and scapula as one rigid piece, both sides at one scale and turned to mirror images of each other; the female set's hip bones, its ilia alone, replaced by her scan's whole ones, each fitted to her ilium and femoral head by a similarity, the two pubic bones brought together at the midline; the rib cage widened smoothly to clear the lungs and liver, each shoulder girdle settled on the trunk about its sternoclavicular joint, kept at the sternum as in the scan, under the skin, clear of the ribs and in the resting posture, the humeri laid along the arms, each head on its glenoid as the scan's sits on its own, and the rest pushed out of the organs and bones they cut into; the radius, ulna, carpus, metacarpals and phalanges found by density in the CT of one forearm and hand per body (a third scan for the man's), joined below the elbow to the humerus and upper forearm of a scan that holds the elbow whole (a fourth for the man's), that humerus in place of the body's, its shaft lengthened or shortened so the elbow sits where the scans' arm would bend, the forearm stretched to the skin's wrist and brought onto it by turning at the shoulder and bending at the elbow about its own axis, the olecranon fossa deepened to take the olecranon, then posed into the skin's hand, finger by finger, the other side their mirror image; the tarsals, metatarsals, phalanges and the great toe's sesamoids found the same way in the CT of one foot per body (a fifth scan for the man's), set on the body's tibia and fibula at the ankle and fitted into the skin's foot, toe by toe, the other side their mirror image. Then the skull, vertebrae, sacrum and coccyx replaced by scans of real bone: the skull by NIH 3D's of the Visible Human Male's skull (3DPX-012260), simplified gently, placed on each body's own skull by a similarity, bent onto the woman's by a field smooth through space, turned to the body's plane of symmetry and its sides evened out by a smooth field, and split into the CT skull's bones along the scan's own sutures and folds, its teeth, found by their height above the biting surface, in place of the organ sets' tooth rows; each vertebra, the sacrum and the coccyx by the same bone of one dry skeleton scanned at 0.15 mm (KA 25, figshare), simplified to a triangle per 2.5 mm² and placed on the organ set's by a similarity, the coccyx by the sacrum's (the man's seventh to twelfth thoracic vertebrae are the scan's eighth to thirteenth; the woman's six lumbar vertebrae are its five, its third used twice). The sacrum then seated by its joints, the coccyx carried with it: the man's moved until S1's top lies 11 mm under his fifth lumbar vertebra; in both, widened evenly and moved sideways, then bent by a field smooth through space, so its auricular surfaces lie 2.5 mm from the ilia. The man's nuclei pulposi named for the discs they lie in (the organ set names them a level down), his fourth lumbar disc given its neighbour's nucleus, and a disc laid under his fifth lumbar vertebra, the one above carried there to fill the space. Where the last lumbar vertebra's facets and the sacrum's ran into each other, each pushed out of the other by a smooth field to a joint's width; and the hip and back muscles, and the gut and vessels about the sacrum, moved out of the new bones by the field that moves the scans' parts out of what they cut into.",
  "bodies": [
   {
    "id": "male",
@@ -3616,9 +3616,9 @@
      "name": "Blood vessels",
      "system": "cardiovascular",
      "file": "male-vessels.atlas",
-     "bytes": 437524,
-     "sha256": "dfada18b50f7fc397642e79eaea593c69a88b8283b7c20e180239263b6cb09f9",
-     "triangles": 46752,
+     "bytes": 476944,
+     "sha256": "be7015e736696233b01ffb8ff93d6a3701e534256c6468029a9ae2a14e658eac",
+     "triangles": 51132,
      "bounds": [
       -0.11189,
       -0.04312,
@@ -3761,7 +3761,7 @@
        "tissue": "vein",
        "group": "veins of large intestine",
        "inner": false,
-       "triangles": 516
+       "triangles": 614
       },
       {
        "node": "VH_M_median_sacral_vein",
@@ -3770,7 +3770,7 @@
        "tissue": "vein",
        "group": "veins of large intestine",
        "inner": false,
-       "triangles": 232
+       "triangles": 514
       },
       {
        "node": "VH_M_sigmoid_vein",
@@ -3779,7 +3779,7 @@
        "tissue": "vein",
        "group": "veins of large intestine",
        "inner": false,
-       "triangles": 622
+       "triangles": 948
       },
       {
        "node": "VH_M_superior_mesenteric_vein",
@@ -3797,7 +3797,7 @@
        "tissue": "vein",
        "group": "veins of large intestine",
        "inner": false,
-       "triangles": 655
+       "triangles": 1567
       },
       {
        "node": "VH_M_common_iliac_vein_L",
@@ -3806,7 +3806,7 @@
        "tissue": "vein",
        "group": "common iliac vein",
        "inner": false,
-       "triangles": 164
+       "triangles": 1208
       },
       {
        "node": "VH_M_common_iliac_vein_R",
@@ -3815,7 +3815,7 @@
        "tissue": "vein",
        "group": "common iliac vein",
        "inner": false,
-       "triangles": 140
+       "triangles": 764
       },
       {
        "node": "VH_M_inferior_pancreaticoduodenal_vein",
@@ -3914,7 +3914,7 @@
        "tissue": "vein",
        "group": "colic vein",
        "inner": false,
-       "triangles": 605
+       "triangles": 619
       },
       {
        "node": "VH_M_right_colic_vein",
@@ -3941,7 +3941,7 @@
        "tissue": "vein",
        "group": "middle rectal vein",
        "inner": false,
-       "triangles": 94
+       "triangles": 190
       },
       {
        "node": "VH_M_middle_rectal_vein_R",
@@ -3950,7 +3950,7 @@
        "tissue": "vein",
        "group": "middle rectal vein",
        "inner": false,
-       "triangles": 72
+       "triangles": 244
       },
       {
        "node": "VH_M_right_colic_artery",
@@ -3995,7 +3995,7 @@
        "tissue": "artery",
        "group": "sigmoid artery",
        "inner": false,
-       "triangles": 183
+       "triangles": 505
       },
       {
        "node": "VH_M_sigmoid_artery_b",
@@ -4004,7 +4004,7 @@
        "tissue": "artery",
        "group": "sigmoid artery",
        "inner": false,
-       "triangles": 153
+       "triangles": 371
       },
       {
        "node": "VH_M_sigmoid_artery_c",
@@ -4013,7 +4013,7 @@
        "tissue": "artery",
        "group": "sigmoid artery",
        "inner": false,
-       "triangles": 196
+       "triangles": 304
       },
       {
        "node": "VH_M_inferior_mesenteric_artery",
@@ -4022,7 +4022,7 @@
        "tissue": "artery",
        "group": "arteries of large intestine",
        "inner": false,
-       "triangles": 118
+       "triangles": 120
       },
       {
        "node": "VH_M_superior_mesenteric_artery",
@@ -4400,7 +4400,7 @@
        "tissue": "vein",
        "group": "inferior vena cava",
        "inner": false,
-       "triangles": 1068
+       "triangles": 1230
       },
       {
        "node": "VH_M_inferior_vena_cava_a",
@@ -6004,9 +6004,9 @@
      "name": "Large intestine",
      "system": "digestive",
      "file": "male-colon.atlas",
-     "bytes": 73992,
-     "sha256": "ab817ab6ea675cbe03b599fd3c9d40354c7ba4cf545f5f028023f842b1046472",
-     "triangles": 7980,
+     "bytes": 144672,
+     "sha256": "77d3e560d8a901b524653524d256bba09a021297fba854e531de8738dc4bcdef",
+     "triangles": 15814,
      "bounds": [
       -0.1162,
       -0.03847,
@@ -6050,7 +6050,7 @@
        "tissue": "gut",
        "group": "large intestine",
        "inner": false,
-       "triangles": 532
+       "triangles": 8337
       },
       {
        "node": "VH_M_sigmoid_colon",
@@ -6059,7 +6059,7 @@
        "tissue": "gut",
        "group": "large intestine",
        "inner": false,
-       "triangles": 878
+       "triangles": 907
       },
       {
        "node": "VH_M_splenic_flexure_of_colon",
@@ -8316,12 +8316,12 @@
      "name": "Vertebral column",
      "system": "skeletal",
      "file": "male-vertebral-column.atlas",
-     "bytes": 982976,
-     "sha256": "c2adaddc35932d51ff3d24dbc3e48468c088a11356ce098b81a7b2355ca9ac62",
-     "triangles": 109129,
+     "bytes": 991032,
+     "sha256": "8250de40f191566ff075252c66aaf51795031241f5c167f866d751a77652e7dd",
+     "triangles": 110017,
      "bounds": [
       -0.04795,
-      0.14874,
+      0.13393,
       -0.11548,
       0.06227,
       0.75947,
@@ -8599,6 +8599,15 @@
        "triangles": 600
       },
       {
+       "node": "VH_M_nucleus_pulposus_of_intervertebral_disk_of_axis",
+       "label": "nucleus pulposus of intervertebral disk of axis",
+       "uberon": null,
+       "tissue": "cartilage",
+       "group": "nucleus pulposus of intervertebral disk of cervical vertebra",
+       "inner": true,
+       "triangles": 130
+      },
+      {
        "node": "VH_M_nucleus_pulposus_of_intervertebral_disk_of_third_cervical_vertebra",
        "label": "nucleus pulposus of intervertebral disk of third cervical vertebra",
        "uberon": null,
@@ -8628,15 +8637,6 @@
       {
        "node": "VH_M_nucleus_pulposus_of_intervertebral_disk_of_sixth_cervical_vertebra",
        "label": "nucleus pulposus of intervertebral disk of sixth cervical vertebra",
-       "uberon": null,
-       "tissue": "cartilage",
-       "group": "nucleus pulposus of intervertebral disk of cervical vertebra",
-       "inner": true,
-       "triangles": 130
-      },
-      {
-       "node": "VH_M_nucleus_pulposus_of_intervertebral_disk_of_seventh_cervical_vertebra",
-       "label": "nucleus pulposus of intervertebral disk of seventh cervical vertebra",
        "uberon": null,
        "tissue": "cartilage",
        "group": "nucleus pulposus of intervertebral disk of cervical vertebra",
@@ -8752,6 +8752,15 @@
        "triangles": 544
       },
       {
+       "node": "VH_M_nucleus_pulposus_of_intervertebral_disk_of_seventh_cervical_vertebra",
+       "label": "nucleus pulposus of intervertebral disk of seventh cervical vertebra",
+       "uberon": null,
+       "tissue": "cartilage",
+       "group": "nucleus pulposus of intervertebral disk of cervical vertebra",
+       "inner": true,
+       "triangles": 130
+      },
+      {
        "node": "VH_M_nucleus_pulposus_of_intervertebral_disk_of_first_thoracic_vertebra",
        "label": "nucleus pulposus of intervertebral disk of first thoracic vertebra",
        "uberon": null,
@@ -8770,8 +8779,8 @@
        "triangles": 130
       },
       {
-       "node": "VH_M_nucleus_pulposus_of_intervertebral_disk_of_third_thoracic_vertebra",
-       "label": "nucleus pulposus of intervertebral disk of third thoracic vertebra",
+       "node": "VH_M_nucleus_pulposus_of_intervertebral_disk_of_fourth_thoracic_vertebra",
+       "label": "nucleus pulposus of intervertebral disk of fourth thoracic vertebra",
        "uberon": null,
        "tissue": "cartilage",
        "group": "nucleus pulposus of intervertebral disk of thoracic vertebra",
@@ -8779,8 +8788,8 @@
        "triangles": 130
       },
       {
-       "node": "VH_M_nucleus_pulposus_of_intervertebral_disk_of_fourth_thoracic_vertebra",
-       "label": "nucleus pulposus of intervertebral disk of fourth thoracic vertebra",
+       "node": "VH_M_nucleus_pulposus_of_intervertebral_disk_of_third_thoracic_vertebra",
+       "label": "nucleus pulposus of intervertebral disk of third thoracic vertebra",
        "uberon": null,
        "tissue": "cartilage",
        "group": "nucleus pulposus of intervertebral disk of thoracic vertebra",
@@ -8851,17 +8860,17 @@
        "triangles": 130
       },
       {
-       "node": "VH_M_nucleus_pulposus_of_intervertebral_disk_of_twelfth_thoracic_vertebra",
-       "label": "nucleus pulposus of intervertebral disk of twelfth thoracic vertebra",
-       "uberon": null,
-       "tissue": "cartilage",
-       "group": "nucleus pulposus of intervertebral disk of thoracic vertebra",
-       "inner": true,
-       "triangles": 130
-      },
-      {
        "node": "VH_M_intervertebral_disk_of_fourth_lumbar_vertebra",
        "label": "intervertebral disk of fourth lumbar vertebra",
+       "uberon": null,
+       "tissue": "cartilage",
+       "group": "intervertebral disk of lumbar vertebra",
+       "inner": false,
+       "triangles": 628
+      },
+      {
+       "node": "VH_M_intervertebral_disk_of_fifth_lumbar_vertebra",
+       "label": "intervertebral disk of fifth lumbar vertebra",
        "uberon": null,
        "tissue": "cartilage",
        "group": "intervertebral disk of lumbar vertebra",
@@ -8894,6 +8903,15 @@
        "group": "intervertebral disk of lumbar vertebra",
        "inner": false,
        "triangles": 574
+      },
+      {
+       "node": "VH_M_nucleus_pulposus_of_intervertebral_disk_of_twelfth_thoracic_vertebra",
+       "label": "nucleus pulposus of intervertebral disk of twelfth thoracic vertebra",
+       "uberon": null,
+       "tissue": "cartilage",
+       "group": "nucleus pulposus of intervertebral disk of thoracic vertebra",
+       "inner": true,
+       "triangles": 130
       },
       {
        "node": "VH_M_nucleus_pulposus_of_intervertebral_disk_of_first_lumbar_vertebra",
@@ -8930,6 +8948,15 @@
        "group": "nucleus pulposus of intervertebral disk of lumbar vertebra",
        "inner": true,
        "triangles": 130
+      },
+      {
+       "node": "VH_M_nucleus_pulposus_of_intervertebral_disk_of_fifth_lumbar_vertebra",
+       "label": "nucleus pulposus of intervertebral disk of fifth lumbar vertebra",
+       "uberon": null,
+       "tissue": "cartilage",
+       "group": "nucleus pulposus of intervertebral disk of lumbar vertebra",
+       "inner": true,
+       "triangles": 130
       }
      ]
     },
@@ -8939,12 +8966,12 @@
      "system": "skeletal",
      "file": "male-pelvis.atlas",
      "bytes": 251288,
-     "sha256": "6f1169bea976dadea09b75fbd8aceb8b783d08b6cdbd06815a441aa1daf24d5b",
+     "sha256": "258de0cbcf66eb16abd9f56b4ed24bc88afa57bf3984b0b3b7334923af50a588",
      "triangles": 27958,
      "bounds": [
       -0.13631,
       -0.0348,
-      -0.11182,
+      -0.10021,
       0.14708,
       0.18391,
       0.05409
@@ -10093,9 +10120,9 @@
      "name": "Hip muscles",
      "system": "muscular",
      "file": "male-hip-muscles.atlas",
-     "bytes": 866984,
-     "sha256": "9f590ace1d351266ade565dada7c0533ee1224a94b0cb3a57edb4c5f6d461a2c",
-     "triangles": 84350,
+     "bytes": 856736,
+     "sha256": "4f7e9c30014d9330ccd3dea9c7d982f81e5f9e128575005975eaf47335426ab1",
+     "triangles": 83552,
      "bounds": [
       -0.15618,
       -0.09414,
@@ -10112,7 +10139,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 12296
+       "triangles": 12134
       },
       {
        "node": "TS_gluteus_maximus_R",
@@ -10121,7 +10148,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 12446
+       "triangles": 11994
       },
       {
        "node": "TS_gluteus_medius_L",
@@ -10130,7 +10157,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 9962
+       "triangles": 9868
       },
       {
        "node": "TS_gluteus_medius_R",
@@ -10139,7 +10166,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 9108
+       "triangles": 9154
       },
       {
        "node": "TS_gluteus_minimus_L",
@@ -10148,7 +10175,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 7520
+       "triangles": 7536
       },
       {
        "node": "TS_gluteus_minimus_R",
@@ -10157,7 +10184,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 8652
+       "triangles": 8460
       },
       {
        "node": "TS_iliopsoas_L",
@@ -10166,7 +10193,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 12198
+       "triangles": 12346
       },
       {
        "node": "TS_iliopsoas_R",
@@ -10175,13 +10202,13 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 12168
+       "triangles": 12060
       }
      ],
      "fibres": {
       "file": "male-hip-muscles.fibres",
-      "bytes": 481112,
-      "sha256": "18e838cafc286c2f83d8ccd2646d872eb7a3797f07d5b8074291abdc04afc559"
+      "bytes": 473832,
+      "sha256": "6bf27ae7004c81d1230db9e7728e26a5ff2ede0e71de76b5ee2bf0253104568a"
      }
     },
     {
@@ -10189,16 +10216,16 @@
      "name": "Deep back muscles",
      "system": "muscular",
      "file": "male-back-muscles.atlas",
-     "bytes": 304064,
-     "sha256": "2c81e1209a6e82d1a2c82d8aa1722be1e949457dcb8c9aa089172d4b7b4cc61c",
-     "triangles": 31342,
+     "bytes": 304420,
+     "sha256": "daf06de36292235c160d66d0f838b47c50f03effe8700c572a75de5d2f09650f",
+     "triangles": 31372,
      "bounds": [
       -0.09199,
-      0.09206,
-      -0.12681,
+      0.09224,
+      -0.12834,
       0.09191,
-      0.66822,
-      -0.02598
+      0.6682,
+      -0.02704
      ],
      "structures": [
       {
@@ -10208,7 +10235,7 @@
        "tissue": "muscle",
        "group": "Deep back muscles",
        "inner": false,
-       "triangles": 15528
+       "triangles": 15548
       },
       {
        "node": "TS_deep_back_muscles_R",
@@ -10217,13 +10244,13 @@
        "tissue": "muscle",
        "group": "Deep back muscles",
        "inner": false,
-       "triangles": 15814
+       "triangles": 15824
       }
      ],
      "fibres": {
       "file": "male-back-muscles.fibres",
-      "bytes": 154640,
-      "sha256": "93f465c8d5c997530f8707be28dbbd808972cb96fd94431bbcc88ee9d704b1fc"
+      "bytes": 154872,
+      "sha256": "c8cbb6b6884571a07fd2d6365318eeeab58f6885bda9899613c55d39455f084b"
      }
     }
    ]
@@ -13909,13 +13936,13 @@
      "name": "Blood vessels",
      "system": "cardiovascular",
      "file": "female-vessels.atlas",
-     "bytes": 432240,
-     "sha256": "348f4ef1eedfecbcd9159afdb01f62d7ede5e60a7a740ce69f0c409939975d80",
-     "triangles": 45838,
+     "bytes": 472088,
+     "sha256": "9169ef7bc9cddc8b9cde5b4156cc688440490abcd563ca4097bbe3ef72294c91",
+     "triangles": 50266,
      "bounds": [
       -0.08952,
       -0.01576,
-      -0.15123,
+      -0.15122,
       0.10335,
       0.78349,
       0.0336
@@ -14135,7 +14162,7 @@
        "tissue": "vein",
        "group": "veins of large intestine",
        "inner": false,
-       "triangles": 460
+       "triangles": 540
       },
       {
        "node": "VH_F_left_common_iliac_vein",
@@ -14144,7 +14171,7 @@
        "tissue": "vein",
        "group": "common iliac vein",
        "inner": false,
-       "triangles": 288
+       "triangles": 1578
       },
       {
        "node": "VH_F_right_common_iliac_vein",
@@ -14153,7 +14180,7 @@
        "tissue": "vein",
        "group": "common iliac vein",
        "inner": false,
-       "triangles": 226
+       "triangles": 366
       },
       {
        "node": "VH_F_left_colic_vein",
@@ -14279,7 +14306,7 @@
        "tissue": "vein",
        "group": "sigmoid vein",
        "inner": false,
-       "triangles": 134
+       "triangles": 222
       },
       {
        "node": "VH_F_median_sacral_vein",
@@ -14288,7 +14315,7 @@
        "tissue": "vein",
        "group": "veins of large intestine",
        "inner": false,
-       "triangles": 279
+       "triangles": 1045
       },
       {
        "node": "VH_F_sigmoid_vein_b",
@@ -14315,7 +14342,7 @@
        "tissue": "vein",
        "group": "veins of large intestine",
        "inner": false,
-       "triangles": 754
+       "triangles": 936
       },
       {
        "node": "VH_F_left_colic_artery",
@@ -14324,7 +14351,7 @@
        "tissue": "artery",
        "group": "arteries of large intestine",
        "inner": false,
-       "triangles": 210
+       "triangles": 222
       },
       {
        "node": "VH_F_right_colic_artery",
@@ -14369,7 +14396,7 @@
        "tissue": "artery",
        "group": "arteries of large intestine",
        "inner": false,
-       "triangles": 306
+       "triangles": 724
       },
       {
        "node": "VH_F_superior_mesenteric_artery",
@@ -14387,7 +14414,7 @@
        "tissue": "artery",
        "group": "arteries of large intestine",
        "inner": false,
-       "triangles": 317
+       "triangles": 723
       },
       {
        "node": "VH_F_marginal_artery_of_Drummond",
@@ -14405,7 +14432,7 @@
        "tissue": "artery",
        "group": "sigmoid artery",
        "inner": false,
-       "triangles": 126
+       "triangles": 270
       },
       {
        "node": "VH_F_sigmoid_artery_b",
@@ -14414,7 +14441,7 @@
        "tissue": "artery",
        "group": "sigmoid artery",
        "inner": false,
-       "triangles": 108
+       "triangles": 200
       },
       {
        "node": "VH_F_sigmoid_artery_a",
@@ -14423,7 +14450,7 @@
        "tissue": "artery",
        "group": "sigmoid artery",
        "inner": false,
-       "triangles": 148
+       "triangles": 354
       },
       {
        "node": "VH_F_splenic_artery",
@@ -14711,7 +14738,7 @@
        "tissue": "vein",
        "group": "inferior vena cava",
        "inner": false,
-       "triangles": 1056
+       "triangles": 1502
       },
       {
        "node": "VH_F_left_anterior_descending_artery",
@@ -14855,7 +14882,7 @@
        "tissue": "artery",
        "group": "descending aorta",
        "inner": false,
-       "triangles": 834
+       "triangles": 992
       },
       {
        "node": "VH_F_left_common_carotid_artery_a",
@@ -18909,7 +18936,7 @@
      "system": "skeletal",
      "file": "female-vertebral-column.atlas",
      "bytes": 1030436,
-     "sha256": "523cac1b8576fe871846219f29c710d98fbd8dc785dae79df6837891ffd75820",
+     "sha256": "a097af6a8a2695738d9f00c5c627767435e87a11c410d9d8850efea4990ed378",
      "triangles": 114386,
      "bounds": [
       -0.06222,
@@ -19585,7 +19612,7 @@
      "system": "skeletal",
      "file": "female-pelvis.atlas",
      "bytes": 270652,
-     "sha256": "899c11fd210ed7ae74d8a5a42493caf947ce090dd35cc8056c7d130d5a4b296b",
+     "sha256": "405d27ad4b764a4f31f53be9eecf46d005f85c528f0bb15934f951a405ecc25e",
      "triangles": 30116,
      "bounds": [
       -0.16434,
@@ -20552,15 +20579,15 @@
      "name": "Hip muscles",
      "system": "muscular",
      "file": "female-hip-muscles.atlas",
-     "bytes": 825568,
-     "sha256": "2b8ee621e002ce0047778bf24a294a0e0361a65f90f388276659d574806786dc",
-     "triangles": 81032,
+     "bytes": 834224,
+     "sha256": "300b3f042c952087b1645454f36663df27997109b275855392b0103bd81cbad8",
+     "triangles": 81756,
      "bounds": [
       -0.17282,
-      -0.10538,
-      -0.1776,
+      -0.10539,
+      -0.19261,
       0.17705,
-      0.29406,
+      0.29344,
       -0.00806
      ],
      "structures": [
@@ -20571,7 +20598,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 12072
+       "triangles": 12460
       },
       {
        "node": "TS_gluteus_maximus_R",
@@ -20580,7 +20607,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 12382
+       "triangles": 12710
       },
       {
        "node": "TS_gluteus_medius_L",
@@ -20598,7 +20625,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 10280
+       "triangles": 10282
       },
       {
        "node": "TS_gluteus_minimus_L",
@@ -20616,7 +20643,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 8772
+       "triangles": 8774
       },
       {
        "node": "TS_iliopsoas_L",
@@ -20625,7 +20652,7 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 11170
+       "triangles": 11258
       },
       {
        "node": "TS_iliopsoas_R",
@@ -20634,13 +20661,13 @@
        "tissue": "muscle",
        "group": "Hip muscles",
        "inner": false,
-       "triangles": 10698
+       "triangles": 10614
       }
      ],
      "fibres": {
       "file": "female-hip-muscles.fibres",
-      "bytes": 452440,
-      "sha256": "2ccef626e96d1d110c72a7a56483d9497a686ed3cd79cde62de32eb9968ebf60"
+      "bytes": 458184,
+      "sha256": "2a0fe46a57ab79cdb028f0879a0a21a923276d1e1d610fca11cc0eadb208585f"
      }
     },
     {
@@ -20648,16 +20675,16 @@
      "name": "Deep back muscles",
      "system": "muscular",
      "file": "female-back-muscles.atlas",
-     "bytes": 307372,
-     "sha256": "769d7bcfbb8dda776bb0d4b5a5ad329768145fba0e0d61719b1779667fb9571f",
-     "triangles": 31674,
+     "bytes": 310464,
+     "sha256": "03ba5bad489b3b7be45489324fd60ea5f06d9c32e713e81a2011595cd04392f4",
+     "triangles": 31848,
      "bounds": [
       -0.10651,
-      0.10074,
-      -0.18293,
-      0.0745,
-      0.62682,
-      -0.10122
+      0.10026,
+      -0.18665,
+      0.07448,
+      0.62685,
+      -0.1013
      ],
      "structures": [
       {
@@ -20667,7 +20694,7 @@
        "tissue": "muscle",
        "group": "Deep back muscles",
        "inner": false,
-       "triangles": 15894
+       "triangles": 16004
       },
       {
        "node": "TS_deep_back_muscles_R",
@@ -20676,13 +20703,13 @@
        "tissue": "muscle",
        "group": "Deep back muscles",
        "inner": false,
-       "triangles": 15780
+       "triangles": 15844
       }
      ],
      "fibres": {
       "file": "female-back-muscles.fibres",
-      "bytes": 156392,
-      "sha256": "a6192b0f6846d9a179cab99f61b1494c577949147b6fccd1e5d1719d1cb22f1f"
+      "bytes": 159128,
+      "sha256": "8baf148bd6a76dfefeb9545d5f4b332f261cf35b3787c955413cb9b45c5b28be"
      }
     }
    ]

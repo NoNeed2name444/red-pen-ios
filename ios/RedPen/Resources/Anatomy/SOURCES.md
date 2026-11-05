@@ -132,6 +132,13 @@ Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024), CC BY
   thymus lobes); the list is in the tool, `CORRECTED`. The ilium, ischium
   and pubis, which the crosswalk calls compact bone tissue, are named as
   the bones they are, with their own UBERON ids (`CORRECTED_UBERON`).
+  Once the scanned spine is in (`tools/anatomy_bones.py`), each nucleus
+  pulposus is named for the disc it lies in (the organ set names each a
+  level down, two of them the wrong way round), the fourth lumbar disc,
+  left with none, is given its neighbour's, laid into it; a disc is laid
+  under the fifth lumbar vertebra, where the organ set has none (see KA
+  25 below); and the rectum and the vessels about the sacrum are eased out
+  of the scanned sacrum and coccyx (also there).
 
 ### The woman: 3D Reference Organ Set for Female, v1.10
 
@@ -155,7 +162,8 @@ Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024), CC BY
   no pubis or ischium, so the atlas shows her scan's whole hip bones in
   their place, below) and the fat of each breast; the sixth lumbar
   vertebra the Visible Human Female has is named as the normal variant it
-  is.
+  is. Once the scanned spine is in, the vessels about the sacrum are eased
+  out of it (see KA 25 below).
 
 ### The skull: the Visible Human Project's head CT (NLM)
 
@@ -284,7 +292,44 @@ Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024), CC BY
   third and fourth are both its third. The coccyx's two pieces (its first
   segment, and the second to fourth fused) were scanned with the sacrum,
   in its frame, so the sacrum's similarity places them on its tip. The
-  intervertebral discs are the organ sets'.
+  sacrum is then seated by its joints, the coccyx carried with it: the
+  man's, which that fit laid 32 mm under his fifth lumbar vertebra (his
+  organ set has no disc there), is moved, not turned, until S1's top lies
+  11 mm under the vertebra's lower endplate, centred under it; in both
+  bodies it is widened evenly across the body (by 1.137 in the man, 1.149
+  in the woman) and moved sideways, then bent by a field smooth through
+  space (10 mm), so its auricular surfaces lie 2.5 mm from the ilia and
+  nowhere cut into them. Where the last lumbar vertebra's facets and the
+  sacrum's then ran into each other (by up to 6 mm in the man), the
+  sacrum is pushed out of the vertebra, then the vertebra out of the
+  sacrum, each by a field smooth over 6 mm, to a joint's width (1 mm).
+  The intervertebral discs are the organ sets', set right (see the man's
+  organ set), with a disc laid under the man's fifth lumbar vertebra: the
+  one above carried into the space between the vertebra and S1, each
+  point keeping its place across the disc and its share of the way from
+  one face to the other, so it fills the space, wedge and all. The hip
+  and back muscles, and the gut and vessels about the sacrum, are then
+  moved out of the new bones by the field that pushes the
+  TotalSegmentator parts out of what they cut into, here spread over
+  15 mm by the surface each point stands for, each round's pull scaled
+  alike, so a muscle the widened sacrum runs into slides off it without a
+  crease; the gut and vessels off the sacrum, coccyx, last lumbar
+  vertebra and the disc under it, each patch a bone runs into sliding off
+  it one way, from the bone to the soft part about it (the man's rectum,
+  its back wall eased forward along the sacrum's curve), and what is
+  still inside a bone then pushed out. An organ set's mesh by the sacrum
+  is coarse (the man's rectum has triangles up to four centimetres
+  across, one through the coccyx's tip), so where a bone meets one the
+  mesh is cut finer there (its edges split); a part of the gut a bone
+  meets is first cut finer wherever the field reaches it, each new point
+  then moved along its normal to where the surface through the old points
+  bends least, so the old triangles' edges leave no creases. The gut and
+  vessels near the seat move as one, so a vein stays joined to the next.
+  With the hip bones
+  as they are (the man's lean 8.5 degrees forward of Gray's erect
+  posture, the woman's 3), the man's pelvic inlet and outlet then lie at
+  61 and 15 degrees to the horizontal in that posture (Gray's: 50 to 60,
+  and about 15), the woman's at 52 and 8.
 
 ### The rest of the skeleton, muscles and organs: TotalSegmentator dataset v3.0.0
 
@@ -347,7 +392,9 @@ Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024), CC BY
   shoulder joint carried onto the body's scapula by the similarity that
   best lays the scan's scapula, about the glenoid, over the body's).
   Whatever still cut into an organ or bone is
-  pushed out, smoothly, a few millimetres at a time. The dataset segments
+  pushed out, smoothly, a few millimetres at a time; once the scanned
+  vertebrae, sacrum and coccyx are in (`tools/anatomy_bones.py`), the hip
+  and back muscles are pushed out of them again the same way. The dataset segments
   no bone below the humerus, so the forearm and hand bones are found in
   the CT by density (`tools/anatomy_limbs.py`): the bone traced along each
   finger, the fingers named by where their metacarpals lie (the thumb's

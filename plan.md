@@ -3053,11 +3053,34 @@ for screenshots.
       fibula, radius) bow within the normal range; the clavicles' lengths
       now match (161 and 164 mm). The fix is in tools/anatomy_gaps.py
       (rib_cage; widen_cage turning each rib about its head, at most 15
-      degrees, the pair alike; the girdles settled as mirror images); the
-      atlas is not yet rebuilt with it. In the bundled atlas each pair's
-      boxes, mirrored about the spine, lie 13 to 46 mm apart (the woman's
-      twelfth ribs differ by 42% in size). The suite's rib and girdle
-      mirror checks come with the rebuild.
+      degrees, the pair alike; the girdles settled as mirror images).
+      Trial build (5 Nov): the ribs came out mirror images (each pair's
+      boxes, mirrored about the spine, 7 to 31 mm apart; 13 to 46 before),
+      but the girdles did not sit right. The man's turned 46.6 degrees
+      about the sternum (22 to 25 before) and the woman's 27.6 (18 to 20),
+      so his clavicles ran backward, his humeri's heads came 16 cm apart
+      (33 in the bundled atlas), and the arm pose then turned his
+      shoulders 91 and 135 degrees. Not shipped: the bundled atlas keeps
+      its ribs and girdles, and the rib and girdle mirror checks wait for
+      the girdle fix. The code above is still in tools/anatomy_gaps.py, so
+      a full rebuild carries the fault until then.
+      - [ ] Girdle fix: settle each girdle on its own joints (the clavicle
+        on the sternum, the scapula on the ribs) without turning the pair
+        about the sternum; then the full rebuild and the mirror checks
+        (each rib pair within 34 mm, 24 mm in size and 7% in diagonal;
+        each girdle within 13 and 15 mm). Where it went wrong (the trial's
+        log): widen_cage carries each girdle by the widening field itself,
+        and with the ribs rigid, each held to 15 degrees, the cage no
+        longer cleared the organs (after four rounds 9.4% of its points
+        still in them, 37 mm deep; 0.1 to 0.2% before), so the field grew
+        every round while the ribs stayed: the man's left girdle rode 28
+        mm forward and turned 9 degrees, its joint 15.5 mm from the
+        sternum (4.9 before, the scan's 3.4), and settling it turned it
+        the 46.6 degrees. A girdle should ride on what the ribs under it
+        did, now that conform_trunk squeezes the organs in from the cage.
+      - Suite, meanwhile: each clavicle runs out to the side (10 cm or
+        more further out at its outer end, at most 7 cm behind its inner
+        end); the humeri's heads 28 to 42 cm apart.
     - Muscle as fibre: the shader's streaks lay in the colour alone, faded
       at a normal distance and followed one axis per muscle.
       - [x] Bundles laid in the build (tools/anatomy_fibres.py): each
@@ -3081,6 +3104,15 @@ for screenshots.
         muscle has its bundles, 1.5 to 6 mm wide, the rectus femoris's
         across the thigh a bundle a unit; cut-off, padded and mismatched
         files refused.
+      - [x] Pairs alike (5 Nov). A muscle and its mirror are made finer
+        as often as the coarser of them needs (split on one side only,
+        the woman's right gluteus medius had three times the left's
+        triangles); suite: each pair's triangles within twice each other.
+        The glutei and iliopsoas arise fleshy and end in tendon, so theirs
+        is read at the insertion only: read at the origin too, a broad
+        muscle's narrow contact with its bone looked like tendon, and the
+        man's left gluteus maximus was pale over a third of its origin,
+        his right not at all.
       - [ ] Mac: screenshots of the hip and thigh close up; check the
         bundles on the device.
     - Whole model: bones rigid, soft tissue fitted round them, every part
@@ -3116,9 +3148,79 @@ for screenshots.
       its third twice. The coccyx rides on the sacrum's placement: it
       meets the sacrum's tip within 0.6 mm and hangs straight below it
       (its tip 0.2 and 0.9 mm across from the sacrum's; 3 to 5 mm before).
+    - [x] Lumbosacral seat (5 Nov). The reviewer: "There is no L5/S1 disc.
+      L5's body sits 22-26 mm in front of the sacrum ... Real: a 10-14 mm
+      wedge-shaped disc, with L5 squarely on S1"; and the woman's
+      sacroiliac joints stood 6 to 7 mm open. The sacrum is now seated by
+      its joints (anatomy_bones.py seat_sacrum), the coccyx carried with
+      it: the man's, 32 mm under his L5 (his organ set has no disc there),
+      moved 21 mm, not turned, until S1's top lies 11 mm under L5, centred;
+      in both, widened (x1.137 and x1.149) and bent by a smooth field until
+      its auricular surfaces lie 2.5 mm from the ilia (the 30 nearest
+      points now 1.0 to 1.35 mm apart). A disc is laid under the man's L5
+      from the one above it: 13.9, 11.9 and 9.2 mm at the front, middle and
+      back, a wedge of 18.9 degrees, sacral slope 44.8, L5 square on S1
+      within 1.9 mm; the woman's L6/S1 disc is 13.4, 12.1 and 10.3. The
+      facets that then met are eased apart to a joint's width (1 mm); each
+      nucleus is named for the disc it lies in (the man's were named a level
+      down, two of them swapped). The hip and back muscles, gut and vessels
+      are pushed out of the new bones by a field spread over 15 mm by area
+      (spread over 10 mm, the field creased the woman's gluteus maximus
+      where it ran into the widened sacrum), the gut and vessels out of the
+      sacrum, coccyx, last lumbar vertebra and the new disc. The organ
+      sets' gut and vessels are coarse (the man's rectum has 532
+      triangles, edges up to 4.5 cm, one through the coccyx's tip with
+      every corner clear of it), so where a bone still meets the gut, the
+      gut is first cut finer wherever the field reaches, each new point
+      faired along its normal (anatomy_gaps.py fair: cut finer alone, the
+      old triangles showed as creases); then each patch slides off the bone
+      one way, from the bone to the soft part about it, by the same field
+      (give_way), and what is still inside is pushed out, each round's pulls
+      scaled alike (each held to 3 mm on its own, they left a crease a round
+      along the man's rectum). The vessels are not cut first (faired one by
+      one, they creased at the vena cava's fork). None of the seated
+      sacrum's and coccyx's points now lie in his rectum; its back wall
+      eased forward up to 14.6 mm along the sacrum's curve (532 to 8,337
+      triangles), the coccyx's tip 0.7 mm clear of it (spread over 8 mm,
+      the field wrapped the tip in an S-bend). The gut and vessels near the
+      seat move as one mesh, so a vein stays joined to the next (moved one
+      by one, the woman's vena cava and common iliac veins parted); the
+      joins stay within 0.55 mm, as in the organ sets. Checked against
+      Gray's erect posture (the
+      ASIS and the symphysis' top in one frontal plane): the man's hip
+      bones lean 8.5 degrees forward of it (the woman's 3); allowing for
+      that, his pelvic inlet and outlet now lie at 61 and 15 degrees to the
+      horizontal (before: 53 and 4; Gray's: 50 to 60, and about 15), so
+      the sacrum belongs where it now sits; his iliac crests' tops lie at
+      the L4/L5 disc (Tuffier's line); the coccyx's tip rose 18 mm with the
+      sacrum. Suite: the man's L5/S1 disc meets both bones (within 1.5
+      mm), its volume 0.7 to 1.6 times the disc above's, the patches it
+      meets on each lined up within 12 mm front to back; every disc has its
+      nucleus; each sacroiliac joint's 30 nearest points within 3 mm.
+      Open: the sacrum's back is bare (muscle within 3 mm of 3 to 4% of it,
+      10% before): the multifidus that fills the sacral gutters is not
+      among the TotalSegmentator muscles.
+      - [ ] The woman's gluteus maximus keeps a low ridge along its edge
+        by the sacrum: the field fades with the distance to the nearest
+        point it pushes, so the muscle's deep face moves further than its
+        surface and the muscle thins there (spread over 30 mm the ridge
+        softens, but 0.6% of the muscle stays in the bone). Wanted: a
+        field that carries the muscle's whole thickness behind a pushed
+        patch.
+      - [ ] The gaps step's make_room still holds each point to its step
+        one by one, which creased the seat's parts; scale its rounds alike
+        in the next full build.
+      - [ ] Still in bone after the seat: the man's iliopsoas 1.2 and 1.3%
+        more than 1 mm inside the sacrum (0.5 and 0.6% before), and of the
+        woman's right gluteus maximus 2.0% of its points inside the spine
+        (1.4% before).
     - [x] 816,587 triangles for the man and 832,064 for the woman (from
       696,267 and 707,545); the skull, mouth, column, pelvis and hip
-      muscles' files change, every other file is as it was. Both sources
+      muscles' files change, every other file is as it was. With the seat
+      (built on the same base, so the ribs and girdles stay as they were):
+      828,921 and 837,390; the column, pelvis, hip and back muscles (and
+      their fibres), vessels and the man's colon change, the skull and
+      mouth come out byte for byte as before. Both sources
       credited (SOURCES.md, ContentSources, Settings' list), the credits
       suite holding them to SOURCES.md word for word.
     - [ ] Mac: the tour's skull and pelvis screenshots with the scans.
@@ -3179,6 +3281,16 @@ for screenshots.
   - [x] S5a. App build green on design/sciences (d35dfc3, run 40950114091).
   - [x] S5b. Screenshots on preview/sciences, sent to the owner (run
     40974066351: 25 iPhone and 25 iPad pages, the atlas in both bodies).
+  - S5 note, Design preview 152 (8bd070e, the whole suite): four UI tests
+    failed, none from Sciences. On the iPhone 17 Pro the tour, the Arabic
+    run and testStraightLines waited for dockCategory-questions while the
+    dock showed its one-button list: personal's CategoryDock falls back to
+    the list (ViewThatFits) where the full row is wider than the window.
+    design/integration already keeps the full row on every phone (the
+    names shrink a little), and the same three passed there (run
+    40927507965), so they pass once that reaches personal.
+    testIslandPushAndBack ("no studyMore button after returning") fails on
+    design/integration too (runs 40671937709, 40927507965).
   - [ ] S5c. Proposals to put to the owner: lift the examples hub's tile
     and the Sciences tile into one Shared/Ward tile, and the ward pocket's
     text section beside it (ScienceTextSection is a copy); the plots stand

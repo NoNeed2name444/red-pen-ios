@@ -9,7 +9,12 @@ For each skeletal muscle (tissue muscle, in a part of the muscular system):
 
 1. Finer: split into four triangles a side (each edge at its middle) until
    its edges are under FINE (4.5 mm) at the median, then smoothed without
-   shrinking (Taubin's steps), so a coarse mesh loses its facets.
+   shrinking (Taubin's steps), so a coarse mesh loses its facets. A muscle
+   and its mirror (the same name ending _L and _R) are split alike, as
+   often as the coarser of them needs, so the two sides look alike: a
+   muscle with edges just under the limit on one side and just over it
+   on the other was split on one side only, with about three times the
+   other side's triangles.
 2. Its fibres: a length along the muscle, u, held at 0 where it meets the
    bones it arises from and 1 where it meets those it inserts on (RULES:
    its surface within CONTACT, 4 mm, of them, or WIDER, 7 mm, if that finds
@@ -20,7 +25,11 @@ For each skeletal muscle (tissue muscle, in a part of the muscular system):
    (cotangent weights). The fibres run along u's gradient on the surface.
 3. Tendon where the muscle is narrow near an end: its slice across u (one
    of 20) under 45% as wide as its widest, fully under 25%, within the last
-   quarter at either end.
+   quarter at either end; at its insertion only, for a muscle with a rule
+   (the glutei and iliopsoas arise fleshy and end in tendon; read at the
+   origin, a broad muscle's narrow contact with its bone looked like
+   tendon: the man's left gluteus maximus was pale over a third of its
+   origin, his right not at all).
 4. Its bundles: stripes along the fibres a bundle wide (a thirtieth of its
    length along its fibres, 1.5 to 6 mm), as Knoeppel, Crane, Pinkall and
    Schroeder lay them (Stripe Patterns on Surfaces, 2015): a unit complex
@@ -322,7 +331,9 @@ def fibre_way(v, f, u, vn):
     return d
 
 
-def tendon_share(v, u):
+def tendon_share(v, u, origin=True):
+    """Each vertex's share of tendon: where its slice across u is narrow, near an end (the origin's, u = 0, too
+    unless `origin` is False)."""
     bins = 20
     b = np.minimum(bins - 1, (u * bins).astype(int))
     radius = np.ones(bins)
@@ -341,7 +352,7 @@ def tendon_share(v, u):
     def smooth(e0, e1, x):
         t = np.clip((x - e0) / (e1 - e0), 0, 1)
         return t * t * (3 - 2 * t)
-    return smooth(0.45, 0.25, thin) * smooth(0.25, 0.08, np.minimum(u, 1 - u))
+    return smooth(0.45, 0.25, thin) * smooth(0.25, 0.08, np.minimum(u, 1 - u) if origin else 1 - u)
 
 
 # MARK: bundles (stripe patterns)
@@ -501,9 +512,8 @@ def join(f, coord, fork):
     return vertex, origin
 
 
-def lay(name, v, f, bones):
-    """A muscle made finer, its fibres and bundles: (positions, triangles, across, tendon, bundle, log)."""
-    v, f = weld(v, f)
+def splits(v, f):
+    """How often a (welded) muscle is split in four for its edges to be under FINE at the median, at most 3."""
     level = 0
     while level < 3:
         e = edges_of(f)
@@ -511,6 +521,22 @@ def lay(name, v, f, bones):
             break
         v, f = subdivide(v, f)
         level += 1
+    return level
+
+
+def mirror(name):
+    """The same muscle's name on the other side (_L and _R swapped), or None."""
+    m = re.search(r"_([LR])$", name)
+    return name[:-1] + ("R" if m.group(1) == "L" else "L") if m else None
+
+
+def lay(name, v, f, bones, level=None):
+    """A muscle made finer (split `level` times, or as often as it needs), its fibres and bundles:
+    (positions, triangles, across, tendon, bundle, log)."""
+    v, f = weld(v, f)
+    level = splits(v, f) if level is None else level
+    for _ in range(level):
+        v, f = subdivide(v, f)
     if level:
         v = taubin(v, f)
     vn, _ = normals(v, f)
@@ -522,7 +548,7 @@ def lay(name, v, f, bones):
     along = v @ (way.mean(0) / max(np.linalg.norm(way.mean(0)), 1e-12))
     bundle = float(np.clip(np.ptp(along) / 30, 0.0015, 0.006))
     phase, *_ = stripes(v, f, across, bundle)
-    tendon = tendon_share(v, u)
+    tendon = tendon_share(v, u, origin=how != "bones")
     coord, fork = corners(v, f, across, phase, bundle)
     forks = int(fork.sum())
     for _ in range(2):
@@ -555,6 +581,13 @@ def annotate(folder, quiet=False):
             for st, (v, f) in zip(part["structures"], read_part(os.path.join(folder, part["file"]))):
                 if st.get("tissue") == "bone" and named.search(st["node"]):
                     bones[st["node"]] = surface_points(v, f)
+        skeletal = lambda st: st.get("tissue") == "muscle" and not NOT_SKELETAL.search(st["node"])
+        need = {}   # how often each muscle would be split on its own; a pair is split as its coarser side needs
+        for part in body["parts"]:
+            if part["system"] == "muscular" and "fibres" not in part:
+                for st, (v, f) in zip(part["structures"], read_part(os.path.join(folder, part["file"]))):
+                    if skeletal(st):
+                        need[st["node"]] = splits(*weld(v, f))
         for part in body["parts"]:
             if part["system"] != "muscular" or "fibres" in part:
                 continue
@@ -562,10 +595,11 @@ def annotate(folder, quiet=False):
             out, entries = [], []
             for st, (v, f) in zip(part["structures"], meshes):
                 st.pop("fibres", None)
-                if st.get("tissue") != "muscle" or NOT_SKELETAL.search(st["node"]):
+                if not skeletal(st):
                     out.append((v, f)); entries.append(None)
                     continue
-                pos, tri, acr, ten, bundle, log = lay(st["node"], v, f, bones)
+                level = max(need[st["node"]], need.get(mirror(st["node"]), 0))
+                pos, tri, acr, ten, bundle, log = lay(st["node"], v, f, bones, level)
                 out.append((pos, tri)); entries.append((acr, ten, bundle))
                 st["triangles"] = int(len(tri))
                 done += 1
