@@ -5,7 +5,10 @@ import UIKit
 
 /// The owner's logo on home (`HomeHeader.nameLine`): the word Stethoscore
 /// drawn as a stethoscope, added to the root of the built app's bundle after
-/// build and never kept in the public repository.
+/// build and never kept in the public repository. The Swift Playgrounds
+/// package made with `make_swiftpm.py --logo <dir>` carries it instead as a
+/// declared resource folder, `Logo`, in the package's resource bundle
+/// (`Bundle.module`).
 ///
 /// The lookup is Foundation-only so `BrandLogoTests` checks it on Linux;
 /// loading a `UIImage` from the chosen file is fenced for UIKit.
@@ -52,6 +55,33 @@ enum BrandLogo {
         return nil
     }
 
+    /// The package's resource folder that holds the logo (`make_swiftpm.py
+    /// --logo`, declared `.copy("Logo")`).
+    static let packageFolder: String = "Logo"
+
+    /// Where the logo is looked for, in order: the root of the built app's
+    /// bundle (the Xcode app and the IPA), then the `Logo` folder of the
+    /// package's resource bundle (the Swift Playgrounds build). The Xcode app
+    /// target is no SwiftPM module and has no `Bundle.module`, so that entry
+    /// is fenced.
+    static var searchDirectories: [URL] {
+        var found: [URL] = [Bundle.main.bundleURL]
+        #if SWIFT_PACKAGE
+        found.append(Bundle.module.bundleURL.appendingPathComponent(packageFolder, isDirectory: true))
+        #endif
+        return found
+    }
+
+    /// Picks the logo file's URL from the first of `directories` that holds
+    /// either logo file, by `url(dark:in:)`; with none, `nil`.
+    static func url(dark: Bool, inAny directories: [URL],
+                    fileManager: FileManager = .default) -> URL? {
+        for directory in directories {
+            if let found = url(dark: dark, in: directory, fileManager: fileManager) { return found }
+        }
+        return nil
+    }
+
     /// Picks the logo file's URL in `directory` (the app bundle's root by
     /// default): at night, `stethoscore-logo-dark.png` if present, else
     /// `stethoscore-logo.png`; with neither, `nil`.
@@ -68,10 +98,11 @@ enum BrandLogo {
     }
 
     #if canImport(UIKit)
-    /// Loads the bundle's logo image for the current appearance, or `nil`
-    /// when the build has no logo files in the bundle.
-    static func image(dark: Bool, in directory: URL = Bundle.main.bundleURL) -> UIImage? {
-        guard let url = url(dark: dark, in: directory) else { return nil }
+    /// Loads the logo image for the current appearance from the first of
+    /// `searchDirectories` that has it, or `nil` when the build carries no
+    /// logo files.
+    static func image(dark: Bool) -> UIImage? {
+        guard let url = url(dark: dark, inAny: searchDirectories) else { return nil }
         return UIImage(contentsOfFile: url.path)
     }
     #endif

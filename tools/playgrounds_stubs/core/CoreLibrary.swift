@@ -13,6 +13,8 @@ struct LibraryView: View {
     @EnvironmentObject private var account: AccountStore
     @State private var makingSet = false
     @State private var showingSettings = false
+    @Environment(\.colorScheme) private var scheme
+    @ScaledMetric(relativeTo: .largeTitle) private var logoHeight: CGFloat = CGFloat(BrandLogo.defaultHeight)
     #if targetEnvironment(simulator)
     /// CI only (`-launchTestOpenSets`): the set the launch test has open.
     /// Never compiled for a device, so never in the owner's app on the iPad.
@@ -104,18 +106,7 @@ struct LibraryView: View {
         return VStack(alignment: .leading, spacing: WardSpace.xs) {
             Text(now.formatted(.dateTime.weekday(.wide).day().month(.wide)))
                 .wardSmallCaps()
-            HStack(spacing: WardSpace.s) {
-                Text(Brand.name)
-                    .font(WardType.display)
-                    .foregroundStyle(Color.wardInk)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                    .accessibilityAddTraits(.isHeader)
-                EcgSquiggle()
-                    .stroke(Color.wardEcg, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-                    .frame(width: 34, height: 18)
-                    .accessibilityHidden(true)
-            }
+            nameLine
             Text(greeting)
                 .font(.subheadline)
                 .foregroundStyle(Color.wardInkSecondary)
@@ -126,6 +117,40 @@ struct LibraryView: View {
         }
         .padding(.top, WardSpace.s)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// The owner's logo where the zip carries it (make_swiftpm.py --logo),
+    /// else the typed name, in BrandLogo's box (1449 x 447, 72 pt by
+    /// default, 56 to 112 pt), beside the squiggle, as one "Stethoscore"
+    /// header, the way the full app's HomeHeader.nameLine draws it.
+    private var nameLine: some View {
+        let box = BrandLogo.boxSize(forHeight: Double(logoHeight))
+        return HStack(alignment: .center, spacing: WardSpace.s) {
+            Color.clear
+                .aspectRatio(CGFloat(BrandLogo.aspect), contentMode: .fit)
+                .frame(maxWidth: CGFloat(box.width), maxHeight: CGFloat(box.height))
+                .overlay(alignment: .leading) {
+                    if let logo = BrandLogo.image(dark: scheme == .dark) {
+                        Image(uiImage: logo)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                    } else {
+                        Text(Brand.name)
+                            .font(WardType.display)
+                            .foregroundStyle(Color.wardInk)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.6)
+                    }
+                }
+            EcgSquiggle()
+                .stroke(Color.wardEcg, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                .frame(width: 34, height: 18)
+                .accessibilityHidden(true)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Brand.name)
+        .accessibilityAddTraits(.isHeader)
     }
 
     /// Today's ward round: the due cards as bed 1, then Sources.

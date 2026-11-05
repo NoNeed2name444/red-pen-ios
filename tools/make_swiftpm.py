@@ -1,9 +1,13 @@
-# Usage: make_swiftpm.py ios/RedPen "Stethoscore Personal" com.cramdown.personal out.zip [--without a,b] [lectures...]
+# Usage: make_swiftpm.py ios/RedPen "Stethoscore Personal" com.cramdown.personal out.zip [--without a,b] [--logo dir] [lectures...]
 # The name is the package's and the app's (Playgrounds shows it); the bundle id
 # is never renamed with it - a new id would be a new app with an empty library.
 # --without leaves whole features out of the package (CHUNKS below), each
 # replaced by a small stand-in from tools/playgrounds_stubs, for an iPad whose
 # Swift Playgrounds cannot build the whole app at once. The full app is untouched.
+# --logo <dir> puts the owner's logo (stethoscore-logo.png and
+# stethoscore-logo-dark.png from <dir>) into this zip only, as the package's
+# Logo resource folder, where BrandLogo looks for it (Bundle.module). The logo
+# is never kept in this repository; without --logo, home shows the typed name.
 import fnmatch, os, re, shutil, sys, subprocess, time
 args = sys.argv[1:]
 without = []
@@ -11,6 +15,15 @@ if "--without" in args:
     at = args.index("--without")
     without = [w for w in args[at + 1].split(",") if w]
     del args[at:at + 2]
+logo_dir = None
+if "--logo" in args:
+    at = args.index("--logo")
+    logo_dir = args[at + 1]
+    del args[at:at + 2]
+LOGO_FILES = ["stethoscore-logo.png", "stethoscore-logo-dark.png"]  # BrandLogo.dayFile, nightFile
+if logo_dir is not None:
+    missing = [n for n in LOGO_FILES if not os.path.isfile(os.path.join(logo_dir, n))]
+    assert not missing, f"--logo {logo_dir}: missing {', '.join(missing)}"
 src, name, bundle, out = args[:4]
 samples = args[4:]  # lectures for this build only (never in the repository)
 # What can be left out: the paths (relative to ios/RedPen, fnmatch patterns or
@@ -233,6 +246,12 @@ if os.path.exists(catalog_path):
     catalog = l10n_catalog.load(catalog_path)
     l10n_catalog.write_lproj(catalog, os.path.join(root, "Localization"))
     listed.append('.process("Localization")')
+# the owner's logo, for this zip only (--logo): BrandLogo.packageFolder
+if logo_dir is not None:
+    os.makedirs(os.path.join(root, "Logo"), exist_ok=True)
+    for n in LOGO_FILES:
+        shutil.copy(os.path.join(logo_dir, n), os.path.join(root, "Logo", n))
+    listed.append('.copy("Logo")')
 # the Earth maps (Resources/Earth, NASA imagery, 4.5 MB) go with the 3D map
 # whose rocky planets wear them: a folder in the package's resources where
 # the map is kept, left out with it everywhere else

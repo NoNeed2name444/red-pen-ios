@@ -3344,6 +3344,7 @@ with the marks on the screens last.
   with the logo's frame as the title target. On home only, every text style
   steps one Dynamic Type size smaller. Waits for its Ward preview and Launch
   recording.
+  - T0191: the Playgrounds zip carries the logo only when built here with `make_swiftpm.py --logo <dir>` (its `Logo` resource folder, found by BrandLogo in Bundle.module after Bundle.main's root; the core shell's header shows it too); CI's zips and the IPA keep the typed name.
 - [x] T0119 (iOS Wave 2, components; the consistency sweep's rows, owner 22
   Oct "start all waves at once"): one Ward component per role where a row
   names a rebuilt one. Done: the dead CoronaGlow (and CoronaBreath),
