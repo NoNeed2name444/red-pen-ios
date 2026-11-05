@@ -206,7 +206,8 @@ class StudyStore(private val directory: File) {
         if (glanceLast?.sameContent(digest) == true) return false
         if (!glanceShelf.write(digest)) return false
         glanceLast = digest
-        onGlanceWritten?.invoke(digest)
+        // the library is already on disk: a failing listener must not turn the save into a failure
+        runCatching { onGlanceWritten?.invoke(digest) }
         return true
     }
     /** Saves a background change; a failure is reported through [onSaveError] instead of thrown. */

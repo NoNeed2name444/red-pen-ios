@@ -160,6 +160,23 @@ class GlanceDigestTest {
         assertFalse(File(folder.root, GlanceShelf.fileName + ".tmp").exists())
     }
 
+    @Test fun aThrowingListenerNeverFailsTheSave() {
+        val store = StudyStore(folder.root)
+        var told = 0
+        store.onGlanceWritten = { told++; throw IllegalStateException("widget update failed") }
+        store.addSet(StudySet(id = "deck", name = "Renal", kind = StudySetKind.ANKI, cards = listOf(AnkiCard(id = "c1", front = "Q", bullets = listOf("A")))))
+        assertEquals(1, told)
+        assertEquals(1, store.glanceShelf.read()!!.dueNow)
+        val reopened = StudyStore(folder.root)
+        assertEquals(listOf("deck"), reopened.library.map { it.id })
+        // a background save goes through too, with nothing reported as an error
+        val errors = mutableListOf<String>()
+        store.onSaveError = { errors += it }
+        store.rateCard(store.library.single().cards.single(), AnkiRating.EASY)
+        assertEquals(2, told); assertTrue(errors.isEmpty())
+        assertEquals(0, store.glanceShelf.read()!!.dueNow)
+    }
+
     @Test fun aLibraryThatCannotBeOpenedWritesNoDigest() {
         File(folder.root, "stethoscore.json").writeText("{ broken")
         val store = StudyStore(folder.root)
