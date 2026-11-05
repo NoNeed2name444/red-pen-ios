@@ -914,7 +914,9 @@ final class GraphPreviewUITests: XCTestCase {
     /// The depth meter's line (`-graphDepthMeter`, on the window), or "no meter".
     private func meterLine(_ app: XCUIApplication) -> String {
         let meter = app.staticTexts["graphDepthMeter"]
-        return meter.waitForExistence(timeout: 5) ? meter.label : "no meter"
+        // there already on nearly every read: exists answers at once, where
+        // waitForExistence first looks about a second in
+        return meter.exists || meter.waitForExistence(timeout: 5) ? meter.label : "no meter"
     }
 
     /// The meter's line once it has numbers and at least `frames` frame gaps

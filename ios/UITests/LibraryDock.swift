@@ -18,7 +18,7 @@ struct LibraryDock {
     /// Whether the library is open with its dock as the row: Questions' tab
     /// is there and the one list button is not.
     func waitForLibrary(timeout: TimeInterval) -> Bool {
-        row.waitForExistence(timeout: timeout) && !element("dockList").exists
+        (row.exists || row.waitForExistence(timeout: timeout)) && !element("dockList").exists
     }
 
     /// Goes to a place (a category or "ideas") by its tab on the row.
@@ -28,7 +28,9 @@ struct LibraryDock {
     func choose(_ place: String, timeout: TimeInterval = 5,
                 press: (XCUIElement) -> Bool = LibraryDock.tap) -> Bool {
         let item = element("dockCategory-\(place)")
-        guard item.waitForExistence(timeout: timeout), !element("dockList").exists else { return false }
+        // exists first: the tab is nearly always there, and waitForExistence
+        // first looks about a second in
+        guard item.exists || item.waitForExistence(timeout: timeout), !element("dockList").exists else { return false }
         return press(item)
     }
 

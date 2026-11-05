@@ -300,7 +300,7 @@ final class AccessibilityUITests: XCTestCase {
     /// A section from the list the dock becomes at AX sizes.
     private func choose(_ place: String) -> Bool {
         let list = element("dockList")
-        guard list.waitForExistence(timeout: 8) else { return false }
+        guard list.exists || list.waitForExistence(timeout: 8) else { return false }
         list.tap()
         let row = element("dockCategory-\(place)")
         // the sheet opens at its top, so only down it

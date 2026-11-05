@@ -156,9 +156,9 @@ final class DesignTourUITests: XCTestCase {
     /// card. Found by its identifier, else by its title.
     private func newSetControl() -> XCUIElement? {
         let byId = element("newSetButton")
-        if byId.waitForExistence(timeout: 5) { return byId }
+        if byId.exists || byId.waitForExistence(timeout: 5) { return byId }
         let byTitle = app.buttons.matching(NSPredicate(format: "label == %@", "New set")).firstMatch
-        if byTitle.waitForExistence(timeout: 3) { return byTitle }
+        if byTitle.exists || byTitle.waitForExistence(timeout: 3) { return byTitle }
         if reveal(byId, swipes: 4) { return byId }
         return nil
     }
@@ -532,7 +532,7 @@ final class DesignTourUITests: XCTestCase {
     /// Opens the first set of a kind from the category on show.
     private func openSet(_ kind: String) -> Bool {
         let row = element("setRow-\(kind)")
-        _ = row.waitForExistence(timeout: 8)
+        _ = row.exists || row.waitForExistence(timeout: 8)
         guard reveal(row) else {
             missing("setRow-\(kind)")
             return false
@@ -581,7 +581,7 @@ final class DesignTourUITests: XCTestCase {
 
     private func showIdeas(_ mode: String, as name: String?) {
         let segment = element("ideasMode-\(mode)")
-        guard segment.waitForExistence(timeout: 4), press(segment) else {
+        guard segment.exists || segment.waitForExistence(timeout: 4), press(segment) else {
             missing("ideasMode-\(mode)")
             return
         }
@@ -609,11 +609,11 @@ final class DesignTourUITests: XCTestCase {
         let list = element("ideasMode-list")
         if list.exists { return true }
         let toggle = element("ideasSwitcherToggle")
-        guard toggle.waitForExistence(timeout: 4), press(toggle) else {
+        guard toggle.exists || toggle.waitForExistence(timeout: 4), press(toggle) else {
             missing("ideasSwitcherToggle")
             return false
         }
-        if list.waitForExistence(timeout: 4) {
+        if list.exists || list.waitForExistence(timeout: 4) {
             sleep(1)
             return true
         }
@@ -642,7 +642,7 @@ final class DesignTourUITests: XCTestCase {
 
     private func openMenu() -> Bool {
         let menu = element("libraryMenu")
-        guard menu.waitForExistence(timeout: 5), menu.isHittable else {
+        guard menu.exists || menu.waitForExistence(timeout: 5), menu.isHittable else {
             missing("libraryMenu")
             return false
         }
@@ -655,7 +655,7 @@ final class DesignTourUITests: XCTestCase {
     private func menuItem(_ title: String) -> XCUIElement {
         let named = NSPredicate(format: "label == %@", title)
         let button = app.buttons.matching(named).firstMatch
-        if button.waitForExistence(timeout: 3) { return button }
+        if button.exists || button.waitForExistence(timeout: 3) { return button }
         return app.menuItems.matching(named).firstMatch
     }
 

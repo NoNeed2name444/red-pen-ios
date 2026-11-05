@@ -112,7 +112,7 @@ final class ArabicUITests: XCTestCase {
     private func menuItem(_ title: String) -> XCUIElement {
         let named = NSPredicate(format: "label == %@", title)
         let button = app.buttons.matching(named).firstMatch
-        if button.waitForExistence(timeout: 3) { return button }
+        if button.exists || button.waitForExistence(timeout: 3) { return button }
         return app.menuItems.matching(named).firstMatch
     }
 
