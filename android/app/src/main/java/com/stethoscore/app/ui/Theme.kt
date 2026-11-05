@@ -1,9 +1,5 @@
 package com.stethoscore.app.ui
 
-import android.app.Activity
-import android.content.ContextWrapper
-import androidx.compose.ui.platform.LocalView
-import androidx.core.view.WindowCompat
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
@@ -87,20 +83,9 @@ fun wardColorScheme(look: WardLook): ColorScheme {
     return wardRgb(glide.ink(look.dark))
 }
 
+// The bars' icons are not set here: MainActivity.showBars sets them with the
+// navigation bar's scrim, through enableEdgeToEdge, in the app's own mode.
 @Composable fun StethoscoreTheme(dark:Boolean=false, section:WardSection=WardSection.outside, content:@Composable ()->Unit) {
-    val view = LocalView.current
-    if (!view.isInEditMode) {
-        SideEffect {
-            val activity = generateSequence(view.context) { (it as? ContextWrapper)?.baseContext }
-                .filterIsInstance<Activity>().firstOrNull()
-            activity?.let {
-                WindowCompat.getInsetsController(it.window, view).apply {
-                    isAppearanceLightStatusBars = !dark
-                    isAppearanceLightNavigationBars = !dark
-                }
-            }
-        }
-    }
     val look = WardLook(dark = dark, section = section)
     // the one animated value: light and dark in one step, a section's hue glides (WardLookDriver)
     val glide = rememberWardGlide(look)

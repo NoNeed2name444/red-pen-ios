@@ -17,6 +17,7 @@ import androidx.compose.material.icons.rounded.MedicalServices
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -181,7 +182,8 @@ enum class ExamToolSheet { labs, calculator }
 // MARK: - reference ranges
 
 @Composable fun LabRangesSheet(track: ExamTrack, onDone: () -> Unit) {
-    var query by remember { mutableStateOf("") }
+    // kept across a turn or a fold, as the sheet is (toolSheet is saveable where it opens)
+    var query by rememberSaveable { mutableStateOf("") }
     var conventional by remember { mutableStateOf(LabUnits.conventional(track)) }
     val found = remember(query) { LabRanges.search(query) }
     Column(Modifier.fillMaxWidth().fillMaxHeight(0.9f)) {

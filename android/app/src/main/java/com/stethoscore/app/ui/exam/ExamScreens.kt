@@ -57,6 +57,11 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.DialogWindowProvider
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.runtime.SideEffect
+import androidx.core.view.WindowCompat
+import com.stethoscore.app.ui.LocalWardDark
 import com.stethoscore.app.coverage.CoverageEngine
 import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.data.StudyStore
@@ -110,11 +115,34 @@ import java.util.Date
 
 // MARK: - pieces shared by the exam screens
 
-/** A page over whatever is showing, as an iOS sheet is: the Ward base, inside the safe area. */
+/**
+ * A page over whatever is showing, as an iOS sheet is: the Ward base edge to
+ * edge, under the bars, and the page inside the safe area (bars, cutout and
+ * keyboard: safeDrawingPadding).
+ */
 @Composable internal fun ExamSheet(onDismiss: () -> Unit, content: @Composable () -> Unit) {
-    Dialog(onDismiss, DialogProperties(usePlatformDefaultWidth = false)) {
+    Dialog(onDismiss, DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
+        SheetBars()
         Surface(Modifier.fillMaxSize(), color = wardColor(WardToken.background)) {
             Box(Modifier.fillMaxSize().safeDrawingPadding()) { content() }
+        }
+    }
+}
+
+/**
+ * The sheet's own window draws under the bars, so it sets them as
+ * MainActivity.showBars does for the app: clear (its theme would lay
+ * ward_ground over them before Android 15) with icons for the app's mode.
+ */
+@Composable private fun SheetBars() {
+    val window = (LocalView.current.parent as? DialogWindowProvider)?.window ?: return
+    val dark = LocalWardDark.current
+    SideEffect {
+        @Suppress("DEPRECATION") window.statusBarColor = android.graphics.Color.TRANSPARENT
+        @Suppress("DEPRECATION") window.navigationBarColor = android.graphics.Color.TRANSPARENT
+        WindowCompat.getInsetsController(window, window.decorView).run {
+            isAppearanceLightStatusBars = !dark
+            isAppearanceLightNavigationBars = !dark
         }
     }
 }

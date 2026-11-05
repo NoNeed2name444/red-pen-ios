@@ -1,5 +1,6 @@
 package com.stethoscore.app.ui.library
 
+import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -25,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -107,8 +109,17 @@ fun readPicked(context: Context, uri: Uri): PickedFile {
 object IncomingFiles {
     val waiting = mutableStateListOf<Uri>()
 
-    /** Takes the file an Open with or Share intent carries, if any. */
-    fun take(intent: Intent?) {
+    /** Files handed over and refused (accepts), not yet told; the library says so once (IncomingImportHost). */
+    var refused by mutableIntStateOf(0)
+
+    /** Why a handed file was refused, as the library shows it. */
+    const val refusedTitle = "Couldn’t open this file"
+    const val refusedBody = "Stethoscore can’t safely open a file sent this way. Share it from a files app instead."
+
+    /** Takes the file an Open with or Share intent carries, if any and if [accepts] it. */
+    fun take(intent: Intent?, context: Context) = take(intent) { owns(context, it) }
+
+    internal fun take(intent: Intent?, owns: (String) -> Boolean) {
         intent ?: return
         val uri: Uri? = when (intent.action) {
             Intent.ACTION_VIEW -> intent.data
@@ -116,7 +127,30 @@ object IncomingFiles {
                 else @Suppress("DEPRECATION") (intent.getParcelableExtra(Intent.EXTRA_STREAM) as? Uri)
             else -> null
         }
-        if (uri != null) waiting += uri
+        uri ?: return
+        if (accepts(uri, owns)) waiting += uri else refused += 1
+    }
+
+    /**
+     * Only a content:// file from another app's provider. The activity is
+     * exported, so any app can hand it anything, and a file:// path would be
+     * read with this app's own rights (its private files), as would an
+     * android.resource:// one or one of this app's own providers.
+     * [owns] tells whether an authority is this app's.
+     */
+    internal fun accepts(uri: Uri, owns: (String) -> Boolean): Boolean {
+        if (uri.scheme != ContentResolver.SCHEME_CONTENT) return false
+        // "10@authority" is the authority for user 10 (ContentProvider.getAuthorityWithoutUserId)
+        val authority = uri.authority?.substringAfterLast('@')?.takeIf { it.isNotBlank() } ?: return false
+        return !owns(authority)
+    }
+
+    /** Whether [authority] is one of this app's providers: under its package name, or declared by it. */
+    internal fun owns(context: Context, authority: String): Boolean {
+        val own = context.packageName
+        if (authority.equals(own, ignoreCase = true) || authority.startsWith("$own.", ignoreCase = true)) return true
+        val provider = runCatching { context.packageManager.resolveContentProvider(authority, 0) }.getOrNull()
+        return provider?.packageName == own
     }
 }
 
@@ -260,6 +294,13 @@ private fun describePicked(context: Context, uri: Uri): Pair<String, Long> {
             reading = null
             made.onSuccess { preview = it }.onFailure { message = IncomingMessage("Couldn\u2019t read ${file.name}", it.message ?: "") }
         }
+    }
+    // a refused file (IncomingFiles.accepts) is said once, after the files that wait
+    val refusing = idle && !busy && !ready && IncomingFiles.refused > 0
+    LaunchedEffect(refusing) {
+        if (!refusing) return@LaunchedEffect
+        IncomingFiles.refused = 0
+        message = IncomingMessage(IncomingFiles.refusedTitle, IncomingFiles.refusedBody)
     }
 
     reading?.let { name ->

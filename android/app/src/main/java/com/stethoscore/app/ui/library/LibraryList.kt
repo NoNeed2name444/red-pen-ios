@@ -232,6 +232,15 @@ fun shownSets(store: StudyStore, category: StudyCategory, searching: Boolean, se
     return store.library.filter { it.id in order }.sortedBy { order[it.id] ?: 0 }
 }
 
+/** The kinds of item in the library's part of the list, so the list reuses a row only as a row (contentType). */
+internal object LibraryContent {
+    const val heading = "heading"
+    const val row = "row"
+    const val tile = "tile"
+    const val empty = "empty"
+    const val chips = "chips"
+}
+
 /**
  * The library's part of home's list. [rowModifier] lets home tag each row
  * for its book of parts (HomePartBook) without the library knowing about it.
@@ -248,33 +257,33 @@ fun LazyListScope.libraryItems(
     val filed = store.folders.map { it.id }.toSet()
     val loose = shown.filter { set -> set.folderId?.let { it !in filed } ?: true }
     if (showsEmpty && store.library.isEmpty() && store.loadError == null) {
-        item(key = "library-empty") { LibraryEmpty(category, actions) }
+        item(key = "library-empty", contentType = LibraryContent.empty) { LibraryEmpty(category, actions) }
     }
-    if (searching) item(key = "search-scope") { SearchScopeChips(state) }
+    if (searching) item(key = "search-scope", contentType = LibraryContent.chips) { SearchScopeChips(state) }
     if (!searching && category.kinds.size > 1) tileSection(FeatureGroup.MODES, category, store, state, actions)
     if (!searching || state.scope == LibrarySearch.Scope.ALL) {
         if (shown.isEmpty() && searching && search.results.items.isEmpty() && !search.busy) {
-            item(key = "no-results") {
+            item(key = "no-results", contentType = LibraryContent.empty) {
                 WardEmptyState(Icons.Rounded.Search, "No results for “${query.trim()}”", "Check the spelling or try a new search.")
             }
         } else if (shown.isEmpty() && !searching && store.library.isNotEmpty()) {
-            item(key = "sets-heading-empty") { LibraryHeading(category.setsHeading) }
-            item(key = "sets-empty") { EmptyCategoryRow(category, actions) }
+            item(key = "sets-heading-empty", contentType = LibraryContent.heading) { LibraryHeading(category.setsHeading) }
+            item(key = "sets-empty", contentType = LibraryContent.empty) { EmptyCategoryRow(category, actions) }
         }
         if (loose.isNotEmpty()) {
-            item(key = "sets-heading") { SetsHeader(if (searching) "Sets" else category.setsHeading, searching, category, store, state, actions) }
-            items(loose, key = { "set-" + it.id }) { set -> Box(rowModifier(set)) { LibraryRow(set, store, revision, state, actions) } }
+            item(key = "sets-heading", contentType = LibraryContent.heading) { SetsHeader(if (searching) "Sets" else category.setsHeading, searching, category, store, state, actions) }
+            items(loose, key = { "set-" + it.id }, contentType = { LibraryContent.row }) { set -> Box(rowModifier(set)) { LibraryRow(set, store, revision, state, actions) } }
         }
         for (folder in store.folders) {
             val inside = shown.filter { it.folderId == folder.id }
             if (inside.isEmpty()) continue
-            item(key = "folder-" + folder.id) { FolderHeader(folder, store, state, actions) }
-            items(inside, key = { "set-" + it.id }) { set -> Box(rowModifier(set)) { LibraryRow(set, store, revision, state, actions) } }
+            item(key = "folder-" + folder.id, contentType = LibraryContent.heading) { FolderHeader(folder, store, state, actions) }
+            items(inside, key = { "set-" + it.id }, contentType = { LibraryContent.row }) { set -> Box(rowModifier(set)) { LibraryRow(set, store, revision, state, actions) } }
         }
     }
     if (searching) searchItems(query.trim(), store, search, state, actions)
     if (!searching) {
-        if (category == StudyCategory.QUESTIONS || category == StudyCategory.CARDS) item(key = "build-session") { BuildSessionTile { state.session = "" } }
+        if (category == StudyCategory.QUESTIONS || category == StudyCategory.CARDS) item(key = "build-session", contentType = LibraryContent.tile) { BuildSessionTile { state.session = "" } }
         practiseSection(category, store, state, actions)
         tileSection(FeatureGroup.TOOLS, category, store, state, actions)
     }

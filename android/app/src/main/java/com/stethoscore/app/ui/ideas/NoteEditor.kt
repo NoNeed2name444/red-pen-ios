@@ -345,7 +345,7 @@ private fun inline(line: String, link: androidx.compose.ui.graphics.Color, openT
 /** Link to… (NoteLinkPicker): every other note, found by title; a tick joins or parts. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable private fun LinkPicker(book: IdeaBook, id: String, onDone: () -> Unit) {
-    var query by remember { mutableStateOf("") }
+    var query by rememberSaveable { mutableStateOf("") }
     val others = book.notes.filter { it.id != id }.sortedByDescending { it.updatedAt }
     val shown = if (query.isBlank()) others else others.filter { it.title.contains(query.trim(), ignoreCase = true) }
     ModalBottomSheet(onDismissRequest = onDone, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
