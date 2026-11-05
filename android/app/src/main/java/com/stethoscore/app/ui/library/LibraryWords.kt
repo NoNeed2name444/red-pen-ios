@@ -205,9 +205,9 @@ object NewSetWords {
      * The paths a kind offers (iOS NewSetView.paths(for:)). iOS offers From a
      * lecture file first for every kind but Narrate. Here it is offered where
      * its writer reaches Stethoscore Cloud: questions (MCQGenerateForm) and
-     * patients (CaseMakeSection). Cards, textbooks and OSCE stations
-     * (LectureWriterSection, OsceGenerateSection) have no writer on Android
-     * yet, so they offer typing and a file until they do.
+     * patients (CaseMakeSection). Cards, textbooks and OSCE stations have
+     * their writers (LectureWriterSection, OsceGenerateSection, T0189) but
+     * are not hosted on this path yet, so they offer typing and a file.
      */
     fun paths(kind: StudySetKind): List<NewSetPath> = when (kind) {
         StudySetKind.MCQ -> listOf(NewSetPath.LECTURE, NewSetPath.TYPE, NewSetPath.IMPORT_FILE)

@@ -1,13 +1,8 @@
 package com.stethoscore.app.data
 
-import com.stethoscore.app.llm.ChatTurn
 import com.stethoscore.app.llm.LLMBackend
-import com.stethoscore.app.llm.LLMError
-import com.stethoscore.app.llm.LLMText
+import com.stethoscore.app.llm.MedicalGenerate
 import com.stethoscore.app.quiz.ExamTrack
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.ensureActive
-import kotlin.coroutines.coroutineContext
 
 // A port of ios/RedPen/Models/OsceChecklist.swift (OsceRun: one run
 // through a station, in order), Shared/OsceStations.swift (tidying written
@@ -244,8 +239,9 @@ object OsceText {
  * every reply tidied (OsceStations) and the unusable dropped. While the
  * writer route is blocked, [writer] finds none and the form says why.
  *
- * Not ported: iOS's Stethoscore Cloud job, which writes the whole set on the
- * server; Android's collector does not make OSCE sets from a job yet (CloudRecipe).
+ * With Stethoscore Cloud the server writes the whole set as one job, as iOS's
+ * does (MedicalGenerate.osce). Not ported: collecting a job the app was closed
+ * on as an OSCE set (CloudRecipe has none for stations yet).
  */
 object OsceGenerator {
     const val maxStationsPerCall = 2
@@ -279,66 +275,28 @@ object OsceGenerator {
     fun writer(backend: LLMBackend?, exam: ExamTrack = ExamTrack.general): Writer? = backend?.let { BackendWriter(it, exam) }
 
     /**
-     * Up to [count] stations, never more than [maxStationsTotal], [maxStationsPerCall] a call, until three calls in a row keep none,
-     * telling [onProgress] how many are kept so far, of how many, before each call (iOS MedicalGenerate.osce).
+     * Up to [count] stations, through MedicalGenerate.osce (iOS's prompt,
+     * batching and bar), none when nothing in the source reads like a station.
      */
     suspend fun write(sourceText: String, count: Int, subject: String, using: LLMBackend,
-                      exam: ExamTrack = ExamTrack.general, onProgress: (Int, Int) -> Unit = { _, _ -> }): List<OsceChecklist> {
-        val wanted = minOf(count, maxStationsTotal)
-        // a station prompt is long: 12,000 characters of source a call on a
-        // hosted model, 4,000 on a phone, and the whole lecture in turn
-        val budget = if (using.isOnDevice) maxPromptChars else minOf(using.promptBudgetChars, 12_000)
-        val windows = TextSlicing.windows(sourceText, budget).take(60)
-        val collected = mutableListOf<OsceChecklist>()
-        val titles = mutableListOf<String>()
-        var consecutiveFailures = 0
-        while (collected.size < wanted && consecutiveFailures < 3) {
-            coroutineContext.ensureActive()
-            val callCount = minOf(maxStationsPerCall, wanted - collected.size)
-            onProgress(collected.size, wanted)
-            val instructions = OsceStations.prompt(TextSlicing.window(windows, titles.size / maxStationsPerCall),
-                callCount, subject, titles, exam) + answerShape
-            try {
-                val reply = using.complete(
-                    listOf(ChatTurn.system(instructions),
-                        ChatTurn.user("Write the $callCount station${if (callCount == 1) "" else "s"} now, as JSON only.")),
-                    900 * callCount, 0.6)
-                var kept = 0
-                for (station in OsceStations.tidy(parseStations(reply))) {
-                    if (titles.any { it.equals(station.title, ignoreCase = true) }) continue
-                    collected += station
-                    titles += station.title
-                    kept += 1
-                    if (collected.size >= wanted) break
-                }
-                consecutiveFailures = if (kept == 0) consecutiveFailures + 1 else 0
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: LLMError) {
-                // a missing key or a refused request will not fix itself on retry
-                if (e is LLMError.EmptyReply) consecutiveFailures += 1 else throw e
-            } catch (e: Exception) {
-                consecutiveFailures += 1
-            }
+                      exam: ExamTrack = ExamTrack.general, onProgress: (Int, Int) -> Unit = { _, _ -> }): List<OsceChecklist> =
+        try {
+            MedicalGenerate.osce(sourceText, count, subject, using, exam, onProgress = onProgress)
+        } catch (e: NothingUsable) {
+            emptyList()
         }
-        return collected.take(wanted)
-    }
+
+    /** The prompt lives in OsceStations, with its tests; the reply is asked for as JSON. */
+    fun prompt(sourceText: String, count: Int, subject: String, alreadyWritten: List<String>, exam: ExamTrack): String =
+        OsceStations.prompt(sourceText, count, subject, alreadyWritten, exam) + answerShape
 
     private const val answerShape = "\n\nAnswer with JSON only, in exactly this shape: {\"stations\":[{\"title\":\"...\",\"steps\":[\"...\"]}]}"
 
-    /**
-     * Every station in a reply, each read on its own (LLMText.jsonItems): a
-     * malformed one costs only itself. Whether it is worth drilling is for
-     * OsceStations.tidy to say.
-     */
-    fun parseStations(raw: String): List<OsceChecklist> = LLMText.jsonItems(raw, "stations").mapNotNull { item ->
-        val title = item.opt("title") as? String ?: return@mapNotNull null
-        val array = item.optJSONArray("steps") ?: return@mapNotNull null
-        val steps = LLMText.strings(array)
-        // a step that is not words costs the station, as iOS's [String] reads it
-        if (steps.size != array.length()) return@mapNotNull null
-        OsceChecklist(title = title, steps = steps)
-    }
+    /** Every station in a reply (MedicalGenerate.parseStations). */
+    fun parseStations(raw: String): List<OsceChecklist> = MedicalGenerate.parseStations(raw)
+
+    /** Nothing in the source read like a station (iOS OsceGenerator.Trouble.nothingUsable). */
+    class NothingUsable : Exception(nothingUsable)
 
     const val nothingUsable = "Nothing in that source reads like a station. A skills lecture or a mark sheet works best — a slide deck of facts usually has no procedure in it."
 }

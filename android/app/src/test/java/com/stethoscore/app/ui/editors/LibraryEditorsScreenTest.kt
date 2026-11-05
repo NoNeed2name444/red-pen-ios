@@ -133,7 +133,7 @@ class LibraryEditorsScreenTest {
         compose.onNodeWithText("Focus on high-yield facts").assertExists()
     }
 
-    @Test fun theCardWriterSaysNoModelIsReady() {
+    @Test fun theCardWriterSaysWhyThereIsNoWriter() {
         var step by mutableStateOf(LectureStep.material)
         val notes = "The malar rash of lupus spares the nasolabial folds. ".repeat(6)
         compose.setContent {
@@ -154,7 +154,11 @@ class LibraryEditorsScreenTest {
         compose.onNodeWithText("Mixed (all types)").assertExists()
         compose.onNodeWithText("How many cards").assertExists()
         compose.onNodeWithText("Make 12 cards").performClick()
-        compose.onNodeWithText("No model is ready to write with.").assertExists()
+        // with no writer, the cloud's own reason, as the question, case and station screens say
+        compose.onNodeWithText("Stethoscore Cloud is part of Pro.").assertExists()
+        compose.onNodeWithText("on this phone", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("More options").performClick()
+        compose.onNodeWithText(NoWriter.cards).assertExists()
         compose.onNodeWithText("Go back and add a lecture first.").assertDoesNotExist()
         compose.onNodeWithText("Mixed (all types)").performClick()
         compose.onNodeWithText("Image occlusion").performClick()

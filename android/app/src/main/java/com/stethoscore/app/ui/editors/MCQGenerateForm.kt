@@ -62,7 +62,7 @@ import com.stethoscore.app.ui.ward.WardTone
 /** The no-writer words, the same path the other batches show (CaseMaker.noWriter, the quiz's twins). */
 internal object NoWriter {
     const val questions = "New questions are written by ${HostedProvider.BRAND} Cloud, which is part of Pro."
-    const val cards = "No model is ready: writing new cards and textbooks comes to Android later."
+    const val cards = "New cards and textbooks are written by ${HostedProvider.BRAND} Cloud, which is part of Pro."
 }
 
 /**

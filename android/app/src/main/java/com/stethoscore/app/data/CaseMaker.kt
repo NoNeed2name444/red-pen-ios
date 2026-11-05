@@ -189,4 +189,33 @@ object TextSlicing {
         if (windows.isEmpty()) return ""
         return windows[((round % windows.size) + windows.size) % windows.size]
     }
+
+    /**
+     * Paragraph-aligned slices of roughly equal length (iOS TextSlicing.slice),
+     * for a textbook's pages and a long lecture's card windows. More pieces
+     * than [count] are merged with their neighbours rather than the tail
+     * dropped, so the last chapter is never silently lost.
+     */
+    fun slice(text: String, count: Int, maxChars: Int): List<String> {
+        val paragraphs = text.split("\n\n").filter { it.isNotBlank() }
+        if (paragraphs.isEmpty()) return emptyList()
+        val target = minOf(maxChars, maxOf(800, text.length / maxOf(1, count)))
+        val slices = mutableListOf<String>()
+        var current = ""
+        for (p in paragraphs) {
+            if (current.isNotEmpty() && current.length + p.length > target) {
+                slices += current
+                current = ""
+            }
+            current += (if (current.isEmpty()) "" else "\n\n") + p.take(maxChars)
+        }
+        if (current.isNotEmpty()) slices += current
+        val wanted = maxOf(1, count)
+        if (slices.size <= wanted) return slices
+        return (0 until wanted).map { bucket ->
+            val from = bucket * slices.size / wanted
+            val to = (bucket + 1) * slices.size / wanted
+            slices.subList(from, to).joinToString("\n\n").take(maxChars)
+        }
+    }
 }
