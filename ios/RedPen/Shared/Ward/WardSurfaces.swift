@@ -372,9 +372,9 @@ private struct WardPressDrawing<S: InsettableShape>: View {
                 shape.strokeBorder(edge.opacity(spec.edgeAlpha), lineWidth: 1)
             }
         }
-        // a see-through face is always drawn live, never from its hidden
-        // image (WardLitFace): decoration only, so VoiceOver and the audit skip it
-        .accessibilityHidden(seeThrough)
+        // decoration only, live or see-through, as the face's image is
+        // (WardLitFace): no labelled node of its own for the audit
+        .accessibilityHidden(true)
     }
 
     private func innerFill(_ spec: WardPressSpec) -> AnyShapeStyle {
@@ -524,9 +524,9 @@ private struct WardReliefDrawing<S: InsettableShape>: View {
             }
         }
         .compositingGroup()
-        // a see-through face is always drawn live, never from its hidden
-        // image (WardLitFace): decoration only, so VoiceOver and the audit skip it
-        .accessibilityHidden(seeThrough)
+        // decoration only, live or see-through, as the face's image is
+        // (WardLitFace): no labelled node of its own for the audit
+        .accessibilityHidden(true)
     }
 }
 
