@@ -1,0 +1,36 @@
+
+compile rc=0
+PASS K1a the same notes give the same key
+PASS K1b a renamed note
+PASS K1c a note made a page
+PASS K1d a note moved to another folder
+PASS K1e a note taken out of its folder
+PASS K1f a new link
+PASS K1g a link gone
+PASS K1h a link moved to another note
+PASS K1i a renamed folder
+PASS K1j a folder put inside another
+PASS K1k a new folder
+PASS K1l a new note
+PASS K1m a note gone
+PASS K1n a name's last letter moved into the kind
+PASS K2a typing inside a size step leaves it
+PASS K2b crossing a size step changes it
+PASS K2c rewording a note keeps it
+PASS K2d the single looks ignore the text, even a long one
+PASS K2e but not the names
+PASS K2f sizing by length is its own key
+PASS K3a the first look counts every note
+PASS K3b a redraw with nothing changed counts none
+PASS K3c nor do fifty more
+PASS K3d typing in one note counts that note only
+PASS K3e and keeps the key, as the step is the same
+PASS K3f renaming every note counts none
+PASS K3g a kept key follows a step crossed
+PASS K3h notes that are gone are forgotten
+PASS K3i the single looks count nothing
+PASS K3j a kept key is the same number as a fresh one
+PASS K4a fifty saves while typing count fifty notes, not 100,000
+ALL PASSED
+
+run rc=0

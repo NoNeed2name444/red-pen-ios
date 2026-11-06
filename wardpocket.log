@@ -1,0 +1,335 @@
+
+compile rc=0
+ok   glucose 180 mg/dL is about 10 mmol/L
+ok   creatinine 1 mg/dL is 88.4 umol/L
+ok   BUN 28 mg/dL is urea 10 mmol/L
+ok   calcium 2.5 mmol/L is 10 mg/dL
+ok   cholesterol 5 mmol/L is 193 mg/dL
+ok   albumin 3.5 g/dL is 35 g/L
+ok   bilirubin 17.1 umol/L is 1 mg/dL
+ok   PaCO2 5.33 kPa is 40 mmHg
+ok   every converter unit goes there and back
+ok   SI values stay as typed in SI
+ok   converter: glucose 10 mmol/L -> 180 mg/dL
+ok   converter: creatinine 1.2 mg/dL -> 106 umol/L
+ok   BMI 70 kg, 175 cm = 22.9
+ok   BSA (Mosteller) 70 kg, 170 cm = 1.82 m2
+ok   BMI 18.4 underweight, 18.5 healthy
+ok   BMI 24.9 healthy, 25 overweight
+ok   BMI 30 class I, 35 class II, 40 class III
+ok   body size shows BMI and BSA
+ok   no answer without a height
+ok   anion gap 140 - (104 + 24) = 12
+ok   albumin 20 g/L adds 5 to the gap (Figge)
+ok   albumin 40 g/L adds nothing
+ok   gap 12 is within range, 13 raised, 7 low
+ok   gap in US units says mEq/L and judges the corrected gap
+ok   Ca 2.00 mmol/L, albumin 25 g/L -> 2.30 (Payne)
+ok   Ca 8.0 mg/dL, albumin 2.0 g/dL -> 9.6 mg/dL
+ok   calcium bands at 2.20 and 2.60
+ok   Na 130, glucose 600 mg/dL -> 138 (Katz)
+ok   Na 130, glucose 600 mg/dL -> 142 (Hillier)
+ok   no correction at glucose 100 mg/dL or below
+ok   sodium calculator from mmol/L glucose
+ok   2 x 140 + 5 + 5 = 290
+ok   MDCalc-style: Na 140, glucose 90, BUN 14 -> 290; gap 20
+ok   an osmolar gap of exactly 10 is not raised
+ok   PAO2 on air with PaCO2 40 = 99.7 mmHg
+ok   A-a gradient: air, PaCO2 40, PaO2 90 -> 9.7
+ok   expected A-a at 40 years = 14
+ok   A-a in mmHg, normal for age
+ok   A-a in kPa: PaO2 8, PaCO2 5.3 -> 5.3 kPa, raised
+ok   FiO2 typed as 0.21 reads as 21%
+ok   a PaO2 above the alveolar value is flagged as a slip
+ok   an FiO2 over 100% is refused
+ok   Cockcroft-Gault: 60 y, 72 kg, Cr 1.0, man -> 80
+ok   Cockcroft-Gault: the same woman -> 68
+ok   Cockcroft-Gault from umol/L
+ok   CKD-EPI 2021: man 50 y, Cr 1.0 -> 92
+ok   CKD-EPI 2021: woman 50 y, Cr 0.7 -> 105
+ok   CKD-EPI 2021: man 70 y, Cr 2.0 -> 35
+ok   CKD-EPI 2021: woman 60 y, Cr 0.5 (below kappa) -> 107
+ok   CKD-EPI 2021: woman 80 y, Cr 1.5 -> 35
+ok   CKD-EPI 2021 at Scr = kappa is 142 x 0.9938^age
+ok   KDIGO categories at 90, 60, 45, 30, 15
+ok   eGFR from umol/L, G1
+ok   eGFR says it is for adults
+ok   MAP 120/80 = 93.3
+ok   MAP 85/55 = 65 is at target
+ok   MAP 84/55 = 64.7 is below target
+ok   QTc at 60/min equals QT
+ok   QT 360 at 100/min: Bazett 465
+ok   QT 360 at 100/min: Fridericia 427
+ok   QTc 449 man not prolonged, 450 prolonged
+ok   QTc 459 woman not prolonged, 460 prolonged
+ok   QTc 501 markedly prolonged
+ok   4-2-1: 10 kg = 40 mL/h
+ok   4-2-1: 20 kg = 60 mL/h
+ok   4-2-1: 25 kg = 65 mL/h
+ok   4-2-1: 70 kg = 110 mL/h
+ok   4-2-1: 5 kg = 20 mL/h
+ok   100-50-20: 25 kg = 1600 mL/day
+ok   100-50-20: 10 kg = 1000, 20 kg = 1500
+ok   adult water 25-30 mL/kg/day at 70 kg
+ok   APLS: newborn 4 kg
+ok   APLS: 6 months 7 kg
+ok   APLS: 12 months 10 kg
+ok   APLS: 3 years 14 kg
+ok   APLS: 5 years 18 kg
+ok   APLS: 5 years 11 months still (2 x 5) + 8
+ok   APLS: 6 years 25 kg
+ok   APLS: 10 years 37 kg
+ok   APLS: 12 years 43 kg
+ok   APLS: none past 12 years
+ok   child weight typed in years
+ok   MELD: bili 2, INR 1.5, Cr 1.2 -> 15
+ok   MELD-Na: with Na 130 -> 21
+ok   values below 1 count as 1: MELD 6, and no sodium term at 11 or less
+ok   MELD(i) 12 takes the sodium term: 12 + 2.64 - 0.792 -> 14
+ok   sodium below 125 counts as 125: MELD 33 -> 36
+ok   dialysis sets creatinine to 4, as does a creatinine over 4
+ok   MELD is capped at 40
+ok   MELD mortality bands at 9/10, 19/20, 29/30, 39/40
+ok   MELD-Na from SI units
+ok   bodySize: field ids are unique
+ok   bodySize: has a formula, a source and a title
+ok   bodySize: nothing from nothing
+ok   bodySize: practice notes carry the formula and source
+ok   anionGap: field ids are unique
+ok   anionGap: has a formula, a source and a title
+ok   anionGap: nothing from nothing
+ok   anionGap: practice notes carry the formula and source
+ok   calcium: field ids are unique
+ok   calcium: has a formula, a source and a title
+ok   calcium: nothing from nothing
+ok   calcium: practice notes carry the formula and source
+ok   sodium: field ids are unique
+ok   sodium: has a formula, a source and a title
+ok   sodium: nothing from nothing
+ok   sodium: practice notes carry the formula and source
+ok   osmolality: field ids are unique
+ok   osmolality: has a formula, a source and a title
+ok   osmolality: nothing from nothing
+ok   osmolality: practice notes carry the formula and source
+ok   aaGradient: field ids are unique
+ok   aaGradient: has a formula, a source and a title
+ok   aaGradient: nothing from nothing
+ok   aaGradient: practice notes carry the formula and source
+ok   crcl: field ids are unique
+ok   crcl: has a formula, a source and a title
+ok   crcl: nothing from nothing
+ok   crcl: practice notes carry the formula and source
+ok   egfr: field ids are unique
+ok   egfr: has a formula, a source and a title
+ok   egfr: nothing from nothing
+ok   egfr: practice notes carry the formula and source
+ok   map: field ids are unique
+ok   map: has a formula, a source and a title
+ok   map: nothing from nothing
+ok   map: practice notes carry the formula and source
+ok   qtc: field ids are unique
+ok   qtc: has a formula, a source and a title
+ok   qtc: nothing from nothing
+ok   qtc: practice notes carry the formula and source
+ok   fluids: field ids are unique
+ok   fluids: has a formula, a source and a title
+ok   fluids: nothing from nothing
+ok   fluids: practice notes carry the formula and source
+ok   childWeight: field ids are unique
+ok   childWeight: has a formula, a source and a title
+ok   childWeight: nothing from nothing
+ok   childWeight: practice notes carry the formula and source
+ok   convert: field ids are unique
+ok   convert: has a formula, a source and a title
+ok   convert: nothing from nothing
+ok   convert: practice notes carry the formula and source
+ok   meldNa: field ids are unique
+ok   meldNa: has a formula, a source and a title
+ok   meldNa: nothing from nothing
+ok   meldNa: practice notes carry the formula and source
+ok   MELD-Na is listed with the scores, not the calculators
+ok   the disclaimer says learning only
+ok   twenty scores in the tab
+ok   score ids are unique
+ok   gcs: item ids unique
+ok   gcs: every item has two or more answers
+ok   gcs: has a source
+ok   gcs: bands cover every total exactly once
+ok   gcs: bands run from the lowest to the highest total
+ok   gcs: practice notes carry the source
+ok   wellsDVT: item ids unique
+ok   wellsDVT: every item has two or more answers
+ok   wellsDVT: has a source
+ok   wellsDVT: bands cover every total exactly once
+ok   wellsDVT: bands run from the lowest to the highest total
+ok   wellsDVT: practice notes carry the source
+ok   wellsPE: item ids unique
+ok   wellsPE: every item has two or more answers
+ok   wellsPE: has a source
+ok   wellsPE: bands cover every total exactly once
+ok   wellsPE: bands run from the lowest to the highest total
+ok   wellsPE: practice notes carry the source
+ok   perc: item ids unique
+ok   perc: every item has two or more answers
+ok   perc: has a source
+ok   perc: bands cover every total exactly once
+ok   perc: bands run from the lowest to the highest total
+ok   perc: practice notes carry the source
+ok   curb65: item ids unique
+ok   curb65: every item has two or more answers
+ok   curb65: has a source
+ok   curb65: bands cover every total exactly once
+ok   curb65: bands run from the lowest to the highest total
+ok   curb65: practice notes carry the source
+ok   qsofa: item ids unique
+ok   qsofa: every item has two or more answers
+ok   qsofa: has a source
+ok   qsofa: bands cover every total exactly once
+ok   qsofa: bands run from the lowest to the highest total
+ok   qsofa: practice notes carry the source
+ok   chads: item ids unique
+ok   chads: every item has two or more answers
+ok   chads: has a source
+ok   chads: bands cover every total exactly once
+ok   chads: bands run from the lowest to the highest total
+ok   chads: practice notes carry the source
+ok   hasbled: item ids unique
+ok   hasbled: every item has two or more answers
+ok   hasbled: has a source
+ok   hasbled: bands cover every total exactly once
+ok   hasbled: bands run from the lowest to the highest total
+ok   hasbled: practice notes carry the source
+ok   childPugh: item ids unique
+ok   childPugh: every item has two or more answers
+ok   childPugh: has a source
+ok   childPugh: bands cover every total exactly once
+ok   childPugh: bands run from the lowest to the highest total
+ok   childPugh: practice notes carry the source
+ok   centor: item ids unique
+ok   centor: every item has two or more answers
+ok   centor: has a source
+ok   centor: bands cover every total exactly once
+ok   centor: bands run from the lowest to the highest total
+ok   centor: practice notes carry the source
+ok   blatchford: item ids unique
+ok   blatchford: every item has two or more answers
+ok   blatchford: has a source
+ok   blatchford: bands cover every total exactly once
+ok   blatchford: bands run from the lowest to the highest total
+ok   blatchford: practice notes carry the source
+ok   ranson: item ids unique
+ok   ranson: every item has two or more answers
+ok   ranson: has a source
+ok   ranson: bands cover every total exactly once
+ok   ranson: bands run from the lowest to the highest total
+ok   ranson: practice notes carry the source
+ok   apgar: item ids unique
+ok   apgar: every item has two or more answers
+ok   apgar: has a source
+ok   apgar: bands cover every total exactly once
+ok   apgar: bands run from the lowest to the highest total
+ok   apgar: practice notes carry the source
+ok   alvarado: item ids unique
+ok   alvarado: every item has two or more answers
+ok   alvarado: has a source
+ok   alvarado: bands cover every total exactly once
+ok   alvarado: bands run from the lowest to the highest total
+ok   alvarado: practice notes carry the source
+ok   news2: item ids unique
+ok   news2: every item has two or more answers
+ok   news2: has a source
+ok   news2: bands cover every total exactly once
+ok   news2: bands run from the lowest to the highest total
+ok   news2: practice notes carry the source
+ok   timi: item ids unique
+ok   timi: every item has two or more answers
+ok   timi: has a source
+ok   timi: bands cover every total exactly once
+ok   timi: bands run from the lowest to the highest total
+ok   timi: practice notes carry the source
+ok   heart: item ids unique
+ok   heart: every item has two or more answers
+ok   heart: has a source
+ok   heart: bands cover every total exactly once
+ok   heart: bands run from the lowest to the highest total
+ok   heart: practice notes carry the source
+ok   bishop: item ids unique
+ok   bishop: every item has two or more answers
+ok   bishop: has a source
+ok   bishop: bands cover every total exactly once
+ok   bishop: bands run from the lowest to the highest total
+ok   bishop: practice notes carry the source
+ok   abcd2: item ids unique
+ok   abcd2: every item has two or more answers
+ok   abcd2: has a source
+ok   abcd2: bands cover every total exactly once
+ok   abcd2: bands run from the lowest to the highest total
+ok   abcd2: practice notes carry the source
+ok   GCS parts are 4, 5 and 6
+ok   GCS 15 by default, 3 at worst
+ok   GCS 8 severe, 9 moderate, 12 moderate, 13 mild
+ok   Wells DVT: nine items of 1 and one of -2
+ok   Wells DVT 1 unlikely, 2 likely
+ok   Wells PE weights 3, 3, 1.5, 1.5, 1.5, 1, 1
+ok   Wells PE 4.0 unlikely
+ok   Wells PE 4.5 likely
+ok   Wells PE 3 + 1.5 + 1.5 + 1.5 = 7.5
+ok   PERC has eight criteria
+ok   PERC surgery or trauma: within 4 weeks, needing general anaesthesia (Kline 2004)
+ok   PERC 0 negative, 1 positive
+ok   CURB-65 five items of 1
+ok   CURB-65 1 low, 2 moderate, 3 high
+ok   CURB-65 bands carry Lim's 1.5%, 9.2% and 22%
+ok   qSOFA 1 / 2
+ok   CHA2DS2-VASc weights
+ok   CHA2DS2-VASc: woman 76 with hypertension = 4, high
+ok   CHA2DS2-VASc: 0 low, 1 low-moderate, 2 moderate, 3 high
+ok   HAS-BLED nine items
+ok   HAS-BLED 2 not high, 3 high
+ok   Child-Pugh: 5 at best, 15 at worst
+ok   Child-Pugh 6 A, 7 B, 9 B, 10 C
+ok   Child-Pugh bilirubin cut-offs 34 and 50 umol/L (2 and 3 mg/dL)
+ok   Child-Pugh INR cut-offs 1.7 and 2.3
+ok   McIsaac age: 3-14 +1, 45+ -1
+ok   Centor 4 in a 10-year-old = 5, high
+ok   McIsaac 0 very low, 1 low, 3 intermediate 28-35%
+ok   GBS urea points 0, 2, 3, 4, 6
+ok   GBS Hb points: men 1 / 3 / 6, women 1 / 6
+ok   GBS systolic 1 / 2 / 3
+ok   GBS others 1, 1, 2, 2, 2
+ok   GBS maximum 23
+ok   GBS 0 very low, 1 not low, 5 not low, 6 high
+ok   GBS urea labels carry 6.5, 8, 10 and 25 mmol/L
+ok   Ranson: five admission criteria
+ok   Ranson 2 / 3
+ok   APGAR 10 by default, five items of 0-2
+ok   APGAR 7 reassuring, 6 moderately abnormal, 4 moderately abnormal, 3 low
+ok   Alvarado maximum 10, tenderness and leucocytosis 2
+ok   Alvarado 4 / 5 / 7 / 9
+ok   NEWS2 respiration 12-20 0, 9-11 1, 21-24 2, <=8 3, >=25 3
+ok   NEWS2 SpO2 scale 1: >=96 0, 94-95 1, 92-93 2, <=91 3
+ok   NEWS2 oxygen 2
+ok   NEWS2 systolic 0, 1, 2, 3, 3
+ok   NEWS2 pulse 0, 1, 1, 2, 3, 3
+ok   NEWS2 consciousness 0 / 3
+ok   NEWS2 temperature 0, 1, 1, 2, 3
+ok   NEWS2 maximum 20
+ok   NEWS2 0 low, 4 low, 5 medium, 6 medium, 7 high
+ok   NEWS2 minimum observation frequency 12-hourly, 4-6-hourly, hourly, continuous
+ok   NEWS2 a single 3 with a total of 3 is low-medium
+ok   NEWS2 a single 3 with a total of 5 stays medium
+ok   NEWS2 a total of 3 without any single 3 stays low
+ok   TIMI seven items
+ok   TIMI risks 4.7, 4.7, 8.3, 13.2, 19.9, 26.2, 40.9, 40.9
+ok   HEART five items of 0-2
+ok   HEART 3 low, 4 moderate, 6 moderate, 7 high
+ok   Bishop maximum 13
+ok   Bishop 6 unfavourable, 7 favourable, 8 favourable, 9 very favourable
+ok   ABCD2 weights
+ok   ABCD2 3 low, 4 moderate, 5 moderate, 6 high
+ok   ABCD2 2-day risks 1.0, 4.1, 8.1
+ok   points read with a real minus
+
+ALL WARD POCKET TESTS PASS
+
+run rc=0

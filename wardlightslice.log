@@ -1,0 +1,72 @@
+
+compile rc=0
+ok   raised reach, low to peak: offset plus 1.5 blur radii, rounded up, one spare (light)
+ok   an inset face reaches as far as a raised one
+ok   the reach grows with the lift
+ok   a pressable face at rest reaches only its rim, short of a raised one (light)
+ok   raised reach, low to peak: offset plus 1.5 blur radii, rounded up, one spare (dark)
+ok   an inset face reaches as far as a raised one
+ok   the reach grows with the lift
+ok   a pressable face at rest reaches only its rim, short of a raised one (dark)
+ok   a light that is not lit reaches nowhere
+ok   a card is cut both ways
+ok   its caps hold the pad, the corner's curve and the lights' reach
+ok   the cut image is two caps and a core
+ok   a cut axis is not keyed by its size
+ok   the shape is drawn at the least it needs, with the radius it really has
+ok   shown, it reaches the pad beyond the shape on every side
+ok   a button is cut along its length only
+ok   and keyed by its height in pixels
+ok   drawn at its own height
+ok   a capsule is cut along its length and keyed by its height
+ok   two capsules of one height share a key whatever their length
+ok   a capsule too short to cut is drawn and keyed at its own size
+ok   a circle is drawn at its diameter and keyed by it
+ok   a circle in a box that is not square is drawn at the shorter side and shown in the middle
+ok   so a tall and a wide box of the same diameter share a key
+ok   a rounded rectangle and a capsule fill their box
+ok   a ring is drawn at its box, keyed by it, with no room round it for inset lights
+ok   a ring's width and a circle each change the key
+ok   a ring in a box that is not square is its shorter side across
+ok   no plan for a ring that is not one
+ok   an inset face needs no room round its shape
+ok   but its caps still hold the curve and the reach
+ok   a radius larger than half the box is held to it
+ok   no plan for 0.0 x 10.0
+ok   no plan for 10.0 x 0.0
+ok   no plan for -1.0 x 10.0
+ok   no plan for nan x 10.0
+ok   no plan for 10.0 x inf
+ok   no plan for a scale that is not one
+ok   no plan for a radius that is not one
+ok   a side of exactly two caps and a core is cut
+ok   a side a point shorter is drawn whole
+ok   every size of a cut rounded rectangle shares one key
+ok   the look, the lift and the control edge each change the key
+ok   the colour scheme, Increase Contrast and the fill each change the key
+ok   the display scale changes the key
+ok   the radius and the corner style change the key
+ok   an uncut axis is keyed by its pixel, not its fraction of one
+ok   a capsule is not a rounded rectangle
+ok   fills pack to RGBA bytes
+ok   raised low: the stretched slice matches the larger drawing to within one 8-bit step
+ok   press at rest low: the stretched slice matches the larger drawing to within one 8-bit step
+ok   raised mid: the stretched slice matches the larger drawing to within one 8-bit step
+ok   press at rest mid: the stretched slice matches the larger drawing to within one 8-bit step
+ok   raised high: the stretched slice matches the larger drawing to within one 8-bit step
+ok   press at rest high: the stretched slice matches the larger drawing to within one 8-bit step
+ok   raised peak: the stretched slice matches the larger drawing to within one 8-bit step
+ok   press at rest peak: the stretched slice matches the larger drawing to within one 8-bit step
+ok   a shape smaller than the cut needs is not the same picture (so it is drawn whole)
+ok   a path's tag says how it was drawn
+ok   a face with lights that drew live is a miss; cached, lightless and empty ones are not
+ok   the field counts the faces by tag, cached first, then the images made
+ok   with no faces it says none; failures are added after
+ok   the field is one line
+ok   faces are numbered from 1, each its own
+ok   a face redrawn counts once, as it was last drawn
+ok   a face that goes is dropped from the count
+
+ALL WARD LIGHT SLICE TESTS PASS
+
+run rc=0

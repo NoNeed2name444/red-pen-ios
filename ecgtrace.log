@@ -1,0 +1,96 @@
+
+compile rc=0
+ok   the landmarks come in order: P onset, P peak, P end, QRS onset, Q, R, S, J, T peak, T end
+ok   the beat runs from its P onset (time 0) to its T end
+ok   R is the beat's highest point, at R's time
+ok   R is 1 mV, and P and T are well below it
+ok   P peaks at P peak and T at T peak
+ok   Q and S are the QRS's low points, where named
+ok   S is the beat's lowest point: no sample below it, the lowest sample beside it
+ok   Q and S are named at their true lowest: no sample of either wave below them
+ok   off the baseline only for P, QRS and T
+ok   P from P onset to P end
+ok   QRS from QRS onset to J
+ok   T up to T end
+ok   60 a minute (RR 1 s): normal sinus by 60-100 and by Spodick's 50-90
+ok   PR 0.12-0.20 s (Goldberger)
+ok   P under 0.12 s wide and 0.25 mV tall (Goldberger), 0.1-0.3 mV (Guyton and Hall)
+ok   QRS at most 0.10 s (Goldberger), under the 0.11 s of a conduction delay (AHA part III)
+ok   R-peak time at most 45 ms (Perez-Riera)
+ok   R's top to S's bottom 1.0-1.5 mV (Guyton and Hall)
+ok   a normal q: narrower than 0.03 s and shallower than 0.1 mV (Fourth Universal Definition)
+ok   J and the ST segment on the baseline (elevation counts from 0.1 mV)
+ok   T 0.2-0.3 mV (Guyton and Hall)
+ok   T asymmetric: a slower rise than fall (di Bernardo and Murray), but not a cliff
+ok   QT about 0.38 s by the tangent method (Postema and Wilde)
+ok   Tp-e/QT either side of health's 0.21 (Gupta), read or to T's end, and near it
+ok   QTc normal, read or to T's end, by Bazett or Framingham: 0.36-0.45 s (Postema and Wilde)
+ok   S1 to S2 is 0.36 s
+ok   S2 is at T's end within 10 ms, as the trace draws it
+ok   and T is still well off the baseline 50 ms before S2
+ok   S1 shortly after R: 20 ms, 0.06 s after QRS onset (Q to mitral closure, Waider and Craige)
+ok   the tangent-read end of T is 13-39 ms before S2 (26 +/- 13 ms, Boudoulas)
+ok   55 a minute: QTc normal by Bazett and Framingham, read or to T's end (0.36 to under 0.45 s)
+ok   56 a minute: QTc normal by Bazett and Framingham, read or to T's end (0.36 to under 0.45 s)
+ok   57 a minute: QTc normal by Bazett and Framingham, read or to T's end (0.36 to under 0.45 s)
+ok   58 a minute: QTc normal by Bazett and Framingham, read or to T's end (0.36 to under 0.45 s)
+ok   59 a minute: QTc normal by Bazett and Framingham, read or to T's end (0.36 to under 0.45 s)
+ok   60 a minute: QTc normal by Bazett and Framingham, read or to T's end (0.36 to under 0.45 s)
+ok   61 a minute: QTc normal by Bazett and Framingham, read or to T's end (0.36 to under 0.45 s)
+ok   62 a minute: QTc normal by Bazett and Framingham, read or to T's end (0.36 to under 0.45 s)
+ok   63 a minute: QTc normal by Bazett and Framingham, read or to T's end (0.36 to under 0.45 s)
+ok   64 a minute: QTc normal by Bazett and Framingham, read or to T's end (0.36 to under 0.45 s)
+ok   65 a minute: QTc normal by Bazett and Framingham, read or to T's end (0.36 to under 0.45 s)
+ok   66 a minute: QTc normal by Bazett and Framingham, read or to T's end (0.36 to under 0.45 s)
+ok   67 a minute: QTc normal by Bazett and Framingham, read or to T's end (0.36 to under 0.45 s)
+ok   68 a minute: QTc normal by Bazett and Framingham, read or to T's end (0.36 to under 0.45 s)
+ok   the allowed rates are normal sinus (Spodick's 50-90)
+ok   55 a minute: a beat every 1.0909090909090908 s
+ok   55 a minute: each beat of a run is the beat, moved
+ok   55 a minute: the baseline is flat from each T end to the next P onset
+ok   55 a minute: beats join on the baseline
+ok   55 a minute: S1 to S2 is 0.36 s in every beat, S2 on its T end
+ok   60 a minute: a beat every 1.0 s
+ok   60 a minute: each beat of a run is the beat, moved
+ok   60 a minute: the baseline is flat from each T end to the next P onset
+ok   60 a minute: beats join on the baseline
+ok   60 a minute: S1 to S2 is 0.36 s in every beat, S2 on its T end
+ok   68 a minute: a beat every 0.8823529411764706 s
+ok   68 a minute: each beat of a run is the beat, moved
+ok   68 a minute: the baseline is flat from each T end to the next P onset
+ok   68 a minute: beats join on the baseline
+ok   68 a minute: S1 to S2 is 0.36 s in every beat, S2 on its T end
+ok   a rate outside 55-68 is held to it
+ok   each wave leaves and meets the baseline with no step and no corner
+ok   a run has no jump anywhere (sampled every 0.1 ms)
+ok   one beat alone: the baseline either side of it
+ok   sampling is deterministic: the same call, the same points
+ok   in time order, from the window's start to its end exactly
+ok   a point every millisecond or less
+ok   evenly spaced: nothing but the grid
+ok   each R drawn within 0.2% of its height at 1 ms
+ok   a window shifted by -0.0005000000000000004 s pairs point for point (one beat)
+ok   a window shifted by 0.0004 s pairs point for point (60 a minute)
+ok   a window shifted by 1.0 s pairs point for point (68 a minute)
+ok   a window shifted by 0.5700000000000001 s pairs point for point (55 a minute)
+ok   a tiny step is held to 0.01 ms, and an hour to 100000 points
+ok   a step of 0, below 0, or not a number still draws
+ok   two sizes give the same times, so they pair point for point
+ok   and the same drawing: each small point is the big one, scaled
+ok   one beat: its R is drawn at R's place, the highest point
+ok   no points for an empty or reversed window
+ok   1 s is 25 mm across
+ok   1 mV is 10 mm up (y grows down)
+ok   320 x 90: still paper scale, 2.5 times as far across a second as up a millivolt
+ok   320 x 90: inside the box and filling it one way
+ok   34 x 18: still paper scale, 2.5 times as far across a second as up a millivolt
+ok   34 x 18: inside the box and filling it one way
+ok   100 x 400: still paper scale, 2.5 times as far across a second as up a millivolt
+ok   100 x 400: inside the box and filling it one way
+ok   an empty box gives scale 0
+ok   176 x 36, a 4 pt line: half the line clear of every edge
+ok   34 x 18, a 4 pt line: half the line clear of every edge
+
+ALL ECG TRACE TESTS PASS
+
+run rc=0

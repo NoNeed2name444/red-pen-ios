@@ -1,0 +1,52 @@
+
+compile rc=0
+ok   S1 miss: the writer is told the missed stem
+ok   S1 miss: and the answer the student chose
+ok   S1 miss: and the right one
+ok   S1 miss: and why it was missed
+ok   S2 write: the stand-in's question is taken as the twin
+ok   S2 write: the twin has its own id
+ok   S2 write: it says where it came from
+ok   S2 write: the twin is on the way
+ok   S2 write: the quiz says when it comes back
+ok   S2 write: the missed question again is refused
+ok   S2 write: refused or offline, it waits to be written, once
+ok   S2 write: and is on the way
+ok   S2 write: a writer that gives nothing gives no twin
+ok   S2 write: at most 30 wait, the oldest let go first
+ok   S3 wait: not due the evening it was written
+ok   S3 wait: not due the next day
+ok   S3 wait: due from the start of the second day
+ok   S3 wait: a sure-but-wrong miss comes back tomorrow morning
+ok   S3 wait: a guess waits three days
+ok   S4 review: on the 23rd only the earlier-due twin is in review
+ok   S4 review: by the 24th both, the longest-waiting first
+ok   S4 review: a newer twin for the same question replaces the waiting one
+ok   S5 nothing yet: an empty book has nothing due
+ok   S5 nothing yet: a written twin is not due early either
+ok   S5 nothing yet: the words say what to do
+ok   S6 answer: a missed twin comes back the next day
+ok   S6 answer: missed twice, it leaves the twins for the mistakes
+ok   S6 answer: got right, it leaves the queue
+ok   S6 answer: and is kept for the record
+ok   S7 relaunch: the queue reads back the same
+ok   S7 relaunch: the pending twins read back the same
+ok   S7 relaunch: the same twins are due
+ok   S7 relaunch: still nothing due early
+ok   S7 relaunch: the twin question itself reads back
+ok   S7 relaunch: a twin whose question left the library is let go
+ok   S2 writer: the stand-in writes the twin
+ok   S2 writer: it goes into the subject's Twins set
+ok   S2 writer: and into the queue, due in two days
+ok   S2 writer: a second Write a twin for the same miss writes none
+ok   S2 writer: nor after the first is answered
+ok   S2 writer: with no writer set up it says so, and nothing waits
+ok   S2 writer: offline, the twin waits to be written
+ok   S2 writer: the missed question echoed back is refused, and still waits once
+ok   S2 writer: back online, retryPending writes it
+ok   S2 writer: a question gone from the library is let go
+ok   S5 nothing yet: the alert is "Nothing here yet", closed with Done
+
+ALL TWIN FLOW TESTS PASS
+
+run rc=0

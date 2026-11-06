@@ -1,0 +1,601 @@
+
+compile rc=0
+PASS iPhone SE folded portrait: orientation kept
+PASS iPhone SE folded portrait: no band
+PASS iPhone SE folded portrait: no panes
+PASS iPhone SE folded portrait: everything clear
+PASS iPhone SE open portrait: orientation kept
+PASS iPhone SE open portrait: band inside the window
+PASS iPhone SE open portrait: band across the longer side
+PASS iPhone SE open portrait: side by side in a wide window
+PASS iPhone SE open portrait: reading pane off the band
+PASS iPhone SE open portrait: controls pane off the band
+PASS iPhone SE open portrait: panes apart
+PASS iPhone SE open portrait: reading on top
+PASS iPhone SE open portrait: heights add up
+PASS iPhone SE open portrait: pane holds a 44 pt target
+PASS iPhone SE open portrait: pane holds a 44 pt target
+PASS iPhone SE open portrait: one-side screens take the reading side on a tie
+PASS iPhone SE open portrait: 112 targets, all clear of the band
+PASS iPhone SE open portrait: a target on the hinge is not clear
+PASS iPhone SE open portrait: a screen short of the band is left whole
+PASS iPhone SE open portrait: a sliver past the band is no pane
+PASS iPhone SE half portrait: orientation kept
+PASS iPhone SE half portrait: band inside the window
+PASS iPhone SE half portrait: band across the longer side
+PASS iPhone SE half portrait: side by side in a wide window
+PASS iPhone SE half portrait: reading pane off the band
+PASS iPhone SE half portrait: controls pane off the band
+PASS iPhone SE half portrait: panes apart
+PASS iPhone SE half portrait: reading on top
+PASS iPhone SE half portrait: heights add up
+PASS iPhone SE half portrait: pane holds a 44 pt target
+PASS iPhone SE half portrait: pane holds a 44 pt target
+PASS iPhone SE half portrait: one-side screens take the reading side on a tie
+PASS iPhone SE half portrait: 112 targets, all clear of the band
+PASS iPhone SE half portrait: a target on the hinge is not clear
+PASS iPhone SE half portrait: a screen short of the band is left whole
+PASS iPhone SE half portrait: a sliver past the band is no pane
+PASS iPhone SE folded landscapeLeft: orientation kept
+PASS iPhone SE folded landscapeLeft: no band
+PASS iPhone SE folded landscapeLeft: no panes
+PASS iPhone SE folded landscapeLeft: everything clear
+PASS iPhone SE open landscapeLeft: orientation kept
+PASS iPhone SE open landscapeLeft: band inside the window
+PASS iPhone SE open landscapeLeft: band across the longer side
+PASS iPhone SE open landscapeLeft: side by side in a wide window
+PASS iPhone SE open landscapeLeft: reading pane off the band
+PASS iPhone SE open landscapeLeft: controls pane off the band
+PASS iPhone SE open landscapeLeft: panes apart
+PASS iPhone SE open landscapeLeft: reading leading
+PASS iPhone SE open landscapeLeft: widths add up
+PASS iPhone SE open landscapeLeft: pane holds a 44 pt target
+PASS iPhone SE open landscapeLeft: pane holds a 44 pt target
+PASS iPhone SE open landscapeLeft: one-side screens take the reading side on a tie
+PASS iPhone SE open landscapeLeft: 112 targets, all clear of the band
+PASS iPhone SE open landscapeLeft: a target on the hinge is not clear
+PASS iPhone SE open landscapeLeft: a screen short of the band is left whole
+PASS iPhone SE open landscapeLeft: a sliver past the band is no pane
+PASS iPhone SE half landscapeLeft: orientation kept
+PASS iPhone SE half landscapeLeft: band inside the window
+PASS iPhone SE half landscapeLeft: band across the longer side
+PASS iPhone SE half landscapeLeft: side by side in a wide window
+PASS iPhone SE half landscapeLeft: reading pane off the band
+PASS iPhone SE half landscapeLeft: controls pane off the band
+PASS iPhone SE half landscapeLeft: panes apart
+PASS iPhone SE half landscapeLeft: reading leading
+PASS iPhone SE half landscapeLeft: widths add up
+PASS iPhone SE half landscapeLeft: pane holds a 44 pt target
+PASS iPhone SE half landscapeLeft: pane holds a 44 pt target
+PASS iPhone SE half landscapeLeft: one-side screens take the reading side on a tie
+PASS iPhone SE half landscapeLeft: 112 targets, all clear of the band
+PASS iPhone SE half landscapeLeft: a target on the hinge is not clear
+PASS iPhone SE half landscapeLeft: a screen short of the band is left whole
+PASS iPhone SE half landscapeLeft: a sliver past the band is no pane
+PASS iPhone SE folded landscapeRight: orientation kept
+PASS iPhone SE folded landscapeRight: no band
+PASS iPhone SE folded landscapeRight: no panes
+PASS iPhone SE folded landscapeRight: everything clear
+PASS iPhone SE open landscapeRight: orientation kept
+PASS iPhone SE open landscapeRight: band inside the window
+PASS iPhone SE open landscapeRight: band across the longer side
+PASS iPhone SE open landscapeRight: side by side in a wide window
+PASS iPhone SE open landscapeRight: reading pane off the band
+PASS iPhone SE open landscapeRight: controls pane off the band
+PASS iPhone SE open landscapeRight: panes apart
+PASS iPhone SE open landscapeRight: reading leading
+PASS iPhone SE open landscapeRight: widths add up
+PASS iPhone SE open landscapeRight: pane holds a 44 pt target
+PASS iPhone SE open landscapeRight: pane holds a 44 pt target
+PASS iPhone SE open landscapeRight: one-side screens take the reading side on a tie
+PASS iPhone SE open landscapeRight: 112 targets, all clear of the band
+PASS iPhone SE open landscapeRight: a target on the hinge is not clear
+PASS iPhone SE open landscapeRight: a screen short of the band is left whole
+PASS iPhone SE open landscapeRight: a sliver past the band is no pane
+PASS iPhone SE half landscapeRight: orientation kept
+PASS iPhone SE half landscapeRight: band inside the window
+PASS iPhone SE half landscapeRight: band across the longer side
+PASS iPhone SE half landscapeRight: side by side in a wide window
+PASS iPhone SE half landscapeRight: reading pane off the band
+PASS iPhone SE half landscapeRight: controls pane off the band
+PASS iPhone SE half landscapeRight: panes apart
+PASS iPhone SE half landscapeRight: reading leading
+PASS iPhone SE half landscapeRight: widths add up
+PASS iPhone SE half landscapeRight: pane holds a 44 pt target
+PASS iPhone SE half landscapeRight: pane holds a 44 pt target
+PASS iPhone SE half landscapeRight: one-side screens take the reading side on a tie
+PASS iPhone SE half landscapeRight: 112 targets, all clear of the band
+PASS iPhone SE half landscapeRight: a target on the hinge is not clear
+PASS iPhone SE half landscapeRight: a screen short of the band is left whole
+PASS iPhone SE half landscapeRight: a sliver past the band is no pane
+PASS iPhone 17 folded portrait: orientation kept
+PASS iPhone 17 folded portrait: no band
+PASS iPhone 17 folded portrait: no panes
+PASS iPhone 17 folded portrait: everything clear
+PASS iPhone 17 open portrait: orientation kept
+PASS iPhone 17 open portrait: band inside the window
+PASS iPhone 17 open portrait: band across the longer side
+PASS iPhone 17 open portrait: side by side in a wide window
+PASS iPhone 17 open portrait: reading pane off the band
+PASS iPhone 17 open portrait: controls pane off the band
+PASS iPhone 17 open portrait: panes apart
+PASS iPhone 17 open portrait: reading on top
+PASS iPhone 17 open portrait: heights add up
+PASS iPhone 17 open portrait: pane holds a 44 pt target
+PASS iPhone 17 open portrait: pane holds a 44 pt target
+PASS iPhone 17 open portrait: one-side screens take the reading side on a tie
+PASS iPhone 17 open portrait: 162 targets, all clear of the band
+PASS iPhone 17 open portrait: a target on the hinge is not clear
+PASS iPhone 17 open portrait: a screen short of the band is left whole
+PASS iPhone 17 open portrait: a sliver past the band is no pane
+PASS iPhone 17 half portrait: orientation kept
+PASS iPhone 17 half portrait: band inside the window
+PASS iPhone 17 half portrait: band across the longer side
+PASS iPhone 17 half portrait: side by side in a wide window
+PASS iPhone 17 half portrait: reading pane off the band
+PASS iPhone 17 half portrait: controls pane off the band
+PASS iPhone 17 half portrait: panes apart
+PASS iPhone 17 half portrait: reading on top
+PASS iPhone 17 half portrait: heights add up
+PASS iPhone 17 half portrait: pane holds a 44 pt target
+PASS iPhone 17 half portrait: pane holds a 44 pt target
+PASS iPhone 17 half portrait: one-side screens take the reading side on a tie
+PASS iPhone 17 half portrait: 162 targets, all clear of the band
+PASS iPhone 17 half portrait: a target on the hinge is not clear
+PASS iPhone 17 half portrait: a screen short of the band is left whole
+PASS iPhone 17 half portrait: a sliver past the band is no pane
+PASS iPhone 17 folded landscapeLeft: orientation kept
+PASS iPhone 17 folded landscapeLeft: no band
+PASS iPhone 17 folded landscapeLeft: no panes
+PASS iPhone 17 folded landscapeLeft: everything clear
+PASS iPhone 17 open landscapeLeft: orientation kept
+PASS iPhone 17 open landscapeLeft: band inside the window
+PASS iPhone 17 open landscapeLeft: band across the longer side
+PASS iPhone 17 open landscapeLeft: side by side in a wide window
+PASS iPhone 17 open landscapeLeft: reading pane off the band
+PASS iPhone 17 open landscapeLeft: controls pane off the band
+PASS iPhone 17 open landscapeLeft: panes apart
+PASS iPhone 17 open landscapeLeft: reading leading
+PASS iPhone 17 open landscapeLeft: widths add up
+PASS iPhone 17 open landscapeLeft: pane holds a 44 pt target
+PASS iPhone 17 open landscapeLeft: pane holds a 44 pt target
+PASS iPhone 17 open landscapeLeft: one-side screens take the reading side on a tie
+PASS iPhone 17 open landscapeLeft: 162 targets, all clear of the band
+PASS iPhone 17 open landscapeLeft: a target on the hinge is not clear
+PASS iPhone 17 open landscapeLeft: a screen short of the band is left whole
+PASS iPhone 17 open landscapeLeft: a sliver past the band is no pane
+PASS iPhone 17 half landscapeLeft: orientation kept
+PASS iPhone 17 half landscapeLeft: band inside the window
+PASS iPhone 17 half landscapeLeft: band across the longer side
+PASS iPhone 17 half landscapeLeft: side by side in a wide window
+PASS iPhone 17 half landscapeLeft: reading pane off the band
+PASS iPhone 17 half landscapeLeft: controls pane off the band
+PASS iPhone 17 half landscapeLeft: panes apart
+PASS iPhone 17 half landscapeLeft: reading leading
+PASS iPhone 17 half landscapeLeft: widths add up
+PASS iPhone 17 half landscapeLeft: pane holds a 44 pt target
+PASS iPhone 17 half landscapeLeft: pane holds a 44 pt target
+PASS iPhone 17 half landscapeLeft: one-side screens take the reading side on a tie
+PASS iPhone 17 half landscapeLeft: 162 targets, all clear of the band
+PASS iPhone 17 half landscapeLeft: a target on the hinge is not clear
+PASS iPhone 17 half landscapeLeft: a screen short of the band is left whole
+PASS iPhone 17 half landscapeLeft: a sliver past the band is no pane
+PASS iPhone 17 folded landscapeRight: orientation kept
+PASS iPhone 17 folded landscapeRight: no band
+PASS iPhone 17 folded landscapeRight: no panes
+PASS iPhone 17 folded landscapeRight: everything clear
+PASS iPhone 17 open landscapeRight: orientation kept
+PASS iPhone 17 open landscapeRight: band inside the window
+PASS iPhone 17 open landscapeRight: band across the longer side
+PASS iPhone 17 open landscapeRight: side by side in a wide window
+PASS iPhone 17 open landscapeRight: reading pane off the band
+PASS iPhone 17 open landscapeRight: controls pane off the band
+PASS iPhone 17 open landscapeRight: panes apart
+PASS iPhone 17 open landscapeRight: reading leading
+PASS iPhone 17 open landscapeRight: widths add up
+PASS iPhone 17 open landscapeRight: pane holds a 44 pt target
+PASS iPhone 17 open landscapeRight: pane holds a 44 pt target
+PASS iPhone 17 open landscapeRight: one-side screens take the reading side on a tie
+PASS iPhone 17 open landscapeRight: 162 targets, all clear of the band
+PASS iPhone 17 open landscapeRight: a target on the hinge is not clear
+PASS iPhone 17 open landscapeRight: a screen short of the band is left whole
+PASS iPhone 17 open landscapeRight: a sliver past the band is no pane
+PASS iPhone 17 half landscapeRight: orientation kept
+PASS iPhone 17 half landscapeRight: band inside the window
+PASS iPhone 17 half landscapeRight: band across the longer side
+PASS iPhone 17 half landscapeRight: side by side in a wide window
+PASS iPhone 17 half landscapeRight: reading pane off the band
+PASS iPhone 17 half landscapeRight: controls pane off the band
+PASS iPhone 17 half landscapeRight: panes apart
+PASS iPhone 17 half landscapeRight: reading leading
+PASS iPhone 17 half landscapeRight: widths add up
+PASS iPhone 17 half landscapeRight: pane holds a 44 pt target
+PASS iPhone 17 half landscapeRight: pane holds a 44 pt target
+PASS iPhone 17 half landscapeRight: one-side screens take the reading side on a tie
+PASS iPhone 17 half landscapeRight: 162 targets, all clear of the band
+PASS iPhone 17 half landscapeRight: a target on the hinge is not clear
+PASS iPhone 17 half landscapeRight: a screen short of the band is left whole
+PASS iPhone 17 half landscapeRight: a sliver past the band is no pane
+PASS iPhone 17 Pro folded portrait: orientation kept
+PASS iPhone 17 Pro folded portrait: no band
+PASS iPhone 17 Pro folded portrait: no panes
+PASS iPhone 17 Pro folded portrait: everything clear
+PASS iPhone 17 Pro open portrait: orientation kept
+PASS iPhone 17 Pro open portrait: band inside the window
+PASS iPhone 17 Pro open portrait: band across the longer side
+PASS iPhone 17 Pro open portrait: side by side in a wide window
+PASS iPhone 17 Pro open portrait: reading pane off the band
+PASS iPhone 17 Pro open portrait: controls pane off the band
+PASS iPhone 17 Pro open portrait: panes apart
+PASS iPhone 17 Pro open portrait: reading on top
+PASS iPhone 17 Pro open portrait: heights add up
+PASS iPhone 17 Pro open portrait: pane holds a 44 pt target
+PASS iPhone 17 Pro open portrait: pane holds a 44 pt target
+PASS iPhone 17 Pro open portrait: one-side screens take the reading side on a tie
+PASS iPhone 17 Pro open portrait: 162 targets, all clear of the band
+PASS iPhone 17 Pro open portrait: a target on the hinge is not clear
+PASS iPhone 17 Pro open portrait: a screen short of the band is left whole
+PASS iPhone 17 Pro open portrait: a sliver past the band is no pane
+PASS iPhone 17 Pro half portrait: orientation kept
+PASS iPhone 17 Pro half portrait: band inside the window
+PASS iPhone 17 Pro half portrait: band across the longer side
+PASS iPhone 17 Pro half portrait: side by side in a wide window
+PASS iPhone 17 Pro half portrait: reading pane off the band
+PASS iPhone 17 Pro half portrait: controls pane off the band
+PASS iPhone 17 Pro half portrait: panes apart
+PASS iPhone 17 Pro half portrait: reading on top
+PASS iPhone 17 Pro half portrait: heights add up
+PASS iPhone 17 Pro half portrait: pane holds a 44 pt target
+PASS iPhone 17 Pro half portrait: pane holds a 44 pt target
+PASS iPhone 17 Pro half portrait: one-side screens take the reading side on a tie
+PASS iPhone 17 Pro half portrait: 162 targets, all clear of the band
+PASS iPhone 17 Pro half portrait: a target on the hinge is not clear
+PASS iPhone 17 Pro half portrait: a screen short of the band is left whole
+PASS iPhone 17 Pro half portrait: a sliver past the band is no pane
+PASS iPhone 17 Pro folded landscapeLeft: orientation kept
+PASS iPhone 17 Pro folded landscapeLeft: no band
+PASS iPhone 17 Pro folded landscapeLeft: no panes
+PASS iPhone 17 Pro folded landscapeLeft: everything clear
+PASS iPhone 17 Pro open landscapeLeft: orientation kept
+PASS iPhone 17 Pro open landscapeLeft: band inside the window
+PASS iPhone 17 Pro open landscapeLeft: band across the longer side
+PASS iPhone 17 Pro open landscapeLeft: side by side in a wide window
+PASS iPhone 17 Pro open landscapeLeft: reading pane off the band
+PASS iPhone 17 Pro open landscapeLeft: controls pane off the band
+PASS iPhone 17 Pro open landscapeLeft: panes apart
+PASS iPhone 17 Pro open landscapeLeft: reading leading
+PASS iPhone 17 Pro open landscapeLeft: widths add up
+PASS iPhone 17 Pro open landscapeLeft: pane holds a 44 pt target
+PASS iPhone 17 Pro open landscapeLeft: pane holds a 44 pt target
+PASS iPhone 17 Pro open landscapeLeft: one-side screens take the reading side on a tie
+PASS iPhone 17 Pro open landscapeLeft: 162 targets, all clear of the band
+PASS iPhone 17 Pro open landscapeLeft: a target on the hinge is not clear
+PASS iPhone 17 Pro open landscapeLeft: a screen short of the band is left whole
+PASS iPhone 17 Pro open landscapeLeft: a sliver past the band is no pane
+PASS iPhone 17 Pro half landscapeLeft: orientation kept
+PASS iPhone 17 Pro half landscapeLeft: band inside the window
+PASS iPhone 17 Pro half landscapeLeft: band across the longer side
+PASS iPhone 17 Pro half landscapeLeft: side by side in a wide window
+PASS iPhone 17 Pro half landscapeLeft: reading pane off the band
+PASS iPhone 17 Pro half landscapeLeft: controls pane off the band
+PASS iPhone 17 Pro half landscapeLeft: panes apart
+PASS iPhone 17 Pro half landscapeLeft: reading leading
+PASS iPhone 17 Pro half landscapeLeft: widths add up
+PASS iPhone 17 Pro half landscapeLeft: pane holds a 44 pt target
+PASS iPhone 17 Pro half landscapeLeft: pane holds a 44 pt target
+PASS iPhone 17 Pro half landscapeLeft: one-side screens take the reading side on a tie
+PASS iPhone 17 Pro half landscapeLeft: 162 targets, all clear of the band
+PASS iPhone 17 Pro half landscapeLeft: a target on the hinge is not clear
+PASS iPhone 17 Pro half landscapeLeft: a screen short of the band is left whole
+PASS iPhone 17 Pro half landscapeLeft: a sliver past the band is no pane
+PASS iPhone 17 Pro folded landscapeRight: orientation kept
+PASS iPhone 17 Pro folded landscapeRight: no band
+PASS iPhone 17 Pro folded landscapeRight: no panes
+PASS iPhone 17 Pro folded landscapeRight: everything clear
+PASS iPhone 17 Pro open landscapeRight: orientation kept
+PASS iPhone 17 Pro open landscapeRight: band inside the window
+PASS iPhone 17 Pro open landscapeRight: band across the longer side
+PASS iPhone 17 Pro open landscapeRight: side by side in a wide window
+PASS iPhone 17 Pro open landscapeRight: reading pane off the band
+PASS iPhone 17 Pro open landscapeRight: controls pane off the band
+PASS iPhone 17 Pro open landscapeRight: panes apart
+PASS iPhone 17 Pro open landscapeRight: reading leading
+PASS iPhone 17 Pro open landscapeRight: widths add up
+PASS iPhone 17 Pro open landscapeRight: pane holds a 44 pt target
+PASS iPhone 17 Pro open landscapeRight: pane holds a 44 pt target
+PASS iPhone 17 Pro open landscapeRight: one-side screens take the reading side on a tie
+PASS iPhone 17 Pro open landscapeRight: 162 targets, all clear of the band
+PASS iPhone 17 Pro open landscapeRight: a target on the hinge is not clear
+PASS iPhone 17 Pro open landscapeRight: a screen short of the band is left whole
+PASS iPhone 17 Pro open landscapeRight: a sliver past the band is no pane
+PASS iPhone 17 Pro half landscapeRight: orientation kept
+PASS iPhone 17 Pro half landscapeRight: band inside the window
+PASS iPhone 17 Pro half landscapeRight: band across the longer side
+PASS iPhone 17 Pro half landscapeRight: side by side in a wide window
+PASS iPhone 17 Pro half landscapeRight: reading pane off the band
+PASS iPhone 17 Pro half landscapeRight: controls pane off the band
+PASS iPhone 17 Pro half landscapeRight: panes apart
+PASS iPhone 17 Pro half landscapeRight: reading leading
+PASS iPhone 17 Pro half landscapeRight: widths add up
+PASS iPhone 17 Pro half landscapeRight: pane holds a 44 pt target
+PASS iPhone 17 Pro half landscapeRight: pane holds a 44 pt target
+PASS iPhone 17 Pro half landscapeRight: one-side screens take the reading side on a tie
+PASS iPhone 17 Pro half landscapeRight: 162 targets, all clear of the band
+PASS iPhone 17 Pro half landscapeRight: a target on the hinge is not clear
+PASS iPhone 17 Pro half landscapeRight: a screen short of the band is left whole
+PASS iPhone 17 Pro half landscapeRight: a sliver past the band is no pane
+PASS iPhone 17 Pro Max folded portrait: orientation kept
+PASS iPhone 17 Pro Max folded portrait: no band
+PASS iPhone 17 Pro Max folded portrait: no panes
+PASS iPhone 17 Pro Max folded portrait: everything clear
+PASS iPhone 17 Pro Max open portrait: orientation kept
+PASS iPhone 17 Pro Max open portrait: band inside the window
+PASS iPhone 17 Pro Max open portrait: band across the longer side
+PASS iPhone 17 Pro Max open portrait: side by side in a wide window
+PASS iPhone 17 Pro Max open portrait: reading pane off the band
+PASS iPhone 17 Pro Max open portrait: controls pane off the band
+PASS iPhone 17 Pro Max open portrait: panes apart
+PASS iPhone 17 Pro Max open portrait: reading on top
+PASS iPhone 17 Pro Max open portrait: heights add up
+PASS iPhone 17 Pro Max open portrait: pane holds a 44 pt target
+PASS iPhone 17 Pro Max open portrait: pane holds a 44 pt target
+PASS iPhone 17 Pro Max open portrait: one-side screens take the reading side on a tie
+PASS iPhone 17 Pro Max open portrait: 200 targets, all clear of the band
+PASS iPhone 17 Pro Max open portrait: a target on the hinge is not clear
+PASS iPhone 17 Pro Max open portrait: a screen short of the band is left whole
+PASS iPhone 17 Pro Max open portrait: a sliver past the band is no pane
+PASS iPhone 17 Pro Max half portrait: orientation kept
+PASS iPhone 17 Pro Max half portrait: band inside the window
+PASS iPhone 17 Pro Max half portrait: band across the longer side
+PASS iPhone 17 Pro Max half portrait: side by side in a wide window
+PASS iPhone 17 Pro Max half portrait: reading pane off the band
+PASS iPhone 17 Pro Max half portrait: controls pane off the band
+PASS iPhone 17 Pro Max half portrait: panes apart
+PASS iPhone 17 Pro Max half portrait: reading on top
+PASS iPhone 17 Pro Max half portrait: heights add up
+PASS iPhone 17 Pro Max half portrait: pane holds a 44 pt target
+PASS iPhone 17 Pro Max half portrait: pane holds a 44 pt target
+PASS iPhone 17 Pro Max half portrait: one-side screens take the reading side on a tie
+PASS iPhone 17 Pro Max half portrait: 200 targets, all clear of the band
+PASS iPhone 17 Pro Max half portrait: a target on the hinge is not clear
+PASS iPhone 17 Pro Max half portrait: a screen short of the band is left whole
+PASS iPhone 17 Pro Max half portrait: a sliver past the band is no pane
+PASS iPhone 17 Pro Max folded landscapeLeft: orientation kept
+PASS iPhone 17 Pro Max folded landscapeLeft: no band
+PASS iPhone 17 Pro Max folded landscapeLeft: no panes
+PASS iPhone 17 Pro Max folded landscapeLeft: everything clear
+PASS iPhone 17 Pro Max open landscapeLeft: orientation kept
+PASS iPhone 17 Pro Max open landscapeLeft: band inside the window
+PASS iPhone 17 Pro Max open landscapeLeft: band across the longer side
+PASS iPhone 17 Pro Max open landscapeLeft: side by side in a wide window
+PASS iPhone 17 Pro Max open landscapeLeft: reading pane off the band
+PASS iPhone 17 Pro Max open landscapeLeft: controls pane off the band
+PASS iPhone 17 Pro Max open landscapeLeft: panes apart
+PASS iPhone 17 Pro Max open landscapeLeft: reading leading
+PASS iPhone 17 Pro Max open landscapeLeft: widths add up
+PASS iPhone 17 Pro Max open landscapeLeft: pane holds a 44 pt target
+PASS iPhone 17 Pro Max open landscapeLeft: pane holds a 44 pt target
+PASS iPhone 17 Pro Max open landscapeLeft: one-side screens take the reading side on a tie
+PASS iPhone 17 Pro Max open landscapeLeft: 200 targets, all clear of the band
+PASS iPhone 17 Pro Max open landscapeLeft: a target on the hinge is not clear
+PASS iPhone 17 Pro Max open landscapeLeft: a screen short of the band is left whole
+PASS iPhone 17 Pro Max open landscapeLeft: a sliver past the band is no pane
+PASS iPhone 17 Pro Max half landscapeLeft: orientation kept
+PASS iPhone 17 Pro Max half landscapeLeft: band inside the window
+PASS iPhone 17 Pro Max half landscapeLeft: band across the longer side
+PASS iPhone 17 Pro Max half landscapeLeft: side by side in a wide window
+PASS iPhone 17 Pro Max half landscapeLeft: reading pane off the band
+PASS iPhone 17 Pro Max half landscapeLeft: controls pane off the band
+PASS iPhone 17 Pro Max half landscapeLeft: panes apart
+PASS iPhone 17 Pro Max half landscapeLeft: reading leading
+PASS iPhone 17 Pro Max half landscapeLeft: widths add up
+PASS iPhone 17 Pro Max half landscapeLeft: pane holds a 44 pt target
+PASS iPhone 17 Pro Max half landscapeLeft: pane holds a 44 pt target
+PASS iPhone 17 Pro Max half landscapeLeft: one-side screens take the reading side on a tie
+PASS iPhone 17 Pro Max half landscapeLeft: 200 targets, all clear of the band
+PASS iPhone 17 Pro Max half landscapeLeft: a target on the hinge is not clear
+PASS iPhone 17 Pro Max half landscapeLeft: a screen short of the band is left whole
+PASS iPhone 17 Pro Max half landscapeLeft: a sliver past the band is no pane
+PASS iPhone 17 Pro Max folded landscapeRight: orientation kept
+PASS iPhone 17 Pro Max folded landscapeRight: no band
+PASS iPhone 17 Pro Max folded landscapeRight: no panes
+PASS iPhone 17 Pro Max folded landscapeRight: everything clear
+PASS iPhone 17 Pro Max open landscapeRight: orientation kept
+PASS iPhone 17 Pro Max open landscapeRight: band inside the window
+PASS iPhone 17 Pro Max open landscapeRight: band across the longer side
+PASS iPhone 17 Pro Max open landscapeRight: side by side in a wide window
+PASS iPhone 17 Pro Max open landscapeRight: reading pane off the band
+PASS iPhone 17 Pro Max open landscapeRight: controls pane off the band
+PASS iPhone 17 Pro Max open landscapeRight: panes apart
+PASS iPhone 17 Pro Max open landscapeRight: reading leading
+PASS iPhone 17 Pro Max open landscapeRight: widths add up
+PASS iPhone 17 Pro Max open landscapeRight: pane holds a 44 pt target
+PASS iPhone 17 Pro Max open landscapeRight: pane holds a 44 pt target
+PASS iPhone 17 Pro Max open landscapeRight: one-side screens take the reading side on a tie
+PASS iPhone 17 Pro Max open landscapeRight: 200 targets, all clear of the band
+PASS iPhone 17 Pro Max open landscapeRight: a target on the hinge is not clear
+PASS iPhone 17 Pro Max open landscapeRight: a screen short of the band is left whole
+PASS iPhone 17 Pro Max open landscapeRight: a sliver past the band is no pane
+PASS iPhone 17 Pro Max half landscapeRight: orientation kept
+PASS iPhone 17 Pro Max half landscapeRight: band inside the window
+PASS iPhone 17 Pro Max half landscapeRight: band across the longer side
+PASS iPhone 17 Pro Max half landscapeRight: side by side in a wide window
+PASS iPhone 17 Pro Max half landscapeRight: reading pane off the band
+PASS iPhone 17 Pro Max half landscapeRight: controls pane off the band
+PASS iPhone 17 Pro Max half landscapeRight: panes apart
+PASS iPhone 17 Pro Max half landscapeRight: reading leading
+PASS iPhone 17 Pro Max half landscapeRight: widths add up
+PASS iPhone 17 Pro Max half landscapeRight: pane holds a 44 pt target
+PASS iPhone 17 Pro Max half landscapeRight: pane holds a 44 pt target
+PASS iPhone 17 Pro Max half landscapeRight: one-side screens take the reading side on a tie
+PASS iPhone 17 Pro Max half landscapeRight: 200 targets, all clear of the band
+PASS iPhone 17 Pro Max half landscapeRight: a target on the hinge is not clear
+PASS iPhone 17 Pro Max half landscapeRight: a screen short of the band is left whole
+PASS iPhone 17 Pro Max half landscapeRight: a sliver past the band is no pane
+PASS foldable inner (assumed) folded portrait: orientation kept
+PASS foldable inner (assumed) folded portrait: no band
+PASS foldable inner (assumed) folded portrait: no panes
+PASS foldable inner (assumed) folded portrait: everything clear
+PASS foldable inner (assumed) open portrait: orientation kept
+PASS foldable inner (assumed) open portrait: band inside the window
+PASS foldable inner (assumed) open portrait: band across the longer side
+PASS foldable inner (assumed) open portrait: side by side in a wide window
+PASS foldable inner (assumed) open portrait: reading pane off the band
+PASS foldable inner (assumed) open portrait: controls pane off the band
+PASS foldable inner (assumed) open portrait: panes apart
+PASS foldable inner (assumed) open portrait: reading on top
+PASS foldable inner (assumed) open portrait: heights add up
+PASS foldable inner (assumed) open portrait: pane holds a 44 pt target
+PASS foldable inner (assumed) open portrait: pane holds a 44 pt target
+PASS foldable inner (assumed) open portrait: one-side screens take the reading side on a tie
+PASS foldable inner (assumed) open portrait: 208 targets, all clear of the band
+PASS foldable inner (assumed) open portrait: a target on the hinge is not clear
+PASS foldable inner (assumed) open portrait: a screen short of the band is left whole
+PASS foldable inner (assumed) open portrait: a sliver past the band is no pane
+PASS foldable inner (assumed) half portrait: orientation kept
+PASS foldable inner (assumed) half portrait: band inside the window
+PASS foldable inner (assumed) half portrait: band across the longer side
+PASS foldable inner (assumed) half portrait: side by side in a wide window
+PASS foldable inner (assumed) half portrait: reading pane off the band
+PASS foldable inner (assumed) half portrait: controls pane off the band
+PASS foldable inner (assumed) half portrait: panes apart
+PASS foldable inner (assumed) half portrait: reading on top
+PASS foldable inner (assumed) half portrait: heights add up
+PASS foldable inner (assumed) half portrait: pane holds a 44 pt target
+PASS foldable inner (assumed) half portrait: pane holds a 44 pt target
+PASS foldable inner (assumed) half portrait: one-side screens take the reading side on a tie
+PASS foldable inner (assumed) half portrait: 208 targets, all clear of the band
+PASS foldable inner (assumed) half portrait: a target on the hinge is not clear
+PASS foldable inner (assumed) half portrait: a screen short of the band is left whole
+PASS foldable inner (assumed) half portrait: a sliver past the band is no pane
+PASS foldable inner (assumed) folded landscapeLeft: orientation kept
+PASS foldable inner (assumed) folded landscapeLeft: no band
+PASS foldable inner (assumed) folded landscapeLeft: no panes
+PASS foldable inner (assumed) folded landscapeLeft: everything clear
+PASS foldable inner (assumed) open landscapeLeft: orientation kept
+PASS foldable inner (assumed) open landscapeLeft: band inside the window
+PASS foldable inner (assumed) open landscapeLeft: band across the longer side
+PASS foldable inner (assumed) open landscapeLeft: side by side in a wide window
+PASS foldable inner (assumed) open landscapeLeft: reading pane off the band
+PASS foldable inner (assumed) open landscapeLeft: controls pane off the band
+PASS foldable inner (assumed) open landscapeLeft: panes apart
+PASS foldable inner (assumed) open landscapeLeft: reading leading
+PASS foldable inner (assumed) open landscapeLeft: widths add up
+PASS foldable inner (assumed) open landscapeLeft: pane holds a 44 pt target
+PASS foldable inner (assumed) open landscapeLeft: pane holds a 44 pt target
+PASS foldable inner (assumed) open landscapeLeft: one-side screens take the reading side on a tie
+PASS foldable inner (assumed) open landscapeLeft: 208 targets, all clear of the band
+PASS foldable inner (assumed) open landscapeLeft: a target on the hinge is not clear
+PASS foldable inner (assumed) open landscapeLeft: a screen short of the band is left whole
+PASS foldable inner (assumed) open landscapeLeft: a sliver past the band is no pane
+PASS foldable inner (assumed) half landscapeLeft: orientation kept
+PASS foldable inner (assumed) half landscapeLeft: band inside the window
+PASS foldable inner (assumed) half landscapeLeft: band across the longer side
+PASS foldable inner (assumed) half landscapeLeft: side by side in a wide window
+PASS foldable inner (assumed) half landscapeLeft: reading pane off the band
+PASS foldable inner (assumed) half landscapeLeft: controls pane off the band
+PASS foldable inner (assumed) half landscapeLeft: panes apart
+PASS foldable inner (assumed) half landscapeLeft: reading leading
+PASS foldable inner (assumed) half landscapeLeft: widths add up
+PASS foldable inner (assumed) half landscapeLeft: pane holds a 44 pt target
+PASS foldable inner (assumed) half landscapeLeft: pane holds a 44 pt target
+PASS foldable inner (assumed) half landscapeLeft: one-side screens take the reading side on a tie
+PASS foldable inner (assumed) half landscapeLeft: 208 targets, all clear of the band
+PASS foldable inner (assumed) half landscapeLeft: a target on the hinge is not clear
+PASS foldable inner (assumed) half landscapeLeft: a screen short of the band is left whole
+PASS foldable inner (assumed) half landscapeLeft: a sliver past the band is no pane
+PASS foldable inner (assumed) folded landscapeRight: orientation kept
+PASS foldable inner (assumed) folded landscapeRight: no band
+PASS foldable inner (assumed) folded landscapeRight: no panes
+PASS foldable inner (assumed) folded landscapeRight: everything clear
+PASS foldable inner (assumed) open landscapeRight: orientation kept
+PASS foldable inner (assumed) open landscapeRight: band inside the window
+PASS foldable inner (assumed) open landscapeRight: band across the longer side
+PASS foldable inner (assumed) open landscapeRight: side by side in a wide window
+PASS foldable inner (assumed) open landscapeRight: reading pane off the band
+PASS foldable inner (assumed) open landscapeRight: controls pane off the band
+PASS foldable inner (assumed) open landscapeRight: panes apart
+PASS foldable inner (assumed) open landscapeRight: reading leading
+PASS foldable inner (assumed) open landscapeRight: widths add up
+PASS foldable inner (assumed) open landscapeRight: pane holds a 44 pt target
+PASS foldable inner (assumed) open landscapeRight: pane holds a 44 pt target
+PASS foldable inner (assumed) open landscapeRight: one-side screens take the reading side on a tie
+PASS foldable inner (assumed) open landscapeRight: 208 targets, all clear of the band
+PASS foldable inner (assumed) open landscapeRight: a target on the hinge is not clear
+PASS foldable inner (assumed) open landscapeRight: a screen short of the band is left whole
+PASS foldable inner (assumed) open landscapeRight: a sliver past the band is no pane
+PASS foldable inner (assumed) half landscapeRight: orientation kept
+PASS foldable inner (assumed) half landscapeRight: band inside the window
+PASS foldable inner (assumed) half landscapeRight: band across the longer side
+PASS foldable inner (assumed) half landscapeRight: side by side in a wide window
+PASS foldable inner (assumed) half landscapeRight: reading pane off the band
+PASS foldable inner (assumed) half landscapeRight: controls pane off the band
+PASS foldable inner (assumed) half landscapeRight: panes apart
+PASS foldable inner (assumed) half landscapeRight: reading leading
+PASS foldable inner (assumed) half landscapeRight: widths add up
+PASS foldable inner (assumed) half landscapeRight: pane holds a 44 pt target
+PASS foldable inner (assumed) half landscapeRight: pane holds a 44 pt target
+PASS foldable inner (assumed) half landscapeRight: one-side screens take the reading side on a tie
+PASS foldable inner (assumed) half landscapeRight: 208 targets, all clear of the band
+PASS foldable inner (assumed) half landscapeRight: a target on the hinge is not clear
+PASS foldable inner (assumed) half landscapeRight: a screen short of the band is left whole
+PASS foldable inner (assumed) half landscapeRight: a sliver past the band is no pane
+PASS no preview posture: folded, no band
+PASS the flat posture has no band
+PASS half, landscapeLeft
+PASS open, landscapeRight
+PASS folded, portrait
+PASS the iPad job's landscape is landscapeRight
+PASS tent is half-open
+PASS nothing named, nothing
+PASS an unknown word is nothing
+PASS a flag at the end is nothing
+PASS project.yml read
+PASS iPhone: portrait
+PASS iPhone: landscape left
+PASS iPhone: landscape right
+PASS iPhone: never upside down
+PASS iPad: every way
+PASS iPhone SE: a phone's corner
+PASS iPhone SE on its side: a phone's corner
+PASS iPhone 17: a phone's corner
+PASS iPhone 17 on its side: a phone's corner
+PASS iPhone 17 Pro: a phone's corner
+PASS iPhone 17 Pro on its side: a phone's corner
+PASS iPhone 17 Pro Max: a phone's corner
+PASS iPhone 17 Pro Max on its side: a phone's corner
+PASS iPad 744: the large screen's corner
+PASS iPad 744 on its side: the large screen's corner
+PASS iPad 820: the large screen's corner
+PASS iPad 820 on its side: the large screen's corner
+PASS iPad 1024: the large screen's corner
+PASS iPad 1024 on its side: the large screen's corner
+PASS iPhone 17 Pro island left: clear of the island side
+PASS iPhone 17 Pro island left: clear of the home indicator
+PASS iPhone 17 Pro island left: top corners concentric
+PASS iPhone 17 Pro island left: bottom corners concentric
+PASS iPhone 17 Pro island right: clear of the island side
+PASS iPhone 17 Pro island right: clear of the home indicator
+PASS iPhone 17 Pro island right: top corners concentric
+PASS iPhone 17 Pro island right: bottom corners concentric
+PASS iPhone 17 Pro both sides: clear of the island side
+PASS iPhone 17 Pro both sides: clear of the home indicator
+PASS iPhone 17 Pro both sides: top corners concentric
+PASS iPhone 17 Pro both sides: bottom corners concentric
+PASS iPhone 17 Pro Max island left: clear of the island side
+PASS iPhone 17 Pro Max island left: clear of the home indicator
+PASS iPhone 17 Pro Max island left: top corners concentric
+PASS iPhone 17 Pro Max island left: bottom corners concentric
+PASS iPhone 17 Pro Max island right: clear of the island side
+PASS iPhone 17 Pro Max island right: clear of the home indicator
+PASS iPhone 17 Pro Max island right: top corners concentric
+PASS iPhone 17 Pro Max island right: bottom corners concentric
+PASS iPhone 17 Pro Max both sides: clear of the island side
+PASS iPhone 17 Pro Max both sides: clear of the home indicator
+PASS iPhone 17 Pro Max both sides: top corners concentric
+PASS iPhone 17 Pro Max both sides: bottom corners concentric
+PASS sources found
+PASS no device-type check outside Diagnostics
+596 checks, 0 failed
+
+run rc=0
