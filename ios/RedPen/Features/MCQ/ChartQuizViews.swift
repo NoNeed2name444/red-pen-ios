@@ -180,10 +180,13 @@ struct ChartLabsTable: View {
             Text(lab.name).foregroundStyle(Color.wardInk)
                 .fixedSize(horizontal: false, vertical: true)
             HStack(alignment: .firstTextBaseline, spacing: WardSpace.s) {
+                // the value and flag are never squeezed: the unit takes the wrap
                 Text(lab.value).fontWeight(.semibold).foregroundStyle(value)
+                    .fixedSize()
                 Text(lab.unit).foregroundStyle(Color.wardInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                 Text(lab.flag?.rawValue ?? "").fontWeight(.bold).foregroundStyle(Color.wardDanger)
+                    .fixedSize()
             }
         }
         .accessibilityElement(children: .ignore)
