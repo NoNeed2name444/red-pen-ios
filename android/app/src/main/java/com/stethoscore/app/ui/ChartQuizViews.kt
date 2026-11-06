@@ -29,7 +29,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -161,41 +160,37 @@ internal enum class QuizButtonKind { primary, companion, secondary }
  */
 @Composable fun ChartLabsTable(labs: List<PatientChart.Lab>) {
     val rows = Arrangement.spacedBy(WardSpace.s.wardDp)
-    // fresh for each set of results: changed in place, the table was once laid out wide with a result too long for
-    // it ("Alkaline phosphatase" at 164 px in ChartLabsTableTest), where a new table of the same results stacks
-    key(labs) {
-        // both layouts are composed and only one is placed: the other is kept out of TalkBack, so each result is one node
-        var stacked by remember { mutableStateOf(false) }
-        val policy = remember { WideOrStacked { stacked = it } }
-        val unread = Modifier.clearAndSetSemantics {}
-        Layout(contents = listOf(
-                { Column(if (stacked) unread else Modifier, verticalArrangement = rows) { labs.forEach { LabWide(it, labInk(it)) } } },
-                { Column(if (stacked) Modifier else unread, verticalArrangement = rows) { labs.forEach { LabStacked(it, labInk(it)) } } }),
-            modifier = Modifier.fillMaxWidth().background(com.stethoscore.app.ui.ward.wardPanelFill(), RoundedCornerShape(WardRadius.field.wardDp)).padding(WardSpace.m.wardDp),
-            measurePolicy = policy)
-    }
+    // both layouts are composed and only one is placed: the other is kept out of TalkBack, so each result is one node
+    var stacked by remember { mutableStateOf(false) }
+    val policy = remember { WideOrStacked { stacked = it } }
+    val unread = Modifier.clearAndSetSemantics {}
+    Layout(contents = listOf(
+            { Column(if (stacked) unread else Modifier, verticalArrangement = rows) { labs.forEach { LabWide(it, labInk(it)) } } },
+            { Column(if (stacked) Modifier else unread, verticalArrangement = rows) { labs.forEach { LabStacked(it, labInk(it)) } } }),
+        modifier = Modifier.fillMaxWidth().background(com.stethoscore.app.ui.ward.wardPanelFill(), RoundedCornerShape(WardRadius.field.wardDp)).padding(WardSpace.m.wardDp),
+        measurePolicy = policy)
 }
 
 /** A flagged value in Resus Red, any other in ink. */
 @Composable private fun labInk(lab: PatientChart.Lab): Color =
     if (ChartQuiz.tone(lab.flag) == ChartQuiz.Tone.danger) wardColor(WardToken.danger) else wardColor(WardToken.ink)
 
-/** For tests: each lab text's layout, by its words, as it was last laid out. */
+/** For tests: each lab text's layout as it was last laid out, by its column and words ("wide:Albumin", "stacked:22"). */
 internal val LocalLabTextLayouts = staticCompositionLocalOf<MutableMap<String, TextLayoutResult>?> { null }
 
-@Composable private fun LabText(words: String, modifier: Modifier, weight: WardWeight, color: Color) {
+@Composable private fun LabText(column: String, words: String, modifier: Modifier, weight: WardWeight, color: Color) {
     val layouts = LocalLabTextLayouts.current
-    Text(words, modifier, style = WardTextStyle.subheadline.textStyle(weight, mono = true), color = color, onTextLayout = { layouts?.put(words, it) })
+    Text(words, modifier, style = WardTextStyle.subheadline.textStyle(weight, mono = true), color = color, onTextLayout = { layouts?.put("$column:$words", it) })
 }
 
 /** One result on one line: the name taking what the others leave. */
 @Composable private fun LabWide(lab: PatientChart.Lab, value: Color) {
     val spoken = ChartQuiz.spoken(lab)
     Row(Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = spoken }, horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp), verticalAlignment = Alignment.Bottom) {
-        LabText(lab.name, Modifier.weight(1f), WardWeight.regular, wardColor(WardToken.ink))
-        LabText(lab.value, Modifier, WardWeight.semibold, value)
-        LabText(lab.unit, Modifier.widthIn(min = 64.dp), WardWeight.regular, wardColor(WardToken.inkSecondary))
-        LabText(lab.flag?.rawValue ?: "", Modifier.widthIn(min = 14.dp), WardWeight.bold, wardColor(WardToken.danger))
+        LabText("wide", lab.name, Modifier.weight(1f), WardWeight.regular, wardColor(WardToken.ink))
+        LabText("wide", lab.value, Modifier, WardWeight.semibold, value)
+        LabText("wide", lab.unit, Modifier.widthIn(min = 64.dp), WardWeight.regular, wardColor(WardToken.inkSecondary))
+        LabText("wide", lab.flag?.rawValue ?: "", Modifier.widthIn(min = 14.dp), WardWeight.bold, wardColor(WardToken.danger))
     }
 }
 
@@ -203,11 +198,11 @@ internal val LocalLabTextLayouts = staticCompositionLocalOf<MutableMap<String, T
 @Composable private fun LabStacked(lab: PatientChart.Lab, value: Color) {
     val spoken = ChartQuiz.spoken(lab)
     Column(Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = spoken }, verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
-        LabText(lab.name, Modifier, WardWeight.regular, wardColor(WardToken.ink))
+        LabText("stacked", lab.name, Modifier, WardWeight.regular, wardColor(WardToken.ink))
         Row(horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), verticalAlignment = Alignment.Bottom) {
-            LabText(lab.value, Modifier, WardWeight.semibold, value)
-            LabText(lab.unit, Modifier.weight(1f, fill = false), WardWeight.regular, wardColor(WardToken.inkSecondary))
-            LabText(lab.flag?.rawValue ?: "", Modifier, WardWeight.bold, wardColor(WardToken.danger))
+            LabText("stacked", lab.value, Modifier, WardWeight.semibold, value)
+            LabText("stacked", lab.unit, Modifier.weight(1f, fill = false), WardWeight.regular, wardColor(WardToken.inkSecondary))
+            LabText("stacked", lab.flag?.rawValue ?: "", Modifier, WardWeight.bold, wardColor(WardToken.danger))
         }
     }
 }

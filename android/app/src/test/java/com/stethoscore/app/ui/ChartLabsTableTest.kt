@@ -15,6 +15,7 @@ import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import com.stethoscore.app.quiz.ChartQuiz
@@ -42,29 +43,45 @@ class ChartLabsTableTest {
 
     private val long = PatientChart.Lab("Alkaline phosphatase", "1,250", "mmol/L", PatientChart.Flag.high)
     private val short = PatientChart.Lab("Albumin", "22", "g/L", PatientChart.Flag.low)
+    // one row at 1.0, too wide for one at 2.0 (at 2.0, Sodium 128 mmol/L L just fits: 296 dp of 296)
+    private val potassium = PatientChart.Lab("Potassium", "6.8", "mmol/L", PatientChart.Flag.high)
 
     private val labs = mutableStateOf(listOf<PatientChart.Lab>())
+    private val scale = mutableStateOf(1f)
+    // each text's last layout, by column and words: "wide:Albumin", "stacked:22"
     private val layouts = mutableMapOf<String, TextLayoutResult>()
-    private var scale = 1f
     private var composed = false
 
-    /** The table at `scale` with `shown`; set once per test, then the labs change in place. */
-    private fun show(scale: Float, vararg shown: PatientChart.Lab): Map<String, TextLayoutResult> {
-        layouts.clear()
+    /** The table at `size` with `shown`: composed once per test, then the results and the scale change in place. */
+    private fun show(size: Float, vararg shown: PatientChart.Lab) {
         labs.value = shown.toList()
+        scale.value = size
         if (!composed) {
             composed = true
-            this.scale = scale
             compose.setContent {
                 val density = LocalDensity.current
-                CompositionLocalProvider(LocalDensity provides Density(density.density, this.scale), LocalLabTextLayouts provides layouts) {
+                CompositionLocalProvider(LocalDensity provides Density(density.density, scale.value), LocalLabTextLayouts provides layouts) {
                     StethoscoreTheme { Box(Modifier.width(320.dp)) { ChartLabsTable(labs.value) } }
                 }
             }
         }
         compose.waitForIdle()
-        return layouts.toMap()
     }
+
+    private fun bounds(lab: PatientChart.Lab) =
+        compose.onAllNodesWithContentDescription(ChartQuiz.spoken(lab)).onFirst().getUnclippedBoundsInRoot()
+
+    /** One line of the table's text: its value, which is one line in either column. */
+    private fun line(lab: PatientChart.Lab): Dp {
+        val value = layouts["stacked:${lab.value}"] ?: layouts.getValue("wide:${lab.value}")
+        return with(compose.density) { value.size.height.toDp() }
+    }
+
+    /** The column `lab` is placed in, read from its placed height: stacked is more than one and a half lines. */
+    private fun column(lab: PatientChart.Lab): String = if (bounds(lab).height > line(lab) * 1.5f) "stacked" else "wide"
+
+    /** `words`' layout in the column `lab` is placed in. */
+    private fun text(lab: PatientChart.Lab, words: String): TextLayoutResult = layouts.getValue(column(lab) + ":" + words)
 
     /** Every line but the last ends at a space: no word is split across lines. */
     private fun breaksOnlyBetweenWords(layout: TextLayoutResult, words: String) {
@@ -87,38 +104,56 @@ class ChartLabsTableTest {
         assertEquals(0, compose.onAllNodesWithText(lab.name).fetchSemanticsNodes().size)
     }
 
-    @Test fun atFontScale2ALongResultStacksWhole() {
-        val layouts = show(2f, long)
-        breaksOnlyBetweenWords(layouts.getValue(long.name), long.name)
-        whole(layouts.getValue(long.value), long.value)
-        whole(layouts.getValue("H"), "H")
-        // stacked: the value starts a line of its own, under the name
-        val name = layouts.getValue(long.name)
-        assertTrue("the name is squeezed beside the value", name.size.width > layouts.getValue(long.value).size.width * 2)
-        oneNode(long)
+    private fun words(lab: PatientChart.Lab) = listOf(lab.name, lab.value, lab.unit, lab.flag!!.rawValue)
+
+    /** Placed as one row: as tall as one line of its name, within 1 dp. */
+    private fun oneRow(lab: PatientChart.Lab) {
+        assertEquals("${lab.name} is not placed wide", "wide", column(lab))
+        val row = bounds(lab).height
+        val name = with(compose.density) { text(lab, lab.name).size.height.toDp() }
+        assertTrue("${lab.name}'s row is $row, a line is $name", row <= name + 1.dp)
+        for (w in words(lab)) whole(text(lab, w), w)
+        oneNode(lab)
     }
 
-    /** How many lines of its name tall `lab`'s row is. */
-    private fun rowLines(lab: PatientChart.Lab, layouts: Map<String, TextLayoutResult>): Float {
-        val row = compose.onAllNodesWithContentDescription(ChartQuiz.spoken(lab)).onFirst().getUnclippedBoundsInRoot()
-        val line = with(compose.density) { layouts.getValue(lab.name).size.height.toDp() }
-        return row.height / line
+    /** Placed stacked, its name broken only between words and its value, unit and flag whole. */
+    private fun stackedWhole(lab: PatientChart.Lab) {
+        assertEquals("${lab.name} is not stacked", "stacked", column(lab))
+        assertTrue("${lab.name} is not stacked", bounds(lab).height > line(lab) * 1.5f)
+        breaksOnlyBetweenWords(text(lab, lab.name), lab.name)
+        for (w in words(lab).drop(1)) whole(text(lab, w), w)
+        oneNode(lab)
+    }
+
+    @Test fun atFontScale2ALongResultStacksWhole() {
+        show(2f, long)
+        stackedWhole(long)
+        // stacked: the value starts a line of its own, under the name
+        assertTrue("the name is squeezed beside the value", text(long, long.name).size.width > text(long, long.value).size.width * 2)
     }
 
     // At the default size the table is one ViewThatFits, as on iOS: a short result
-    // alone keeps its one row; beside one too long for a row, both are stacked.
+    // alone keeps its one row; beside one too long for a row, both are stacked;
+    // changed in place, back to the short one alone, it is one row again.
     @Test fun atTheDefaultSizeTheTableStacksAsAWhole() {
-        val alone = show(1f, short)
-        for (words in listOf(short.name, short.value, short.unit, short.flag!!.rawValue)) whole(alone.getValue(words), words)
-        oneNode(short)
-        assertTrue("a short result alone is not one row", rowLines(short, alone) < 1.1f)
+        show(1f, short)
+        oneRow(short)
+        show(1f, long, short)
+        stackedWhole(long)
+        stackedWhole(short)
+        show(1f, short)
+        oneRow(short)
+    }
 
-        val layouts = show(1f, long, short)
-        for (lab in listOf(long, short)) {
-            for (words in listOf(lab.name, lab.value, lab.unit, lab.flag!!.rawValue)) whole(layouts.getValue(words), words)
-            oneNode(lab)
-            assertTrue("${lab.name} is not stacked with the rest of the table", rowLines(lab, layouts) > 1.5f)
-        }
+    // The text size changed while the table is on screen: wide at 1.0, stacked at
+    // 2.0, wide again at 1.0, as a new table at each size would be.
+    @Test fun aFontScaleChangedInPlaceStacksAndUnstacks() {
+        show(1f, potassium)
+        oneRow(potassium)
+        show(2f, potassium)
+        stackedWhole(potassium)
+        show(1f, potassium)
+        oneRow(potassium)
     }
 }
 
