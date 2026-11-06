@@ -11,8 +11,12 @@ import java.io.FileOutputStream
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 
-/** Local library. Empty on first launch; examples are added only on request. */
-class StudyStore(private val directory: File) {
+/**
+ * Local library. Empty on first launch; examples are added only on request.
+ * Changes land in memory at once; the file is written by [writer], off the
+ * calling thread for background changes (ratings, answers, progress).
+ */
+class StudyStore(private val directory: File, private val writer: LibraryWriter = LibraryWriter.of(directory)) {
     private val file = File(directory, "stethoscore.json")
     /** Settings > Review lives beside the library, not in it, as iOS keeps it in UserDefaults. */
     private val reviewSettingsFile = File(directory, "review-settings.json")
@@ -20,42 +24,42 @@ class StudyStore(private val directory: File) {
         private set
     /** The twins' due dates and the twins still to be written, beside the library (iOS ExamStore). */
     val twinShelf: com.stethoscore.app.quiz.TwinShelf by lazy { com.stethoscore.app.quiz.TwinShelf(File(directory, "twins.json")) }
-    private var original = JSONObject()
-    private var unknownSets = emptyList<JSONObject>()
-    var loadError: String? = null
+    @Volatile private var original = JSONObject()
+    @Volatile private var unknownSets = emptyList<JSONObject>()
+    @Volatile var loadError: String? = null
         private set
-    var library: List<StudySet> = emptyList()
+    @Volatile var library: List<StudySet> = emptyList()
         private set
-    var folders: List<StudyFolder> = emptyList()
+    @Volatile var folders: List<StudyFolder> = emptyList()
         private set
-    var notes: List<Note> = emptyList()
+    @Volatile var notes: List<Note> = emptyList()
         private set
     /** The idea dump's folders (iOS NoteStore's), nested by parentId. */
-    var noteFolders: List<NoteFolder> = emptyList()
+    @Volatile var noteFolders: List<NoteFolder> = emptyList()
         private set
-    var reviews: Map<String, ReviewRecord> = emptyMap()
+    @Volatile var reviews: Map<String, ReviewRecord> = emptyMap()
         private set
-    var quizProgress: Map<String, QuizProgress> = emptyMap()
+    @Volatile var quizProgress: Map<String, QuizProgress> = emptyMap()
         private set
-    var readingProgress: Map<String, ReadingProgress> = emptyMap()
+    @Volatile var readingProgress: Map<String, ReadingProgress> = emptyMap()
         private set
-    var osceProgress: Map<String, OsceProgress> = emptyMap()
+    @Volatile var osceProgress: Map<String, OsceProgress> = emptyMap()
         private set
-    var caseRuns: Map<String, String> = emptyMap()
+    @Volatile var caseRuns: Map<String, String> = emptyMap()
         private set
-    var answerHistory: Map<String, List<Boolean>> = emptyMap()
+    @Volatile var answerHistory: Map<String, List<Boolean>> = emptyMap()
         private set
-    var answerLog: List<AnswerEvent> = emptyList()
+    @Volatile var answerLog: List<AnswerEvent> = emptyList()
         private set
-    var flagged: Set<String> = emptySet()
+    @Volatile var flagged: Set<String> = emptySet()
         private set
     /** Why each wrong answer was wrong, in the student's own judgement, by question id. */
-    var mistakeReasons: Map<String, MistakeNote> = emptyMap()
+    @Volatile var mistakeReasons: Map<String, MistakeNote> = emptyMap()
         private set
-    var examDate: Long? = null
+    @Volatile var examDate: Long? = null
         private set
     /** The rule sheet: one line to remember for a missed question, by its id (iOS Store.ruleSheet). */
-    var ruleSheet: Map<String, StudyRule> = emptyMap()
+    @Volatile var ruleSheet: Map<String, StudyRule> = emptyMap()
         private set
     /** The rating Undo would take back: the card and its record from before. One step, as in Anki. */
     data class UndoableRating(val cardId: String, val previous: ReviewRecord?, val rating: AnkiRating, val at: Long)
@@ -72,6 +76,8 @@ class StudyStore(private val directory: File) {
         val noteFolders: List<NoteFolder> = emptyList(),
     )
     private var committed = current()
+    /** The number ([LibraryWriter.nextGeneration]) of the snapshot [committed] is; under the store's lock. */
+    private var committedGeneration = 0L
     /** Called when a background save (progress, ratings, answers) fails; the change is undone. */
     var onSaveError: ((String) -> Unit)? = null
     /** Told of each answer checked and card rated, so a running ward round can count them (iOS StudyLog.recorded). */
@@ -79,8 +85,13 @@ class StudyStore(private val directory: File) {
 
     /** The widgets' digest (glance-digest.json), beside the library. */
     val glanceShelf = GlanceShelf(directory)
+    /** Guards the digest file apart from the library, so a widget's republish never holds the store's lock over file work. */
+    private val glanceLock = Object()
     private var glanceLast: GlanceDigest? = null
     private var glanceLastRead = false
+    /** Which reading of the library a digest came from; an older one is never written over a newer. */
+    private var glanceRead = 0L
+    private var glanceWritten = 0L
     /** Where the chosen exam is kept, for home's exam name in the digest (ExamChoice.defaults(context) in the app). */
     var examDefaults: ExamDefaults = MemoryExamDefaults()
         set(value) { field = value; publishGlance() }
@@ -94,15 +105,29 @@ class StudyStore(private val directory: File) {
 
     init { load(); publishGlance() }
 
-    @Synchronized fun load() {
+    /** Reads the file again, after any write still waiting for it; the read itself holds no lock. */
+    fun load() {
+        flush()
         if (!file.exists()) return
-        try {
-            restore(parse(JSONObject(file.readText())))
+        val parsed = try { parse(JSONObject(file.readText())) } catch (e: Exception) { failedToLoad(e); return }
+        synchronized(this) {
+            restore(parsed)
             committed = current()
+            committedGeneration = writer.nextGeneration()
             loadError = null
-        } catch (e: Exception) {
-            loadError = "Your library could not be opened. The original file has been kept: ${e.message.orEmpty()}"
         }
+    }
+    @Synchronized private fun failedToLoad(e: Exception) {
+        loadError = "Your library could not be opened. The original file has been kept: ${e.message.orEmpty()}"
+    }
+    /**
+     * Waits until every change so far is on disk: the app going to the
+     * background (MainActivity.onStop), and tests. Never call it holding the
+     * store's lock: the write it waits for takes that lock when it finishes.
+     */
+    fun flush() {
+        check(!Thread.holdsLock(this)) { "flush() inside the store's lock would wait on itself" }
+        writer.flush()
     }
     private fun parse(root: JSONObject): Saved {
         val sets = root.objects("library") { it }
@@ -139,11 +164,14 @@ class StudyStore(private val directory: File) {
     private fun <T> readMap(o: JSONObject, decode: (JSONObject) -> T): Map<String, T> = o.keys().asSequence().mapNotNull { key -> o.optJSONObject(key)?.let { key to decode(it) } }.toMap()
     private fun <T> writeMap(map: Map<String, T>, encode: (T) -> Any): JSONObject = JSONObject().also { o -> map.forEach { (key, value) -> o.put(key, encode(value)) } }
 
-    /** The whole library, with the twins' due dates and waiting twins (twins.json) beside it. */
-    @Synchronized fun exportJson(): String = snapshot().put("twins", JSONObject(twinShelf.book.toJson())).toString(2)
+    /** The whole library as it is in memory now (written or not), with the twins' due dates and waiting twins (twins.json) beside it. */
+    fun exportJson(): String = encode(synchronized(this) { current() }).put("twins", JSONObject(twinShelf.book.toJson())).toString(2)
+    /** The library file's text for what is in memory now, for tests. */
+    internal fun libraryText(): String = encode(synchronized(this) { current() }).toString()
     fun exportSet(set: StudySet): String = StudyJson.encodeSet(set).toString(2)
 
-    private fun snapshot(): JSONObject = raw(original.toString())
+    /** The file's JSON for [s]; works from the snapshot alone, so it runs off the store's lock. */
+    private fun encode(s: Saved): JSONObject = with(s) { raw(original.toString())
         .put("format", "stethoscore-android-v1")
         .put("library", jsonArray(library.map(StudyJson::encodeSet) + unknownSets))
         .put("folders", jsonArray(folders.map { raw(it.rawJson).put("id", it.id).put("name", it.name).putDate("updatedAt", it.updatedAt) }))
@@ -158,45 +186,93 @@ class StudyStore(private val directory: File) {
         .put("answerLog", jsonArray(answerLog.map { e -> JSONObject().put("questionId", e.questionId).put("correct", e.correct).putDate("at", e.at).also { o -> e.confidence?.let { o.put("confidence", it) }; e.picked?.let { o.put("picked", it) }; e.hinted?.let { o.put("hinted", it) }; e.isExample?.let { o.put("isExample", it) } } }))
         .put("mistakeReasons", writeMap(mistakeReasons) { n -> JSONObject().put("reason", n.reason).putDate("at", n.at).also { o -> n.isExample?.let { o.put("isExample", it) } } })
         .put("ruleSheet", writeMap(ruleSheet) { it.json() })
-        .put("flagged", jsonArray(flagged.toList())).putDate("examDate", examDate)
+        .put("flagged", jsonArray(flagged.toList())).putDate("examDate", examDate) }
 
     /**
-     * fsync then atomic rename: interruption never replaces the library with a partial write.
-     * If the write fails, memory goes back to the last saved state, so screen and disk agree,
-     * and the failure is thrown as an IllegalStateException with a message for the person.
+     * Writes [s]: fsync then atomic rename, so interruption never replaces the
+     * library with a partial write. Throws an IllegalStateException with a
+     * message for the person. Runs on whichever thread [writer] writes on.
      */
-    @Synchronized fun save() {
+    private fun writeFile(s: Saved) {
         val temporary = File(directory, "stethoscore.json.tmp")
         try {
-            check(loadError == null) { loadError ?: "Library unavailable" }
             check(directory.exists() || directory.mkdirs()) { "Could not create the library directory." }
-            val bytes = snapshot().toString().toByteArray(Charsets.UTF_8)
+            val bytes = encode(s).toString().toByteArray(Charsets.UTF_8)
             FileOutputStream(temporary).use { stream -> stream.write(bytes); stream.fd.sync() }
+            beforeRename?.invoke()
             try {
                 Files.move(temporary.toPath(), file.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
             } catch (_: java.nio.file.AtomicMoveNotSupportedException) {
                 // Both files are in one directory; Android rename replaces atomically on its local filesystem.
                 check(temporary.renameTo(file)) { "Could not replace the library file." }
             }
-            committed = current()
         } catch (e: Exception) {
-            restore(committed)
             temporary.delete()
             throw if (e is IllegalStateException) e else IllegalStateException("Could not save your library: ${e.message.orEmpty()}", e)
         }
+    }
+    /** Called between the fsync and the rename, for tests (a write cut off before it replaces the file). */
+    @Volatile internal var beforeRename: (() -> Unit)? = null
+
+    /**
+     * Saves now, on the calling thread, for a change whose caller shows the
+     * failure (an edit, an import). It waits for a background write already
+     * running and replaces any still waiting, so the order holds. If the write
+     * fails, memory goes back to the last saved state, so screen and disk
+     * agree, and the failure is thrown as an IllegalStateException.
+     */
+    @Synchronized fun save() {
+        try {
+            check(loadError == null) { loadError ?: "Library unavailable" }
+            val number = writer.nextGeneration()
+            val saved = current()
+            writer.writeNow(LibraryWriter.Job(number, { writeFile(saved) }, {}, {}))
+            if (number > committedGeneration) { committed = saved; committedGeneration = number }
+        } catch (e: Exception) {
+            restore(committed)
+            writer.dropPending()
+            throw if (e is IllegalStateException) e else IllegalStateException("Could not save your library: ${e.message.orEmpty()}", e)
+        }
         publishGlance()
+    }
+    /** A background write finished: it is the saved state unless a newer one already is. */
+    private fun written(number: Long, saved: Saved) {
+        synchronized(this) { if (number > committedGeneration) { committed = saved; committedGeneration = number } }
+        publishGlance()
+    }
+    /**
+     * A background write failed: memory goes back to the last saved state (the
+     * changes since are not on disk either) and the failure is reported. A
+     * newer write that already reached the disk covers it, so nothing is lost.
+     */
+    private fun writeFailed(number: Long, e: Exception) {
+        val reverted = synchronized(this) {
+            if (number <= committedGeneration) return@synchronized false
+            restore(committed)
+            writer.dropPending()
+            true
+        }
+        if (reverted) onSaveError?.invoke(e.message ?: "Could not save your library.")
     }
     /**
      * The digest from what is here now (iOS GlancePublisher.publish): the due
      * queue, home's exam name and day, today's count and the daily goal.
      */
-    @Synchronized fun glanceDigest(now: Long = System.currentTimeMillis()): GlanceDigest {
-        val due = dueAcross(now).map { it.setId to it.setName }
-        val upcoming = reviews.values.asSequence().map { it.due }.filter { it > now }.minOrNull()
-        val (streak, today) = LibraryStats.streakAndToday(this, now)
-        return GlanceDigest.make(
-            now = now, due = due, nextDue = upcoming, examName = ExamCountdown.examName(examDefaults), examDate = examDate,
-            today = today, streak = streak, goal = GoalProgress.goal(DailyGoal.store.int(DailyGoal.key)),
+    fun glanceDigest(now: Long = System.currentTimeMillis()): GlanceDigest = glanceReading(now).second
+    /**
+     * The digest and which reading it is. The library is read under the
+     * store's lock (memory only); the exam's name and the goal, which may read
+     * preferences from disk, outside it.
+     */
+    private fun glanceReading(now: Long): Pair<Long, GlanceDigest> {
+        class Read(val number: Long, val due: List<Pair<String, String>>, val upcoming: Long?, val streak: Int, val today: Int, val examDate: Long?)
+        val read = synchronized(this) {
+            val (streak, today) = LibraryStats.streakAndToday(this, now)
+            Read(++glanceRead, dueAcross(now).map { it.setId to it.setName }, reviews.values.asSequence().map { it.due }.filter { it > now }.minOrNull(), streak, today, examDate)
+        }
+        return read.number to GlanceDigest.make(
+            now = now, due = read.due, nextDue = read.upcoming, examName = ExamCountdown.examName(examDefaults), examDate = read.examDate,
+            today = read.today, streak = read.streak, goal = GoalProgress.goal(DailyGoal.store.int(DailyGoal.key)),
         )
     }
     /**
@@ -204,21 +280,34 @@ class StudyStore(private val directory: File) {
      * (iOS GlancePublisher.save). A digest that cannot be worked out or
      * written never fails the save it follows; the widgets keep the last file.
      */
-    @Synchronized fun publishGlance(now: Long = System.currentTimeMillis()): Boolean {
+    fun publishGlance(now: Long = System.currentTimeMillis()): Boolean {
         if (loadError != null) return false
-        val digest = runCatching { glanceDigest(now) }.getOrNull() ?: return false
-        if (!glanceLastRead) { glanceLast = glanceShelf.read(); glanceLastRead = true }
-        if (glanceLast?.sameContent(digest) == true) return false
-        if (!glanceShelf.write(digest)) return false
-        glanceLast = digest
+        val (number, digest) = runCatching { glanceReading(now) }.getOrNull() ?: return false
+        // the digest file's work holds only its own lock, never the store's
+        synchronized(glanceLock) {
+            if (number < glanceWritten) return false
+            if (!glanceLastRead) { glanceLast = glanceShelf.read(); glanceLastRead = true }
+            if (glanceLast?.sameContent(digest) == true) return false
+            if (!glanceShelf.write(digest)) return false
+            glanceLast = digest
+            glanceWritten = number
+        }
         // the library is already on disk: a failing listener must not turn the save into a failure
         runCatching { onGlanceWritten?.invoke(digest) }
         runCatching { onAnyGlanceWritten?.invoke(digest) }
         return true
     }
-    /** Saves a background change; a failure is reported through [onSaveError] instead of thrown. */
+    /**
+     * Saves a background change (a rating, an answer, a place in a set): the
+     * snapshot is taken here and written by [writer] off this thread, so the
+     * caller never waits on the disk. A failure is reported through
+     * [onSaveError] instead of thrown, and memory goes back to what is on disk.
+     */
     private fun saveQuietly() {
-        try { save() } catch (e: IllegalStateException) { onSaveError?.invoke(e.message ?: "Could not save your library.") }
+        loadError?.let { message -> restore(committed); onSaveError?.invoke(message); return }
+        val number = writer.nextGeneration()
+        val saved = current()
+        writer.submit(LibraryWriter.Job(number, { writeFile(saved) }, { written(number, saved) }, { writeFailed(number, it) }))
     }
 
     @Synchronized fun addSet(set: StudySet) {

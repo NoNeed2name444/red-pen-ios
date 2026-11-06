@@ -87,7 +87,7 @@ class GlanceDigestTest {
 
     @Test fun theStoreTakesHomesExamName() {
         val store = StudyStore(folder.root)
-        store.setExamDate(at("2099-01-01T00:00:00Z"))
+        store.setExamDate(at("2099-01-01T00:00:00Z")); store.flush()  // a background save is written off the calling thread: wait for it
         assertNull("general revision: no name, so the sentence says Finals", store.glanceShelf.read()!!.examName)
         val defaults = MemoryExamDefaults()
         defaults.set(ExamTrack.storageKey, ExamTrack.usmle.rawValue)
@@ -95,7 +95,7 @@ class GlanceDigestTest {
         store.examDefaults = defaults
         assertEquals("Step 1", store.glanceShelf.read()!!.examName)
         defaults.remove(ExamChoice.primaryKey); defaults.set(ExamTrack.storageKey, ExamTrack.plab.rawValue)
-        store.setExamDate(at("2098-01-01T00:00:00Z"))
+        store.setExamDate(at("2098-01-01T00:00:00Z")); store.flush()
         assertEquals("PLAB 1", store.glanceShelf.read()!!.examName)
     }
 
@@ -107,7 +107,7 @@ class GlanceDigestTest {
         val store = StudyStore(folder.root)
         assertEquals(50, store.glanceShelf.read()!!.goal)
         DailyGoal.store.set(DailyGoal.key, 5000)
-        store.setExamDate(null) // any save
+        store.setExamDate(null); store.flush() // any save, written off the calling thread
         assertEquals(300, store.glanceShelf.read()!!.goal)
         DailyGoal.store.set(DailyGoal.key, 4)
         assertEquals(10, store.glanceDigest().goal)
@@ -145,11 +145,11 @@ class GlanceDigestTest {
         assertEquals(1, written.size); assertEquals(1, written.last().dueNow)
         // saves that change nothing the digest shows write nothing
         store.saveNote(Note(title = "An idea", body = "text"))
-        store.saveReadingProgress("deck", 3)
+        store.saveReadingProgress("deck", 3); store.flush()  // a background save is written off the calling thread: wait for it
         assertEquals(1, written.size)
         assertFalse(store.publishGlance())
         // a rating does
-        store.rateCard(store.library.single().cards.single(), AnkiRating.EASY)
+        store.rateCard(store.library.single().cards.single(), AnkiRating.EASY); store.flush()
         assertEquals(2, written.size); assertEquals(0, written.last().dueNow); assertNotNull(written.last().nextDue)
         assertEquals(GlanceDigest.encode(written.last()), File(folder.root, GlanceShelf.fileName).readText())
         // a store opened over the same file, with the same numbers, leaves it alone
@@ -172,7 +172,7 @@ class GlanceDigestTest {
         // a background save goes through too, with nothing reported as an error
         val errors = mutableListOf<String>()
         store.onSaveError = { errors += it }
-        store.rateCard(store.library.single().cards.single(), AnkiRating.EASY)
+        store.rateCard(store.library.single().cards.single(), AnkiRating.EASY); store.flush()
         assertEquals(2, told); assertTrue(errors.isEmpty())
         assertEquals(0, store.glanceShelf.read()!!.dueNow)
     }

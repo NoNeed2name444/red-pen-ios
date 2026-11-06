@@ -45,7 +45,7 @@ class ProcessStoreSettingsTest {
         val store = ProcessStore.get(context)
         assertEquals(120, store.glanceShelf.read()!!.goal)
         // the digest names the exam only beside its date
-        store.setExamDate(farOff)
+        store.setExamDate(farOff); store.flush()  // a background save is written off the calling thread: wait for it
         val digest = store.glanceShelf.read()!!
         assertEquals("Step 1", digest.examName)
         assertEquals(120, digest.goal)
@@ -54,7 +54,7 @@ class ProcessStoreSettingsTest {
 
     @Test fun aGoalChosenLaterReachesTheNextDigest() {
         val store = ProcessStore.get(context)
-        store.setExamDate(farOff)
+        store.setExamDate(farOff); store.flush()  // a background save is written off the calling thread: wait for it
         assertEquals("nothing chosen: 50", 50, store.glanceShelf.read()!!.goal)
         assertNull("general revision has no name", store.glanceShelf.read()!!.examName)
         DailyGoal.current = 80

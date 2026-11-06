@@ -87,7 +87,7 @@ class StudyStoreTest {
         File(folder.root, "stethoscore.json.tmp").also { it.mkdir(); File(it, "keep").writeText("") }
         var reported: String? = null
         store.onSaveError = { reported = it }
-        store.rateCard(deck.cards[0], AnkiRating.GOOD)
+        store.rateCard(deck.cards[0], AnkiRating.GOOD); store.flush()  // a background save is written off the calling thread: wait for it
         assertNotNull(reported); assertTrue(store.reviews.isEmpty())
         assertThrows(IllegalStateException::class.java) { store.addSet(deck.copy(id = "other", name = "Lost")) }
         assertEquals(listOf("Kept"), store.library.map { it.name })

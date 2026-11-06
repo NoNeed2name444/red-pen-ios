@@ -58,6 +58,13 @@ class MainActivity : ComponentActivity() {
         WidgetUpdates.republish(ProcessStore.get(this))
     }
 
+    override fun onStop() {
+        super.onStop()
+        // to the background, where the process may be ended: the ratings and answers
+        // still waiting for the library's writer reach the disk first
+        ProcessStore.get(this).flush()
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         // a later getIntent() sees this intent, not the one that first started the activity
