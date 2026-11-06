@@ -4,6 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -29,8 +30,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 // The quiz's results table (iOS ChartLabsTable): at large text a long result is
-// stacked, its name broken only between words and its value and flag whole; at
-// the default size it is the one row it always was. Each result is one TalkBack
+// stacked, its name broken only between words and its value and flag whole; the
+// table is wide or stacked as a whole, never mixed. Each result is one TalkBack
 // node, read as ChartQuiz.spoken says, however it is laid out. Native graphics, so
 // the text is measured as a phone measures it.
 @RunWith(RobolectricTestRunner::class)
@@ -42,16 +43,27 @@ class ChartLabsTableTest {
     private val long = PatientChart.Lab("Alkaline phosphatase", "1,250", "mmol/L", PatientChart.Flag.high)
     private val short = PatientChart.Lab("Albumin", "22", "g/L", PatientChart.Flag.low)
 
-    private fun show(scale: Float, vararg labs: PatientChart.Lab): Map<String, TextLayoutResult> {
-        val layouts = mutableMapOf<String, TextLayoutResult>()
-        compose.setContent {
-            val density = LocalDensity.current
-            CompositionLocalProvider(LocalDensity provides Density(density.density, scale), LocalLabTextLayouts provides layouts) {
-                StethoscoreTheme { Box(Modifier.width(320.dp)) { ChartLabsTable(labs.toList()) } }
+    private val labs = mutableStateOf(listOf<PatientChart.Lab>())
+    private val layouts = mutableMapOf<String, TextLayoutResult>()
+    private var scale = 1f
+    private var composed = false
+
+    /** The table at `scale` with `shown`; set once per test, then the labs change in place. */
+    private fun show(scale: Float, vararg shown: PatientChart.Lab): Map<String, TextLayoutResult> {
+        layouts.clear()
+        labs.value = shown.toList()
+        if (!composed) {
+            composed = true
+            this.scale = scale
+            compose.setContent {
+                val density = LocalDensity.current
+                CompositionLocalProvider(LocalDensity provides Density(density.density, this.scale), LocalLabTextLayouts provides layouts) {
+                    StethoscoreTheme { Box(Modifier.width(320.dp)) { ChartLabsTable(labs.value) } }
+                }
             }
         }
         compose.waitForIdle()
-        return layouts
+        return layouts.toMap()
     }
 
     /** Every line but the last ends at a space: no word is split across lines. */
@@ -63,7 +75,7 @@ class ChartLabsTableTest {
     }
 
     private fun whole(layout: TextLayoutResult, words: String) {
-        assertEquals("\"$words\" on more than one line", 1, layout.lineCount)
+        assertEquals("\"$words\" on more than one line (laid out in ${layout.layoutInput.constraints}, ${layout.size})", 1, layout.lineCount)
         assertFalse("\"$words\" cut", layout.hasVisualOverflow)
     }
 
@@ -86,16 +98,27 @@ class ChartLabsTableTest {
         oneNode(long)
     }
 
-    @Test fun atTheDefaultSizeEachResultIsOneLine() {
+    /** How many lines of its name tall `lab`'s row is. */
+    private fun rowLines(lab: PatientChart.Lab, layouts: Map<String, TextLayoutResult>): Float {
+        val row = compose.onAllNodesWithContentDescription(ChartQuiz.spoken(lab)).onFirst().getUnclippedBoundsInRoot()
+        val line = with(compose.density) { layouts.getValue(lab.name).size.height.toDp() }
+        return row.height / line
+    }
+
+    // At the default size the table is one ViewThatFits, as on iOS: a short result
+    // alone keeps its one row; beside one too long for a row, both are stacked.
+    @Test fun atTheDefaultSizeTheTableStacksAsAWhole() {
+        val alone = show(1f, short)
+        for (words in listOf(short.name, short.value, short.unit, short.flag!!.rawValue)) whole(alone.getValue(words), words)
+        oneNode(short)
+        assertTrue("a short result alone is not one row", rowLines(short, alone) < 1.1f)
+
         val layouts = show(1f, long, short)
         for (lab in listOf(long, short)) {
             for (words in listOf(lab.name, lab.value, lab.unit, lab.flag!!.rawValue)) whole(layouts.getValue(words), words)
             oneNode(lab)
+            assertTrue("${lab.name} is not stacked with the rest of the table", rowLines(lab, layouts) > 1.5f)
         }
-        // one line each: the row is as tall as one line of its text
-        val row = compose.onAllNodesWithContentDescription(ChartQuiz.spoken(short)).onFirst().getUnclippedBoundsInRoot()
-        val line = with(compose.density) { layouts.getValue(short.name).size.height.toDp() }
-        assertTrue("the row is ${row.height}, a line is $line", row.height <= line + 1.dp)
     }
 }
 

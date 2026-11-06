@@ -28,6 +28,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.layout.IntrinsicMeasurable
 import androidx.compose.ui.layout.IntrinsicMeasureScope
 import androidx.compose.ui.layout.Layout
@@ -149,21 +154,31 @@ internal enum class QuizButtonKind { primary, companion, secondary }
 
 /**
  * The results as a monospaced table - name, value, unit, H or L - with a flagged value and its letter in Resus Red.
- * Each row is read whole. When large text leaves a row no room, that result is stacked: its name, then its value,
- * unit and flag, the value and flag never squeezed and the unit taking the wrap (iOS ChartLabsTable's ViewThatFits;
- * at large font scales the name broke inside its word and a bold "H" overran its 14 dp).
+ * Each row is read whole. When large text leaves any row no room, the whole table is stacked: each result's name,
+ * then its value, unit and flag, the value and flag never squeezed and the unit taking the wrap (iOS ChartLabsTable's
+ * one ViewThatFits round the whole table; at large font scales the name broke inside its word and a bold "H" overran
+ * its 14 dp).
  */
 @Composable fun ChartLabsTable(labs: List<PatientChart.Lab>) {
-    Column(Modifier.fillMaxWidth().background(com.stethoscore.app.ui.ward.wardPanelFill(), RoundedCornerShape(WardRadius.field.wardDp)).padding(WardSpace.m.wardDp),
-        verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
-        labs.forEach { lab ->
-            val value = if (ChartQuiz.tone(lab.flag) == ChartQuiz.Tone.danger) wardColor(WardToken.danger) else wardColor(WardToken.ink)
-            val spoken = ChartQuiz.spoken(lab)
-            Layout(contents = listOf({ LabWide(lab, value) }, { LabStacked(lab, value) }),
-                modifier = Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = spoken }, measurePolicy = WideOrStacked)
-        }
+    val rows = Arrangement.spacedBy(WardSpace.s.wardDp)
+    // fresh for each set of results: changed in place, the table was once laid out wide with a result too long for
+    // it ("Alkaline phosphatase" at 164 px in ChartLabsTableTest), where a new table of the same results stacks
+    key(labs) {
+        // both layouts are composed and only one is placed: the other is kept out of TalkBack, so each result is one node
+        var stacked by remember { mutableStateOf(false) }
+        val policy = remember { WideOrStacked { stacked = it } }
+        val unread = Modifier.clearAndSetSemantics {}
+        Layout(contents = listOf(
+                { Column(if (stacked) unread else Modifier, verticalArrangement = rows) { labs.forEach { LabWide(it, labInk(it)) } } },
+                { Column(if (stacked) Modifier else unread, verticalArrangement = rows) { labs.forEach { LabStacked(it, labInk(it)) } } }),
+            modifier = Modifier.fillMaxWidth().background(com.stethoscore.app.ui.ward.wardPanelFill(), RoundedCornerShape(WardRadius.field.wardDp)).padding(WardSpace.m.wardDp),
+            measurePolicy = policy)
     }
 }
+
+/** A flagged value in Resus Red, any other in ink. */
+@Composable private fun labInk(lab: PatientChart.Lab): Color =
+    if (ChartQuiz.tone(lab.flag) == ChartQuiz.Tone.danger) wardColor(WardToken.danger) else wardColor(WardToken.ink)
 
 /** For tests: each lab text's layout, by its words, as it was last laid out. */
 internal val LocalLabTextLayouts = staticCompositionLocalOf<MutableMap<String, TextLayoutResult>?> { null }
@@ -175,7 +190,8 @@ internal val LocalLabTextLayouts = staticCompositionLocalOf<MutableMap<String, T
 
 /** One result on one line: the name taking what the others leave. */
 @Composable private fun LabWide(lab: PatientChart.Lab, value: Color) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp), verticalAlignment = Alignment.Bottom) {
+    val spoken = ChartQuiz.spoken(lab)
+    Row(Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = spoken }, horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp), verticalAlignment = Alignment.Bottom) {
         LabText(lab.name, Modifier.weight(1f), WardWeight.regular, wardColor(WardToken.ink))
         LabText(lab.value, Modifier, WardWeight.semibold, value)
         LabText(lab.unit, Modifier.widthIn(min = 64.dp), WardWeight.regular, wardColor(WardToken.inkSecondary))
@@ -185,7 +201,8 @@ internal val LocalLabTextLayouts = staticCompositionLocalOf<MutableMap<String, T
 
 /** One result stacked: the name, then the value, unit and flag; only the unit wraps. */
 @Composable private fun LabStacked(lab: PatientChart.Lab, value: Color) {
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
+    val spoken = ChartQuiz.spoken(lab)
+    Column(Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = spoken }, verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
         LabText(lab.name, Modifier, WardWeight.regular, wardColor(WardToken.ink))
         Row(horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp), verticalAlignment = Alignment.Bottom) {
             LabText(lab.value, Modifier, WardWeight.semibold, value)
@@ -198,13 +215,16 @@ internal val LocalLabTextLayouts = staticCompositionLocalOf<MutableMap<String, T
 /**
  * The wide row when its own width fits, else the stacked one, laid out in the width given (as home's ThatFits,
  * WardHome.kt: a plain Layout, so it answers intrinsic measurements, and the wide row's weights still get the width).
+ * It says which it laid out, so the one not shown can be kept out of TalkBack.
  */
-private object WideOrStacked : MultiContentMeasurePolicy {
+private class WideOrStacked(private val onStacked: (Boolean) -> Unit) : MultiContentMeasurePolicy {
     private fun <M : IntrinsicMeasurable> chosen(all: List<List<M>>, width: Int): List<M> =
         if ((all[0].maxOfOrNull { it.maxIntrinsicWidth(Constraints.Infinity) } ?: 0) <= width) all[0] else all[1]
 
     override fun MeasureScope.measure(measurables: List<List<Measurable>>, constraints: Constraints): MeasureResult {
-        val placeables = chosen(measurables, constraints.maxWidth).map { it.measure(constraints.copy(minWidth = 0)) }
+        val chosen = chosen(measurables, constraints.maxWidth)
+        onStacked(chosen === measurables[1])
+        val placeables = chosen.map { it.measure(constraints.copy(minWidth = 0)) }
         val w = (placeables.maxOfOrNull { it.width } ?: 0).coerceIn(constraints.minWidth, constraints.maxWidth)
         val h = (placeables.maxOfOrNull { it.height } ?: 0).coerceIn(constraints.minHeight, constraints.maxHeight)
         return layout(w, h) { placeables.forEach { it.placeRelative(0, 0) } }
