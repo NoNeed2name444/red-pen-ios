@@ -135,14 +135,23 @@ struct ChartVitalsGrid: View {
 }
 
 /// The results as a monospaced table - name, value, unit, H or L - with a
-/// flagged value and its letter in Resus Red. Each row is read whole.
+/// flagged value and its letter in Resus Red. Each row is read whole. When
+/// large text leaves the four columns no room, each result is stacked: its
+/// name, then its value, unit and flag, as ChartChipsRow stacks its chips
+/// (the default-size audit, run 42076348385, found "Albumin" cut in its
+/// column at larger sizes).
 struct ChartLabsTable: View {
     let labs: [PatientChart.Lab]
     @Environment(\.wardModeWash) private var modeWash
 
     var body: some View {
-        Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: WardSpace.m, verticalSpacing: WardSpace.s) {
-            ForEach(labs.indices, id: \.self) { i in row(labs[i]) }
+        ViewThatFits(in: .horizontal) {
+            Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: WardSpace.m, verticalSpacing: WardSpace.s) {
+                ForEach(labs.indices, id: \.self) { i in row(labs[i]) }
+            }
+            VStack(alignment: .leading, spacing: WardSpace.s) {
+                ForEach(labs.indices, id: \.self) { i in stacked(labs[i]) }
+            }
         }
         .font(WardType.mono(.subheadline, weight: .regular))
         .padding(WardSpace.m)
@@ -161,5 +170,23 @@ struct ChartLabsTable: View {
             Text(lab.unit).foregroundStyle(Color.wardInkSecondary).accessibilityHidden(true)
             Text(lab.flag?.rawValue ?? "").fontWeight(.bold).foregroundStyle(Color.wardDanger).accessibilityHidden(true)
         }
+    }
+
+    /// One result stacked, its words wrapping rather than cut: the name,
+    /// then the value, unit and flag. Read whole, as a grid row is.
+    private func stacked(_ lab: PatientChart.Lab) -> some View {
+        let value: Color = ChartQuiz.tone(lab.flag) == .danger ? .wardDanger : .wardInk
+        return VStack(alignment: .leading, spacing: WardSpace.xs) {
+            Text(lab.name).foregroundStyle(Color.wardInk)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(alignment: .firstTextBaseline, spacing: WardSpace.s) {
+                Text(lab.value).fontWeight(.semibold).foregroundStyle(value)
+                Text(lab.unit).foregroundStyle(Color.wardInkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(lab.flag?.rawValue ?? "").fontWeight(.bold).foregroundStyle(Color.wardDanger)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(ChartQuiz.spoken(lab))
     }
 }

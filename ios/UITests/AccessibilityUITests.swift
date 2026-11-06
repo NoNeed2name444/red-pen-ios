@@ -305,7 +305,14 @@ final class AccessibilityUITests: XCTestCase {
         }
     }
 
+    /// The screen being audited, for the AUDIT-NIL lines.
+    private var auditing = ""
+    /// That screen's tree, read once, at its first issue with no element.
+    private var auditTree: (any XCUIElementSnapshot)?
+
     private func audit(_ screen: String, _ types: XCUIAccessibilityAuditType) throws {
+        auditing = screen
+        auditTree = nil
         try XCTContext.runActivity(named: "Audit: \(screen)") { _ in
             snap("audit-\(screen)")
             try app.performAccessibilityAudit(for: types) { [unowned self] issue in
@@ -314,13 +321,66 @@ final class AccessibilityUITests: XCTestCase {
         }
     }
 
+    /// An issue the audit could not tie to an element still fails (isBenign);
+    /// this names its likely elements, at most 20 lines: for a small hit area,
+    /// each control on the screen under 44 by 44 points; for clipped text,
+    /// each text whose frame runs past its parent's; for any other type, both.
+    /// `AUDIT-NIL <size> <screen> <what> id=<identifier> label=<label> frame=<frame>`.
+    /// The two "Hit area is too small" and the "Text clipped" of run
+    /// 42076348385 (library, revealed card) came with no element.
+    private func nameNilElements(for issue: XCUIAccessibilityAuditIssue) {
+        let size: String = self.size == .largest ? "AX5" : "default"
+        let head = "AUDIT-NIL \(size) \(auditing)"
+        if auditTree == nil { auditTree = try? app.snapshot() }
+        guard let tree = auditTree else {
+            print("\(head) no snapshot of the screen")
+            return
+        }
+        let window: CGRect = app.windows.firstMatch.frame
+        let wantsSmall: Bool = issue.auditType != .textClipped
+        let wantsCut: Bool = issue.auditType != .hitRegion
+        var lines: [String] = []
+        func line(_ what: String, _ node: any XCUIElementSnapshot) -> String {
+            let label: String = node.label.replacingOccurrences(of: "\n", with: " ")
+            return "\(head) \(what) type=\(node.elementType.rawValue) id=\(node.identifier) label=\(label.prefix(80)) frame=\(node.frame)"
+        }
+        func walk(_ node: any XCUIElementSnapshot, parent: (any XCUIElementSnapshot)?) {
+            guard lines.count < 20 else { return }
+            let frame: CGRect = node.frame
+            let shown: Bool = !frame.isEmpty && frame.intersects(window)
+            if shown && wantsSmall && node.isEnabled && Self.pressable.contains(node.elementType)
+                && (frame.width < 44 || frame.height < 44) {
+                lines.append(line("small", node))
+            }
+            if shown && wantsCut && node.elementType == .staticText, let parent,
+               !parent.frame.isEmpty, !parent.frame.insetBy(dx: -0.5, dy: -0.5).contains(frame) {
+                lines.append(line("cut parent=\(parent.frame)", node))
+            }
+            for child in node.children { walk(child, parent: node) }
+        }
+        walk(tree, parent: nil)
+        if lines.isEmpty { lines = ["\(head) nothing under 44 points or cut by its parent"] }
+        for text in lines.prefix(20) { print(text) }
+    }
+
+    /// What a person presses, for AUDIT-NIL's sizes.
+    private static let pressable: Set<XCUIElement.ElementType> = [
+        .button, .link, .cell, .switch, .toggle, .slider, .stepper, .textField, .secureTextField,
+        .searchField, .segmentedControl, .menuButton, .popUpButton, .tab, .disclosureTriangle,
+        .incrementArrow, .decrementArrow,
+    ]
+
     /// The issues left to the system, each for a reason. Everything else
     /// fails the test.
     private func isBenign(_ issue: XCUIAccessibilityAuditIssue) -> Bool {
         // every issue named with its element, before it is judged
         let line: String = "AUDIT-ISSUE compact=\(issue.compactDescription) detailed=\(issue.detailedDescription) type=\(issue.auditType) element=\(issue.element?.debugDescription ?? "nil")"
         print(line.replacingOccurrences(of: "\n", with: " | "))
-        guard let element = issue.element else { return false }
+        guard let element = issue.element else {
+            // named in AUDIT-NIL lines, and still a failure
+            nameNilElements(for: issue)
+            return false
+        }
         // UIKit draws the navigation bar and truncates its inline title at
         // the largest sizes by design (the long-press on it shows the whole
         // title in the Large Content Viewer); the app's own words are not in
