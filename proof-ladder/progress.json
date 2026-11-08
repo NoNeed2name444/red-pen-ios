@@ -1,18 +1,18 @@
 {
  "v": 1,
  "started": "2026-10-14",
- "updated": "2026-11-07T10:30:20.951Z",
- "checked": 3240,
- "right": 1583,
- "wrong": 1657,
+ "updated": "2026-11-08T10:43:25.473Z",
+ "checked": 3287,
+ "right": 1585,
+ "wrong": 1702,
  "verified": 0,
  "errors": 0,
- "flagged": 757,
+ "flagged": 804,
  "check": 2483,
- "unchecked": 0,
+ "unchecked": 553,
  "rightVerified": 0,
  "cursor": {
-  "medmcqa-train": 96770
+  "medmcqa-train": 114529
  },
  "days": [
   {
@@ -116,6 +116,12 @@
    "checked": 60,
    "verified": 0,
    "errors": 0
+  },
+  {
+   "day": "2026-11-08",
+   "checked": 47,
+   "verified": 0,
+   "errors": 0
   }
  ],
  "spentByLadder": 0,
@@ -153,12 +159,12 @@
  },
  "runners": {
   "granite-4.0-h-tiny": {
-   "answered": 3130,
-   "right": 1803
+   "answered": 3727,
+   "right": 2143
   },
   "phi-4-mini-instruct": {
-   "answered": 2070,
-   "right": 1194
+   "answered": 2559,
+   "right": 1472
   }
  },
  "held": {
@@ -179,19 +185,21 @@
   "One of its other options could not be read for certain.": 3,
   "A safety rule raised a concern.": 5,
   "A stronger source was read against it.": 4,
-  "An official source could not be read this time; it will be checked again.": 1
+  "An official source could not be read this time; it will be checked again.": 1,
+  "Not checked yet.": 553,
+  "A safety rule failed; no checker has looked yet.": 47
  },
  "spend": {
   "month": "2026-11",
-  "day": "2026-11-07",
-  "start": 3.277136,
+  "day": "2026-11-08",
+  "start": 3.602076,
   "end": 3.602076,
   "cap": 40
  },
  "last": {
-  "day": "2026-11-07",
-  "sent": 60,
-  "stopped": "the ladder's half of the Workers AI pool (15 batches)",
+  "day": "2026-11-08",
+  "sent": 600,
+  "stopped": "the day's questions, all sent",
   "runners": [
    "granite-4.0-h-tiny",
    "phi-4-mini-instruct"
