@@ -380,7 +380,7 @@ int main(int argc, char **argv) {
         const Mesh &m = meshes[mi];
         SCNShaderSurface s = surfaceAt(x, y, mi, pos[k], nor[k], rel[k], tcs[k]);
         if (m.surface && !plain) {
-            if (m.surface == 2) { sh_atlasMuscle::rpBundle = m.bundle; sh_atlasMuscle::rpTendon = m.tendon; }
+            if (m.surface == 2) sh_atlasMuscle::rpTendon = m.tendon;
             if (m.surface == 3) {
                 sh_atlasIris::rpIrisCentre = m.ringCentre; sh_atlasIris::rpIrisAxis = m.axis;
                 sh_atlasIris::rpIrisRadii = v3(m.ringInner, m.ringOuter, 0.0f);
@@ -398,13 +398,13 @@ int main(int argc, char **argv) {
         // an opening (the pupil: black by its own look, AnatomyStructure.unlit) unlit, as the app draws it
         if (m.surface == 0 && 0.2126f * srgb(m.colour.x) + 0.7152f * srgb(m.colour.y) + 0.0722f * srgb(m.colour.z) < 0.05f)
             col[k] = mk_float3(s.diffuse.x, s.diffuse.y, s.diffuse.z);
-        // LAB_FIBRES=1 paints a muscle by its bundles (hue: where it lies across them, a turn every ten), tendon
-        // white and forks black
+        // LAB_FIBRES=1 paints a muscle by its fibres (hue: where it lies round the muscle, twelve times a turn, so
+        // the lines of one hue are the fibres), tendon white
         if (m.surface == 2 && fibreDebug) {
-            float2 t = tcs[k]; float a = t.x * 0.6283185f;
+            float2 t = tcs[k]; float a = 12.0f * std::atan2(t.y, t.x);
             float3 hue = v3(0.5f + 0.5f * std::cos(a), 0.5f + 0.5f * std::cos(a - 2.094f), 0.5f + 0.5f * std::cos(a + 2.094f));
-            float tend = std::max(0.0f, std::min(1.0f, t.y));
-            col[k] = t.y < -0.5f ? v3(0, 0, 0) : (hue * (1 - tend) + v3(1, 1, 1) * tend) * 0.6f;
+            float tend = std::max(0.0f, std::min(1.0f, 2.0f - std::sqrt(t.x * t.x + t.y * t.y)));
+            col[k] = (hue * (1 - tend) + v3(1, 1, 1) * tend) * 0.6f;
         }
         if (m.surface == 1) { bonePixels++; boneLum += 0.2126f * col[k].x + 0.7152f * col[k].y + 0.0722f * col[k].z; }
     }

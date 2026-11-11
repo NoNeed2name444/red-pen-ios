@@ -1,69 +1,66 @@
 #!/usr/bin/env python3
-"""The atlas's muscles' fibres: bundles laid along the way each muscle's
-fibres run, for the app's muscle shader (AtlasShaders.muscle), which draws
-them as rounded cords with dark seams between them.
+"""The atlas's muscles' fibres: for every point of each skeletal muscle,
+where it lies across the fibres and how far it is tendon, for the app's
+muscle shader (AtlasShaders.muscle), which draws the fibres as soft streaks
+along the lines they truly run by.
 
     tools/anatomy_fibres.py <atlas folder>     rewrites its muscular parts and anatomy.json
 
 For each skeletal muscle (tissue muscle, in a part of the muscular system):
 
 1. Finer: split into four triangles a side (each edge at its middle) until
-   its edges are under FINE (4.5 mm) at the median, then smoothed without
-   shrinking (Taubin's steps), so a coarse mesh loses its facets, and
-   brought back down (quadric decimation) to as many triangles as edges
-   of about EVEN (4.3 mm) at the median need: a split quarters each
-   triangle, so a muscle just over FINE came out with four times the
-   triangles it needed (the deep back muscles, 8,000 triangles a side at
-   4.9 mm, were 32,000 split, about 10,600 brought down). A muscle and
-   its mirror (the same name ending _L and _R) are split alike, as often
-   as the coarser of them needs, and brought down to the same count, so
-   the two sides look alike: a muscle with edges just under the limit on
-   one side and just over it on the other was split on one side only,
-   with about three times the other side's triangles.
-2. Its fibres: a length along the muscle, u, held at 0 where it meets the
-   bones it arises from and 1 where it meets those it inserts on (RULES:
-   its surface within CONTACT, 4 mm, of them, or WIDER, 7 mm, if that finds
-   too few; a bone of its own side or of the midline; the origin's contact
-   kept to what lies far along the muscle from the insertion where a rule
-   says `far`), or, with no rule or no contact, at the 3% of its surface at
-   either tip of its long axis; spread between as a harmonic function
-   (cotangent weights). The fibres run along u's gradient on the surface.
-3. Tendon where the muscle is narrow near an end: its slice across u (one
+   its edges are under FINE (4.5 mm, or a nineteenth of the muscle's size
+   where that is less: the square root of its surface) at the median, then
+   smoothed without shrinking (Taubin's steps), so a coarse mesh loses its
+   facets, and brought back down (quadric decimation) to as many triangles
+   as edges of about EVEN (4.3 mm, or a twentieth of its size) at the
+   median need. A muscle and its mirror (the same name ending _L and _R)
+   are split alike, as often as the coarser of them needs, and brought down
+   to the same count, so the two sides look alike.
+2. Its line of pull: a length along the muscle, u, held at 0 where it
+   meets the bones it arises from and 1 where it meets those it inserts on
+   (RULES: its surface within CONTACT, 4 mm, of them, or WIDER, 7 mm, if
+   that finds too few; a bone of its own side or of the midline; the
+   origin's contact kept to what lies far along the muscle from the
+   insertion where a rule says `far`), or, with no rule or no contact, at
+   the 3% of its surface at either tip of its long axis (ORIGIN_TOWARD
+   says which tip it arises from, where that matters); each end made one
+   patch (its pieces joined by the shortest ways over the surface); spread
+   between as a harmonic function (cotangent weights, as they are).
+3. Where each point lies round the muscle: u's harmonic conjugate, an
+   angle that is the same all along each line u climbs by and turns once
+   round the muscle between its two ends (`turning`). It is found on the
+   triangles, where it is told outright: across an edge it changes by u's
+   flow through that edge, which sums to nothing round a vertex and to u's
+   whole flow round an end, so the angle counted as 2 pi a whole flow has
+   no seam; each vertex then takes the mean of its triangles' values. A
+   muscle whose fibres run from origin to insertion (most: straight, or
+   fanning from a broad origin to a narrow tendon, which u's lines do of
+   themselves) has its fibres along those lines. A pennate one
+   (ARCHITECTURE) has them slanting off its line of pull by its angle of
+   pennation, from the tendon they arise on (`fibre_angle`).
+4. Tendon where the muscle is narrow near an end: its slice across u (one
    of 20) under 45% as wide as its widest, fully under 25%, within the last
    quarter at either end; at its insertion only, for a muscle with a rule
-   (the glutei and iliopsoas arise fleshy and end in tendon; read at the
-   origin, a broad muscle's narrow contact with its bone looked like
-   tendon: the man's left gluteus maximus was pale over a third of its
-   origin, his right not at all).
-4. Its bundles: stripes along the fibres a bundle wide (a thirtieth of its
-   length along its fibres, 1.5 to 6 mm), as Knoeppel, Crane, Pinkall and
-   Schroeder lay them (Stripe Patterns on Surfaces, 2015): a unit complex
-   number at each vertex whose phase turns by 2 pi a bundle across the
-   fibres, found as the smallest eigenvector of the energy that asks each
-   edge to turn it by as much as the fibres across it say (inverse
-   iteration). Where the bundles cannot run on (where the muscle narrows
-   and they must merge), the pattern forks, as a muscle's fascicles do.
-5. Per triangle the phase unwound at its corners, and the triangles joined
-   where their corners agree (a whole bundle or a reversed count apart is
-   agreement); a vertex whose triangles disagree is split. Each vertex
-   then carries where it lies across the bundles (one bundle a unit, the
-   seams at whole numbers) and its tendon's share; the few triangles
-   holding a fork carry -1 there, which the shader leaves plain. Before
-   that, the triangles holding a fork are split in four, twice, the new
-   corners' phases read along their edges (a neighbour split in two where
-   it shares one of their edges), so the fork sits in a triangle a
-   sixteenth the size and its plain patch is too small to see.
+   (the glutei and iliopsoas arise fleshy and end in tendon); where it is
+   thin instead, for the eye's muscles and the gluteus maximus
+   (`thin_share`); and along the tendon a pennate muscle's fibres leave.
+5. Each vertex then carries two numbers, a point: its angle about the
+   origin the angle of step 3 (so the same all along a fibre), its distance
+   from the origin 2 less its tendon's share. A point on a circle has no
+   seam, so no vertex is split and the shader's lines run on round the
+   muscle unbroken; where the fibres run together at an end the points of
+   a triangle lie all round the circle, the point between them falls
+   toward the middle, and that reads as tendon too, which an end is.
 
-The part's .atlas is rewritten with the finer, split meshes, and beside it
+The part's .atlas is rewritten with the finer meshes, and beside it
 <body>-<part>.fibres (read by Shared/Sciences/AnatomyAtlas.swift):
 
-    "SAF1"                       magic
+    "SAF2"                       magic
     u32 count                    structures, in the manifest's order
     count times:
       u32 vertices               its vertex count, or 0 for none (not a skeletal muscle)
-      f32 bundle                 the bundles' width, metres
-      f32 x vertices             where each vertex lies across the bundles
-      f32 x vertices             its tendon's share (0 to 1), or -1 where it forks
+      2 f32 x vertices           each vertex's point: x, y
 
 and the part's entry in anatomy.json gains "fibres": {"file", "bytes",
 "sha256"}, its bytes, sha256, triangles and bounds updated. Called by
@@ -71,7 +68,7 @@ tools/anatomy_atlas.py once the atlas is written; also runs on a built
 atlas folder on its own (a part already laid, one listing its "fibres",
 is left as it is). Needs numpy, scipy and fast_simplification.
 """
-import collections, hashlib, json, os, re, struct, sys
+import hashlib, json, os, re, struct, sys
 
 import numpy as np
 import scipy.sparse as sp
@@ -96,6 +93,22 @@ NOT_SKELETAL = re.compile(r"papillary|ciliary|smooth_muscle|gyrus")
 # round (the superior oblique's, which bends at the trochlea), so their ends are the far ends of their longest way
 # along them and their tendon where they are thin, not narrow
 THIN_TENDONS = re.compile(r"extraocular")
+
+# How a muscle's fibres lie where they do not simply run from its origin to its insertion (muscle, how, the angle
+# they make with its line of pull in degrees, the face they leave from as a direction in the body's frame: x its
+# left, y up, z forward). A bipennate muscle's fibres leave a tendon on that face to either side, going down the
+# muscle and round it; a unipennate one's all slant one way.
+#   rectus femoris: bipennate, its superficial fibres from the anterior aponeurosis (Gray 1918, p. 470); 14 degrees
+#   (Ward, Eng, Smallwood and Lieber 2009, Clin Orthop Relat Res 467:1074, table 1: 13.9)
+# Which end a muscle arises from, where its ends are the tips of its long axis (those say which two, not which is
+# which): the direction its origin lies in from its insertion, in the body's frame.
+ORIGIN_TOWARD = [
+    (r"rectus_femoris|quadriceps", (0.0, 1.0, 0.0)),      # the anterior inferior iliac spine, above; the patella below
+    (r"deep_back_muscles", (0.0, -1.0, 0.0)),             # the sacrum and iliac crest (the erector spinae's common origin)
+]
+ARCHITECTURE = [
+    (r"rectus_femoris", "bipennate", 14.0, (0.0, 0.0, 1.0)),
+]
 
 
 # MARK: reading and writing parts
@@ -140,14 +153,12 @@ def write_part(path, meshes):
 
 
 def write_fibres(path, entries):
-    out = bytearray(b"SAF1") + struct.pack("<I", len(entries))
+    out = bytearray(b"SAF2") + struct.pack("<I", len(entries))
     for e in entries:
         if e is None:
-            out += struct.pack("<If", 0, 0.0)
+            out += struct.pack("<I", 0)
             continue
-        across, tendon, bundle = e
-        out += struct.pack("<If", len(across), bundle)
-        out += np.asarray(across, "<f4").tobytes() + np.asarray(tendon, "<f4").tobytes()
+        out += struct.pack("<I", len(e)) + np.asarray(e, "<f4").tobytes()
     open(path, "wb").write(out)
 
 
@@ -212,8 +223,9 @@ def normals(v, f):
     return n / np.where(length > 0, length, 1)[:, None], fn
 
 
-def cotan_weights(v, f):
-    """Each edge's cotangent weight (half the cotangents of the angles opposite it), kept positive."""
+def cotan_weights(v, f, positive=True):
+    """Each edge's cotangent weight (half the cotangents of the angles opposite it), kept positive (or, for
+    `positive` False, as it is: the surface's own Dirichlet energy, which the fibres' lines are worked in)."""
     rows, cols, vals = [], [], []
     for k in range(3):
         i, j, o = f[:, k], f[:, (k + 1) % 3], f[:, (k + 2) % 3]
@@ -221,7 +233,8 @@ def cotan_weights(v, f):
         cot = (a * b).sum(1) / np.maximum(np.linalg.norm(np.cross(a, b), axis=1), 1e-18)
         rows += [i, j]; cols += [j, i]; vals += [cot / 2, cot / 2]
     w = sp.coo_matrix((np.concatenate(vals), (np.concatenate(rows), np.concatenate(cols))), shape=(len(v), len(v))).tocsr()
-    w.data = np.maximum(w.data, 1e-3 * np.abs(w.data).mean())
+    if positive:
+        w.data = np.maximum(w.data, 1e-3 * np.abs(w.data).mean())
     return w
 
 
@@ -303,8 +316,8 @@ def far_ends(v, f):
     return da < 0.03 * da[b], db < 0.03 * da[b], "far ends"
 
 
-def harmonic(v, f, held0, held1):
-    w = cotan_weights(v, f)
+def harmonic(v, f, held0, held1, positive=True):
+    w = cotan_weights(v, f, positive)
     L = sp.diags(np.asarray(w.sum(1)).ravel()) - w
     u = np.full(len(v), 0.5)
     u[held0], u[held1] = 0.0, 1.0
@@ -314,47 +327,7 @@ def harmonic(v, f, held0, held1):
         A = L[free][:, free].tocsc()
         b = -L[free][:, held] @ u[held]
         u[free] = spl.spsolve(A + sp.identity(A.shape[0]) * 1e-12, b)
-    return np.clip(u, 0, 1)
-
-
-def gradient(v, f, u, vn):
-    """u's gradient at each vertex, on the surface (area-weighted over its triangles)."""
-    p0, p1, p2 = v[f[:, 0]], v[f[:, 1]], v[f[:, 2]]
-    fn = np.cross(p1 - p0, p2 - p0)
-    twice = np.linalg.norm(fn, axis=1)
-    ok = twice > 1e-18
-    n = fn / np.where(ok, twice, 1)[:, None]
-    g = (np.cross(n, p2 - p1) * u[f[:, 0], None] + np.cross(n, p0 - p2) * u[f[:, 1], None]
-         + np.cross(n, p1 - p0) * u[f[:, 2], None])  # times twice the area: area-weighted when summed
-    gv = np.zeros_like(v)
-    for k in range(3):
-        np.add.at(gv, f[:, k], g * ok[:, None])
-    gv -= vn * (gv * vn).sum(1)[:, None]
-    return gv
-
-
-def fibre_way(v, f, u, vn):
-    adj = neighbours(len(v), f)
-    g = gradient(v, f, u, vn)
-    length = np.linalg.norm(g, axis=1)
-    known = length > 1e-9 * max(length.max(), 1e-30)
-    d = np.where(known[:, None], g / np.where(length > 0, length, 1)[:, None], 0)
-    # where u is flat (held against bone): the neighbours' way, spread inward
-    for _ in range(64):
-        if known.all():
-            break
-        s = adj @ (d * known[:, None])
-        c = np.asarray(adj @ known.astype(float)).ravel()
-        take = ~known & (c > 0)
-        if not take.any():
-            break
-        d[take] = s[take]
-        known = known | take
-    for _ in range(2):
-        d = d + adj @ d
-        d -= vn * (d * vn).sum(1)[:, None]
-        d /= np.maximum(np.linalg.norm(d, axis=1), 1e-12)[:, None]
-    return d
+    return np.clip(u, 0, 1) if positive else u
 
 
 def tendon_share(v, u, origin=True):
@@ -415,161 +388,187 @@ def thin_share(v, f, u):
     return share[i0] * (1 - w) + share[i1] * w
 
 
-# MARK: bundles (stripe patterns)
-
-def stripes(v, f, across, width, rounds=40):
-    """The unit complex number at each vertex (as angles) whose phase turns 2 pi a `width` along `across`."""
-    n = len(v)
-    e = edges_of(f)
-    i, j = e[:, 0], e[:, 1]
-    w = np.asarray(cotan_weights(v, f)[i, j]).ravel()
-    s = np.where((across[i] * across[j]).sum(1) >= 0, 1.0, -1.0)
-    d = v[j] - v[i]
-    nu = 2 * np.pi / width
-    omega = nu / 2 * ((across[i] * d).sum(1) + s * (across[j] * d).sum(1))
-    c, sn = np.cos(omega), np.sin(omega)
-    # energy w |C x_j - R x_i|^2: blocks A_ii += w, A_jj += w, A_ij = -w R^T C, A_ji = its transpose
-    # R = [[c, -sn], [sn, c]], C = diag(1, s); R^T C = [[c, s sn], [-sn, s c]]
-    rows, cols, vals = [], [], []
-
-    def put(r, cc, val):
-        rows.append(r); cols.append(cc); vals.append(val)
-    for a in (0, 1):
-        put(2 * i + a, 2 * i + a, w); put(2 * j + a, 2 * j + a, w)
-    m = [[c, s * sn], [-sn, s * c]]
-    for a in (0, 1):
-        for b in (0, 1):
-            put(2 * i + a, 2 * j + b, -w * m[a][b])
-            put(2 * j + b, 2 * i + a, -w * m[a][b])
-    A = sp.coo_matrix((np.concatenate(vals), (np.concatenate(rows), np.concatenate(cols))), shape=(2 * n, 2 * n)).tocsc()
-    mass = np.repeat(vertex_area(v, f), 2)
-    M = sp.diags(mass)
-    shift = 1e-6 * A.diagonal().mean() / mass.mean()
-    solve = spl.splu((A + M * shift).tocsc())
-    x = np.random.default_rng(3).standard_normal(2 * n)
-    for _ in range(rounds):
-        x = solve.solve(mass * x)
-        x /= np.sqrt((x * x * mass).sum())
-    z = x[0::2] + 1j * x[1::2]
-    return np.angle(z), s, omega, e
-
+# MARK: the fibres' own lines
 
 def wrap(a):
+    """An angle brought into -pi to pi."""
     return (a + np.pi) % (2 * np.pi) - np.pi
 
 
-def corners(v, f, across, phase, width):
-    """Each triangle's corners' phases, unwound from its first corner, and whether it holds a fork."""
-    nu = 2 * np.pi / width
-    out = np.zeros((len(f), 3))
-    sign = np.ones((len(f), 3))
-    i = f[:, 0]
-    out[:, 0] = phase[i]
-    for k in (1, 2):
-        j = f[:, k]
-        s = np.where((across[i] * across[j]).sum(1) >= 0, 1.0, -1.0)
-        d = v[j] - v[i]
-        om = nu / 2 * ((across[i] * d).sum(1) + s * (across[j] * d).sum(1))
-        pj = s * phase[j]
-        out[:, k] = out[:, 0] + om + wrap(pj - out[:, 0] - om)
-        sign[:, k] = s
-    # the third edge, from corner 1 to corner 2, read the same way: a whole turn apart is a fork
-    j, k2 = f[:, 1], f[:, 2]
-    bj, bk = across[j] * sign[:, 1, None], across[k2] * sign[:, 2, None]
-    d = v[k2] - v[j]
-    om = nu / 2 * ((bj * d).sum(1) + (bk * d).sum(1))
-    expect = out[:, 1] + om + wrap(out[:, 2] - out[:, 1] - om)
-    fork = np.abs(expect - out[:, 2]) > np.pi
-    return out / (2 * np.pi), fork
+def face_gradient(v, f, u):
+    """u's gradient on each triangle, its unit normal and twice its area."""
+    p0, p1, p2 = v[f[:, 0]], v[f[:, 1]], v[f[:, 2]]
+    fn = np.cross(p1 - p0, p2 - p0)
+    twice = np.maximum(np.linalg.norm(fn, axis=1), 1e-18)
+    n = fn / twice[:, None]
+    g = (np.cross(n, p2 - p1) * u[f[:, 0], None] + np.cross(n, p0 - p2) * u[f[:, 1], None]
+         + np.cross(n, p1 - p0) * u[f[:, 2], None]) / twice[:, None]
+    return g, n, twice
 
 
-def refine(v, f, across, phase, tendon, fork, width):
-    """The triangles holding forks split in four, a neighbour in two where it shares one of their
-    edges (in four if two), each new corner's phase read along its edge the way the pattern runs: a
-    fork then sits in a triangle a quarter the size, its plain patch too small to see."""
-    nu = 2 * np.pi / width
+def one_patch(v, f, held, other):
+    """`held` with its separate patches joined into one by the shortest ways between them over the surface (not
+    through `other`): an end held in several places is one line of attachment, and the surface between the two
+    ends then a band the fibres' lines run round once."""
+    from scipy.sparse.csgraph import connected_components, dijkstra
     n = len(v)
-    pairs = np.stack([np.sort(f[:, [k, (k + 1) % 3]], axis=1) for k in range(3)], axis=1)
-    keys = pairs[..., 0].astype(np.int64) * n + pairs[..., 1]
-    marked = np.unique(keys[fork])
-    while True:
-        count = np.isin(keys, marked).sum(1)
-        grow = np.setdiff1d(keys[count == 2], marked)
-        if not len(grow):
+    e = edges_of(f)
+    length = np.linalg.norm(v[e[:, 0]] - v[e[:, 1]], axis=1)
+    held = held.copy()
+    for _ in range(64):
+        inside = held[e[:, 0]] & held[e[:, 1]]
+        g = sp.coo_matrix((np.ones(inside.sum()), (e[inside, 0], e[inside, 1])), shape=(n, n))
+        count, label = connected_components(g, directed=False)
+        patches = np.unique(label[held])
+        if len(patches) <= 1:
             break
-        marked = np.union1d(marked, grow)
-    a, b = marked // n, marked % n
-    s = np.where((across[a] * across[b]).sum(1) >= 0, 1.0, -1.0)
-    d = v[b] - v[a]
-    om = nu / 2 * ((across[a] * d).sum(1) + s * (across[b] * d).sum(1))
-    mid_phase = wrap(phase[a] + om / 2 + wrap(s * phase[b] - phase[a] - om) / 2)
-    mid_across = across[a] + s[:, None] * across[b]
-    mid_across /= np.maximum(np.linalg.norm(mid_across, axis=1), 1e-12)[:, None]
-    index = {int(k): n + i for i, k in enumerate(marked)}
-    faces = []
-    for t, (p, q, r) in enumerate(f):
-        m = [index.get(int(keys[t, k])) for k in range(3)]
-        hit = [x is not None for x in m]
-        if all(hit):
-            faces += [(p, m[0], m[2]), (m[0], q, m[1]), (m[2], m[1], r), (m[0], m[1], m[2])]
-        elif hit[0]:
-            faces += [(p, m[0], r), (m[0], q, r)]
-        elif hit[1]:
-            faces += [(p, q, m[1]), (p, m[1], r)]
-        elif hit[2]:
-            faces += [(p, q, m[2]), (q, r, m[2])]
-        else:
-            faces.append((p, q, r))
-    return (np.vstack([v, (v[a] + v[b]) / 2]), np.array(faces, np.int64), np.vstack([across, mid_across]),
-            np.concatenate([phase, mid_phase]), np.concatenate([tendon, (tendon[a] + tendon[b]) / 2]))
+        first = held & (label == np.bincount(label[held]).argmax())
+        rest = held & ~first
+        open_ = ~other[e[:, 0]] & ~other[e[:, 1]]
+        way = sp.coo_matrix((length[open_], (e[open_, 0], e[open_, 1])), shape=(n, n)).tocsr()
+        d, before, source = dijkstra(way, directed=False, indices=np.flatnonzero(first), min_only=True,
+                                     return_predecessors=True)
+        reach = np.where(rest, d, np.inf)
+        k = int(np.argmin(reach))
+        if not np.isfinite(reach[k]):
+            break
+        while k >= 0 and not first[k]:
+            held[k] = True
+            k = int(before[k])
+    return held
 
 
-def join(f, coord, fork):
-    """Triangles turned or moved by whole bundles to agree with their neighbours, then their corners
-    shared where they agree; returns the corner's new vertex and its coordinate."""
-    m = len(f)
-    coord = coord.copy()
-    edge_tris = collections.defaultdict(list)
-    for t in range(m):
-        for k in range(3):
-            a, b = f[t, k], f[t, (k + 1) % 3]
-            edge_tris[(min(a, b), max(a, b))].append(t)
-    placed = np.zeros(m, bool)
-    for start in range(m):
-        if placed[start]:
-            continue
-        placed[start] = True
-        queue = collections.deque([start])
-        while queue:
-            t = queue.popleft()
-            if fork[t]:
-                continue
-            for k in range(3):
-                a, b = f[t, k], f[t, (k + 1) % 3]
-                for o in edge_tris[(min(a, b), max(a, b))]:
-                    if placed[o] or fork[o]:
-                        continue
-                    ka, kb = list(f[o]).index(a), list(f[o]).index(b)
-                    ta, tb = coord[t, k], coord[t, (k + 1) % 3]
-                    for sgn in (1.0, -1.0):
-                        oa, ob = sgn * coord[o, ka], sgn * coord[o, kb]
-                        shift = np.round(ta - oa)
-                        if abs(ta - oa - shift) < 1e-4 and abs(tb - ob - shift) < 1e-4:
-                            coord[o] = sgn * coord[o] + shift
-                            placed[o] = True
-                            queue.append(o)
-                            break
-    key = {}
-    vertex = np.zeros((m, 3), np.int64)
-    origin = []
-    for t in range(m):
-        for k in range(3):
-            q = (int(f[t, k]), int(np.round(coord[t, k] * 1e4)), bool(fork[t]))
-            if q not in key:
-                key[q] = len(origin)
-                origin.append((f[t, k], coord[t, k], fork[t]))
-            vertex[t, k] = key[q]
-    return vertex, origin
+def turning(v, f, u, held):
+    """Where each vertex lies round the muscle, as a unit complex number whose angle is constant along the lines u
+    climbs by (the fibres, from origin to insertion) and turns once round the muscle: u's harmonic conjugate. It
+    lives on the triangles: over an edge between two of them it changes by u's flow through that edge (its
+    cotangent weight times u's change along it), which sums to nothing round a vertex where u is harmonic, and to
+    u's whole flow round an end. So over the triangles with no held corner it is told but for whole flows, and the
+    number turned 2 pi a whole flow is told outright. Returns the numbers at the vertices (the mean of their
+    triangles'), the flow, and the largest misfit where two ways round met (in turns: 0 on a muscle whose two ends
+    are one patch each)."""
+    from scipy.sparse.csgraph import breadth_first_order, connected_components
+    nv, nf = len(v), len(f)
+    w = cotan_weights(v, f, positive=False)
+    free_face = ~held[f].any(1)
+    # each half edge's triangle, and the triangle over it
+    i = np.concatenate([f[:, k] for k in range(3)])
+    j = np.concatenate([f[:, (k + 1) % 3] for k in range(3)])
+    face = np.tile(np.arange(nf), 3)
+    order = np.argsort(i * nv + j, kind="stable")
+    keys = (i * nv + j)[order]
+    at = np.searchsorted(keys, j * nv + i)
+    at = np.minimum(at, len(keys) - 1)
+    twin = np.where(keys[at] == j * nv + i, face[order][at], -1)
+    ok = (twin >= 0) & free_face[face] & free_face[np.maximum(twin, 0)]
+    a, b = face[ok], twin[ok]
+    # the angle's change from a to b: u's gradient, turned a quarter turn about the normal, along the way from
+    # a's circumcentre to b's
+    step = np.asarray(w[i[ok], j[ok]]).ravel() * (u[i[ok]] - u[j[ok]])
+    out = held & (u < 0.5)
+    e = edges_of(f)
+    cross = out[e[:, 0]] != out[e[:, 1]]
+    lo = np.where(out[e[cross, 0]], e[cross, 0], e[cross, 1])
+    hi = np.where(out[e[cross, 0]], e[cross, 1], e[cross, 0])
+    flow = float((np.asarray(w[lo, hi]).ravel() * (u[hi] - u[lo])).sum())
+    graph = sp.coo_matrix((np.ones(len(a)), (a, b)), shape=(nf, nf)).tocsr()
+    lookup = {}
+    for x, y, s_ in zip(a.tolist(), b.tolist(), step.tolist()):
+        lookup[(x, y)] = s_
+    count, label = connected_components(graph, directed=False)
+    angle = np.full(nf, np.nan)
+    for c in np.unique(label[free_face]):
+        start = int(np.flatnonzero(free_face & (label == c))[0])
+        nodes, before = breadth_first_order(graph, start, directed=False, return_predecessors=True)
+        angle[start] = 0.0
+        for node in nodes[1:]:
+            parent = int(before[node])
+            way = lookup.get((parent, int(node)))   # (an edge listed one way only, where the mesh is pinched)
+            angle[node] = angle[parent] + (way if way is not None else -lookup[(int(node), parent)])
+    turn = 2 * np.pi / max(abs(flow), 1e-30)
+    miss = np.abs(wrap((angle[b] - angle[a] - step) * turn)) / (2 * np.pi)
+    # At the vertices: on each triangle the angle is linear (u's gradient there, turned a quarter turn about the
+    # normal), with the value above at the circumcentre; two triangles' agree at the middle of the edge they share.
+    # A vertex takes the mean of its triangles' values at it, as unit numbers (so whole turns do not matter).
+    g, n, twice = face_gradient(v, f, u)
+    r = np.cross(n, g)
+    p0 = v[f[:, 0]]
+    e1, e2 = v[f[:, 1]] - p0, v[f[:, 2]] - p0
+    fn = np.cross(e1, e2)
+    centre = p0 + ((e1 * e1).sum(1)[:, None] * np.cross(e2, fn) + (e2 * e2).sum(1)[:, None] * np.cross(fn, e1)) \
+        / (2 * np.maximum((fn * fn).sum(1), 1e-36))[:, None]
+    base = np.nan_to_num(angle)
+    z = np.zeros(nv, complex)
+    for k in range(3):
+        at_vertex = base + (r * (v[f[:, k]] - centre)).sum(1)
+        np.add.at(z, f[:, k], np.where(free_face, twice * np.exp(1j * at_vertex * turn), 0))
+    # a vertex with no such triangle (inside an end): its neighbours', spread inward
+    adj = neighbours(nv, f)
+    known = np.abs(z) > 0
+    for _ in range(64):
+        if known.all():
+            break
+        s_ = adj @ np.where(known, z / np.maximum(np.abs(z), 1e-30), 0)
+        take = ~known & (np.abs(s_) > 0)
+        if not take.any():
+            break
+        z[take] = s_[take]
+        known = known | take
+    z = np.where(np.abs(z) > 0, z / np.maximum(np.abs(z), 1e-30), 1.0)
+    return z, abs(flow), float(miss.max()) if len(miss) else 0.0
+
+
+def along_fibres(v, f, u, z):
+    """How well the angle's lines follow u's: the area-weighted mean of |cos| between the angle's gradient and
+    u's on each triangle (0: its level lines are u's gradient lines), over the triangles where both are told."""
+    g, n, twice = face_gradient(v, f, u)
+    a = np.angle(z)
+    d1, d2 = wrap(a[f[:, 1]] - a[f[:, 0]]), wrap(a[f[:, 2]] - a[f[:, 0]])
+    p0, p1, p2 = v[f[:, 0]], v[f[:, 1]], v[f[:, 2]]
+    ga = (np.cross(p2 - p0, n) * d1[:, None] + np.cross(n, p1 - p0) * d2[:, None]) / twice[:, None]
+    lg, la = np.linalg.norm(g, axis=1), np.linalg.norm(ga, axis=1)
+    ok = (lg > 0.05 * np.median(lg)) & (la > 0)
+    c = np.abs((g * ga).sum(1)) / np.maximum(lg * la, 1e-30)
+    return float((c * twice)[ok].sum() / max(twice[ok].sum(), 1e-30))
+
+
+def fibre_angle(name, v, f, u, z, flow):
+    """Where each vertex lies across the muscle's fibres, in turns (constant along a fibre), as a unit complex
+    number; how its fibres lie; and the tendon they leave, as a share at each vertex (or None). A muscle whose
+    fibres run from origin to insertion: z itself. A pennate one (ARCHITECTURE): u and z's angle are a conformal
+    pair (the angle times flow / 2 pi changes as fast as u does, at right angles), so a line at the angle `a` to
+    u's lines keeps  angle / 2 pi -+ u tan(a) / flow.  Unipennate: that, all round. Bipennate: the angle counted
+    from the face the fibres leave, either way, less u tan(a) / flow (lines leaving that face's middle to both
+    sides as they go down), brought into nine tenths of a turn, so it never wraps. Where the two sides meet (that
+    face's middle line and the one opposite) the count is rounded over an edge and a half's width, as a mesh can
+    hold: the fibres there turn into the tendon they leave, which is marked along that face's line, 9 mm to
+    either side (two edges and a bit, where those are longer: a narrower band would bead along the triangles), seven
+    tenths tendon at the origin and fading to none just over half way down, as an aponeurosis thins into the flesh."""
+    rule = next((r for r in ARCHITECTURE if re.search(r[0], name)), None)
+    if rule is None or flow <= 0:
+        return z, "along", None
+    _, how, degrees, toward = rule
+    k = np.tan(np.radians(degrees)) / flow
+    uc = np.clip(u, 0, 1)
+    if how == "unipennate":
+        return z * np.exp(-2j * np.pi * uc * k), how, None
+    vn, _ = normals(v, f)
+    area = vertex_area(v, f)
+    facing = (vn @ np.asarray(toward, float) > 0.7) & (uc > 0.25) & (uc < 0.75)
+    if not facing.any():
+        return z, "along", None
+    middle = (z[facing] * area[facing]).sum()
+    s_ = np.abs(np.angle(z * np.conj(middle / max(abs(middle), 1e-30)))) / (2 * np.pi)   # 0 to half a turn
+    # a turn's length across the belly, and the rounding's width in turns
+    g, _, twice = face_gradient(v, f, uc)
+    belly = (uc[f].mean(1) > 0.25) & (uc[f].mean(1) < 0.75)
+    span = flow / max(np.median(np.linalg.norm(g, axis=1)[belly]) if belly.any() else 0, 1e-9)   # metres a turn
+    e = 1.5 * median_edge(v, f) / span
+    soft = 0.5 * (np.sqrt(s_ * s_ + e * e) - np.sqrt((0.5 - s_) ** 2 + e * e)) + 0.25
+    reach = max(0.009, 2.2 * median_edge(v, f))
+    t = np.clip((reach - s_ * span) / (0.7 * reach), 0, 1)
+    return np.exp(2j * np.pi * 0.9 * (soft - uc * k + k) / (0.5 + k)), how, \
+        0.7 * np.clip(1 - uc / 0.55, 0, 1) * t * t * (3 - 2 * t)
 
 
 def median_edge(v, f):
@@ -580,9 +579,13 @@ def median_edge(v, f):
 def splits(v, f):
     """How often a (welded) muscle is split in four for its edges to be under FINE at the median, at most 3,
     and how many triangles it needs for them to be about EVEN (a split halves the edges and quarters the
-    triangles, so that count is the same however often it is split)."""
-    level, count = 0, int(np.ceil(len(f) * (median_edge(v, f) / EVEN) ** 2))
-    while level < 3 and median_edge(v, f) > FINE:
+    triangles, so that count is the same however often it is split). A small muscle's edges are shorter: a
+    twentieth of its size (the square root of its surface), so the lines its fibres run by are not bent at
+    every triangle (the larynx's muscles, a centimetre or two long, had 170 to 300 triangles each)."""
+    size = float(np.sqrt(np.linalg.norm(np.cross(v[f[:, 1]] - v[f[:, 0]], v[f[:, 2]] - v[f[:, 0]]), axis=1).sum() / 2))
+    fine, even = min(FINE, size / 19), min(EVEN, size / 20)
+    level, count = 0, int(np.ceil(len(f) * (median_edge(v, f) / even) ** 2))
+    while level < 3 and median_edge(v, f) > fine:
         v, f = subdivide(v, f)
         level += 1
     return level, count
@@ -614,8 +617,8 @@ def mirror(name):
 
 def lay(name, v, f, bones, level=None, count=None):
     """A muscle made finer (split `level` times, or as often as it needs, then brought down to about `count`
-    triangles where the split made more), its fibres and bundles: (positions, triangles, across, tendon, bundle,
-    log)."""
+    triangles where the split made more) and its fibres: (positions, triangles, the two numbers each vertex
+    carries, log)."""
     v, f = weld(v, f)
     if level is None:
         level, count = splits(v, f)
@@ -625,40 +628,30 @@ def lay(name, v, f, bones, level=None, count=None):
         v = taubin(v, f)
         if count is not None and count < len(f) / 1.1:
             v, f = coarsen(v, f, count)
-    vn, _ = normals(v, f)
     held0, held1, how = far_ends(v, f) if THIN_TENDONS.search(name) else ends(name, v, bones)
-    u = harmonic(v, f, held0, held1)
-    way = fibre_way(v, f, u, vn)
-    across = np.cross(vn, way)
-    across /= np.maximum(np.linalg.norm(across, axis=1), 1e-12)[:, None]
-    along = v @ (way.mean(0) / max(np.linalg.norm(way.mean(0)), 1e-12))
-    bundle = float(np.clip(np.ptp(along) / 30, 0.0015, 0.006))
-    phase, *_ = stripes(v, f, across, bundle)
+    toward = next((np.asarray(r[1]) for r in ORIGIN_TOWARD if re.search(r[0], name)), None)
+    if how == "tips" and toward is not None and (v[held0].mean(0) - v[held1].mean(0)) @ toward < 0:
+        held0, held1 = held1, held0
+    held0, held1 = one_patch(v, f, held0, held1), one_patch(v, f, held1, held0)
+    u = harmonic(v, f, held0, held1, positive=False)
+    z, flow, miss = turning(v, f, u, held0 | held1)
+    off = along_fibres(v, f, u, z)
+    c, lie, leaves = fibre_angle(name, v, f, u, z, flow)
+    uc = np.clip(u, 0, 1)
     rule = next((r for r in RULES if re.search(r[0], name)), None)
     thin = THIN_TENDONS.search(name) or (rule is not None and rule[3].get("tendon") == "thin")
-    tendon = thin_share(v, f, u) if thin else tendon_share(v, u, origin=how != "bones")
-    coord, fork = corners(v, f, across, phase, bundle)
-    forks = int(fork.sum())
-    for _ in range(2):
-        if fork.any():
-            v, f, across, phase, tendon = refine(v, f, across, phase, tendon, fork, bundle)
-            coord, fork = corners(v, f, across, phase, bundle)
-    vertex, origin = join(f, coord, fork)
-    src = np.array([o[0] for o in origin])
-    pos = v[src]
-    acr = np.array([o[1] for o in origin], np.float32)
-    # a fork's corners -1 (the shader leaves the pattern plain there), but not in tendon: the shader reads -1 as
-    # belly, a red speck on the white, and the tendon's cords are faint enough to fork unseen
-    ten = np.where(np.array([o[2] for o in origin]) & (tendon[src] < 0.5), -1.0, tendon[src]).astype(np.float32)
-    log = (f"{name}: {level} split{'s' * (level != 1)}, {len(f)} triangles, {len(pos)} vertices ({len(pos) - len(v)} split "
-           f"at seams), fibres from {how}, bundles {bundle * 1000:.1f} mm, {forks} forks ({int(fork.sum())} after "
-           f"refining), "
+    tendon = thin_share(v, f, uc) if thin else tendon_share(v, uc, origin=how != "bones")
+    if leaves is not None:
+        tendon = np.maximum(tendon, leaves)
+    pair = np.stack([c.real, c.imag], 1) * (2.0 - np.clip(tendon, 0, 1))[:, None]
+    log = (f"{name}: {level} split{'s' * (level != 1)}, {len(f)} triangles, {len(v)} vertices, fibres from {how} "
+           f"({lie}), {off:.3f} off u's lines, misfit {miss:.4f} turns, u {u.min():.2f} to {u.max():.2f}, "
            f"tendon {float((tendon > 0.5).mean()):.0%}")
-    return pos, vertex, acr, ten, bundle, log
+    return v, f, pair.astype(np.float32), log
 
 
 def annotate(folder, quiet=False):
-    """Lays the bundles on every skeletal muscle in `folder`'s atlas; returns how many."""
+    """Lays the fibres on every skeletal muscle in `folder`'s atlas; returns how many."""
     path = os.path.join(folder, "anatomy.json")
     manifest = json.load(open(path))
     done = 0
@@ -691,8 +684,8 @@ def annotate(folder, quiet=False):
                     continue
                 pair = [need[st["node"]], need.get(mirror(st["node"]), (0, 0))]
                 level, count = max(p[0] for p in pair), max(p[1] for p in pair)
-                pos, tri, acr, ten, bundle, log = lay(st["node"], v, f, bones, level, count)
-                out.append((pos, tri)); entries.append((acr, ten, bundle))
+                pos, tri, pair, log = lay(st["node"], v, f, bones, level, count)
+                out.append((pos, tri)); entries.append(pair)
                 st["triangles"] = int(len(tri))
                 done += 1
                 if not quiet:
@@ -714,4 +707,4 @@ def annotate(folder, quiet=False):
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         sys.exit(__doc__)
-    print(f"{annotate(sys.argv[1])} muscles with their bundles laid")
+    print(f"{annotate(sys.argv[1])} muscles with their fibres laid")

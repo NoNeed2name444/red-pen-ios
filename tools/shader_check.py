@@ -131,6 +131,7 @@ inline float4 mix(float4 a, float4 b, float4 t) { return a + (b - a) * t; }
 inline float smoothstep(float a, float b, float x) { float t = clamp((x - a) / (b - a), 0.0f, 1.0f); return t * t * (3.0f - 2.0f * t); }
 inline float2 smoothstep(float a, float b, float2 x) { return mk_float2(smoothstep(a, b, x.x), smoothstep(a, b, x.y)); }
 inline float3 smoothstep(float a, float b, float3 x) { return mk_float3(smoothstep(a, b, x.x), smoothstep(a, b, x.y), smoothstep(a, b, x.z)); }
+inline float4 smoothstep(float a, float b, float4 x) { return mk_float4(smoothstep(a, b, x.x), smoothstep(a, b, x.y), smoothstep(a, b, x.z), smoothstep(a, b, x.w)); }
 inline float dot(float2 a, float2 b) { return a.x * b.x + a.y * b.y; }
 inline float dot(float3 a, float3 b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
 inline float dot(float4 a, float4 b) { return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w; }

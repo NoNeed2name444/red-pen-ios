@@ -523,21 +523,20 @@ final class AtlasModel: NSObject, ObservableObject {
             // physically based: its colour and how rough it is, never metal
             m.lightingModel = .physicallyBased
             m.diffuse.contents = UIColor(red: c.red, green: c.green, blue: c.blue, alpha: 1)
-            // muscle's colour as a texture, so its shader gets the bundles' texture coordinates
+            // muscle's colour as a texture, so its shader gets the fibres' texture coordinates
             if tissue == .muscle, let image = swatch(c) { m.diffuse.contents = image }
             m.roughness.contents = NSNumber(value: structure.roughness)
             m.metalness.contents = NSNumber(value: 0.0)
             // an opening (the pupil) unlit, black under any light
             if structure.unlit { m.lightingModel = .constant }
             // bone and muscle with their own surface, fixed to the body so it
-            // has no seams (AtlasShaders); a muscle's bundles' width is set per muscle
+            // has no seams (AtlasShaders)
             if let surface = AtlasLight.surface(tissue) {
                 m.shaderModifiers = [.surface: surface]
                 m.setValue(NSNumber(value: 0.0), forKey: "rpProbe")
                 m.setValue(detail, forKey: "rpDetail")
                 if tissue == .muscle {
-                    let tendon: SIMD3<Float> = AnatomyStripes.tendonRatio(muscle: c)
-                    m.setValue(NSNumber(value: 0.0), forKey: "rpBundle")
+                    let tendon: SIMD3<Float> = AnatomyFibres.tendonRatio(muscle: c)
                     m.setValue(NSValue(scnVector3: SCNVector3(tendon.x, tendon.y, tendon.z)), forKey: "rpTendon")
                 }
             }
@@ -566,21 +565,16 @@ final class AtlasModel: NSObject, ObservableObject {
             // line shows; its hollows a little darker, read from the same surface
             let normals: [[Float]] = AnatomyMesh.normals(welding: meshes)
             let bends: [[Float]] = AnatomyMesh.curvature(welding: meshes)
-            // a part of muscles: their bundles, as the build laid them along the fibres
-            var stripes: [AnatomyStripes?] = Array(repeating: nil, count: meshes.count)
-            if let fibres = part.fibres, let url = AnatomyAtlas.file(fibres.file), let data = try? Data(contentsOf: url),
-               let read = try? AnatomyAtlas.stripes(of: part, meshes: meshes, from: data) {
-                stripes = read
+            // a part of muscles: their fibres, as the build laid them
+            var fibres: [AnatomyFibres?] = Array(repeating: nil, count: meshes.count)
+            if let listed = part.fibres, let url = AnatomyAtlas.file(listed.file), let data = try? Data(contentsOf: url),
+               let read = try? AnatomyAtlas.fibres(of: part, meshes: meshes, from: data) {
+                fibres = read
             }
             let made: [SCNNode] = zip(part.structures, zip(meshes, zip(normals, bends))).enumerated().map { k, item in
                 let (structure, shaded) = item
                 var surface: SCNMaterial = material(structure)
-                // each muscle's bundles their own width
-                let bundles: AnatomyStripes? = structure.tissue == .muscle ? stripes[k] : nil
-                if let bundles, let own = surface.copy() as? SCNMaterial {
-                    own.setValue(NSNumber(value: bundles.bundle), forKey: "rpBundle")
-                    surface = own
-                }
+                let lines: AnatomyFibres? = structure.tissue == .muscle ? fibres[k] : nil
                 // the iris its own pattern, about its own middle and axis
                 if structure.iris, let ring = shaded.0.ringFrame(), let own = surface.copy() as? SCNMaterial {
                     own.shaderModifiers = [.surface: AtlasShaders.iris]
@@ -598,7 +592,7 @@ final class AtlasModel: NSObject, ObservableObject {
                     return [shade.x, shade.y, shade.z]
                 }
                 let node = SCNNode(geometry: geometry(shaded.0, normals: shaded.1.0, relief: relief,
-                                                      coordinates: bundles?.coordinates(), surface))
+                                                      coordinates: lines?.coordinates(), surface))
                 node.name = part.id + "/" + structure.node
                 // what is see-through is drawn after what it covers (the fat, the
                 // cornea), the skin last; an inner one (the lens, the humours) is
@@ -617,7 +611,7 @@ final class AtlasModel: NSObject, ObservableObject {
 
     /// A 4 by 4 image of one colour (sRGB), a muscle's diffuse: SceneKit hands
     /// a surface modifier texture coordinates only from a property holding a
-    /// texture (as GraphNodeShaders.blackImage), and the muscle's bundles ride
+    /// texture (as GraphNodeShaders.blackImage), and the muscle's fibres ride
     /// on them.
     nonisolated private static func swatch(_ c: (red: Double, green: Double, blue: Double)) -> CGImage? {
         guard let space = CGColorSpace(name: CGColorSpace.sRGB),
@@ -651,7 +645,7 @@ final class AtlasModel: NSObject, ObservableObject {
                                              usesFloatComponents: true, componentsPerVector: 3,
                                              bytesPerComponent: MemoryLayout<Float>.size, dataOffset: 0, dataStride: stride))
         }
-        // a muscle's bundles: where each vertex lies across them, and tendon (AtlasShaders.muscle)
+        // a muscle's fibres: where each vertex lies round the muscle, and tendon (AtlasShaders.muscle)
         if let coordinates, coordinates.count == mesh.vertexCount * 2 {
             let pairs: Data = coordinates.withUnsafeBufferPointer { Data(buffer: $0) }
             sources.append(SCNGeometrySource(data: pairs, semantic: .texcoord, vectorCount: mesh.vertexCount,

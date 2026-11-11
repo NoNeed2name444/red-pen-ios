@@ -43,7 +43,7 @@ stops short of the budget.
 |---|---|
 | `anatomy.json` | The manifest: the sources, then each body's parts (44 male, 45 female) and their structures (1030 and 1064), each with a label, UBERON id (the crosswalk's where it is right, else the corrected label's own, if any), tissue, group and whether it sits inside another |
 | `male-<part>.atlas`, `female-<part>.atlas` | One part's meshes in one body, simplified and quantised (format: the tool's docstring) |
-| `male-<part>.fibres`, `female-<part>.fibres` | For a part of muscles, where each point of each skeletal muscle lies across its fibre bundles and how far it is tendon, for the muscle shader (made from the meshes alone by `tools/anatomy_fibres.py`; format: its docstring) |
+| `male-<part>.fibres`, `female-<part>.fibres` | For a part of muscles, where each point of each skeletal muscle lies round the muscle (the same all along a fibre) and how far it is tendon, for the muscle shader (made from the meshes alone by `tools/anatomy_fibres.py`; format: its docstring) |
 
 Most parts are in both bodies. Only the woman's are the breasts, ovaries,
 uterine tubes, uterus, vagina and their ligaments; only the man's the

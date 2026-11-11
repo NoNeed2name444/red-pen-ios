@@ -3299,7 +3299,8 @@ for screenshots.
       - [x] The colours (11 Nov): arteries scarlet E8301E, veins 2F62C8,
         nerves F2CC3A, muscle and the heart a muted brownish red (8A4B40,
         8E3F38): an artery on a muscle CIEDE2000 19 apart (5 before), 13
-        and 20 to eyes that confuse red and green.
+        and 20 to eyes that confuse red and green. (Muscle is A8443C since
+        the flesh look below: 13.4 apart, 10.5 and 14.6.)
       - [ ] Webs and blobs made tubes, broken-off parts joined, the names
         set right (tools/anatomy_vessels.py).
     - [ ] Every muscle's origin and insertion checked against Gray's (1918)
@@ -3322,6 +3323,74 @@ for screenshots.
       for the 880,000-triangle bound (the builds use 852,000 to 867,000
       now), then the muscles batch by batch, each with its fibres, its
       attachments from Gray's and its image references.
+    - [x] Muscles that read as flesh, not plastic, their fibres along the
+      lines they truly run by (the owner, 11 Nov: "i want muscles to be
+      more realistic not plasticy", with a video as a reference for the
+      look only; then, of a first try with pale and dark streaks: "the
+      streaks don't feel like muscles", "the surface of muscles don't match
+      the true fiber direction of each muscle"). What was wrong: the fibres
+      were stripes a bundle wide laid as a pattern that forked and waved
+      (wood-grain), the same in every bundle, with seams where its pieces
+      met; and every muscle's fibres ran tip to tip, none pennate.
+      - The build (tools/anatomy_fibres.py) now gives each vertex a point on
+        a circle: its angle is the harmonic conjugate of the muscle's line
+        of pull, so it is the same all along a fibre and turns once round
+        the muscle, with no seam and no split vertices; its radius tells
+        tendon from belly. Measured on the 58 muscles: the angle's lines
+        lie 4% off the line of pull's at the median (cosine; 22% at worst,
+        the woman's right gluteus minimus), and close exactly round every
+        muscle. A pennate muscle's fibres slant from the tendon they
+        arise on (ARCHITECTURE: the rectus femoris bipennate at 14
+        degrees from its front aponeurosis, Gray 1918 p. 470, Ward and
+        others 2009); which tip a muscle arises from is said where it
+        matters (ORIGIN_TOWARD). Small muscles are cut finer (the
+        larynx's: a twentieth of their size an edge). File format SAF2
+        (AnatomyFibres); the old stripe code is gone.
+      - The shader (AtlasShaders.muscle): soft streaks of every width from
+        16 mm bands to quarter-millimetre lines, each a noise across the
+        fibres with a whole number of cells to a turn, drawn by its true
+        size on the muscle (so fibres running together toward a tendon
+        thin out, as they do), their strengths drifting along the fibre;
+        a warm red (A8443C, from 8A4B40), paler and pinker where the belly
+        faces the eye; roughness 0.5 (from 0.42); tendon in through pink
+        along the fibres. An artery on a muscle is still told apart
+        (CIEDE2000 13.4; 10.5 and 14.6 to eyes that confuse red and green,
+        Machado's 2009 model; the old brown was 19, 13 and 20).
+      - The app's atlas: the new fibres laid on the muscles as they were
+        (their meshes unchanged but for the three smallest larynx muscles,
+        cut finer); 870,230 and 869,459 triangles.
+      - [ ] Every other pennate, fan-shaped and multi-headed muscle gets
+        its row in ARCHITECTURE (and its true origin and insertion areas
+        in RULES) as it is added; the larynx's muscles still run tip to
+        tip.
+      - [ ] A small mark where the rectus femoris's two sides meet below
+        its aponeurosis (one triangle's worth); the meeting line is
+        rounded over an edge and a half, as the mesh can hold.
+      - [ ] The 8 muscles a body that are not skeletal (papillary muscles,
+        the bladder neck's smooth muscle, the ciliary muscles) are tagged
+        muscle, so the first two show skeletal red; give each its organ's
+        colour. The ciliary muscle keeps its own 8E4A3A and 0.42
+        (tools/anatomy_eyes.py).
+      - [ ] Red blotches a few millimetres across on the white tendon at
+        the greater trochanter, both sides (seen before this change too):
+        cause not found.
+      - [ ] Mac: the muscle look on the device (Design preview on
+        preview/sciences); Linux draws it with the same shader source
+        (tools/atlas_lab).
+    - [ ] Every muscle of the body (the owner, 11 Nov: "a render with every
+      single muscle of the human body with its origin and insertion and
+      orientation and size and arrangement"). The atlas has 35 muscle
+      structures in the man (12 of the eye, 11 of the larynx, the rectus
+      femoris and quadriceps tendon, three glutei and the iliopsoas a
+      side, the deep back muscles): about 155 a side are missing. Sources
+      and the order of work: the survey above (free for commercial use
+      only). Each muscle comes with its origin and insertion areas on the
+      bones (Gray's), its row in ARCHITECTURE, its fibres and an image
+      reference, and is checked against its neighbours for crossing.
+    - [ ] The whole body symmetrical and easy to read (the owner, 11 Nov:
+      "realistic and accurate and symmetrical and easy for students to
+      view and understand what each part is"): paired bones and muscles
+      mirrored from the better side; a labelled render; labels in the app.
     - [x] Ribs seated on the scanned spine (tools/anatomy_ribs.py, Gray's
       costovertebral joints): the scan's ribs stopped at the transverse
       processes, so each has its neck and head drawn out to its joint, the
