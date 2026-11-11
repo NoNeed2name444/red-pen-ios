@@ -1,0 +1,4 @@
+Query chain:
+ →Find: Target Application 'com.cramdown.app'
+  ↪︎Find: Descendants matching type MenuItem
+    ↪︎Find: Elements matching predicate '"Quiz me" IN identifiers'
