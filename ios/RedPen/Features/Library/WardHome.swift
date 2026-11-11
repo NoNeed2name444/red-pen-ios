@@ -667,14 +667,27 @@ struct HomeRoundCard: View {
                 .labelStyle(WardGlyphLabelStyle(glyph: .wardPrimaryInk))
                 .font(WardType.face(.footnote, weight: .semibold))
                 .foregroundStyle(Color.wardInk)
-                .padding(.vertical, 12)
+                .padding(.vertical, Self.planTargetPad(accessibilitySize: typeSize.isAccessibilitySize))
                 .contentShape(Rectangle())
-                .padding(.vertical, typeSize.isAccessibilitySize ? 0 : -12)
         }
         .buttonStyle(.borderless)
         .hoverEffect(.highlight)
         .accessibilityHint("Opens the exam plan and forecast")
         .accessibilityIdentifier("missionPlan")
+        // trimmed outside the button, so the button keeps its whole target
+        // (the audit's hit area) while the row takes only the words' height;
+        // trimmed inside, the button had shrunk to the words' 18 points
+        // (run 42142451702, AUDIT-NIL)
+        .padding(.vertical, typeSize.isAccessibilitySize
+                 ? 0 : -Self.planTargetPad(accessibilitySize: false))
+    }
+
+    /// The padding above and below Open plan's words: 14 makes the
+    /// footnote's 18-point line a 46-point target, clear of 44 after any
+    /// sub-point rounding; at the accessibility sizes the words alone pass
+    /// 44, and the old 12 keeps their row as it was.
+    static func planTargetPad(accessibilitySize: Bool) -> CGFloat {
+        accessibilitySize ? 12 : 14
     }
 
     private var quiet: some View {

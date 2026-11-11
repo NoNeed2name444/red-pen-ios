@@ -48,6 +48,10 @@ struct LibraryView: View {
     /// The search field has the keyboard: ⌘F, `redpen://search` and the
     /// search intents put it there (PlatformNotice.search).
     @FocusState var searchFocused: Bool
+    /// The search field's own line at the reader's text size (24 points at
+    /// the default size, as the audit measured it), so its 44-point target
+    /// can reach into the well's padding without making the well taller.
+    @ScaledMetric(relativeTo: .body) var searchLine: CGFloat = 24
     /// The search's index and results, worked out off the main thread
     /// (LibrarySearchModel).
     @StateObject var search = LibrarySearchModel()
@@ -1188,6 +1192,11 @@ struct LibraryView: View {
                     // for SearchPrompt, UIKit's field had no description
                     .accessibilityLabel(Text(searchPrompt))
                     .accessibilityIdentifier("librarySearch")
+                    // a 44-point target (the field was its 24-point line,
+                    // run 42142451702, AUDIT-NIL), grown into the well's
+                    // padding, so the well stays the height it was
+                    .frame(minHeight: 44)
+                    .padding(.vertical, -max(0, 44 - searchLine) / 2)
             }
             if !searchText.wrappedValue.isEmpty {
                 Button {

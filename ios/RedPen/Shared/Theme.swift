@@ -944,7 +944,10 @@ private struct StudyMoreMenu<Extra: View>: ViewModifier {
                             .labelStyle(.iconOnly)
                     }
                     .menuStyle(.button)
-                    .buttonStyle(.wardCircle)
+                    .buttonStyle(StudyMoreCircleStyle())
+                    // the bar keeps the 44-point circle's place; the
+                    // target's extra 2 points a side reach past it
+                    .padding(-StudyMoreCircleStyle.outset)
                     .accessibilityIdentifier("studyMore")
                     .accessibilityHint("Other things you can do on this screen")
                     // once, when study screens are familiar (StudyTips)
@@ -959,6 +962,20 @@ private struct StudyMoreMenu<Extra: View>: ViewModifier {
             .sheet(item: $verifying) { AccuracyWhySheet(item: $0.item, checksWhenUnchecked: true) }
             .sheet(item: $reporting) { QuestionReportSheet(report: $0) }
             .sheet(isPresented: $showingPocket) { WardPocketSheet() }
+    }
+}
+
+/// More's circle (WardCircleButtonStyle, unchanged), in a target 2 points
+/// wider on every side: the 44-point circle alone measured 44.0 x 43.99999
+/// in the bar, under 44 after sub-point rounding (run 42142451702,
+/// AUDIT-NIL). The face is drawn as before; only the hit area grows.
+private struct StudyMoreCircleStyle: ButtonStyle {
+    static let outset: CGFloat = 2
+
+    func makeBody(configuration: Configuration) -> some View {
+        WardCircleButtonStyle().makeBody(configuration: configuration)
+            .padding(Self.outset)
+            .contentShape(Rectangle())
     }
 }
 
