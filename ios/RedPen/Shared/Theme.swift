@@ -975,7 +975,7 @@ private struct StudyMoreCircleStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         WardCircleButtonStyle().makeBody(configuration: configuration)
             .padding(Self.outset)
-            .contentShape(Rectangle())
+            .contentShape(Circle())
     }
 }
 

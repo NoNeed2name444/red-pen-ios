@@ -48,10 +48,6 @@ struct LibraryView: View {
     /// The search field has the keyboard: ⌘F, `redpen://search` and the
     /// search intents put it there (PlatformNotice.search).
     @FocusState var searchFocused: Bool
-    /// The search field's own line at the reader's text size (24 points at
-    /// the default size, as the audit measured it), so its 44-point target
-    /// can reach into the well's padding without making the well taller.
-    @ScaledMetric(relativeTo: .body) var searchLine: CGFloat = 24
     /// The search's index and results, worked out off the main thread
     /// (LibrarySearchModel).
     @StateObject var search = LibrarySearchModel()
@@ -1191,12 +1187,6 @@ struct LibraryView: View {
                     // its name said outright: with the placeholder emptied
                     // for SearchPrompt, UIKit's field had no description
                     .accessibilityLabel(Text(searchPrompt))
-                    .accessibilityIdentifier("librarySearch")
-                    // a 44-point target (the field was its 24-point line,
-                    // run 42142451702, AUDIT-NIL), grown into the well's
-                    // padding, so the well stays the height it was
-                    .frame(minHeight: 44)
-                    .padding(.vertical, -max(0, 44 - searchLine) / 2)
             }
             if !searchText.wrappedValue.isEmpty {
                 Button {
@@ -1212,6 +1202,20 @@ struct LibraryView: View {
             }
         }
         .wardField()
+        // The audit measured the text field alone, a 24-point line inside this
+        // 44-point well (run 42142451702, AUDIT-NIL), and a tap on the well
+        // outside that line missed it. The well is the control: at least 44
+        // points, tapping anywhere on it gives the field the keyboard, and
+        // the well, not the line, carries "librarySearch". The field keeps
+        // its own name and traits, so VoiceOver reads what it did. The clear
+        // button, a child, keeps its own tap. Unproven until the next Mac
+        // run; the fallback is a UITextField-backed field whose sizeThatFits
+        // returns at least 44.
+        .frame(minHeight: 44)
+        .contentShape(Rectangle())
+        .onTapGesture { searchFocused = true }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("librarySearch")
     }
 
     /// Beside the search field (above it, at the accessibility sizes):
