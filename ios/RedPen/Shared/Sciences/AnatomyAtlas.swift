@@ -87,6 +87,22 @@ struct AnatomyBody: Decodable, Hashable, Identifiable {
     let parts: [AtlasPart]
 
     func part(_ id: String) -> AtlasPart? { parts.first { $0.id == id } }
+
+    /// The parts to read for what is shown: those of the layers shown and, while
+    /// a topic's own parts are shown alone, only those. The atlas reads a layer
+    /// when it is first shown, so a topic opens on its own parts and the whole
+    /// body is read only when every layer is.
+    func parts(showing systems: Set<AnatomySystem>, focus: Set<String> = [], alone: Bool = false) -> [AtlasPart] {
+        parts.filter { systems.contains($0.system) && (!alone || focus.isEmpty || focus.contains($0.id)) }
+    }
+
+    /// A structure by its node's key in the scene, "part/structure".
+    func structure(key: String) -> (part: AtlasPart, structure: AnatomyStructure)? {
+        guard let slash = key.firstIndex(of: "/"), let part = part(String(key[..<slash])) else { return nil }
+        let node = String(key[key.index(after: slash)...])
+        guard let structure = part.structures.first(where: { $0.node == node }) else { return nil }
+        return (part, structure)
+    }
 }
 
 struct AtlasPart: Decodable, Hashable, Identifiable {
@@ -128,10 +144,12 @@ struct AnatomyStructure: Decodable, Hashable {
     let ownColour: String?
     let ownOpacity: Double?
     let ownRoughness: Double?
+    /// Its own surface pattern, drawn by a surface modifier of its own ("iris": AtlasShaders.iris).
+    let ownSurface: String?
 
     private enum CodingKeys: String, CodingKey {
         case node, label, uberon, tissue, group, inner, triangles
-        case ownColour = "colour", ownOpacity = "opacity", ownRoughness = "roughness"
+        case ownColour = "colour", ownOpacity = "opacity", ownRoughness = "roughness", ownSurface = "surface"
     }
 
     /// The colour it is drawn in, sRGB 0...1: its own, else its tissue's.
@@ -142,8 +160,20 @@ struct AnatomyStructure: Decodable, Hashable {
     }
     /// How opaque it is drawn: its own, else its tissue's.
     var opacity: Double { ownOpacity ?? tissue.opacity }
+    /// Clear as glass or water by its own look (the cornea, the humours, the conjunctiva over the sclera): drawn
+    /// as what it reflects alone, over what shows through it, which a veil of its colour would cloud.
+    var clear: Bool { (ownOpacity ?? 1) < 0.3 }
+    /// Black by its own look, as an opening into the dark is (the pupil): drawn unlit, so that it stays black
+    /// under any light rather than taking the faint sheen every lit surface has.
+    var unlit: Bool {
+        guard ownColour != nil else { return false }
+        let c = colour
+        return 0.2126 * c.red + 0.7152 * c.green + 0.0722 * c.blue < 0.05
+    }
     /// How rough its surface is to the light: its own, else its tissue's.
     var roughness: Double { ownRoughness ?? tissue.roughness }
+    /// The iris, drawn with its own pattern about its middle (its fibres, crypts and rings: AtlasShaders.iris).
+    var iris: Bool { ownSurface == "iris" }
 
     /// The label as a title: the first letter capitalised.
     var title: String { label.prefix(1).uppercased() + label.dropFirst() }
@@ -191,7 +221,10 @@ enum AnatomyTissue: String, Decodable, CaseIterable, Identifiable {
     var name: String { rawValue.prefix(1).uppercased() + rawValue.dropFirst() }
 
     /// The colour the textbooks use for it, in sRGB 0...1: arteries red,
-    /// veins blue, nerves yellow, bone ivory.
+    /// veins blue, nerves yellow, bone ivory. Muscle and the heart a muted
+    /// brownish red and arteries scarlet, so a student can tell an artery
+    /// on a muscle (CIEDE2000 19 apart, 5 when both were red; 13 and 20 to
+    /// eyes that confuse red and green).
     var colour: (red: Double, green: Double, blue: Double) {
         let hex: Int
         switch self {
@@ -200,11 +233,11 @@ enum AnatomyTissue: String, Decodable, CaseIterable, Identifiable {
         case .bone: hex = 0xDDD1B6
         case .cartilage: hex = 0xB8D4E3
         case .ligament: hex = 0xD9CFA8
-        case .muscle: hex = 0xB5483F
-        case .artery: hex = 0xC8302C
-        case .vein: hex = 0x3D5FB0
-        case .heart: hex = 0xB33A3A
-        case .nerve: hex = 0xE3C84A
+        case .muscle: hex = 0x8A4B40
+        case .artery: hex = 0xE8301E
+        case .vein: hex = 0x2F62C8
+        case .heart: hex = 0x8E3F38
+        case .nerve: hex = 0xF2CC3A
         case .brain: hex = 0xE7B8B0
         case .organ: hex = 0xB26A4F
         case .gland: hex = 0xD39A6A
@@ -505,6 +538,53 @@ struct AnatomyMesh: Hashable {
         }
     }
 
+    /// A ring's frame (the iris, AtlasShaders.iris): its middle (the mean of
+    /// its vertices), the axis it is turned about (the least of their spread:
+    /// at right angles to the two main axes of their covariance), and how far
+    /// its vertices lie off that axis, nearest and farthest (the pupil's rim
+    /// and the root). Nil for fewer than three vertices.
+    func ringFrame() -> AnatomyRing? {
+        guard vertexCount > 2 else { return nil }
+        var mean = SIMD3<Double>(repeating: 0)
+        for i in 0..<vertexCount { mean += SIMD3<Double>(position(i)) }
+        mean /= Double(vertexCount)
+        var c = [Double](repeating: 0, count: 9)
+        for i in 0..<vertexCount {
+            let d = SIMD3<Double>(position(i)) - mean
+            for r in 0..<3 { for k in 0..<3 { c[3 * r + k] += d[r] * d[k] } }
+        }
+        func times(_ v: SIMD3<Double>) -> SIMD3<Double> {
+            SIMD3(c[0] * v.x + c[1] * v.y + c[2] * v.z, c[3] * v.x + c[4] * v.y + c[5] * v.z,
+                  c[6] * v.x + c[7] * v.y + c[8] * v.z)
+        }
+        func unit(_ v: SIMD3<Double>) -> SIMD3<Double>? {
+            let length = (v * v).sum().squareRoot()
+            return length > 1e-300 ? v / length : nil
+        }
+        // the first main axis, then the second (the first taken out of each step), by power iteration
+        var first = SIMD3<Double>(0.48, 0.71, 0.52)
+        for _ in 0..<80 { guard let next = unit(times(first)) else { return nil }; first = next }
+        var second = SIMD3<Double>(-0.61, 0.23, 0.76)
+        second -= (second * first).sum() * first
+        for _ in 0..<80 {
+            var w = times(second)
+            w -= (w * first).sum() * first
+            guard let next = unit(w) else { return nil }
+            second = next
+        }
+        let a = SIMD3<Double>(first.y * second.z - first.z * second.y, first.z * second.x - first.x * second.z,
+                              first.x * second.y - first.y * second.x)
+        guard let axis = unit(a) else { return nil }
+        var inner = Double.infinity, outer = 0.0
+        for i in 0..<vertexCount {
+            let d = SIMD3<Double>(position(i)) - mean
+            let off = d - (d * axis).sum() * axis
+            let r = (off * off).sum().squareRoot()
+            inner = min(inner, r); outer = max(outer, r)
+        }
+        return AnatomyRing(centre: SIMD3<Float>(mean), axis: SIMD3<Float>(axis), inner: Float(inner), outer: Float(outer))
+    }
+
     /// The direction the structure is longest in (unit length, the sign
     /// arbitrary): the main axis of its vertices' spread, by power iteration
     /// on their covariance. A muscle's fibres run roughly along it, which is
@@ -568,8 +648,10 @@ struct AnatomyStripes: Hashable {
         return out
     }
 
-    /// Tendon's colour (sRGB): the white of a fresh tendon, a little warm.
-    static let tendonColour: (red: Double, green: Double, blue: Double) = (0.93, 0.89, 0.82)
+    /// Tendon's colour (sRGB): the white of a fresh tendon, a shade warmer and
+    /// duller than the sclera's (#F2EEE6), so an eye muscle's tendon reads as
+    /// a band on the sclera it inserts on, not a cream patch stuck to it.
+    static let tendonColour: (red: Double, green: Double, blue: Double) = (0.94, 0.92, 0.88)
 
     /// Tendon's linear colour over a muscle's (sRGB `muscle`), per channel:
     /// what the muscle's shader multiplies its colour by where it is tendon.
@@ -753,3 +835,13 @@ enum AnatomyAtlas {
         return nil
     }
 }
+
+/// A ring's frame in the body's frame (metres): its middle, the unit axis it
+/// is turned about (the sign arbitrary), and its radii about that axis.
+struct AnatomyRing: Equatable {
+    let centre: SIMD3<Float>
+    let axis: SIMD3<Float>
+    let inner: Float
+    let outer: Float
+}
+

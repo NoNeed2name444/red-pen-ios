@@ -9,12 +9,17 @@ For each skeletal muscle (tissue muscle, in a part of the muscular system):
 
 1. Finer: split into four triangles a side (each edge at its middle) until
    its edges are under FINE (4.5 mm) at the median, then smoothed without
-   shrinking (Taubin's steps), so a coarse mesh loses its facets. A muscle
-   and its mirror (the same name ending _L and _R) are split alike, as
-   often as the coarser of them needs, so the two sides look alike: a
-   muscle with edges just under the limit on one side and just over it
-   on the other was split on one side only, with about three times the
-   other side's triangles.
+   shrinking (Taubin's steps), so a coarse mesh loses its facets, and
+   brought back down (quadric decimation) to as many triangles as edges
+   of about EVEN (4.3 mm) at the median need: a split quarters each
+   triangle, so a muscle just over FINE came out with four times the
+   triangles it needed (the deep back muscles, 8,000 triangles a side at
+   4.9 mm, were 32,000 split, about 10,600 brought down). A muscle and
+   its mirror (the same name ending _L and _R) are split alike, as often
+   as the coarser of them needs, and brought down to the same count, so
+   the two sides look alike: a muscle with edges just under the limit on
+   one side and just over it on the other was split on one side only,
+   with about three times the other side's triangles.
 2. Its fibres: a length along the muscle, u, held at 0 where it meets the
    bones it arises from and 1 where it meets those it inserts on (RULES:
    its surface within CONTACT, 4 mm, of them, or WIDER, 7 mm, if that finds
@@ -64,7 +69,7 @@ and the part's entry in anatomy.json gains "fibres": {"file", "bytes",
 "sha256"}, its bytes, sha256, triangles and bounds updated. Called by
 tools/anatomy_atlas.py once the atlas is written; also runs on a built
 atlas folder on its own (a part already laid, one listing its "fibres",
-is left as it is). Needs numpy and scipy.
+is left as it is). Needs numpy, scipy and fast_simplification.
 """
 import collections, hashlib, json, os, re, struct, sys
 
@@ -74,6 +79,7 @@ import scipy.sparse.linalg as spl
 from scipy.spatial import cKDTree
 
 CONTACT, WIDER, FINE = 0.004, 0.007, 0.0045
+EVEN = 0.0043   # a split muscle brought down to edges about this long at the median, under FINE
 
 # (muscle, origin's bones, insertion's bones, options): regular expressions on structure names
 RULES = [
@@ -566,16 +572,38 @@ def join(f, coord, fork):
     return vertex, origin
 
 
+def median_edge(v, f):
+    e = edges_of(f)
+    return float(np.median(np.linalg.norm(v[e[:, 0]] - v[e[:, 1]], axis=1)))
+
+
 def splits(v, f):
-    """How often a (welded) muscle is split in four for its edges to be under FINE at the median, at most 3."""
-    level = 0
-    while level < 3:
-        e = edges_of(f)
-        if np.median(np.linalg.norm(v[e[:, 0]] - v[e[:, 1]], axis=1)) <= FINE:
-            break
+    """How often a (welded) muscle is split in four for its edges to be under FINE at the median, at most 3,
+    and how many triangles it needs for them to be about EVEN (a split halves the edges and quarters the
+    triangles, so that count is the same however often it is split)."""
+    level, count = 0, int(np.ceil(len(f) * (median_edge(v, f) / EVEN) ** 2))
+    while level < 3 and median_edge(v, f) > FINE:
         v, f = subdivide(v, f)
         level += 1
-    return level
+    return level, count
+
+
+def coarsen(v, f, target):
+    """A smoothed, split muscle brought down to about `target` triangles, in gentle passes (agg 3 first:
+    its triangles are well shaped and shade smoothly), one closed surface still."""
+    import fast_simplification
+    for agg in (3, 5, 7):
+        if len(f) <= target * 1.1:
+            break
+        q, g = fast_simplification.simplify(v.astype(np.float32), f.astype(np.int32),
+                                            target_reduction=1 - target / len(f), agg=agg)
+        if len(g) == 0 or len(g) >= len(f):
+            continue
+        used = np.unique(g)
+        remap = np.full(len(q), -1, dtype=np.int64)
+        remap[used] = np.arange(len(used))
+        v, f = q[used].astype(np.float64), remap[g]
+    return v, f
 
 
 def mirror(name):
@@ -584,15 +612,19 @@ def mirror(name):
     return name[:-1] + ("R" if m.group(1) == "L" else "L") if m else None
 
 
-def lay(name, v, f, bones, level=None):
-    """A muscle made finer (split `level` times, or as often as it needs), its fibres and bundles:
-    (positions, triangles, across, tendon, bundle, log)."""
+def lay(name, v, f, bones, level=None, count=None):
+    """A muscle made finer (split `level` times, or as often as it needs, then brought down to about `count`
+    triangles where the split made more), its fibres and bundles: (positions, triangles, across, tendon, bundle,
+    log)."""
     v, f = weld(v, f)
-    level = splits(v, f) if level is None else level
+    if level is None:
+        level, count = splits(v, f)
     for _ in range(level):
         v, f = subdivide(v, f)
     if level:
         v = taubin(v, f)
+        if count is not None and count < len(f) / 1.1:
+            v, f = coarsen(v, f, count)
     vn, _ = normals(v, f)
     held0, held1, how = far_ends(v, f) if THIN_TENDONS.search(name) else ends(name, v, bones)
     u = harmonic(v, f, held0, held1)
@@ -640,7 +672,8 @@ def annotate(folder, quiet=False):
                 if st.get("tissue") == "bone" and named.search(st["node"]):
                     bones[st["node"]] = surface_points(v, f)
         skeletal = lambda st: st.get("tissue") == "muscle" and not NOT_SKELETAL.search(st["node"])
-        need = {}   # how often each muscle would be split on its own; a pair is split as its coarser side needs
+        need = {}   # how often each muscle would be split on its own, and to how many triangles brought down;
+        # a pair is split as its coarser side needs, and both brought down to the larger count
         for part in body["parts"]:
             if part["system"] == "muscular" and "fibres" not in part:
                 for st, (v, f) in zip(part["structures"], read_part(os.path.join(folder, part["file"]))):
@@ -656,8 +689,9 @@ def annotate(folder, quiet=False):
                 if not skeletal(st):
                     out.append((v, f)); entries.append(None)
                     continue
-                level = max(need[st["node"]], need.get(mirror(st["node"]), 0))
-                pos, tri, acr, ten, bundle, log = lay(st["node"], v, f, bones, level)
+                pair = [need[st["node"]], need.get(mirror(st["node"]), (0, 0))]
+                level, count = max(p[0] for p in pair), max(p[1] for p in pair)
+                pos, tri, acr, ten, bundle, log = lay(st["node"], v, f, bones, level, count)
                 out.append((pos, tri)); entries.append((acr, ten, bundle))
                 st["triangles"] = int(len(tri))
                 done += 1

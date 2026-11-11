@@ -61,6 +61,21 @@ check("the remembered body reads back, and an unreadable one is the man's",
         && AnatomySex(remembered: "nonsense") == .male && AnatomySex.rememberedKey == "sciences.atlas.body")
 check("a part's name is found in whichever body has it",
       manifest.part("uterus")?.name == "Uterus" && manifest.part("prostate")?.name == "Prostate" && manifest.part("nope") == nil)
+let hearts: [String] = male.parts.filter { $0.system == .cardiovascular }.map(\.id)
+check("a body reads only the layers shown, and a topic's parts alone while only they are shown",
+      male.parts(showing: [.cardiovascular], focus: ["heart"], alone: true).map(\.id) == ["heart"]
+        && male.parts(showing: [.cardiovascular], focus: ["heart"], alone: false).map(\.id) == hearts
+        && male.parts(showing: [.cardiovascular]).map(\.id) == hearts && hearts.count > 1
+        && male.parts(showing: [.skeletal], focus: ["heart"], alone: true).isEmpty
+        && male.parts(showing: []).isEmpty
+        && male.parts(showing: Set(AnatomySystem.allCases)).count == male.parts.count,
+      hearts.joined(separator: ", "))
+let firstStructure: AnatomyStructure = male.part("heart")!.structures[0]
+check("a structure is found by its key in the scene, and a wrong key finds nothing",
+      male.structure(key: "heart/" + firstStructure.node)?.structure.node == firstStructure.node
+        && male.structure(key: "heart/" + firstStructure.node)?.part.id == "heart"
+        && male.structure(key: "heart/nope") == nil && male.structure(key: "nope/x") == nil
+        && male.structure(key: "heart") == nil)
 
 // MARK: every file, read
 
@@ -581,6 +596,22 @@ for body in manifest.bodies {
               let ys = (1...12).compactMap { centre("TS_rib_\($0)_\(s)", in: body)?.y }
               return ys.count == 12 && zip(ys, ys.dropFirst()).allSatisfy { $0 > $1 }
           })
+    // each rib's head and neck on its own vertebrae (tools/anatomy_ribs.py): the second to the ninth on the vertebra
+    // it is named for and the one above, the others on their own alone; its nearest point 3.5 mm or less from them
+    // (a joint's 1.5 mm and a vertex's spacing)
+    let vh = body.id == .male ? "VH_M_" : "VH_F_"
+    let unseated: [String] = ["L", "R"].flatMap { s in
+        (1...12).compactMap { n -> String? in
+            guard let rib = mesh("TS_rib_\(n)_\(s)", in: body) else { return "\(n)\(s) missing" }
+            let own = ((2...9).contains(n) ? [n - 1, n] : [n]).compactMap { mesh("\(vh)thoracic_vertebra_\($0)", in: body) }
+            guard !own.isEmpty else { return "\(n)\(s) without its vertebrae" }
+            let grid = PointGrid(own.flatMap(points), size: 0.01)
+            let gap = points(rib).map(grid.nearest).min()! * 1000
+            return gap <= 3.5 ? nil : "\(n)\(s) \(String(format: "%.1f", gap)) mm"
+        }
+    }
+    check("\(body.name): each rib's head on its own vertebrae, 3.5 mm or nearer", unseated.isEmpty,
+          unseated.joined(separator: ", "))
     // the scanned skull (tools/anatomy_bones.py): its bones, named as the CT skull's, and its own teeth, which
     // take the place of the organ sets' rows in the mouth under the same names
     let skull = body.part("skull")?.structures ?? []
@@ -756,6 +787,56 @@ struct PointGrid {
 }
 func points(_ m: AnatomyMesh) -> [SIMD3<Float>] { (0..<m.vertexCount).map(m.position) }
 
+/// A closed mesh (in mm) for asking what lies inside it: by the parity of a ray's crossings along +x, its
+/// triangles kept in a grid across y and z so each ray meets only those over it.
+struct Solid {
+    let a: [SIMD3<Double>], b: [SIMD3<Double>], c: [SIMD3<Double>]
+    let lo: SIMD3<Double>, hi: SIMD3<Double>
+    let cell = 0.5
+    let grid: [SIMD2<Int>: [Int]]
+
+    init(_ m: AnatomyMesh) {
+        func at(_ i: UInt32) -> SIMD3<Double> {
+            let p = m.position(Int(i))
+            return SIMD3(Double(p.x), Double(p.y), Double(p.z)) * 1000
+        }
+        var a: [SIMD3<Double>] = [], b: [SIMD3<Double>] = [], c: [SIMD3<Double>] = []
+        for t in 0..<m.triangleCount {
+            a.append(at(m.indices[3 * t])); b.append(at(m.indices[3 * t + 1])); c.append(at(m.indices[3 * t + 2]))
+        }
+        var lo = SIMD3<Double>(repeating: .infinity), hi = SIMD3<Double>(repeating: -.infinity)
+        var grid: [SIMD2<Int>: [Int]] = [:]
+        for t in a.indices {
+            let l = pointwiseMin(a[t], pointwiseMin(b[t], c[t])), h = pointwiseMax(a[t], pointwiseMax(b[t], c[t]))
+            lo = pointwiseMin(lo, l); hi = pointwiseMax(hi, h)
+            for y in Int((l.y / cell).rounded(.down))...Int((h.y / cell).rounded(.down)) {
+                for z in Int((l.z / cell).rounded(.down))...Int((h.z / cell).rounded(.down)) {
+                    grid[SIMD2(y, z), default: []].append(t)
+                }
+            }
+        }
+        self.a = a; self.b = b; self.c = c; self.lo = lo; self.hi = hi; self.grid = grid
+    }
+
+    func contains(_ q: SIMD3<Double>) -> Bool {
+        guard q.x > lo.x, q.x < hi.x, q.y > lo.y, q.y < hi.y, q.z > lo.z, q.z < hi.z else { return false }
+        // nudged off the grid of the mesh's own numbers, so the ray never runs exactly through an edge
+        let p = q + SIMD3(0, 1.3e-7, 2.9e-7)
+        var crossings = 0
+        for t in grid[SIMD2(Int((p.y / cell).rounded(.down)), Int((p.z / cell).rounded(.down)))] ?? [] {
+            // where the line through p along x meets the triangle's plane, if inside it (y, z barycentric)
+            let (A, B, C) = (a[t], b[t], c[t])
+            let d = (B.y - A.y) * (C.z - A.z) - (C.y - A.y) * (B.z - A.z)
+            if abs(d) < 1e-15 { continue }
+            let u = ((p.y - A.y) * (C.z - A.z) - (C.y - A.y) * (p.z - A.z)) / d
+            let v = ((B.y - A.y) * (p.z - A.z) - (p.y - A.y) * (B.z - A.z)) / d
+            if u < 0 || v < 0 || u + v > 1 { continue }
+            if A.x + u * (B.x - A.x) + v * (C.x - A.x) > p.x { crossings += 1 }
+        }
+        return crossings % 2 == 1
+    }
+}
+
 let kinds = ["cervical", "thoracic", "lumbar"]
 for body in manifest.bodies {
     let pre = body.id == .male ? "VH_M_" : "VH_F_"
@@ -856,6 +937,412 @@ for body in manifest.bodies {
         let gap = closest[closest.startIndex + closest.count / 2] * 1000
         check("\(body.name): the \(side) sacroiliac joint is closed to a joint's width (\(String(format: "%.1f", gap)) mm)", gap < 3)
     }
+    // every disc made anew between the scanned bones (tools/anatomy_bones.py fit_discs): each meets the two bones
+    // it lies between (its nearest points within 1.5 mm of each; the organ sets' stood up to 4 mm off the scanned
+    // bodies) and stands no more than 2.5 mm in front of their rims where it meets them (theirs overhung by up to
+    // 7 mm)
+    let bones: [(node: String, centre: SIMD3<Float>, grid: PointGrid, points: [SIMD3<Float>])] =
+        ordered.compactMap { s in mesh(s.node, in: body).map { m in (s.node, m.centre, PointGrid(points(m)), points(m)) } }
+        + [(pre + "sacrum", sacrum.centre, sacral, sp)]
+    var unseated: [String] = []
+    for node in discNodes {
+        guard let disc = mesh(node, in: body) else { unseated.append(node + " missing"); continue }
+        let dp = points(disc), faces = PointGrid(dp)
+        let close = bones.filter { (($0.centre - disc.centre) * ($0.centre - disc.centre)).sum() < 0.08 * 0.08 }
+            .map { b in (bone: b, gap: dp.map(b.grid.nearest).min()!) }
+            .sorted { $0.gap < $1.gap }.prefix(2)
+        guard close.count == 2 else { unseated.append(node + " between fewer than two bones"); continue }
+        let gap = close.map(\.gap).max()! * 1000
+        let rims = close.map { c in c.bone.points.filter { faces.nearest($0) < 0.003 }.map(\.z).max() ?? -.infinity }.max()!
+        let over = (dp.map(\.z).max()! - rims) * 1000
+        if gap > 1.5 || over > 2.5 {
+            unseated.append("\(node.dropFirst(pre.count)) \(String(format: "%.1f", gap)) mm off, \(String(format: "%.1f", over)) mm over")
+        }
+    }
+    check("\(body.name): every disc meets the bones above and below it and stands no further forward than their rims (\(discNodes.count) discs)",
+          discNodes.count >= 23 && unseated.isEmpty, unseated.joined(separator: "; "))
+}
+
+// MARK: the gluteus maximus (tools/anatomy_gluteus.py)
+
+/// The Euler characteristic of a mesh's surface, its vertices welded where they meet: 2 for one closed surface
+/// without holes through it (a sphere's), 0 for one with a hole (a ring's).
+func euler(_ m: AnatomyMesh) -> Int {
+    struct Point: Hashable { let x, y, z: Float }
+    var ids: [Point: Int] = [:]
+    let id: [Int] = (0..<m.vertexCount).map { i in
+        let p = m.position(i), key = Point(x: p.x, y: p.y, z: p.z)
+        if let known = ids[key] { return known }
+        ids[key] = ids.count
+        return ids.count - 1
+    }
+    struct Edge: Hashable { let a, b: Int }
+    var edges = Set<Edge>()
+    for t in stride(from: 0, to: m.indices.count, by: 3) {
+        for (i, j) in [(0, 1), (1, 2), (2, 0)] {
+            let a = id[Int(m.indices[t + i])], b = id[Int(m.indices[t + j])]
+            edges.insert(Edge(a: min(a, b), b: max(a, b)))
+        }
+    }
+    return ids.count - edges.count + m.triangleCount
+}
+/// The body's midline (x): the middle of the sacrum's width, height by height over its lower half, the median
+/// of eight heights (as tools/anatomy_gluteus.py finds it; the vertices' mean leans toward the side with more).
+func midline(_ sacrum: [SIMD3<Float>]) -> Float {
+    let y0 = sacrum.map(\.y).min()!, y1 = y0 + 0.5 * (sacrum.map(\.y).max()! - y0)
+    let mids: [Float] = (0..<8).compactMap { k in
+        let y = y0 + 0.005 + (y1 - y0 - 0.005) * Float(k) / 7
+        let band = sacrum.filter { abs($0.y - y) < 0.003 }.map(\.x)
+        return band.count >= 3 ? (band.min()! + band.max()!) / 2 : nil
+    }.sorted()
+    guard !mids.isEmpty else { return sacrum.map(\.x).reduce(0, +) / Float(sacrum.count) }
+    return mids.count % 2 == 1 ? mids[mids.count / 2] : (mids[mids.count / 2 - 1] + mids[mids.count / 2]) / 2
+}
+
+// Made anew from its attachments on each body's own bones (the one from the CT was an oval pad over the buttock,
+// the woman's with a loop and a hole at its lower end): one closed surface with no hole through it, arising from
+// the hip bone, the sacrum and the coccyx and inserted on the femur 30% of its length below its top; as big as MRI
+// finds it in living adults (Belzunce et al. 2023, 87 recreational cyclists: a median of 770 cm³ in the men and
+// 621 in the women); the two at least 5 mm either side of the midline, apart over the coccyx.
+for body in manifest.bodies {
+    let pre = body.id == .male ? "VH_M_" : "VH_F_"
+    guard let sacrum = mesh(pre + "sacrum", in: body), let coccyx = mesh(pre + "coccyx", in: body) else {
+        check("\(body.name): the sacrum and the coccyx are there", false); continue
+    }
+    let middle = midline(points(sacrum))
+    let volumes: ClosedRange<Float> = body.id == .male ? 600...950 : 480...780
+    for (side, name) in [("L", "left"), ("R", "right")] {
+        guard let muscle = mesh("TS_gluteus_maximus_" + side, in: body), let femur = mesh(pre + "femur_" + side, in: body),
+              let hip = mesh(body.id == .male ? pre + "ilium_compact_bone_" + side : "TS_hip_" + side, in: body) else {
+            check("\(body.name): the \(name) gluteus maximus, femur and hip bone are there", false); continue
+        }
+        let ps = points(muscle), fp = points(femur)
+        let edges = openEdges([muscle]), chi = euler(muscle), cc = abs(volume([muscle])) * 1e6
+        check("\(body.name): the \(name) gluteus maximus one closed surface with no hole through it (\(edges) open edges, Euler characteristic \(chi)), \(Int(cc)) cm³ (\(Int(volumes.lowerBound)) to \(Int(volumes.upperBound)))",
+              edges == 0 && chi == 2 && volumes.contains(cc))
+        let gaps = [hip, sacrum, coccyx, femur].map { bone -> Float in
+            let grid = PointGrid(points(bone), size: 0.01)
+            return ps.map(grid.nearest).min()! * 1000
+        }
+        let top = fp.map(\.y).max()!, reach = (top - ps.map(\.y).min()!) / (top - fp.map(\.y).min()!)
+        check("\(body.name): the \(name) gluteus maximus on the hip bone, the sacrum, the coccyx and the femur (\(gaps.map { String(format: "%.1f", $0) }.joined(separator: ", ")) mm), \(Int(reach * 100))% of the femur's length down it (25 to 40)",
+              gaps.allSatisfy { $0 < 2.5 } && (0.25...0.40).contains(reach))
+        let inner = side == "L" ? ps.map { $0.x - middle }.min()! : ps.map { middle - $0.x }.min()!
+        check("\(body.name): the \(name) gluteus maximus \(String(format: "%.1f", inner * 1000)) mm from the midline (4.5 or more)", inner >= 0.0045)
+    }
+}
+
+// MARK: the eyes (tools/anatomy_eyes.py)
+
+/// The sphere nearest some points, least squares (|p|^2 = 2 c.p + d, r^2 = d + |c|^2), about their mean.
+func sphere(_ ps: [SIMD3<Double>]) -> (centre: SIMD3<Double>, radius: Double) {
+    let mean = ps.reduce(SIMD3<Double>.zero, +) / Double(ps.count)
+    var m = [[Double]](repeating: [Double](repeating: 0, count: 5), count: 4)
+    for q in ps {
+        let p = q - mean
+        let row: [Double] = [2 * p.x, 2 * p.y, 2 * p.z, 1]
+        let b = (p * p).sum()
+        for i in 0..<4 {
+            for j in 0..<4 { m[i][j] += row[i] * row[j] }
+            m[i][4] += row[i] * b
+        }
+    }
+    for k in 0..<4 {
+        let pivot = (k..<4).max { abs(m[$0][k]) < abs(m[$1][k]) }!
+        m.swapAt(k, pivot)
+        for i in (k + 1)..<4 {
+            let f = m[i][k] / m[k][k]
+            for j in k..<5 { m[i][j] -= f * m[k][j] }
+        }
+    }
+    var x = [Double](repeating: 0, count: 4)
+    for i in stride(from: 3, through: 0, by: -1) {
+        x[i] = (m[i][4] - ((i + 1)..<4).map { m[i][$0] * x[$0] }.reduce(0, +)) / m[i][i]
+    }
+    let c = SIMD3(x[0], x[1], x[2])
+    return (c + mean, (x[3] + (c * c).sum()).squareRoot())
+}
+
+for body in manifest.bodies {
+    let pre = body.id == .male ? "VH_M_" : "VH_F_"
+    guard let eyes = body.part("eyes"), let eyeMuscles = body.part("eye-muscles") else {
+        check("\(body.name): the eyes and their muscles are there", false)
+        continue
+    }
+    // in millimetres
+    func mm(_ p: SIMD3<Float>) -> SIMD3<Double> { SIMD3(Double(p.x), Double(p.y), Double(p.z)) * 1000 }
+    func dot(_ a: SIMD3<Double>, _ b: SIMD3<Double>) -> Double { (a * b).sum() }
+    func size(_ a: SIMD3<Double>) -> Double { dot(a, a).squareRoot() }
+    func unit(_ a: SIMD3<Double>) -> SIMD3<Double> { a / size(a) }
+    func cross(_ a: SIMD3<Double>, _ b: SIMD3<Double>) -> SIMD3<Double> {
+        SIMD3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x)
+    }
+    func median(_ xs: [Double]) -> Double { xs.isEmpty ? .nan : xs.sorted()[xs.count / 2] }
+    func light(_ s: AnatomyStructure) -> Double { 0.2126 * s.colour.red + 0.7152 * s.colour.green + 0.0722 * s.colour.blue }
+    func at(_ node: String) -> [SIMD3<Double>] { mesh(node, in: body).map { points($0).map(mm) } ?? [] }
+
+    // how each part of the eye looks: its own colour, how see-through and how glossy
+    let looks = eyes.structures.filter { s in
+        guard let own = s.ownColour, own.count == 7, own.hasPrefix("#"), Int(own.dropFirst(), radix: 16) != nil,
+              let o = s.ownOpacity, let r = s.ownRoughness else { return false }
+        return (0.05...1).contains(o) && (0.02...0.9).contains(r)
+    }
+    check("\(body.name): each of the eyes' 46 structures has its own look (a colour, 0.05 to 1 opaque, 0.02 to 0.9 rough)",
+          eyes.structures.count == 46 && looks.count == 46, "\(looks.count) of \(eyes.structures.count)")
+    let right: (String) -> AnatomyStructure? = { key in eyes.structures.first { $0.node == pre + key + "_R" } }
+    if let sclera = right("sclera"), let iris = right("iris"), let pupil = right("pupil"),
+       let darkest = eyes.structures.min(by: { light($0) < light($1) }) {
+        check("\(body.name): the sclera white, the iris darker, the pupil black (the darkest of the eye's parts)",
+              light(sclera) > 0.8 && light(iris) < 0.5 * light(sclera) && darkest.node.contains("pupil") && light(pupil) < 0.05)
+    } else {
+        check("\(body.name): the sclera, iris and pupil are there", false)
+    }
+    // what each structure is, without the body's prefix and its side
+    func key(_ s: AnatomyStructure) -> String {
+        let name = String(s.node.dropFirst(pre.count))
+        return name.hasSuffix("_R") || name.hasSuffix("_L") ? String(name.dropLast(2)) : name
+    }
+    let clear: Set<String> = ["cornea", "aqueous_humor", "vitreous_humor", "bulbar_conjunctiva"]
+    let seeThrough = eyes.structures.filter { s in
+        clear.contains(key(s)) ? s.opacity >= 0.3
+            : key(s) == "lens" || key(s).hasPrefix("palpebral") ? !(0.3...0.7).contains(s.opacity) : s.opacity < 1
+    }
+    check("\(body.name): the cornea, the humours and the bulbar conjunctiva clear, the lens and the lids' linings half, the rest solid",
+          seeThrough.isEmpty, seeThrough.map(\.node).joined(separator: ", "))
+    let dark = body.parts.flatMap(\.structures).filter(\.unlit)
+    check("\(body.name): what is drawn unlit (an opening, black) the pupils alone",
+          dark.count == 2 && dark.allSatisfy { key($0) == "pupil" }, dark.map(\.node).joined(separator: ", "))
+    let glassy = body.parts.flatMap(\.structures).filter(\.clear)
+    check("\(body.name): what is drawn as its reflections alone (clear) the cornea, the humours and the bulbar conjunctiva, both sides, nothing else",
+          glassy.count == 8 && glassy.allSatisfy { clear.contains(key($0)) }, glassy.map(\.node).joined(separator: ", "))
+    check("\(body.name): the eye muscles, six a side, grouped by side",
+          eyeMuscles.structures.count == 12 && eyeMuscles.structures.allSatisfy {
+              $0.group == ($0.node.hasSuffix("_R") ? "right eye muscles" : "left eye muscles")
+          }, eyeMuscles.structures.map(\.group).joined(separator: ", "))
+
+    // each eyeball: a sphere about 12 mm across its radius, its axis from the centre through the cornea
+    let balls = ["R", "L"].map { sphere(at(pre + "sclera_" + $0)) }
+    for (k, side) in ["R", "L"].enumerated() {
+        let (c, r) = balls[k]
+        let sclera = at(pre + "sclera_" + side), cornea = at(pre + "cornea_" + side)
+        let iris = at(pre + "iris_" + side), pupil = at(pre + "pupil_" + side)
+        guard !sclera.isEmpty, !cornea.isEmpty, !iris.isEmpty, !pupil.isEmpty else {
+            check("\(body.name), \(side): the eyeball's coats, iris and pupil are there", false)
+            continue
+        }
+        let onIt = sclera.filter { abs(size($0 - c) - r) < 0.15 }.count
+        check("\(body.name), \(side): the sclera a sphere (radius \(String(format: "%.2f", r)) mm, 11 to 13; nine in ten of its points within 0.15 mm of it)",
+              (11...13).contains(r) && Double(onIt) >= 0.9 * Double(sclera.count), "\(onIt) of \(sclera.count)")
+        let a = unit(cornea.reduce(SIMD3<Double>.zero, +) / Double(cornea.count) - c)
+        let up = unit(SIMD3<Double>(0, 1, 0) - a.y * a)
+        let toward = balls[1 - k].centre - c
+        let nasal = unit(toward - dot(toward, a) * a - dot(toward, up) * up)
+        let apex = cornea.map { dot($0 - c, a) }.max()!
+        let chamber = apex - iris.map { dot($0 - c, a) }.max()!
+        check("\(body.name), \(side): the cornea's apex 12.5 to 14 mm before the centre (\(String(format: "%.2f", apex))), the iris 2.5 to 3.8 mm behind it (\(String(format: "%.2f", chamber)))",
+              (12.5...14).contains(apex) && (2.5...3.8).contains(chamber))
+        func offAxis(_ p: SIMD3<Double>) -> Double { size((p - c) - dot(p - c, a) * a) }
+        let pupilMiddle = pupil.reduce(SIMD3<Double>.zero, +) / Double(pupil.count)
+        check("\(body.name), \(side): the pupil on the axis, 1.6 to 2.2 mm across its radius",
+              offAxis(pupilMiddle) < 0.3 && (1.6...2.2).contains(pupil.map(offAxis).max()!),
+              "\(offAxis(pupilMiddle)), \(pupil.map(offAxis).max()!)")
+        // the recti's insertions, each on its own meridian: how far behind the limbus (5.85 mm off the axis)
+        let limbus = asin(5.85 / 12)
+        let tillaux: [(String, SIMD3<Double>)] = [("medial_rectus", nasal), ("inferior_rectus", -up), ("lateral_rectus", -nasal), ("superior_rectus", up)]
+        let behind: [Double] = tillaux.map { key, meridian in
+            let across = cross(a, meridian)
+            let thetas = at(pre + key + "_extraocular_muscle_" + side).map { $0 - c }
+                .filter { size($0) < r + 1.5 && abs(dot($0, across)) < 1 && dot($0, meridian) > 0 }
+                .map { atan2(dot($0, meridian), dot($0, a)) }
+            return r * ((thetas.min() ?? .nan) - limbus)
+        }
+        check("\(body.name), \(side): the recti on the spiral of Tillaux, medial 5.5 mm behind the limbus, inferior 6.5, lateral 6.9, superior 7.7 (within 0.7 mm, in that order)",
+              zip(behind, [5.5, 6.5, 6.9, 7.7]).allSatisfy { abs($0 - $1) <= 0.7 } && behind == behind.sorted(),
+              behind.map { String(format: "%.2f", $0) }.joined(separator: ", "))
+        func onBack(_ key: String) -> [SIMD3<Double>] {
+            at(pre + key + "_extraocular_muscle_" + side).map { $0 - c }.filter { size($0) < r + 1.2 && dot($0, a) < -1 }
+        }
+        let so = onBack("superior_oblique"), io = onBack("inferior_oblique")
+        check("\(body.name), \(side): the superior oblique inserted behind the equator, above; the inferior behind it, below and temporal",
+              so.count > 20 && median(so.map { dot($0, up) }) > 6
+                && io.count > 20 && median(io.map { dot($0, up) }) < -3 && median(io.map { dot($0, nasal) }) < -3,
+              "\(so.count) \(median(so.map { dot($0, up) })); \(io.count) \(median(io.map { dot($0, up) })) \(median(io.map { dot($0, nasal) }))")
+        let entering = eyeMuscles.structures.filter { $0.node.hasSuffix("_" + side) }.compactMap { s -> String? in
+            let n = at(s.node).filter { size($0 - c) < r - 0.15 }.count
+            return n == 0 ? nil : "\(s.label) \(n)"
+        }
+        check("\(body.name), \(side): no eye muscle enters the eyeball", entering.isEmpty, entering.joined(separator: ", "))
+        // none passes into another: no point of one inside another (where one crosses another, the outer lies
+        // over it; tools/anatomy_eyes.py)
+        let mine = eyeMuscles.structures.filter { $0.node.hasSuffix("_" + side) }
+        let solids = mine.compactMap { s in mesh(s.node, in: body).map { Solid($0) } }
+        var passing: [String] = []
+        if solids.count == mine.count {
+            for (i, a) in mine.enumerated() {
+                for (j, b) in mine.enumerated() where i != j {
+                    let n = at(a.node).filter { solids[j].contains($0) }.count
+                    if n > 0 { passing.append("\(a.label) in \(b.label) \(n)") }
+                }
+            }
+        }
+        check("\(body.name), \(side): no eye muscle passes into another", solids.count == mine.count && passing.isEmpty,
+              passing.joined(separator: ", "))
+        // the iris's frame, about which its pattern is drawn (AtlasShaders.iris): its middle on the eye's axis,
+        // turned about that axis, its pupil's rim and its root as far off it as the build puts them
+        if let ring = mesh(pre + "iris_" + side, in: body)?.ringFrame() {
+            let middle = SIMD3<Double>(Double(ring.centre.x), Double(ring.centre.y), Double(ring.centre.z)) * 1000
+            let turned = abs(dot(unit(SIMD3<Double>(Double(ring.axis.x), Double(ring.axis.y), Double(ring.axis.z))), a))
+            check("\(body.name), \(side): the iris's frame: its middle on the axis, turned about it, its rim 1.5 to 2.2 mm and its root 5 to 5.8 mm off it",
+                  offAxis(middle) < 0.3 && turned > cos(5 * Double.pi / 180)
+                    && (1.5...2.2).contains(Double(ring.inner) * 1000) && (5...5.8).contains(Double(ring.outer) * 1000),
+                  "\(offAxis(middle)) \(turned) \(ring.inner * 1000) \(ring.outer * 1000)")
+        } else {
+            check("\(body.name), \(side): the iris's frame", false)
+        }
+    }
+    let patterned = body.parts.flatMap(\.structures).filter(\.iris)
+    check("\(body.name): what is drawn with the iris's pattern the irises alone, both sides",
+          patterned.count == 2 && patterned.allSatisfy { key($0) == "iris" }, patterned.map(\.node).joined(separator: ", "))
+
+    // each eye muscle a belly ending in a tendon (the bundles' tendon share, tools/anatomy_fibres.py)
+    if let fibres = eyeMuscles.fibres, let data = try? Data(contentsOf: folder.appendingPathComponent(fibres.file)),
+       let ms = meshes[eyeMuscles.file], let stripes = try? AnatomyAtlas.stripes(of: eyeMuscles, meshes: ms, from: data) {
+        let lacking = zip(eyeMuscles.structures, stripes).compactMap { s, b -> String? in
+            guard let b else { return s.label + ": no bundles" }
+            let tendon = b.tendon.filter { $0 > 0.5 }.count, belly = b.tendon.filter { (0...0.1).contains($0) }.count
+            return tendon >= 30 && belly >= 200 ? nil : "\(s.label): \(tendon) tendon, \(belly) belly"
+        }
+        check("\(body.name): each eye muscle a belly ending in a tendon", lacking.isEmpty, lacking.joined(separator: "; "))
+    } else {
+        check("\(body.name): the eye muscles' bundles read", false)
+    }
+}
+
+// MARK: the tubes closed, and the pelvis's structures apart (tools/anatomy_apart.py)
+
+/// A closed surface's inside: a point is in it when a ray from it straight up, and one straight down, each
+/// cross the surface an odd number of times (the two agree for a closed surface; a ray grazing an edge, which
+/// two triangles both count, makes them differ, and the point is then read as outside). The triangles are
+/// binned by their spans across x and z, so a point reads only the ones over and under it.
+struct ClosedSolid {
+    struct Bin: Hashable { let x, z: Int32 }
+    let size: Float
+    let lo: SIMD3<Float>, hi: SIMD3<Float>
+    var corners: [(SIMD3<Float>, SIMD3<Float>, SIMD3<Float>)] = []
+    var bins: [Bin: [Int]] = [:]
+    init(_ m: AnatomyMesh, size: Float = 0.004) {
+        self.size = size
+        let ps = points(m)
+        lo = ps.reduce(SIMD3(repeating: .infinity)) { pointwiseMin($0, $1) }
+        hi = ps.reduce(SIMD3(repeating: -.infinity)) { pointwiseMax($0, $1) }
+        for t in stride(from: 0, to: m.indices.count, by: 3) {
+            let a = ps[Int(m.indices[t])], b = ps[Int(m.indices[t + 1])], c = ps[Int(m.indices[t + 2])]
+            corners.append((a, b, c))
+            let x0 = Int32((min(a.x, b.x, c.x) / size).rounded(.down)), x1 = Int32((max(a.x, b.x, c.x) / size).rounded(.down))
+            let z0 = Int32((min(a.z, b.z, c.z) / size).rounded(.down)), z1 = Int32((max(a.z, b.z, c.z) / size).rounded(.down))
+            for x in x0...x1 { for z in z0...z1 { bins[Bin(x: x, z: z), default: []].append(corners.count - 1) } }
+        }
+    }
+    func contains(_ q: SIMD3<Float>) -> Bool {
+        guard q.x >= lo.x, q.x <= hi.x, q.y >= lo.y, q.y <= hi.y, q.z >= lo.z, q.z <= hi.z else { return false }
+        var up = 0, down = 0
+        for i in bins[Bin(x: Int32((q.x / size).rounded(.down)), z: Int32((q.z / size).rounded(.down)))] ?? [] {
+            let (a, b, c) = corners[i]
+            let d = (b.x - a.x) * (c.z - a.z) - (c.x - a.x) * (b.z - a.z)
+            if d == 0 { continue }
+            let u = ((q.x - a.x) * (c.z - a.z) - (c.x - a.x) * (q.z - a.z)) / d
+            let v = ((b.x - a.x) * (q.z - a.z) - (q.x - a.x) * (b.z - a.z)) / d
+            guard u >= 0, v >= 0, u + v <= 1 else { continue }
+            if a.y + u * (b.y - a.y) + v * (c.y - a.y) > q.y { up += 1 } else { down += 1 }
+        }
+        return up % 2 == 1 && down % 2 == 1
+    }
+}
+
+// The organ set's vessels and gut tubes were cut open where each meets the next, and the app draws a solid's
+// inside: each is a closed surface now, yet hollow at a cut across it, as a cut tube is (a double wall's two rims
+// joined by the ring between them; a single wall given a wall's ring and a lumen sealed out of sight), a sheet
+// over a branch's mouth
+let tubeParts: Set<String> = ["vessels", "colon", "small-intestine", "urethra", "genital-ducts", "uterine-tubes", "vagina", "biliary-tree"]
+for body in manifest.bodies {
+    let pre = body.id == .male ? "VH_M_" : "VH_F_"
+    let named = body.id == .male
+        ? ["rectum", "sigmoid_colon", "common_iliac_vein_L", "common_iliac_vein_R", "internal_iliac_vein_L", "internal_iliac_vein_R", "median_sacral_vein"]
+        : ["rectum", "sigmoid_colon", "left_common_iliac_vein", "right_common_iliac_vein", "internal_iliac_vein_L", "internal_iliac_vein_R", "median_sacral_vein"]
+    let open = named.compactMap { key -> String? in
+        guard let m = mesh(pre + key, in: body) else { return key + " missing" }
+        let n = openEdges([m])
+        return n == 0 ? nil : "\(key) \(n)"
+    }
+    check("\(body.name): the rectum, the sigmoid colon, the common and internal iliac veins and the median sacral vein each a closed surface",
+          open.isEmpty, open.joined(separator: ", "))
+    var tubes = 0, closed = 0
+    for part in body.parts where tubeParts.contains(part.id) || part.id == "kidneys" {
+        for (s, m) in zip(part.structures, meshes[part.file] ?? []) where part.id != "kidneys" || s.node.contains("ureter") {
+            tubes += 1
+            if openEdges([m]) == 0 { closed += 1 }
+        }
+    }
+    check("\(body.name): the tubes closed at their cut ends, \(closed) of \(tubes) (19 in 20 or more; a few branch where three meet at an edge)",
+          tubes > 100 && closed * 20 >= tubes * 19)
+}
+
+// In the pelvis no vein runs into a bone (the sacrum, the coccyx, the lumbar vertebrae, the hip bones), nor into
+// the rectum or the sigmoid colon unless it is that gut's own (a rectal vein, a sigmoid vein, which end in it):
+// the organs, the vessels and the ducts were eased out of the bones and one another. Each vein's points in the
+// pelvis (its part's box, 2 cm wider, 1 cm above the iliac crests) are read against each closed bone and gut:
+// at most 15 points in, none deeper than 3 mm (the organ set's ran 4 to 5 mm into the ischia, and the woman's
+// median sacral vein 5 mm into the back of her rectum; the man's left internal pudendal vein, which runs along
+// the inside of his ischium where a push cannot tell which face it lies on, still grazes it by under 3 mm).
+for body in manifest.bodies {
+    let pre = body.id == .male ? "VH_M_" : "VH_F_"
+    guard let pelvis = body.part("pelvis"), pelvis.bounds.count == 6, let vessels = body.part("vessels"),
+          let vesselMeshes = meshes[vessels.file] else {
+        check("\(body.name): the pelvis and the vessels are there", false); continue
+    }
+    let lo = SIMD3(pelvis.bounds[0], pelvis.bounds[1], pelvis.bounds[2]) - 0.02
+    var hi = SIMD3(pelvis.bounds[3], pelvis.bounds[4], pelvis.bounds[5]) + 0.02
+    hi.y -= 0.01
+    func inPelvis(_ p: SIMD3<Float>) -> Bool { all(p .>= lo) && all(p .<= hi) }
+    var walls: [(node: String, owns: String?, solid: ClosedSolid, surface: PointGrid)] = []
+    for s in pelvis.structures where s.tissue == .bone {
+        if let m = mesh(s.node, in: body) { walls.append((s.node, nil, ClosedSolid(m), PointGrid(points(m)))) }
+    }
+    for s in body.part("vertebral-column")?.structures ?? [] where s.node.hasPrefix(pre + "lumbar_vertebra_") {
+        if let m = mesh(s.node, in: body) { walls.append((s.node, nil, ClosedSolid(m), PointGrid(points(m)))) }
+    }
+    for (key, own) in [("rectum", "rectal"), ("sigmoid_colon", "sigmoid")] {
+        if let m = mesh(pre + key, in: body) { walls.append((pre + key, own, ClosedSolid(m), PointGrid(points(m)))) }
+    }
+    var veins = 0, inside: [String] = [], count = 0
+    var deepest: Float = 0
+    for (s, m) in zip(vessels.structures, vesselMeshes) where s.tissue == .vein {
+        let ps = points(m).filter(inPelvis)
+        if ps.isEmpty { continue }
+        veins += 1
+        for wall in walls where wall.owns.map({ !s.node.contains($0) }) ?? true {
+            let ins = ps.filter(wall.solid.contains)
+            if ins.isEmpty { continue }
+            let depth = ins.map(wall.surface.nearest).max()! * 1000
+            count += ins.count
+            deepest = max(deepest, depth)
+            inside.append("\(s.node.dropFirst(pre.count)) in \(wall.node.dropFirst(pre.count)) \(ins.count) (\(String(format: "%.1f", depth)) mm)")
+        }
+    }
+    check("\(body.name): in the pelvis no vein in a bone or a gut not its own (\(veins) veins, \(walls.count) bones and guts; \(count) points in, deepest \(String(format: "%.1f", deepest)) mm)",
+          veins >= 15 && walls.count >= 7 && count <= 15 && deepest < 3, inside.joined(separator: "; "))
+}
+// The woman's sacrum, a scan of another body's, drawn out of her hip bones (from her CT) where it ran into them at
+// its joints, a joint's width off them (some 70 of its points a side lay 1 to 4 mm inside). The man's hip bones are
+// his organ set's thin plates, which the sacrum still crosses: drawing it out of them would dent it, so it is left
+// as it was (tools/anatomy_apart.py ease_sacrum).
+if let sacrum = mesh("VH_F_sacrum", in: female) {
+    let sp = points(sacrum)
+    let crossing = ["TS_hip_L", "TS_hip_R"].compactMap { mesh($0, in: female) }.map { hip in sp.filter(ClosedSolid(hip).contains).count }
+    check("Female: the sacrum clear of the hip bones (\(crossing.map(String.init).joined(separator: " and ")) of its points in them)",
+          crossing.count == 2 && crossing.allSatisfy { $0 <= 3 })
+} else {
+    check("Female: the sacrum is there", false)
 }
 
 // MARK: labels

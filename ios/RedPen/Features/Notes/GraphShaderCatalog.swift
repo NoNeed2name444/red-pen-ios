@@ -58,11 +58,12 @@ nonisolated enum GraphShaderCatalog {
         return surfaces.map { GraphShaderItem(name: $0.0, entry: "surface", source: $0.1) }
     }
 
-    /// The anatomy atlas's bone and muscle (Features/Sciences/AtlasShaders.swift).
+    /// The anatomy atlas's bone, muscle and iris (Features/Sciences/AtlasShaders.swift).
     static var atlas: [GraphShaderItem] {
         [
             GraphShaderItem(name: "atlasBone", entry: "surface", source: AtlasShaders.bone),
-            GraphShaderItem(name: "atlasMuscle", entry: "surface", source: AtlasShaders.muscle)
+            GraphShaderItem(name: "atlasMuscle", entry: "surface", source: AtlasShaders.muscle),
+            GraphShaderItem(name: "atlasIris", entry: "surface", source: AtlasShaders.iris)
         ]
     }
 

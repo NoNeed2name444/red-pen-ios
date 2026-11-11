@@ -1,21 +1,31 @@
-"""Each tube in the atlas closed at its cut ends, and the pelvis's structures kept out of one another.
+"""Each tube in the atlas closed at its holes, its cut ends open and hollow, and the pelvis's structures kept out
+of one another.
 
 The organ sets (the HRA's 3D reference organs, CC BY 4.0) draw a vessel or a gut as a tube cut open where
 it meets the next one: a vein where it drains into the next, the rectum where it meets the sigmoid colon, a
-branch's mouth where it leaves its trunk. Seen alone, or with its neighbour hidden, such a tube shows its
-hollow inside (the app draws a solid structure from both sides). So each hole in a tube is closed here by a
-cap, as a whole structure is closed: where the hole is a cut across the tube (flat, the tube on one side of
-it), a low dome rising a third of the hole's radius, so the tube ends rounded, as a vessel tied off or a gut
-drawn on its own is drawn in an atlas; where it is not (a branch's mouth, cut out of a curved wall), a sheet
-across it, smoothed with its rim held. Where two tubes join, each one's cap lies inside the other, out of
-sight while both are shown. A small hole (under 4 mm across its radius) is closed by a fan from its rim to
-the cap's top; a larger one has a ring of half as many points between, a large one (12 mm) two: the
-caps cost little of the atlas's triangle budget.
+branch's mouth where it leaves its trunk. Seen alone, or with its neighbour hidden, such a tube showed a ragged
+hole and the back of its own wall (the app draws a solid structure from both sides). So each hole is closed
+here, as a whole structure is closed, but a cut across a tube is left open, as a cut tube is (the owner, 6 Nov:
+"they are normally hollow in a human"; a dome over it read as a solid stump). Many of the organ sets' tubes are
+drawn with their lumen, an inner wall inside the outer one (the gut, the great vessels, the ducts), so a cut
+there shows two rims: they are joined by the ring of the wall between them (the rectum's 3 mm). A tube drawn
+without its lumen is given one at a cut end: its wall a ring in from the rim, as thick as its tissue's (an
+artery's an eighth of its radius, a vein's a fourteenth, a duct's three tenths, a gut's 3 mm and an airway's
+2 mm, none under 0.35 mm, so it shows), its lumen a sleeve along the tube's own axis (an aslant cut's too) to
+its cross-section 1.2 radii in, then narrowing to a seal 3 radii in, or as deep as it lies wholly inside the
+tube, out of sight. Where a tube runs too short behind its cut to hold a lumen (a stub where three meet), and
+over a branch's mouth, cut out of a curved wall, a sheet closes the hole, smoothed with its rim held. The
+ring's points are new ones at the rim's own places (the app lights the cut as a sharp edge, the tube's side and
+the ring each with its own normal), and each tube stays a closed surface. Where two tubes join, each one's ring
+lies in the joint and its lumen inside itself, so nothing shows while both are shown (the domes before lay each
+inside the other). A narrow end (under 4 mm across its radius) keeps half as many points round its wall's inner
+edge as on its rim, one under 1.5 mm a third and a cone for its lumen: the ends cost little of the atlas's
+triangle budget.
 
-Then, in the pelvis, nothing passes into anything else (the owner: "elements shouldn't phase through each
-other. each should be compact"): first the sacrum, another man's scanned bone on this body's hip bones, drawn
-out of them at its joints (see ease_sacrum()); then the soft structures out of the bones and one another (see
-apart()).
+Before that, in the pelvis, nothing passes into anything else (the owner: "elements shouldn't phase through
+each other"): first the sacrum, another man's scanned bone on this body's hip bones, drawn out of them at its
+joints (see ease_sacrum()); then the soft structures out of the bones and one another (see apart()), the tubes
+sheeted flat across their holes while that is done (see cap()).
 """
 import math
 import os
@@ -31,10 +41,20 @@ from anatomy_fibres import read_part, sha256, write_part  # noqa: E402
 TUBES = ("vessels", "colon", "small-intestine", "urethra", "genital-ducts", "uterine-tubes", "vagina",
          "biliary-tree")
 TUBE_NODES = {"kidneys": "ureter"}
-DOME = 1 / 3          # a cut end's dome rises a third of its radius
+CLOSE_ENDS = True     # each tube closed at its holes (close()) once the pelvis is parted, its cut ends open and
+                      # hollow (the owner, 6 Nov: "they are normally hollow in a human"), no longer domed
 FLAT = 0.15           # a cut end is flat: its rim within this share of its radius of a plane (root mean square)
 ONE_SIDED = 0.9       # and nine in ten of the tube's points near it (within 2.5 radii) on one side of it
-FAN, ONE_RING = 0.004, 0.012   # a hole's radius under which its cap is a fan; under which it has one ring
+FAN, ONE_RING = 0.004, 0.012   # a mouth's radius under which its sheet is a fan; under which it has one ring
+WALL_SHARE = {"artery": 0.12, "vein": 0.07}    # a cut end's wall: a vessel's this share of its radius,
+WALL_MM = {"gut": 0.003, "airway": 0.002}      # a gut's and an airway's this many metres (at most WALL_MOST of
+WALL_DUCT, WALL_MOST = 0.3, 0.3                # its radius), any other's (a duct's, an organ's) WALL_DUCT of it;
+WALL_MIN = 0.00035                             # none thinner than 0.35 mm, or it would not show
+SLEEVE, SEAL = 1.2, 3.0        # the lumen's sleeve runs this many radii in, then narrows to its seal this far in
+FINE, COARSE = 0.004, 0.0015   # an end this wide keeps a point round its wall's inner edge for each of its rim's,
+                               # a narrower one half as many, one under COARSE a third and a cone for its lumen
+PAIR = 0.5            # two rims of a structure are one double wall's: the inner inside the outer, facing alike,
+                      # its middle within this share of the outer's radius of the outer's, across and along
 
 
 def cycles(f):
@@ -101,11 +121,40 @@ def zip_rings(outer, t_outer, inner, s_inner):
     return tris
 
 
-def cap(v, loop, start):
-    """A cap over one hole: its new points (numbered from `start`) and its triangles over the mesh's point
-    ids, and whether it is a dome (a cut end) or a sheet."""
+def frame(n):
+    """Two unit vectors across n, and n's turn about them (right-handed)."""
+    a = np.array([1.0, 0.0, 0.0]) if abs(n[0]) < 0.9 else np.array([0.0, 1.0, 0.0])
+    e1 = np.cross(n, a)
+    e1 /= np.linalg.norm(e1)
+    return e1, np.cross(n, e1)
+
+
+def plane(p, c, e1, e2):
+    """Points in the plane across n: their offsets from c along e1 and e2."""
+    d = np.atleast_2d(p) - c
+    return np.stack([d @ e1, d @ e2], 1)
+
+
+def turning(xy):
+    """Twice the signed area of a closed polygon in the plane (positive anticlockwise)."""
+    x, y = xy[:, 0], xy[:, 1]
+    return float((x * np.roll(y, -1) - np.roll(x, -1) * y).sum())
+
+
+def encloses(poly, xy):
+    """Whether the closed polygon (in the plane) holds each point (even-odd)."""
+    x, y = xy[:, :1], xy[:, 1:]
+    x0, y0 = poly[None, :, 0], poly[None, :, 1]
+    x1, y1 = np.roll(poly[:, 0], -1)[None], np.roll(poly[:, 1], -1)[None]
+    across = (y0 > y) != (y1 > y)
+    at = x0 + (y - y0) * (x1 - x0) / np.where(y1 != y0, y1 - y0, 1.0)
+    return (across & (x < at)).sum(1) % 2 == 1
+
+
+def rim(v, loop):
+    """A hole's rim: its points' ids, its middle, the normal of its plane turned away from the tube, its mean
+    radius, and whether it is a cut across the tube (flat, the tube on one side of it)."""
     q = v[loop]
-    m = len(loop)
     c = q.mean(0)
     _, _, vt = np.linalg.svd(q - c)
     n = vt[2]
@@ -114,11 +163,273 @@ def cap(v, loop, start):
     near = v[np.linalg.norm(v - c, axis=1) < 2.5 * r]
     side = (near - c) @ n
     if side.mean() > 0:
-        n, side = -n, -side                 # the tube on the cap's inner side
+        n, side = -n, -side                 # the tube behind the rim
     sure = np.abs(side) > 0.15 * r
     one = float((side[sure] < 0).mean()) if sure.any() else 0.0
-    dome = flat < FLAT and one >= ONE_SIDED
-    H = DOME * r if dome else 0.0
+    return {"loop": loop, "c": c, "n": n, "r": r, "cut": flat < FLAT and one >= ONE_SIDED}
+
+
+def pair_up(v, holes):
+    """The double walls among a structure's holes: (outer, inner) pairs, the inner rim inside the outer and
+    near its plane, each hole in one pair at most, the nearest first."""
+    found = []
+    for i, a in enumerate(holes):
+        e1, e2 = frame(a["n"])
+        poly = plane(v[a["loop"]], a["c"], e1, e2)
+        for j, b in enumerate(holes):
+            if j == i or not 0.3 * a["r"] < b["r"] < a["r"] or abs(float(a["n"] @ b["n"])) < 0.7:
+                continue
+            d = b["c"] - a["c"]
+            along = abs(float(d @ a["n"]))
+            across = float(np.linalg.norm(d - (d @ a["n"]) * a["n"]))
+            if along > PAIR * a["r"] or across > PAIR * a["r"]:
+                continue
+            if encloses(poly, plane(v[b["loop"]], a["c"], e1, e2)).mean() < 0.9:
+                continue
+            found.append((along + across + a["r"] - b["r"], i, j))
+    pairs, used = [], set()
+    for _, i, j in sorted(found):
+        if i not in used and j not in used:
+            used |= {i, j}
+            pairs.append((i, j))
+    return pairs
+
+
+def sweep(xy, sense, ref):
+    """Shares round a rim (in the plane, about its middle) by the angle each point makes there, from the angle
+    `ref` on, the rim turning the way `sense` says; None where it does not go once round in steps all one way."""
+    ang = np.arctan2(xy[:, 1], xy[:, 0])
+    step = np.angle(np.exp(1j * (np.roll(ang, -1) - ang))) * sense
+    if (step <= 0).any() or abs(step.sum() - 2 * math.pi) > 0.5:
+        return None
+    return (np.angle(np.exp(1j * (ang[0] - ref))) * sense + np.r_[0, np.cumsum(step)]) / (2 * math.pi)
+
+
+def edge_gap(P, poly):
+    """How far each point lies inside the closed polygon (in the plane), from its nearest edge; negative outside."""
+    a, d = poly, np.roll(poly, -1, 0) - poly
+    t = np.clip(((P[:, None] - a[None]) * d[None]).sum(2) / np.maximum((d * d).sum(1), 1e-18)[None], 0, 1)
+    gap = np.linalg.norm(P[:, None] - (a[None] + t[..., None] * d[None]), axis=2).min(1)
+    return np.where(encloses(poly, P), gap, -gap)
+
+
+def join_walls(v, a, b, start):
+    """A double wall's cut: the ring from its outer rim a to its inner rim b, its points new ones at the rims'
+    places (numbered from `start`), the two zipped by the angle about the outer's middle. Where the inner rim
+    strays out to the outer (a thin wall drawn unevenly), its points are first drawn in, a quarter of the wall
+    inside it. Returns the ring's points and triangles, and the inner rim's points as they now lie."""
+    q, p = v[a["loop"]], v[b["loop"]].copy()
+    e1, e2 = frame(a["n"])
+    xq, xp = plane(q, a["c"], e1, e2), plane(p, a["c"], e1, e2)
+    keep = max(0.25 * (a["r"] - b["r"]), 1e-5)
+    gap = edge_gap(xp, xq)
+    shy = gap < keep
+    if shy.any():
+        towards = xp[shy] / np.maximum(np.linalg.norm(xp[shy], axis=1, keepdims=True), 1e-12)
+        move = np.minimum(keep - gap[shy], 0.5 * np.linalg.norm(xp[shy], axis=1))[:, None] * towards
+        p[shy] -= move[:, :1] * e1 + move[:, 1:] * e2
+        xp = plane(p, a["c"], e1, e2)
+    moved = p.copy()
+    order = np.arange(len(p))
+    if turning(xq) * turning(xp) < 0:
+        order = order[::-1]                 # both rims turning the same way
+    sense = 1.0 if turning(xq) > 0 else -1.0
+    ref = math.atan2(xq[0, 1], xq[0, 0])
+    order = np.roll(order, -int(np.argmin(np.abs(np.angle(np.exp(1j * (np.arctan2(xp[order, 1], xp[order, 0])
+                                                                          - ref)))))))
+    p, xp = p[order], xp[order]
+    t, s = sweep(xq, sense, ref), sweep(xp, sense, ref)
+    if t is None or s is None:
+        t, s = around(q, np.zeros(1))[1], around(p, np.zeros(1))[1]
+    m, k = len(q), len(p)
+    T = zip_rings(list(range(start, start + m)), t, list(range(start + m, start + m + k)), s)
+    return np.concatenate([q, p]), np.array(T, np.int64), moved
+
+
+def radii(v, f, o, n, e1, e2, U):
+    """In the plane through o across n, along each direction U (k by 2, over e1 and e2): the distance to the
+    nearest place the surface f crosses it, or inf where it does not."""
+    s = (v - o) @ n
+    s = np.where(s == 0, 1e-12, s)
+    sf = s[f]
+    up = sf > 0
+    cut = up.any(1) & ~up.all(1)
+    F, sf, up = f[cut], sf[cut], up[cut]
+    if not len(F):
+        return np.full(len(U), np.inf)
+    ends, crossing = [], []
+    for a, b in ((0, 1), (1, 2), (2, 0)):
+        crossing.append(up[:, a] != up[:, b])
+        share = sf[:, a] / np.where(crossing[-1], sf[:, a] - sf[:, b], 1.0)
+        ends.append(v[F[:, a]] + (v[F[:, b]] - v[F[:, a]]) * share[:, None])
+    two = np.argsort(~np.stack(crossing, 1), axis=1, kind="stable")[:, :2]
+    ends, rows = np.stack(ends, 1), np.arange(len(F))
+    x0 = plane(ends[rows, two[:, 0]], o, e1, e2)
+    d = plane(ends[rows, two[:, 1]], o, e1, e2) - x0
+    ux, uy = U[:, :1], U[:, 1:]
+    den = ux * d[None, :, 1] - uy * d[None, :, 0]
+    den = np.where(np.abs(den) < 1e-18, 1e-18, den)
+    lam = (x0[None, :, 0] * d[None, :, 1] - x0[None, :, 1] * d[None, :, 0]) / den
+    mu = (x0[None, :, 0] * uy - x0[None, :, 1] * ux) / den
+    return np.where((lam > 0) & (mu >= 0) & (mu <= 1), lam, np.inf).min(1)
+
+
+def crosses(P0, P1, tri):
+    """Whether any of the segments P0 -> P1 passes through any of the triangles tri (T by 3 by 3)."""
+    if not len(tri):
+        return False
+    a = tri[:, 0]
+    e1, e2 = tri[:, 1] - a, tri[:, 2] - a
+    D = np.broadcast_to(P1, P0.shape) - P0
+    for i in range(0, len(tri), 4000):
+        sl = slice(i, i + 4000)
+        pv = np.cross(D[:, None, :], e2[None, sl])
+        det = (pv * e1[None, sl]).sum(2)
+        inv = 1.0 / np.where(np.abs(det) < 1e-24, 1e-24, det)
+        tv = P0[:, None, :] - a[None, sl]
+        u = (tv * pv).sum(2) * inv
+        qv = np.cross(tv, e1[None, sl])
+        w = (D[:, None, :] * qv).sum(2) * inv
+        t = (e2[None, sl] * qv).sum(2) * inv
+        if ((np.abs(det) >= 1e-24) & (u >= 0) & (w >= 0) & (u + w <= 1) & (t > 1e-6) & (t < 1 - 1e-6)).any():
+            return True
+    return False
+
+
+def inward(P, mid, n, w):
+    """The points P moved w toward mid, across n (never more than nine tenths of the way)."""
+    d = P - mid
+    d = d - np.outer(d @ n, n)
+    ln = np.linalg.norm(d, axis=1, keepdims=True)
+    return P - d / np.maximum(ln, 1e-12) * np.minimum(w, 0.9 * ln)
+
+
+def wall(tissue, r):
+    """A cut end's wall, by the tube's tissue and radius."""
+    if tissue in WALL_SHARE:
+        w = WALL_SHARE[tissue] * r
+    elif tissue in WALL_MM:
+        w = min(WALL_MM[tissue], WALL_MOST * r)
+    else:
+        w = WALL_DUCT * r
+    return max(w, min(WALL_MIN, 0.45 * r))
+
+
+def hollow_end(v, f, h, w, start):
+    """A cut end left open (see the header): its wall a ring from the rim in by w, its lumen a sleeve along the
+    tube's axis to its cross-section SLEEVE radii in, w inside it, then a cone to the axis SEAL radii in, or as
+    deep as the cone lies wholly inside the tube. v, f: the tube's points and the triangles of its surface the
+    rim is on; h: the rim (rim()); its points new ones (numbered from `start`). Returns the points and the
+    triangles, or None where the tube runs too short behind its rim to hold a lumen."""
+    loop, c, n, r = h["loop"], h["c"], h["n"], h["r"]
+    q = v[loop]
+    m = len(loop)
+    e1, e2 = frame(n)
+    w = min(w, 0.45 * float(np.linalg.norm(plane(q, c, e1, e2), axis=1).min()))
+    if w <= 0:
+        return None
+    own = v[np.unique(f)] - c
+    tv = v[f] - c
+
+    def reach(a):
+        """How far the tube runs behind the rim along a, near that line."""
+        d = own @ a
+        return float(d[np.linalg.norm(own - np.outer(d, a), axis=1) < 1.5 * r].max(initial=0.0))
+
+    def nearby(a, deep):
+        """The tube's triangles about the line from c along a, to `deep` past it."""
+        d = tv @ a
+        lt = np.linalg.norm(tv - d[..., None] * a, axis=2)
+        return f[(d.min(1) < deep + r) & (d.max(1) > -0.5 * r) & (lt.min(1) < 3 * r)]
+
+    def middle(o, a, b1, b2, U, near):
+        """The middle of the tube's cross-section through o across a, and the distances from it to the tube
+        along the directions U (over b1, b2), or (o, None) where the plane there does not go round the tube."""
+        out = U[:, :1] * b1 + U[:, 1:] * b2
+        for _ in range(2):
+            dist = radii(v, near, o, a, b1, b2, U)
+            hit = dist < 2.5 * r
+            if hit.mean() < 0.75:
+                return o, None
+            o = o + (dist[hit, None] * out[hit]).mean(0)
+        return o, radii(v, near, o, a, b1, b2, U)
+
+    # the tube's axis behind the rim (a cut may run across it aslant): to the middles of its cross-sections one
+    # and two radii in
+    a = -n
+    turn = np.arange(12) * (2 * math.pi / 12)
+    U12 = np.stack([np.cos(turn), np.sin(turn)], 1)
+    for depth in (r, 2 * r):
+        if depth > 0.45 * reach(a):
+            break
+        b1, b2 = frame(a)
+        g, dist = middle(c + a * depth, a, b1, b2, U12, nearby(a, depth + r))
+        if dist is None:
+            break
+        ax = (g - c) / np.linalg.norm(g - c)
+        if ax @ -n < 0.5:
+            break
+        a = ax
+    seal = min(SEAL * r, 0.45 * reach(a))
+    near = nearby(a, seal)
+    tri = v[near]
+    b1, b2 = frame(a)
+    k = m if r >= FINE else max(6, -(-m // 2)) if r >= COARSE else max(4, -(-m // 3))
+    _, t = around(q, np.zeros(1))
+    s = t if k == m else np.arange(k + 1) / k
+    A = inward(q.copy() if k == m else around(q, s[:k])[0], c, n, w)
+    xa = plane(A, c, b1, b2)
+    ra = np.linalg.norm(xa, axis=1)
+    U = xa / np.maximum(ra, 1e-12)[:, None]
+    out = U[:, :1] * b1 + U[:, 1:] * b2
+    top = float(((A - c) @ a).max())         # the wall's inner edge reaches this far in (an aslant cut's)
+    if seal < top + 0.2 * r:
+        return None
+    last = list(range(start + m + k, start + m + 2 * k))
+    nxt = start + m + 2 * k
+    pts = [q, A, A]                           # the rim, the wall's inner edge, and the lumen's own copy of it
+    T = zip_rings(list(range(start, start + m)), t, list(range(start + m, start + m + k)), s)
+    P, gone, drift = A, top, np.zeros(3)
+    if r >= COARSE:
+        # the sleeve: on the tube's cross-section, w inside it, never wider than the wall's inner edge
+        t1 = top + (seal - top) * SLEEVE / SEAL
+        for _ in range(3):
+            if t1 < top + 0.15 * r:
+                break
+            o, dist = middle(c + a * t1, a, b1, b2, U, near)
+            if dist is not None:
+                rho = np.minimum(dist - w, ra)
+                B = o + rho[:, None] * out
+                if rho.min() > 0.15 * r and not crosses(A, B, tri):
+                    down = list(range(nxt, nxt + k))
+                    nxt += k
+                    pts.append(B)
+                    T += zip_rings(last, s, down, s)
+                    last, P, gone, drift = down, B, t1, (o - (c + a * t1)) / t1
+                    break
+            t1 = top + 0.6 * (t1 - top)
+    # the seal: the middle of the tube's cross-section that deep (followed as the tube bends), as deep as the
+    # cone to it lies wholly inside the tube
+    for t2 in (seal, gone + 0.6 * (seal - gone), gone + 0.35 * (seal - gone), gone + 0.15 * r, gone + 0.08 * r):
+        if t2 <= gone:
+            continue
+        apex = middle(c + a * t2 + drift * t2, a, b1, b2, U, near)[0]
+        if not crosses(P, apex[None], tri):
+            pts.append(apex[None])
+            T += [(last[(j + 1) % k], last[j], nxt) for j in range(k)]
+            return np.concatenate(pts), np.array(T, np.int64)
+    return None
+
+
+def sheet(v, loop, start):
+    """A sheet over a hole that is not a cut across the tube (a branch's mouth, cut out of a curved wall): its
+    new points (numbered from `start`) and its triangles over the mesh's point ids. A small hole (under FAN
+    across its radius) a fan from its rim to its middle; a larger one with a ring of half as many points between,
+    a large one (ONE_RING) two; its inner points each moved to its neighbours' mean, the rim held."""
+    q = v[loop]
+    m = len(loop)
+    c = q.mean(0)
+    r = float(np.linalg.norm(q - c, axis=1).mean())
     levels = 0 if r < FAN else (1 if r < ONE_RING else 2)
     pts, tris = [], []
     _, t = around(q, np.zeros(1))
@@ -128,21 +439,18 @@ def cap(v, loop, start):
         k = max(3, int(math.ceil(m / 2 ** lev)))
         s = np.arange(k + 1) / k
         P, _ = around(q, s[:k])
-        th = lev / (levels + 1) * math.pi / 2
-        ring = c + (P - c) * (math.cos(th) if dome else 1 - lev / (levels + 1)) + n * H * math.sin(th)
         ids = list(range(nxt, nxt + k))
         nxt += k
-        pts.append(ring)
+        pts.append(c + (P - c) * (1 - lev / (levels + 1)))
         tris += zip_rings(outer, t_outer, ids, s)
         outer, t_outer = ids, s
     top = nxt
-    pts.append((c + n * H)[None])
+    pts.append(c[None])
     kk = len(outer)
     tris += [(outer[(j + 1) % kk], outer[j], top) for j in range(kk)]
     P = np.concatenate(pts)
     T = np.array(tris, np.int64)
-    if not dome and levels:
-        # a sheet: its inner points each moved to its neighbours' mean, the rim held
+    if levels:
         ids = np.unique(T)
         at = {g: i for i, g in enumerate(ids)}
         X = np.array([v[g] if g < start else P[g - start] for g in ids])
@@ -154,17 +462,21 @@ def cap(v, loop, start):
         free = [at[g] for g in range(start, start + len(P))]
         lists = [np.array(sorted(nb[i])) for i in free]
         for _ in range(20):
-            X[free] = np.array([X[l].mean(0) for l in lists])
+            X[free] = np.array([X[lst].mean(0) for lst in lists])
         P = X[free]
-    return P, T, dome, r
+    return P, T
 
 
-def close_tubes(v, f):
-    """The mesh with each of its holes capped; the new points after the old, the new triangles after the old.
-    Returns (v, f, how many domes, how many sheets)."""
-    v = np.asarray(v, np.float64)
+def close_tubes(v, f, tissue=None):
+    """The mesh with each of its holes closed (see the header): a double wall's two rims joined, a cut end left
+    open and hollow, any other hole sheeted; the new points after the old, the new triangles after the old.
+    Returns (v, f, how many of each {"joined", "hollow", "sheet"}, [(each hole's middle, its radius)])."""
+    from collections import Counter
+    from scipy.sparse import coo_matrix
+    from scipy.sparse.csgraph import connected_components
+    v = np.array(v, np.float64)
     f = np.asarray(f, np.int64)
-    # holes are found on the mesh with points at one place made one; the caps meet the mesh at its own points
+    # holes are found on the mesh with points at one place made one; a sheet meets the mesh at its own points
     key = np.round(v * 1e6).astype(np.int64)
     _, first, inverse = np.unique(key, axis=0, return_index=True, return_inverse=True)
     inverse = inverse.reshape(-1)
@@ -173,19 +485,44 @@ def close_tubes(v, f):
     wv = v[first]
     loops = cycles(wf)
     if not loops:
-        return v, f, 0, 0, []
-    newp, newf, domes, sheets, where = [], [], 0, 0, []
+        return v, f, {}, []
+    E = np.concatenate([wf[:, [0, 1]], wf[:, [1, 2]]])
+    _, piece = connected_components(coo_matrix((np.ones(len(E)), (E[:, 0], E[:, 1])), shape=(len(wv),) * 2),
+                                    directed=False)
+    holes = [rim(wv, loop) for loop in loops]
+    newp, newf, said = [], [], Counter()
     start = len(v)
-    for loop in loops:
-        P, T, dome, r = cap(wv, loop, start)
-        T = np.where(T < len(wv), first[np.minimum(T, len(wv) - 1)], T)   # the rim's points: the mesh's own
+
+    def add(P, T, kind):
+        nonlocal start
         newp.append(P)
         newf.append(T)
-        where.append((wv[loop].mean(0), r))
         start += len(P)
-        domes += dome
-        sheets += not dome
-    return np.concatenate([v] + newp), np.concatenate([f] + newf), domes, sheets, where
+        said[kind] += 1
+    done, drawn = set(), {}
+    for i, j in pair_up(wv, holes):
+        P, T, moved = join_walls(wv, holes[i], holes[j], start)
+        add(P, T, "joined")
+        drawn.update(zip(holes[j]["loop"].tolist(), moved))
+        done |= {i, j}
+    if drawn:                               # an inner rim drawn in: its points, wherever the mesh has them
+        ids = np.array(list(drawn))
+        wv[ids] = np.array(list(drawn.values()))
+        at = np.isin(inverse, ids)
+        v[at] = wv[inverse[at]]
+    for i, h in enumerate(holes):
+        if i in done:
+            continue
+        made = None
+        if h["cut"]:
+            made = hollow_end(wv, wf[piece[wf[:, 0]] == piece[h["loop"][0]]], h, wall(tissue, h["r"]), start)
+        if made is not None:
+            add(*made, "hollow")
+            continue
+        P, T = sheet(wv, h["loop"], start)
+        add(P, np.where(T < len(wv), first[np.minimum(T, len(wv) - 1)], T), "sheet")
+    return (np.concatenate([v] + newp), np.concatenate([f] + newf), dict(said),
+            [(h["c"], h["r"]) for h in holes])
 
 
 def rewrite(folder, part, meshes):
@@ -200,31 +537,85 @@ def rewrite(folder, part, meshes):
 
 
 def close(folder, body, ends=None):
-    """Each tube of the body's TUBES parts (and TUBE_NODES' structures) closed at its holes, its part
-    rewritten. `ends`, a dict, gets each closed structure's caps, {node: [(centre, radius), ...]}. Returns an
-    account."""
+    """Each tube of the body's TUBES parts (and TUBE_NODES' structures) closed at its holes, its cut ends open
+    and hollow (see the header), its part rewritten. `ends`, a dict, gets each closed structure's holes,
+    {node: [(middle, radius), ...]}. Returns an account."""
     said = []
     for part in body["parts"]:
         pid = part["id"]
         if pid not in TUBES and pid not in TUBE_NODES:
             continue
         meshes = read_part(os.path.join(folder, part["file"]))
-        added, domes, sheets = 0, 0, 0
+        added, made = 0, defaultdict(int)
         for i, (st, (v, f)) in enumerate(zip(part["structures"], meshes)):
             if pid in TUBE_NODES and TUBE_NODES[pid] not in st["node"]:
                 continue
-            nv, nf, d, s, where = close_tubes(v, f)
-            if d + s:
+            nv, nf, how, where = close_tubes(v, f, st.get("tissue"))
+            if where:
                 added += len(nf) - len(f)
-                domes += d
-                sheets += s
+                for kind, n in how.items():
+                    made[kind] += n
                 meshes[i] = (nv, nf)
                 if ends is not None:
                     ends[st["node"]] = where
-        if domes + sheets:
+        if made:
             rewrite(folder, part, meshes)
-            said.append(f"{pid} {domes} ends domed, {sheets} mouths sheeted (+{added} triangles)")
+            said.append(f"{pid} {made['hollow']} cut ends hollow, {made['joined']} double walls joined, "
+                        f"{made['sheet']} mouths sheeted (+{added} triangles)")
     return "; ".join(said) or "no tube open"
+
+
+def cap(folder, body, ends=None):
+    """Each tube's holes sheeted over for the parting alone (see remake()): apart() tells what lies inside a
+    structure by its closed surface, and a hollow end's lumen is outside it, so the pelvis is parted against
+    tubes closed flat across their cuts and the sheets taken off again (uncap()). The sheets' points and
+    triangles come after each mesh's own. `ends` gets each tube's holes, as close() gives them. Returns each
+    part's meshes' sizes before the sheets, {part id: [(points, triangles), ...]}."""
+    sizes = {}
+    for part in body["parts"]:
+        pid = part["id"]
+        if pid not in TUBES and pid not in TUBE_NODES:
+            continue
+        meshes = read_part(os.path.join(folder, part["file"]))
+        sizes[pid] = [(len(v), len(f)) for v, f in meshes]
+        changed = False
+        for i, (st, (v, f)) in enumerate(zip(part["structures"], meshes)):
+            if pid in TUBE_NODES and TUBE_NODES[pid] not in st["node"]:
+                continue
+            v = np.array(v, np.float64)
+            f = np.asarray(f, np.int64)
+            key = np.round(v * 1e6).astype(np.int64)
+            _, first, inverse = np.unique(key, axis=0, return_index=True, return_inverse=True)
+            wf = inverse.reshape(-1)[f]
+            wf = wf[(wf[:, 0] != wf[:, 1]) & (wf[:, 1] != wf[:, 2]) & (wf[:, 2] != wf[:, 0])]
+            wv = v[first]
+            loops = cycles(wf)
+            if not loops:
+                continue
+            newp, newf, start = [], [], len(v)
+            for loop in loops:
+                P, T = sheet(wv, loop, start)
+                newp.append(P)
+                newf.append(np.where(T < len(wv), first[np.minimum(T, len(wv) - 1)], T))
+                start += len(P)
+            meshes[i] = (np.concatenate([v] + newp), np.concatenate([f] + newf))
+            changed = True
+            if ends is not None:
+                ends[st["node"]] = [(h["c"], h["r"]) for h in (rim(wv, loop) for loop in loops)]
+        if changed:
+            rewrite(folder, part, meshes)
+    return sizes
+
+
+def uncap(folder, body, sizes):
+    """cap()'s sheets taken off again: each mesh cut back to its own points and triangles, where the parting
+    has left them."""
+    for part in body["parts"]:
+        if part["id"] not in sizes:
+            continue
+        meshes = read_part(os.path.join(folder, part["file"]))
+        if any(len(v) != n or len(f) != k for (v, f), (n, k) in zip(meshes, sizes[part["id"]])):
+            rewrite(folder, part, [(v[:n], f[:k]) for (v, f), (n, k) in zip(meshes, sizes[part["id"]])])
 
 
 # MARK: the sacrum off the hip bones
@@ -533,8 +924,12 @@ def apart(folder, body, ends):
 
 
 def remake(folder, quiet=False):
-    """Closes the tubes, draws the sacrum out of the hip bones and parts the pelvis's structures in `folder`'s
-    atlas (anatomy.json and its part files); does nothing if done already. Returns what it did."""
+    """Draws the sacrum out of the hip bones, parts the pelvis's structures and closes the tubes in `folder`'s
+    atlas (anatomy.json and its part files); does nothing if done already. Returns what it did. The pelvis is
+    parted against the tubes sheeted flat across every hole, and their ends made hollow after: parted against
+    hollow ends, the vessels by a gut's cut end were pushed further than their edges bear and so left where they
+    were, in its wall (the man's right external iliac vein in his sigmoid colon, the woman's median sacral vein in
+    her rectum)."""
     import json
     path = os.path.join(folder, "anatomy.json")
     manifest = json.load(open(path))
@@ -543,9 +938,13 @@ def remake(folder, quiet=False):
         if body.get("apart"):
             continue
         ends = {}
-        said.append(f"{body['id']}: closed {close(folder, body, ends)}")
+        if CLOSE_ENDS:
+            sizes = cap(folder, body, ends)       # for the parting alone: see cap()
         said.append(f"{body['id']}: {ease_sacrum(folder, body)}")
         said.append(f"{body['id']}: apart {apart(folder, body, ends)}")
+        if CLOSE_ENDS:
+            uncap(folder, body, sizes)
+            said.append(f"{body['id']}: closed {close(folder, body)}")
         body["apart"] = True
     json.dump(manifest, open(path, "w"), indent=1, ensure_ascii=False)
     if not quiet:

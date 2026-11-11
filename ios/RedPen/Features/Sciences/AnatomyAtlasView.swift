@@ -22,7 +22,8 @@ enum AtlasLibrary {
 /// the chips show or hide each body system and the structures that lie
 /// inside others; the search finds any structure of the body by name.
 /// Opened from a topic or a body system, it shows that topic's parts, in the
-/// body that has them (the last body chosen when both do).
+/// body that has them (the last body chosen when both do). A layer is read
+/// when it is first shown, so a topic opens on its own parts quickly.
 struct AnatomyAtlasView: View {
     var focus: [String] = []
     var title: String?
@@ -52,6 +53,14 @@ struct AnatomyAtlasView: View {
                     WardEmptyState(symbol: "exclamationmark.triangle", title: "The atlas could not be read", message: why)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 case .ready:
+                    // a layer shown for the first time, being read: the page's
+                    // loading indicator, the body still turnable under it
+                    if model.fetching {
+                        ProgressView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .allowsHitTesting(false)
+                            .accessibilityLabel("Loading the layer")
+                    }
                     if let chosen = model.chosen {
                         AtlasChosenCard(chosen: chosen, onCloser: { model.frameChosen() }, onClose: { model.choose(nil) })
                             .padding(WardSpace.gutter)
@@ -325,8 +334,10 @@ final class AtlasModel: NSObject, ObservableObject {
     @Published private(set) var chosen: Chosen?
     @Published var visible: Set<AnatomySystem> = [] { didSet { applyVisibility() } }
     @Published var showInner = false { didSet { applyVisibility() } }
-    @Published var onlyFocus = true { didSet { applyVisibility(); frameShown() } }
+    @Published var onlyFocus = true { didSet { refit = true; applyVisibility() } }
     @Published private(set) var sex: AnatomySex = .male
+    /// A layer shown for the first time is being read.
+    @Published private(set) var fetching = false
     /// The body on screen, once read.
     private(set) var shownBody: AnatomyBody?
     private(set) var focus: Set<String> = []
@@ -343,6 +354,17 @@ final class AtlasModel: NSObject, ObservableObject {
     /// while "Inside" is on.
     private var hollow: Set<String> = []
     private var lit: (node: SCNNode, materials: [SCNMaterial])?
+    /// Parts read into the scene (or found unreadable), and parts being read:
+    /// a layer is read when it is first shown.
+    private var placed: Set<String> = []
+    private var reading: Set<String> = []
+    /// Which body's reading a read belongs to: one of a body switched away
+    /// from is dropped.
+    private var round = 0
+    /// Frame what is shown once the parts asked for are in ("Only these" off).
+    private var refit = false
+    /// A structure to choose and frame once its part is in (a search, a topic's).
+    private var pending: String?
 
     override init() {
         super.init()
@@ -387,28 +409,55 @@ final class AtlasModel: NSObject, ObservableObject {
         nodes = [:]
         entries = [:]
         hollow = []
+        placed = []
+        reading = []
+        round += 1
+        refit = false
+        pending = nil
+        fetching = false
         shownBody = nil
         state = .loading
         await assemble(sex)
     }
 
-    /// One body read and put in the scene.
+    /// One body put in the scene: the layers it opens on read, the rest when
+    /// first shown.
     private func assemble(_ sex: AnatomySex) async {
         self.sex = sex
         guard let manifest = AtlasLibrary.manifest, let body = manifest.body(sex) else {
             state = .failed("Its files are missing from this build.")
             return
         }
-        let parts: [AtlasPart] = body.parts
+        // the layers it has files for
+        let present: Set<AnatomySystem> = Set(body.parts.filter { AnatomyAtlas.file($0.file) != nil }.map(\.system))
+        focusHere = focus.filter { body.part($0) != nil }
+        systems = AnatomySystem.allCases.filter { present.contains($0) }
+        let focused: Set<AnatomySystem> = Set(focusHere.compactMap { body.part($0)?.system })
+        let opening: Set<AnatomySystem> = focused.isEmpty ? present : focused
+        let first: [AtlasPart] = body.parts(showing: opening, focus: focusHere, alone: onlyFocus)
+        let round: Int = self.round
+        reading = Set(first.map(\.id))
+        visible = opening
         let built: [(part: AtlasPart, nodes: [SCNNode])] = await Task.detached(priority: .userInitiated) {
-            AtlasModel.build(parts)
+            AtlasModel.build(first)
         }.value
         // another body chosen while this one was being read: that one wins
-        guard self.sex == sex else { return }
+        guard self.round == round else { return }
+        reading = []
         guard !built.isEmpty else {
             state = .failed("Its meshes could not be read.")
             return
         }
+        place(built, asked: first)
+        shownBody = body
+        state = .ready
+        applyVisibility()
+        frameShown()
+    }
+
+    /// Read parts into the scene; a part that could not be read is not asked for again.
+    private func place(_ built: [(part: AtlasPart, nodes: [SCNNode])], asked: [AtlasPart]) {
+        placed.formUnion(asked.map(\.id))
         for (part, made) in built {
             for (structure, node) in zip(part.structures, made) {
                 let key: String = node.name ?? ""
@@ -418,14 +467,46 @@ final class AtlasModel: NSObject, ObservableObject {
                 if structure.inner { hollow.insert(part.id) }
             }
         }
-        shownBody = body
-        focusHere = focus.filter { body.part($0) != nil }
-        let present: Set<AnatomySystem> = Set(built.map(\.part.system))
-        systems = AnatomySystem.allCases.filter { present.contains($0) }
-        let focused: Set<AnatomySystem> = Set(built.filter { focusHere.contains($0.part.id) }.map(\.part.system))
-        visible = focused.isEmpty ? present : focused
-        state = .ready
-        frameShown()
+    }
+
+    /// The parts the layers now shown want and the scene lacks, read off the main
+    /// thread; then whatever waited on them (a frame, a structure to choose).
+    private func readMissing() {
+        guard state == .ready, let body = shownBody else { return }
+        let wanted: [AtlasPart] = body.parts(showing: visible, focus: focusHere, alone: onlyFocus)
+            .filter { !placed.contains($0.id) && !reading.contains($0.id) }
+        guard !wanted.isEmpty else {
+            settle()
+            return
+        }
+        reading.formUnion(wanted.map(\.id))
+        fetching = true
+        let round: Int = self.round
+        Task {
+            let built: [(part: AtlasPart, nodes: [SCNNode])] = await Task.detached(priority: .userInitiated) {
+                AtlasModel.build(wanted)
+            }.value
+            guard self.round == round else { return }
+            reading.subtract(wanted.map(\.id))
+            place(built, asked: wanted)
+            fetching = !reading.isEmpty
+            applyVisibility()
+        }
+    }
+
+    /// Once the parts asked for are in: the structure a search chose, chosen and
+    /// framed; or, with nothing chosen that way, what is shown framed if asked.
+    private func settle() {
+        if let key = pending, let node = nodes[key] {
+            guard !node.isHidden else { return }
+            pending = nil
+            refit = false
+            choose(key)
+            frameChosen(context: true)
+        } else if pending == nil, refit, reading.isEmpty {
+            refit = false
+            frameShown()
+        }
     }
 
     /// Every part's nodes, built off the main thread.
@@ -446,6 +527,8 @@ final class AtlasModel: NSObject, ObservableObject {
             if tissue == .muscle, let image = swatch(c) { m.diffuse.contents = image }
             m.roughness.contents = NSNumber(value: structure.roughness)
             m.metalness.contents = NSNumber(value: 0.0)
+            // an opening (the pupil) unlit, black under any light
+            if structure.unlit { m.lightingModel = .constant }
             // bone and muscle with their own surface, fixed to the body so it
             // has no seams (AtlasShaders); a muscle's bundles' width is set per muscle
             if let surface = AtlasLight.surface(tissue) {
@@ -461,7 +544,14 @@ final class AtlasModel: NSObject, ObservableObject {
             // both faces of what is solid, so an open end (a vessel cut where
             // the organ set stops) shows its inside rather than a hole
             m.isDoubleSided = structure.opacity == 1
-            if structure.opacity < 1 {
+            if structure.clear {
+                // clear (the cornea): its reflections alone, as strong as it is opaque, added over what shows
+                // through it
+                m.diffuse.contents = UIColor.black
+                m.transparency = structure.opacity
+                m.writesToDepthBuffer = false
+                m.blendMode = .add
+            } else if structure.opacity < 1 {
                 m.transparency = structure.opacity
                 m.writesToDepthBuffer = false
                 m.blendMode = .alpha
@@ -489,6 +579,16 @@ final class AtlasModel: NSObject, ObservableObject {
                 let bundles: AnatomyStripes? = structure.tissue == .muscle ? stripes[k] : nil
                 if let bundles, let own = surface.copy() as? SCNMaterial {
                     own.setValue(NSNumber(value: bundles.bundle), forKey: "rpBundle")
+                    surface = own
+                }
+                // the iris its own pattern, about its own middle and axis
+                if structure.iris, let ring = shaded.0.ringFrame(), let own = surface.copy() as? SCNMaterial {
+                    own.shaderModifiers = [.surface: AtlasShaders.iris]
+                    own.setValue(NSNumber(value: 0.0), forKey: "rpProbe")
+                    own.setValue(detail, forKey: "rpDetail")
+                    own.setValue(NSValue(scnVector3: SCNVector3(ring.centre.x, ring.centre.y, ring.centre.z)), forKey: "rpIrisCentre")
+                    own.setValue(NSValue(scnVector3: SCNVector3(ring.axis.x, ring.axis.y, ring.axis.z)), forKey: "rpIrisAxis")
+                    own.setValue(NSValue(scnVector3: SCNVector3(ring.inner, ring.outer, 0)), forKey: "rpIrisRadii")
                     surface = own
                 }
                 // the relief's shade as a vertex colour, which SceneKit multiplies
@@ -583,6 +683,7 @@ final class AtlasModel: NSObject, ObservableObject {
             node.opacity = showInner && !entry.structure.inner && hollow.contains(entry.part.id) ? 0.25 : 1
         }
         if let chosen, nodes[nodeKey(chosen)]?.isHidden == true { choose(nil) }
+        readMissing()
     }
 
     private func nodeKey(_ entry: Chosen) -> String { entry.part.id + "/" + entry.structure.node }
@@ -620,18 +721,18 @@ final class AtlasModel: NSObject, ObservableObject {
 
     /// A structure by its node's name ("part/structure"), as the search reveals one.
     func reveal(key: String) {
-        guard let entry = entries[key] else { return }
-        reveal(part: entry.part, structure: entry.structure)
+        guard let found = shownBody?.structure(key: key) else { return }
+        reveal(part: found.part, structure: found.structure)
     }
 
-    /// A structure from the search: its layer shown, then chosen and framed.
+    /// A structure from the search: its layer shown (read first, if it never
+    /// was), then chosen and framed.
     func reveal(part: AtlasPart, structure: AnatomyStructure) {
-        let entry = Chosen(part: part, structure: structure)
+        pending = nodeKey(Chosen(part: part, structure: structure))
         if !visible.contains(part.system) { visible.insert(part.system) }
         if !focusHere.isEmpty && onlyFocus && !focusHere.contains(part.id) { onlyFocus = false }
         if structure.inner && !showInner { showInner = true }
-        choose(nodeKey(entry))
-        frameChosen(context: true)
+        settle()
     }
 
     // MARK: the camera

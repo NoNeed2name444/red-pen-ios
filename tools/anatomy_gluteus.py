@@ -22,8 +22,10 @@ tract and the femur. This one is built to that shape on each body's own bones.
    far out as it reaches (the hip bone, the sacrum and coccyx, the femur, the gluteus medius and minimus, the deep
    back muscles, and the sacrotuberous ligament, which the atlas lacks and is laid here from its attachments), the
    gaps between bridged as the muscles not drawn (piriformis, the small rotators, the hamstrings' heads) would fill
-   them, smoothed; its deep face on its origin, 5 mm off the other bones (the bursae over the ischial tuberosity and
-   the trochanter), 1 mm off the other muscles, and stretched over their small bumps rather than into them.
+   them, smoothed; its deep face on its origin (its first tenth brought back down onto what it arises from: the
+   bone, the erector spinae's aponeurosis, the ligament), its insertion on the femur, 5 mm off the other bones
+   (the bursae over the ischial tuberosity and the trochanter), 1 mm off the other muscles, and stretched over
+   their small bumps rather than into them.
 3. Thick: 42 mm at most in the man and 36 in the woman (each scaled by the femur's length), through the middle of
    its belly, thinner toward its origin and its upper border, its borders rounded, a thin sheet where it joins the
    iliotibial tract, a thicker one at the gluteal tuberosity: so the muscle's volume comes to what MRI measures in
@@ -54,6 +56,7 @@ NU, NV = 56, 48            # the grid: along the fibres (origin to insertion) an
 STEP_T, STEP_Y = 1.0, 0.002  # the map's cells: degrees about its vertical axis, metres up
 FAT = 0.006                # at least this much under the skin
 MIDLINE = 0.005            # and this far from the midline, each side
+MARGIN_IN = 0.001          # its lower inner corner this far in from the coccyx's lateral margin
 CREASE = 10.0              # degrees: its superficial face, away from its borders, bends less than this cell to cell
 HOLLOW = 0.05              # and is hollow nowhere tighter than this radius (a muscle fills a hollow under it)
 THICK = {"male": 0.042, "female": 0.036}
@@ -200,8 +203,14 @@ def landmarks(hip, sacrum, coccyx, femur, sx):
         s = near[np.argmin(near[:, 2])] if len(near) else band[np.argmax(out)]
     else:
         s = (a + tip) / 2
-    # below and inside: the side of the coccyx a centimetre above its tip (the two muscles 2 to 3 cm apart there)
-    d = tip + np.array([sx * 0.012, 0.010, -0.003])
+    # below and inside: the side of the coccyx a centimetre above its tip, on the bone (MARGIN_IN in from its lateral
+    # margin at that height, on its back half, where a ray meets the bone rather than grazing its edge): a scanned
+    # coccyx's tip leans to one side, so a corner set out from the tip lies off the bone on one side and near the
+    # midline on the other
+    band = coccyx[np.abs(coccyx[:, 1] - (tip[1] + 0.010)) < 0.003]
+    band = band[band[:, 2] <= np.median(band[:, 2])] if len(band) >= 6 else band
+    d = (band[np.argmax(sx * band[:, 0])] - np.array([sx * MARGIN_IN, 0.0, 0.0]) if len(band)
+         else tip + np.array([sx * 0.006, 0.010, -0.003]))
     # outside: over the trochanter's side, 2 cm below its top
     band = femur[np.abs(femur[:, 1] - (trochanter[1] - 0.02 * k)) < 0.004]
     b = band[np.argmax(sx * band[:, 0])] + np.array([sx * 0.006, 0, 0])
@@ -453,7 +462,7 @@ def build(sex, sx, hip, sacrum, coccyx, femur, bones_v, bones_f, muscles_v, musc
 
     # the deep face: on what lies under it, never in it
     U, V = np.meshgrid(u, v, indexing="ij")
-    gap_b = np.interp(U, [0, 0.12, 0.85, 1], [0.0005, 0.005, 0.005, 0.0015])
+    gap_b = np.interp(U, [0, 0.12, 0.85, 1], [0.0005, 0.005, 0.005, 0.0008])
     clear = np.maximum(mp.at(rb, th, yy) + gap_b, mp.at(rm, th, yy) + 0.001)
     # over the bumps of what is under it (the tubercles of the sacral crests), not down between them: its deep face
     # an aponeurosis stretched over them
@@ -467,6 +476,12 @@ def build(sex, sx, hip, sacrum, coccyx, femur, bones_v, bones_f, muscles_v, musc
     r_d = np.minimum(np.maximum(mp.at(under, th, yy) + 0.001, need), hi)
     for _ in range(24):
         r_d = np.maximum(np.minimum(grid_smooth(r_d, 3), hi), need)
+    # its origin on what it arises from: the smoothing and the stretching over bumps lift the deep face off its
+    # attachments wherever something thicker lies beside them (the erector spinae beside the posterior iliac crest
+    # held the man's 6 to 13 mm off his ilium), so over the first tenth of its fibres it comes back down to them;
+    # only onto what lies close under it (a ray past the coccyx's side meets nothing until the pelvis's far wall)
+    drop = r_d - clear
+    r_d = r_d - drop * (1 - smooth(0.012 * k, 0.020 * k, drop)) * (1 - smooth(0.0, 0.10, U))
     # thickness: its belly in the middle, its origin fleshy, a sheet into the iliotibial tract, its borders rounded
     # (a smooth curve through these, not straight pieces, whose corners would crease its surface)
     # (and the curve itself rounded where it turns, at its knots, by a gaussian 6 per cent of its length wide: at

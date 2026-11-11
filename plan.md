@@ -3264,6 +3264,89 @@ for screenshots.
       credited (SOURCES.md, ContentSources, Settings' list), the credits
       suite holding them to SOURCES.md word for word.
     - [ ] Mac: the tour's skull and pelvis screenshots with the scans.
+  - S3, the owner's notes of 5 Nov (13:43, six screenshots) and 6 Nov ("u
+    ignored most of the prompts i gave u", "u keep ignoring all the
+    prompts i give u. continue everything"). None of the 5 Nov asks had
+    reached the app: the build that carries the eye was held by failing
+    rib and gluteus checks while those were fixed one at a time. Now each
+    ask is worked side by side and shipped as it lands, with renders sent.
+    - [ ] The eye: no pink on the sclera, a natural iris, the cornea a
+      dome standing proud of the sclera (it read as a sunken window), no
+      muscle through another, the superior oblique's tendon clean through
+      the trochlea, no wrinkles, the rectus tendons thin and blending into
+      the sclera (they read as pasted-on squares). tools/anatomy_eyes.py,
+      AtlasShaders.swift.
+      - [x] No pink on the sclera (11 Nov): each lid's lining laid just
+        under the sclera's face, from the limbus to its fornix, where the
+        lids (not drawn) would hold it; over the eyeball it was a pink film
+        on the white.
+      - [ ] The cornea, the tendons, the wrinkles, the muscles apart.
+    - [x] Tubes hollow ("they are normally hollow in a human"), 11 Nov:
+      each cut end of a vessel, the gut and the ducts open, with a clean
+      rim, a wall as thick as its tissue's and a lumen running in
+      (tools/anatomy_apart.py); a tube the organ set draws with its lumen
+      has its two rims joined by the ring of its wall; a branch's mouth is
+      sheeted. The pelvis is parted against the tubes sheeted flat, and the
+      ends made hollow after: parted against hollow ends, two veins by a
+      gut's cut end were left in its wall. Open: a sheet still closes a cut
+      where a tube runs too short behind it to hold a lumen (32 ends in the
+      man, 8 in the woman, most where three vessels meet); the man's left
+      coronary artery and prostatic urethra are broken in the organ set and
+      stay open.
+    - [ ] Vessels a student can identify: arteries a red that stands out
+      from the muscles (artery C8302C beside muscle B5483F now), webs and
+      blobs made tubes again, and a way to find and name each vessel.
+      - [x] The colours (11 Nov): arteries scarlet E8301E, veins 2F62C8,
+        nerves F2CC3A, muscle and the heart a muted brownish red (8A4B40,
+        8E3F38): an artery on a muscle CIEDE2000 19 apart (5 before), 13
+        and 20 to eyes that confuse red and green.
+      - [ ] Webs and blobs made tubes, broken-off parts joined, the names
+        set right (tools/anatomy_vessels.py).
+    - [ ] Every muscle's origin and insertion checked against Gray's (1918)
+      and fixed: docs/sciences/muscle-attachments.json and an audit.
+    - [ ] All 206 bones: an inventory (docs/sciences/bones-206.md), a
+      quality audit, the missing and the worst fixed. The inventory (on
+      atlas_K2e8): the man 182 present, 18 merged, 6 missing; the woman
+      180, 18, 7, and 1 duplicated. Missing in both: the six ear ossicles;
+      in her, the hyoid. Merged: the eight carpals a side (one structure
+      each hand); the inferior nasal conchae only folds of the maxilla.
+      Duplicated: her L4 is her L3's scan used twice. Order: the hand (the
+      carpus split in eight), her hyoid and L4, the skull (conchae,
+      ossicles, symmetry, the sawtooth edges where its bones were split),
+      then the long bones and vertebrae (tools/anatomy_bone_audit.py).
+    - [ ] The whole muscular system. The atlas has some 35 skeletal muscles
+      in the man and 24 in the woman, where the owner's first ask was every
+      muscle: a table of licensed sources per region (CC0, CC BY, public
+      domain, NLM, Apache-2.0, MIT, BSD only: TotalSegmentator's Apache
+      tasks on the CC BY scans, the Visible Human, Gray's plates), a plan
+      for the 880,000-triangle bound (the builds use 852,000 to 867,000
+      now), then the muscles batch by batch, each with its fibres, its
+      attachments from Gray's and its image references.
+    - [x] Ribs seated on the scanned spine (tools/anatomy_ribs.py, Gray's
+      costovertebral joints): the scan's ribs stopped at the transverse
+      processes, so each has its neck and head drawn out to its joint, the
+      2nd to 9th at the disc above their own vertebra, the 1st and the last
+      three on their own; the woman's ribs now run down in order (her left
+      did not), every head within 1.1 mm of its own vertebrae (up to 15 mm
+      before), no rib more than 0.7 mm into a vertebra; the lungs and the
+      organs the ribs met moved out of them. 11 Nov: no rib in the man's
+      lungs (his right 4th was 7.8% inside one: the lung is cut finer where
+      a triangle spans a rib), and the lungs keep their height: each lung
+      point moves level, the shortest way into the chest's cavity at its
+      own height (moved the shortest way in any direction, the vertebrae
+      above drove the lungs' tops 18 to 20 mm down). Open: the woman's left
+      1st rib, 4 of its 419 points up to 3 mm inside her lung by the spine;
+      both 12th left ribs' heads 6 mm short.
+    - [x] The gluteus maximus made anew in the build (its "made" marks
+      cleared), so its contact and midline checks pass.
+    - [x] The atlas reads a layer when it is first shown (11 Nov): a topic
+      opens on its own parts at once and the rest of a layer is read when
+      its chip is turned on, a spinner over the scene meanwhile
+      (AnatomyBody.parts(showing:focus:alone:), AtlasModel.readMissing).
+      Checked by a separate agent against the page's checklist (the check
+      first proved on a copy with one planted difference). A part that
+      cannot be read is left out without a word, as before: the suite
+      holds every part's file to its hash.
 - [x] S4. The catalog, Shared/Sciences/ScienceCatalog.swift: nine subjects,
   ten body systems, 29 tools and 75 topics, each a short note written for
   the app with points, its tools and its atlas parts; every system has

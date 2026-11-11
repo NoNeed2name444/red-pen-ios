@@ -10,7 +10,13 @@
 // the neighbouring pixels, as a GPU has them), then a physically based
 // light (GGX, Schlick's Fresnel, F0 0.04, Karis's split-sum fit for the
 // studio's reflections). It is a stand-in, not SceneKit: the light's
-// scaling, its occlusion and its tone are close, not exact.
+// scaling, its occlusion and its tone are close, not exact. What is
+// see-through (the cornea, the humours, the lens) is drawn last, farthest
+// first, over what is solid and behind it, its front faces only, writing no
+// depth: blended by its opacity as the app's alpha blend does, but what is
+// clear (under 0.3, AnatomyStructure.clear: the dump holds only see-through
+// parts with their own look) drawn as its reflections alone, added as strong
+// as it is opaque.
 //
 //   lab <dump> <out.ppm> <width> <height> <dx,dy,dz> <margin> <frame filter|all> [ssao 0|1] [detail 0|1] [plain 0|1]
 #include "shaders.h"
@@ -27,7 +33,8 @@ static float3 v3(float x, float y, float z) { return mk_float3(x, y, z); }
 static float3 nrm(float3 a) { float l = length(a); return l > 0 ? a / l : a; }
 
 struct Mesh {
-    float3 colour; float rough; int surface; float3 axis; float bundle; float3 tendon; std::string name;
+    float3 colour; float rough; float opacity = 1; int surface; float3 axis; float bundle; float3 tendon;
+    float3 ringCentre; float ringInner = 0, ringOuter = 0; std::string name;
     std::vector<float3> p, n, relief; std::vector<float2> tc; std::vector<uint32_t> idx;
 };
 
@@ -36,18 +43,29 @@ static std::vector<Mesh> load(const char *path) {
     FILE *f = std::fopen(path, "rb");
     if (!f) { std::perror(path); std::exit(2); }
     char magic[4];
-    if (std::fread(magic, 1, 4, f) != 4 || std::memcmp(magic, "ATL3", 4) != 0) { std::fprintf(stderr, "not a dump\n"); std::exit(2); }
+    // ATL4 carries each structure's opacity after its roughness, ATL5 the iris's ring after tendon's colour too;
+    // ATL3 (an older dump) only what is solid
+    if (std::fread(magic, 1, 4, f) != 4 || std::memcmp(magic, "ATL", 3) != 0 || magic[3] < '3' || magic[3] > '5') {
+        std::fprintf(stderr, "not a dump\n"); std::exit(2);
+    }
+    bool withOpacity = magic[3] >= '4', withRing = magic[3] >= '5';
     auto u32 = [&]() { uint32_t v = 0; if (std::fread(&v, 4, 1, f) != 1) std::exit(3); return v; };
     auto f32 = [&]() { float v = 0; if (std::fread(&v, 4, 1, f) != 1) std::exit(3); return v; };
     uint32_t count = u32();
     for (uint32_t s = 0; s < count; s++) {
         Mesh m;
         float r = f32(), g = f32(), b = f32();
-        m.colour = v3(r, g, b); m.rough = f32(); m.surface = (int)u32();
+        m.colour = v3(r, g, b); m.rough = f32();
+        if (withOpacity) m.opacity = f32();
+        m.surface = (int)u32();
         float ax = f32(), ay = f32(), az = f32();
         m.axis = v3(ax, ay, az); m.bundle = f32();
         float tr = f32(), tg = f32(), tb = f32();
         m.tendon = v3(tr, tg, tb);
+        if (withRing) {
+            float cx = f32(), cy = f32(), cz = f32();
+            m.ringCentre = v3(cx, cy, cz); m.ringInner = f32(); m.ringOuter = f32();
+        }
         uint32_t nl = u32(); m.name.resize(nl);
         if (nl && std::fread(&m.name[0], 1, nl, f) != nl) std::exit(3);
         uint32_t nv = u32(), nt = u32();
@@ -174,6 +192,7 @@ float4 rp_texture_sample(const void *, float2, float2, float2, int) { return mk_
 static void runShader(int surface, SCNShaderSurface &s, const SCNNodeBuffer &nb, const SCNFrameBuffer &fb) {
     if (surface == 1) sh_atlasBone::entry(s, nb, fb);
     else if (surface == 2) sh_atlasMuscle::entry(s, nb, fb);
+    else if (surface == 3) sh_atlasIris::entry(s, nb, fb);
 }
 
 int main(int argc, char **argv) {
@@ -249,6 +268,7 @@ int main(int argc, char **argv) {
     float sx = SW / (2 * half * aspect), sy = SH / (2 * half);
     for (size_t mi = 0; mi < meshes.size(); mi++) {
         const Mesh &m = meshes[mi];
+        if (m.opacity < 1) continue;
         std::vector<float3> vp(m.p.size()), vn(m.n.size());
         for (size_t i = 0; i < m.p.size(); i++) { vp[i] = toView(m.p[i]); vn[i] = rot(m.n[i]); }
         for (size_t t = 0; t + 2 < m.idx.size(); t += 3) {
@@ -332,6 +352,7 @@ int main(int argc, char **argv) {
     // shading
     sh_atlasBone::rpProbe = 0; sh_atlasBone::rpDetail = detail;
     sh_atlasMuscle::rpProbe = 0; sh_atlasMuscle::rpDetail = detail;
+    sh_atlasIris::rpProbe = 0; sh_atlasIris::rpDetail = detail;
     auto surfaceAt = [&](int x, int y, int mi, const float3 &p0, const float3 &n0, const float3 &r0, const float2 &t0) {
         SCNShaderSurface s{};
         float3 p, n;
@@ -360,6 +381,10 @@ int main(int argc, char **argv) {
         SCNShaderSurface s = surfaceAt(x, y, mi, pos[k], nor[k], rel[k], tcs[k]);
         if (m.surface && !plain) {
             if (m.surface == 2) { sh_atlasMuscle::rpBundle = m.bundle; sh_atlasMuscle::rpTendon = m.tendon; }
+            if (m.surface == 3) {
+                sh_atlasIris::rpIrisCentre = m.ringCentre; sh_atlasIris::rpIrisAxis = m.axis;
+                sh_atlasIris::rpIrisRadii = v3(m.ringInner, m.ringOuter, 0.0f);
+            }
             DREC[0].clear(); DREC[1].clear();
             SCNShaderSurface sxs = surfaceAt(x + SS, y, mi, pos[k], nor[k], rel[k], tcs[k]);
             DPASS = 1; DIDX[0] = DIDX[1] = 0; runShader(m.surface, sxs, nb, fb);
@@ -370,6 +395,9 @@ int main(int argc, char **argv) {
         float3 wn = toWorld(s.normal), v = nrm(s.view);
         float3 r = s.normal * (2 * dot(s.normal, v)) - v;
         col[k] = light(s, wn, toWorld(r), ao[k]);
+        // an opening (the pupil: black by its own look, AnatomyStructure.unlit) unlit, as the app draws it
+        if (m.surface == 0 && 0.2126f * srgb(m.colour.x) + 0.7152f * srgb(m.colour.y) + 0.0722f * srgb(m.colour.z) < 0.05f)
+            col[k] = mk_float3(s.diffuse.x, s.diffuse.y, s.diffuse.z);
         // LAB_FIBRES=1 paints a muscle by its bundles (hue: where it lies across them, a turn every ten), tendon
         // white and forks black
         if (m.surface == 2 && fibreDebug) {
@@ -379,6 +407,56 @@ int main(int argc, char **argv) {
             col[k] = t.y < -0.5f ? v3(0, 0, 0) : (hue * (1 - tend) + v3(1, 1, 1) * tend) * 0.6f;
         }
         if (m.surface == 1) { bonePixels++; boneLum += 0.2126f * col[k].x + 0.7152f * col[k].y + 0.0722f * col[k].z; }
+    }
+    // what is see-through, farthest first: its front faces in front of what is solid, shaded plainly (no
+    // surface modifier, no occlusion) and blended over what is behind by its opacity
+    std::vector<size_t> clear;
+    std::vector<float> far(meshes.size(), 0);
+    for (size_t mi = 0; mi < meshes.size(); mi++) {
+        if (meshes[mi].opacity >= 1 || meshes[mi].p.empty()) continue;
+        double z = 0;
+        for (const float3 &p : meshes[mi].p) z += toView(p).z;
+        far[mi] = (float)(z / meshes[mi].p.size());
+        clear.push_back(mi);
+    }
+    std::sort(clear.begin(), clear.end(), [&](size_t a, size_t b) { return far[a] < far[b]; });
+    for (size_t mi : clear) {
+        const Mesh &m = meshes[mi];
+        std::vector<float3> vp(m.p.size()), vn(m.n.size());
+        for (size_t i = 0; i < m.p.size(); i++) { vp[i] = toView(m.p[i]); vn[i] = rot(m.n[i]); }
+        for (size_t t = 0; t + 2 < m.idx.size(); t += 3) {
+            int ia = m.idx[t], ib = m.idx[t + 1], ic = m.idx[t + 2];
+            float3 A = vp[ia], B = vp[ib], C = vp[ic];
+            if (A.z > -0.005f || B.z > -0.005f || C.z > -0.005f) continue;
+            if (dot(cross(B - A, C - A), A) >= 0) continue;          // turned away: SceneKit draws one face
+            float ax = SW / 2.0f + A.x / -A.z * sx, ay = SH / 2.0f - A.y / -A.z * sy;
+            float bx = SW / 2.0f + B.x / -B.z * sx, by = SH / 2.0f - B.y / -B.z * sy;
+            float cx = SW / 2.0f + C.x / -C.z * sx, cy = SH / 2.0f - C.y / -C.z * sy;
+            float area = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+            if (std::fabs(area) < 1e-12f) continue;
+            int x0 = std::max(0, (int)std::floor(std::min({ax, bx, cx}))), x1 = std::min(SW - 1, (int)std::ceil(std::max({ax, bx, cx})));
+            int y0 = std::max(0, (int)std::floor(std::min({ay, by, cy}))), y1 = std::min(SH - 1, (int)std::ceil(std::max({ay, by, cy})));
+            for (int y = y0; y <= y1; y++) for (int x = x0; x <= x1; x++) {
+                float px = x + 0.5f, py = y + 0.5f;
+                float w0 = ((bx - px) * (cy - py) - (by - py) * (cx - px)) / area;
+                float w1 = ((cx - px) * (ay - py) - (cy - py) * (ax - px)) / area;
+                float w2 = 1 - w0 - w1;
+                if (w0 < 0 || w1 < 0 || w2 < 0) continue;
+                float iz = w0 / -A.z + w1 / -B.z + w2 / -C.z, z = 1 / iz;
+                int k = y * SW + x;
+                if (z >= depth[k]) continue;
+                float3 p = (A * (w0 / -A.z) + B * (w1 / -B.z) + C * (w2 / -C.z)) * z;
+                float3 n = nrm((vn[ia] * (w0 / -A.z) + vn[ib] * (w1 / -B.z) + vn[ic] * (w2 / -C.z)) * z);
+                if (dot(n, p) > 0) n = n * -1.0f;
+                SCNShaderSurface s{};
+                s.position = p; s.normal = n; s.geometryNormal = n; s.view = nrm(p * -1.0f);
+                bool glass = m.opacity < 0.3f;
+                s.diffuse = mk_float4(glass ? mk_float3(0.0f) : m.colour, 1.0f); s.roughness = m.rough; s.metalness = 0; s.ambientOcclusion = 1;
+                float3 v = nrm(s.view), r = n * (2 * dot(n, v)) - v;
+                float3 c = light(s, toWorld(n), toWorld(r), 1.0f);
+                col[k] = glass ? col[k] + c * m.opacity : col[k] * (1 - m.opacity) + c * m.opacity;
+            }
+        }
     }
     std::vector<unsigned char> img(W * H * 3);
     for (int y = 0; y < H; y++) for (int x = 0; x < W; x++) {

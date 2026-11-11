@@ -221,8 +221,9 @@ func read(_ item: GraphShaderItem) -> ShaderReport {
 // MARK: S1 every shader reads clean
 
 let all: [GraphShaderItem] = GraphShaderCatalog.all
-check("S1 the catalogue lists every theme's shaders, and the atlas's bone and muscle", GraphShaderCatalog.space.count >= 18
-      && GraphShaderCatalog.neurons.count >= 7 && GraphShaderCatalog.atlas.map(\.name) == ["atlasBone", "atlasMuscle"],
+check("S1 the catalogue lists every theme's shaders, and the atlas's bone, muscle and iris", GraphShaderCatalog.space.count >= 18
+      && GraphShaderCatalog.neurons.count >= 7
+      && GraphShaderCatalog.atlas.map(\.name) == ["atlasBone", "atlasMuscle", "atlasIris"],
       "\(all.count)")
 check("S1 names are unique", Set(all.map(\.name)).count == all.count)
 check("S1 entry points are SceneKit's", all.allSatisfy { $0.entry == "surface" || $0.entry == "geometry" })

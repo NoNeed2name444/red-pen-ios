@@ -26,8 +26,8 @@ by the radius over 12:
    zonule's fibres from them to the lens, before, at and behind its equator.
 3. The aqueous humour filling the anterior chamber and the vitreous body the space behind the lens, both nearly
    clear. The bulbar conjunctiva a clear film over the sclera from the limbus; the palpebral conjunctiva the pink
-   lining of each lid, from its margin (the upper over the cornea's top 1.5 mm, the lower at the limbus) to its
-   fornix, half see-through so the eye shows through it where the lids are not drawn.
+   lining of each lid, from its margin (at the limbus) to its fornix, half see-through, facing the eye and laid
+   just under the sclera's face, where the lids (not drawn) would hold it: no pink over the white of the eye.
 4. The muscles. The four recti from the common tendinous ring around the optic nerve (where the organ set's begin)
    straight to the eyeball, onto it and along it to flat tendons inserted on the spiral of Tillaux: medial 5.5 mm
    behind the limbus, inferior 6.5, lateral 6.9, superior 7.7; their tendons 3.7, 5.5, 8.8 and 5.8 mm long and 10.3,
@@ -65,12 +65,12 @@ if HERE not in sys.path:
 # how each structure looks: sRGB colour, opacity, roughness
 LOOK = {
     "sclera": ("#F2EEE6", 1.0, 0.22),
-    "cornea": ("#F4F8FA", 0.14, 0.04),
-    "corneo_scleral_junction": ("#B9C4CE", 1.0, 0.25),
-    "trabecular_meshwork": ("#C8B4A0", 1.0, 0.4),
+    "cornea": ("#F4F8FA", 0.28, 0.03),
+    "corneo_scleral_junction": ("#EFEBE3", 1.0, 0.2),
+    "trabecular_meshwork": ("#5C4A3F", 1.0, 0.5),
     "schlemms_canal": ("#6F86B8", 1.0, 0.3),
     "iris": ("#6B4A2E", 1.0, 0.45),
-    "pupil": ("#060607", 1.0, 0.2),
+    "pupil": ("#060607", 1.0, 0.85),
     "lens": ("#F1E4BC", 0.5, 0.08),
     "ciliary_body": ("#3E261B", 1.0, 0.45),
     "ciliary_muscle": ("#8E4A3A", 1.0, 0.42),
@@ -82,12 +82,15 @@ LOOK = {
     "optic_disc": ("#F0C9A0", 1.0, 0.3),
     "macula_lutea": ("#C47A3E", 1.0, 0.3),
     "fovea": ("#8A3E22", 1.0, 0.3),
-    "vitreous_humor": ("#DDE8F0", 0.1, 0.05),
-    "aqueous_humor": ("#E4EEF4", 0.1, 0.05),
-    "bulbar_conjunctiva": ("#F6DCD6", 0.2, 0.08),
+    "vitreous_humor": ("#EEF2F4", 0.05, 0.5),
+    "aqueous_humor": ("#EEF2F4", 0.05, 0.5),
+    "bulbar_conjunctiva": ("#F2F2F0", 0.06, 0.1),
     "palpebral_conjunctiva_of_upper_eyelid": ("#E39A90", 0.5, 0.25),
     "palpebral_conjunctiva_of_lower_eyelid": ("#E39A90", 0.5, 0.25),
 }
+
+# what is drawn with a pattern of its own (AtlasShaders): the iris's fibres, collarette and crypts
+SURFACE = {"iris": "iris"}
 
 # the recti: meridian (x nasal, y up), insertion behind the limbus, tendon length, insertion width, belly thickness
 # (mm); the spiral of Tillaux
@@ -207,10 +210,9 @@ def eyeball(R, apex, disc):
     L = LIMBUS * s
     zl = np.sqrt(R * R - L * L)
     thl = np.arcsin(L / R)                                  # the limbus, from the front pole
-    # sclera: the sphere from the limbus back, its rim bevelled in to the scleral spur
-    th = np.r_[np.linspace(thl, thl + 0.5, 8), np.linspace(thl + 0.5, np.pi, 13)[1:]]
+    # sclera: the sphere from the limbus back, its rim under the limbus's white and the angle's meshwork (below)
+    th = np.r_[np.linspace(thl, thl + 0.5, 8), np.linspace(thl + 0.5, np.pi, 21)[1:]]
     prof = [(R * np.sin(t), R * np.cos(t)) for t in th]
-    prof = [(L - 0.55 * s, zl - 0.55 * s), (L - 0.12 * s, zl - 0.06 * s)] + prof
     v, f = revolve(prof, 72)
     out["sclera"] = (v, facing(v, f, lambda p: p))
     # cornea: front the sphere through the apex and the limbus, back 0.55 mm in at the middle, 0.7 at the rim
@@ -224,11 +226,18 @@ def eyeball(R, apex, disc):
     v, f = revolve(front + back[::2] + back[-1:], 72)
     out["cornea"] = (v, outward(v, f))
     cornea_back = lambda rho: back_apex - rb + np.sqrt(np.maximum(rb * rb - rho * rho, 0))
-    # the angle: Schwalbe's line at the cornea's back rim, the scleral spur behind and outside it
+    # the angle: the trabecular meshwork lining the limbus's inside from Schwalbe's line (the cornea's back rim) to
+    # the recess before the iris's root and back to the ciliary body, as gonioscopy shows it (a pigmented band,
+    # grey-brown), filling the corner between the cornea's rim, the sclera and the ciliary body: so that through the
+    # cornea the angle shows dark, as it does (the limbal ring about the iris), and nothing white of the sclera's
+    # inside (the sclera is one surface here, its thickness the room the angle's parts lie in)
     schwalbe = np.array(back_rim)
     spur = np.array([L - 0.08 * s, zl - 0.85 * s])
-    recess = np.array([L - 0.38 * s, zl - 0.86 * s])
-    v, f = revolve([tuple(schwalbe + [0.02 * s, 0]), tuple(spur), tuple(recess)], 48, closed=True)
+    recess = np.array([L - 0.40 * s, zl - 0.85 * s])
+    corner = [on_sphere(R - 0.02 * s, thl + 0.004, 0)[[0, 2]], schwalbe + [0.02 * s, 0], recess,
+              on_sphere(R - 0.6 * s, thl + 0.06, 0)[[0, 2]], on_sphere(R - 0.02 * s, thl + 0.06, 0)[[0, 2]],
+              on_sphere(R - 0.02 * s, thl + 0.03, 0)[[0, 2]]]
+    v, f = revolve([tuple(p) for p in corner], 72, closed=True)
     out["trabecular_meshwork"] = (v, outward(v, f))
     mid = np.array([L + 0.12 * s, zl - 0.5 * s])
     along = unit(schwalbe - spur)
@@ -236,8 +245,31 @@ def eyeball(R, apex, disc):
     ell = [tuple(mid + 0.17 * s * np.cos(t) * along + 0.05 * s * np.sin(t) * acr) for t in np.linspace(0, 2 * np.pi, 7)[:-1]]
     v, f = revolve(ell, 48, closed=True)
     out["schlemms_canal"] = (v, outward(v, f))
-    band = [on_sphere(R - r, t, 0)[[0, 2]] for r, t in ((0.06, thl - 0.02), (0.06, thl + 0.1), (0.4, thl + 0.08), (0.4, thl - 0.01))]
-    v, f = revolve([tuple(p) for p in band], 48, closed=True)
+    # the limbus (the corneo-scleral junction): the sclera's white run on just over the cornea's rim, to 5.75 mm off
+    # the axis (white to white 11.5 mm), where the cornea has barely begun to rise, as the sclera overlaps the cornea
+    # there; its face rounding from the sclera's curve into the cornea's over the sulcus between them, a hair
+    # (0.01 mm) over both, its edge on the cornea a wall too low to see and its edge on the sclera sunk into it, so
+    # that seen from the side nothing stands up at the cornea's rim and from the front the clear cornea begins
+    # where the white ends (the dark band of the angle's meshwork just inside it, as the limbal ring)
+    e, tip, zc = 0.01 * s, 5.75 * s, apex - rc
+    on_c = [(r, zc + np.sqrt((rc + e) ** 2 - r * r)) for r in np.linspace(tip, L, 4)[:-1]]
+    on_s = [((R + e) * np.sin(t), (R + e) * np.cos(t)) for t in thl + np.linspace(0, 0.06, 4)]
+    on_s[-1] = ((R - e) * np.sin(thl + 0.06), (R - e) * np.cos(thl + 0.06))    # sunk at its back edge
+    face = np.array(on_c + on_s)
+    for _ in range(4):                                       # the sulcus rounded, the ends held
+        face[1:-1] = 0.5 * face[1:-1] + 0.25 * (face[:-2] + face[2:])
+    cdist = np.hypot(face[:, 0], face[:, 1] - zc)
+    out_c = (face[:, 0] < L) & (cdist < rc + e)
+    face[out_c] = np.c_[face[out_c, 0], face[out_c, 1] - zc] / cdist[out_c, None] * (rc + e) + [0, zc]
+    sdist = np.hypot(face[:, 0], face[:, 1])
+    out_s = (face[:, 0] >= L) & (sdist < R + e) & (np.arange(len(face)) < len(face) - 1)
+    face[out_s] = face[out_s] / sdist[out_s, None] * (R + e)
+    tang = np.gradient(face, axis=0)
+    inward = unit(np.c_[tang[:, 1], -tang[:, 0]])
+    inward = np.where((np.einsum("ij,ij->i", inward, face - [0, zc]) > 0)[:, None], -inward, inward)
+    depth = 2 * e + 0.03 * s * np.sin(np.linspace(0, np.pi, len(face)))
+    under = (face + depth[:, None] * inward)[[6, 4, 2, 0]]
+    v, f = revolve([tuple(p) for p in face] + [tuple(p) for p in under], 72, closed=True)
     out["corneo_scleral_junction"] = (v, outward(v, f))
     # lens: the equator 4.6 mm off the axis, its front 3 mm behind the cornea's back, 4 mm thick
     la, lr = back_apex - 3.0 * s, 4.6 * s
@@ -249,7 +281,9 @@ def eyeball(R, apex, disc):
     prof = [(lr * np.sin(a), ze + ha * np.cos(a)) for a in t] + [(lr * np.cos(a), ze - hp * np.sin(a)) for a in t[1:]]
     v, f = revolve(prof, 40)
     out["lens"] = (v, outward(v, f))
-    # iris: from the pupil's rim to its root, thickest at the collarette; ridges and furrows on its front
+    # iris: from the pupil's rim to its root, thickest at the collarette; low ridges and furrows on its front (its
+    # fibres, crypts and rings are drawn on it, AtlasShaders.iris: ridges deep enough to show them alone read as a
+    # fluted cap)
     pupil = 1.8 * s
     root = np.array([L - 0.42 * s, zl - 1.05 * s])
     rho = np.array([pupil, 2.0, 2.4, 2.9, 3.3, 3.7, 4.1, 4.5, 4.8, 5.1, 5.3]) * s
@@ -261,9 +295,9 @@ def eyeball(R, apex, disc):
     collarette = 3.3 * s
 
     def iris_bump(r, phi):
-        ridge = 0.035 * s * np.cos(28 * phi + 1.3 * np.sin(3 * phi)) * smooth(collarette, collarette + 0.4 * s, r) * \
+        ridge = 0.018 * s * np.cos(28 * phi + 1.3 * np.sin(3 * phi)) * smooth(collarette, collarette + 0.4 * s, r) * \
             smooth(root[0], root[0] - 0.4 * s, r)
-        fine = 0.018 * s * np.cos(44 * phi + 0.7 * np.sin(5 * phi)) * smooth(pupil + 0.15 * s, pupil + 0.5 * s, r) * \
+        fine = 0.008 * s * np.cos(44 * phi + 0.7 * np.sin(5 * phi)) * smooth(pupil + 0.15 * s, pupil + 0.5 * s, r) * \
             smooth(collarette, collarette - 0.3 * s, r)
         crest = 0.07 * s * np.exp(-((r - collarette - 0.12 * s * np.sin(9 * phi)) / (0.22 * s)) ** 2)
         furrow = -0.04 * s * (np.exp(-((r - 4.25 * s) / (0.1 * s)) ** 2) + np.exp(-((r - 4.75 * s) / (0.1 * s)) ** 2))
@@ -374,29 +408,28 @@ def eyeball(R, apex, disc):
     aq += [(r, lens_front(r) + 0.05 * s) for r in np.linspace(pupil - 0.05 * s, 0, 4)]
     v, f = revolve(aq, 32)
     out["aqueous_humor"] = (v, outward(v, f))
-    # the bulbar conjunctiva over the sclera from the limbus
-    th = np.linspace(thl + 0.01, thl + 0.85, 9)
-    v, f = revolve([((R + 0.1 * s) * np.sin(t), (R + 0.1 * s) * np.cos(t)) for t in th], 48)
+    # the bulbar conjunctiva over the sclera from the limbus (laid over the recti's tendons once they are made:
+    # drape(), in remake())
+    th = np.linspace(thl + 0.01, thl + 0.85, 13)
+    v, f = revolve([((R + 0.1 * s) * np.sin(t), (R + 0.1 * s) * np.cos(t)) for t in th], 72)
     out["bulbar_conjunctiva"] = (v, facing(v, f, lambda p: p))
-    # the palpebral conjunctiva: each lid's lining, from its margin to its fornix
-    rp = R + 0.42 * s
-    for key, margin, fornix in (("palpebral_conjunctiva_of_upper_eyelid", 4.2 * s, 1.18),
-                                ("palpebral_conjunctiva_of_lower_eyelid", -5.7 * s, -0.98)):
+    # the palpebral conjunctiva: each lid's lining, from its margin (at the limbus, above and below) to its fornix,
+    # facing the eye as a lining does, and laid just under the sclera's face, where the lids (not drawn) would
+    # hold it against the eyeball: so it is never seen over the white. Laid over the eyeball, half see-through,
+    # it was: a pink film over the sclera where its face turned to the eye, and, facing the eye, still a pink rim
+    # at the eyeball's outline from its far side. Shown alone it shows its pink face, the side toward the eye.
+    rp = R - 0.05 * s                                       # under the sclera's facets (they sag 0.013 mm)
+    for key, margin, fornix in (("palpebral_conjunctiva_of_upper_eyelid", thl + 0.03, 1.18),
+                                ("palpebral_conjunctiva_of_lower_eyelid", -(thl + 0.03), -0.98)):
         alpha = np.linspace(-1.12, 1.0, 25)                 # temporal to nasal about the vertical
         w = np.cos(np.pi / 2 * (alpha - (-0.06)) / 1.07).clip(0, 1) ** 0.7
-        b0 = np.arcsin(np.clip(margin / rp, -1, 1)) * w
+        b0 = margin * w
         b1 = fornix * (0.35 + 0.65 * w)
         rows = []
         for q in np.linspace(0, 1, 7):
             beta = b0 + (b1 - b0) * q
             rows.append(rp * np.stack([np.sin(alpha) * np.cos(beta), np.sin(beta), np.cos(alpha) * np.cos(beta)], 1))
         grid = np.array(rows)                                # (7, 25, 3)
-        dirs = unit(grid)
-        c0 = np.array([0.0, 0.0, apex - rc])                 # the cornea's front sphere's centre
-        dc = dirs @ c0
-        over = dc + np.sqrt(np.maximum(dc * dc - c0 @ c0 + rc * rc, 0)) + 0.15 * s
-        cornea_side = np.arccos(np.clip(dirs[..., 2], -1, 1)) < thl + 0.06
-        grid = dirs * np.where(cornea_side, np.maximum(rp, over), rp)[..., None]
         v = grid.reshape(-1, 3)
         i, j = np.meshgrid(np.arange(6), np.arange(24), indexing="ij")
         a = (i * 25 + j).ravel()
@@ -407,25 +440,87 @@ def eyeball(R, apex, disc):
 
 # MARK: the muscles
 
-def sweep(path, width, thick, up, n=14, p=2.6, hug=None):
+SECTION = 16           # points around a muscle's section
+BED = -0.06            # a muscle lying on the sclera has its underside this far off it (mm): under its face, so
+                       # that a tendon's thin edge is in the sclera and its face comes out of the sclera's at an
+                       # angle (no face of the edge, nor the sclera's, then flickers through the other)
+FLOOR = -0.09          # and none of it deeper (the suite's bound is 0.15)
+EDGE = 0.5             # a tendon lying on the sclera rises to its full thickness within this of its edge (mm)
+
+
+def sweep(path, width, thick, up, n=SECTION, p=2.3, hug=None, back=None, seat=None):
     """A closed tube along `path` ((k, 3)), `width` and `thick` its full sizes at each point, its thickness lying
-    along `up` (made perpendicular to the path) and its width across; flat ends. Where hug ((k,), 0 to 1) is
-    above 0, its sections curve with the eyeball (centred at the origin) rather than lie flat."""
+    along `up` (made perpendicular to the path) and its width across, each end closed by its middle point. Its
+    sections are superellipses of exponent p (one number, or one a point): 2 an ellipse, under 2 a lens whose edges
+    thin to nothing, as a tendon's do, over 2 a fuller belly. back ((k,), mm) carries each section's edges that far
+    on along the path (away from its first point) and its middle not, so that the insertion's line is curved, its
+    middle foremost. Where hug ((k,), 0 to 1) is above 0, a section lies on the eyeball (centred at the origin) as
+    on a bed: its underside on the sphere of radius `seat` across its whole width, its thickness all above it, its
+    edges meeting the sphere in a fine edge, so that a tendon lies flat on the sclera and blends into it rather than
+    standing on it (a tendon's top rising from the sphere within EDGE of its edge and flat across, so its edge
+    comes out of the sclera along a clean line); an end lying on the eyeball is closed by rings drawn in to its
+    middle along the sphere, so its end lies on the sclera too."""
     t = unit(np.gradient(path, axis=0))
     u = unit(up - np.einsum("ij,ij->i", up, t)[:, None] * t)
     w = np.cross(t, u)
-    a = 2 * np.pi * np.arange(n) / n
-    cx = np.sign(np.cos(a)) * np.abs(np.cos(a)) ** (2 / p)
-    cy = np.sign(np.sin(a)) * np.abs(np.sin(a)) ** (2 / p)
+    # the points around a section closer together toward its edges (where a flat section turns), and none on an
+    # edge itself but one either side of it, above and below: so a thin edge is a wall too low to see between its
+    # two faces, and the top face's edge takes its light from the top face alone (one point where the faces met
+    # would take it from both, facing apart, and show as a line)
+    q = 4 * (np.arange(n) + 0.5) / n
+    k, f = np.floor(q), q - np.floor(q)
+    a = (k + np.where(k % 2 == 0, f ** 1.6, 1 - (1 - f) ** 1.6)) * np.pi / 2
+    p = np.broadcast_to(np.asarray(p, float), (len(path),))
     rows = []
     for k in range(len(path)):
-        ring = path[k] + (width[k] / 2 * cx)[:, None] * w[k] + (thick[k] / 2 * cy)[:, None] * u[k]
+        cx = np.sign(np.cos(a)) * np.abs(np.cos(a)) ** (2 / p[k])
+        cy = np.sign(np.sin(a)) * np.abs(np.sin(a)) ** (2 / p[k])
+        across = path[k] + (width[k] / 2 * cx)[:, None] * w[k]
+        if back is not None and back[k] > 0:
+            across = across + (back[k] * cx * cx)[:, None] * t[k]
+        ring = across + (thick[k] / 2 * cy)[:, None] * u[k]
         if hug is not None and hug[k] > 0:
-            curved = unit(ring) * (np.linalg.norm(path[k]) + thick[k] / 2 * cy)[:, None]
-            ring = ring + hug[k] * (curved - ring)
+            # its thickness all above the bed: a tendon's (p under 2) a band whose top rises from the bed within
+            # EDGE of its edge, steeply (at 30 degrees or so), and is flat across, so that it comes out of the
+            # sclera along one clean line: a top rising at a few degrees across its whole width (a lens) met the
+            # sclera along a line that wandered a third of a millimetre with the sclera's facets, and read as a
+            # sticker's torn edge; a belly's its section's own top
+            edge = (1 - np.abs(cx)) * width[k] / 2
+            lens = np.where(cy > 0, np.sin(np.pi / 2 * np.clip(edge / EDGE, 0, 1)) ** 0.7, 0.0)
+            wt = float(np.clip((2.0 - p[k]) / 0.3, 0, 1))
+            top = wt * lens + (1 - wt) * np.clip(cy, 0, None)
+            bed = unit(across) * (seat + thick[k] * top)[:, None]
+            ring = ring + hug[k] * (bed - ring)
         rows.append(ring)
-    v, f = lattice([path[0]] + rows + [path[-1]])
+    first = [path[0]]
+    if hug is not None and hug[0] >= 0.5:
+        # the end on the eyeball: its middle on the bed, two rings between drawn in to it along the sphere
+        middle = unit(path[0]) * seat
+        lift = np.linalg.norm(rows[0], axis=1) - seat
+        first = [middle] + [unit(middle + f * (rows[0] - middle)) * (seat + f * lift)[:, None] for f in (1 / 3, 2 / 3)]
+    v, f = lattice(first + rows + [path[-1]])
     return v, outward(v - v.mean(0), f)
+
+
+def dome(s, total, r):
+    """Each point's share of its section's full size: 1, but within r of the end at `total`, where the muscle
+    closes as a dome does (to a seventh at the very end, which its middle point closes)."""
+    q = np.clip((np.asarray(s, float) - (total - r)) / r, 0, 1)
+    return np.maximum(np.sqrt(np.maximum(1 - q * q, 0.0)), 0.15)
+
+
+def insertion_curve(s, sc, deep=1.0, over=3.0):
+    """How far a section's edges lie behind its middle (sweep's back): `deep` mm at the insertion, none `over` mm
+    along, so the insertion's line is bowed forward at its middle, as a rectus's is."""
+    return deep * sc * np.clip(1 - np.asarray(s, float) / (over * sc), 0, 1)
+
+
+def stepped(dense, fine_until, sc, fine=0.5, coarse=1.3, end=0.3, end_span=2.0):
+    """The polyline `dense` at even steps along it: `fine` mm up to `fine_until` (the tendon and the belly's rise),
+    `coarse` along the belly, `end` within `end_span` mm of its far end (its rounded end)."""
+    total = float(np.linalg.norm(np.diff(dense, axis=0), axis=1).sum())
+    return resample(dense, lambda at: fine * sc if at < fine_until else (end * sc if at > total - end_span * sc
+                                                                           else coarse * sc))
 
 
 def hugging(path, R, sc):
@@ -445,16 +540,31 @@ def resample(points, step):
     return np.stack([np.interp(out, s, points[:, i]) for i in range(3)], 1), out
 
 
-def wrap_path(I, O, r, steps=60):
+def wrap_path(I, O, r, steps=60, nasal_to=None):
     """From I (on the sphere of radius r) along the great circle toward O, to where the line to O leaves it as a
-    tangent, then straight to O: a dense polyline."""
+    tangent (or on along the sphere until its x, nasal, reaches nasal_to: the superior oblique's tendon is held to
+    the eyeball by the superior rectus over it, so leaves it only past the rectus's nasal border), then straight to
+    O: a dense polyline."""
     e1 = unit(I)
     e2 = unit(O - (O @ e1) * e1)
     a_o = np.arctan2(O @ e2, O @ e1)
     a_t = max(a_o - np.arccos(np.clip(r / np.linalg.norm(O), -1, 1)), 0.0)
+    if nasal_to is not None:
+        on = [a for a in np.linspace(a_t, a_o, 400)[:-20] if r * (np.cos(a) * e1[0] + np.sin(a) * e2[0]) >= nasal_to]
+        a_t = on[0] if on else a_t
     arc = [r * (np.cos(a) * e1 + np.sin(a) * e2) for a in np.linspace(0, a_t, steps)]
     line = [arc[-1] + (O - arc[-1]) * q for q in np.linspace(0, 1, steps)[1:]]
     return np.array(arc + line)
+
+
+def rounded(points, sc, sigma=1.5):
+    """The polyline rounded where it bends, over about `sigma` mm, its ends where they were: resampled at 0.25 mm
+    and blurred along itself, the blur fading out toward each end."""
+    from scipy.ndimage import gaussian_filter1d
+    p, s = resample(points, 0.25 * sc)
+    q = gaussian_filter1d(p, sigma * 4, axis=0, mode="nearest")
+    keep = smooth(0, 3 * sigma * sc, np.minimum(s, s[-1] - s))[:, None]
+    return p + keep * (q - p)
 
 
 def clear_of_globe(path, thick, R, gap, rounds=30):
@@ -487,63 +597,159 @@ def profile(s, at, values):
 
 
 def rectus(R, sc, key, O, A):
-    """A rectus from its origin O on the common ring (A its middle) to its insertion: (vertices, triangles)."""
+    """A rectus from its origin O on the common ring (A its middle) to its insertion: (vertices, triangles). A flat
+    band: its tendon thin, its edges thinning to nothing, and thinner still where it meets the sclera, along a line
+    bowed forward at its middle; the belly swelling from it over a few millimetres (the fibres' step reads tendon
+    where a muscle is under half its thickest, so the white ends about where the textbook's tendon does) and
+    narrowing to a rounded end at the ring."""
     meridian, behind, tendon, wide, belly = RECTI[key]
     m3 = np.array([meridian[0], meridian[1], 0.0])
     thl = np.arcsin(LIMBUS * sc / R)
     th_i = thl + behind * sc / R
-    rt = R + 0.25 * sc
+    rt = R + 0.2 * sc
     I = rt * (np.sin(th_i) * m3 + np.array([0, 0, np.cos(th_i)]))
     dense = wrap_path(I, O, rt)
-    path, s = resample(dense, lambda at: 0.7 * sc if at < (tendon + 7) * sc else 1.6 * sc)
+    path, s = stepped(dense, (tendon + 6) * sc, sc)
     total = s[-1]
     lt, lb = tendon * sc, total - (tendon + 5) * sc - 5 * sc
-    # the belly rises off its flat tendon within a millimetre or so, as it does at the musculotendinous junction
-    # (and the fibres' step reads tendon where a muscle is under half its thickest)
-    at = [0, lt, lt + 1.2 * sc, lt + 4 * sc, lt + 5 * sc + 0.4 * lb, total - 5 * sc, total]
-    width = profile(s, at, [wide, wide, 0.96 * wide, 0.87 * wide, 0.9 * wide, 0.42 * wide, 3.0]) * sc
-    thick = profile(s, at, [0.5, 0.5, 0.6 * belly, 0.8 * belly, belly, 0.55 * belly, 1.3]) * sc
+    at = [0, 0.4 * sc, lt - 0.5 * sc, lt + 1.0 * sc, lt + 3.5 * sc, lt + 5 * sc + 0.4 * lb, total - 5 * sc, total]
+    width = profile(s, at, [wide, wide, 0.95 * wide, 0.91 * wide, 0.88 * wide, 0.9 * wide, 0.42 * wide, 3.2]) * sc
+    thick = profile(s, at, [0.03, 0.24, 0.4, 0.42 * belly, 0.8 * belly, belly, 0.55 * belly, 1.5]) * sc
+    p = profile(s, at, [1.7, 1.7, 1.7, 2.0, 2.3, 2.3, 2.3, 2.2])
+    end = dome(s, total, 1.8 * sc)
+    width, thick = width * end, thick * end
     path = clear_of_globe(path, thick, R, 0.04 * sc)
-    return sweep(path, width, thick, thickness_way(path, A, R), hug=hugging(path, R, sc))
+    return sweep(path, width, thick, thickness_way(path, A, R), p=p, hug=hugging(path, R, sc),
+                 back=insertion_curve(s, sc), seat=R + BED * sc)
 
 
 def superior_oblique(R, sc, O, trochlea, A):
     """From above the common ring along the roof to the trochlea, its tendon through it and back under the
-    superior rectus to a fan behind the equator, superotemporally."""
-    I = on_sphere(R + 0.22 * sc, np.radians(110), np.radians(112))
-    reflected = wrap_path(I, trochlea, R + 0.22 * sc)
+    superior rectus to a fan behind the equator, superotemporally: the fan thin, its edges thinning to nothing and
+    its insertion's line bowed; the tendon round in the trochlea and a flat band under the rectus; the belly
+    swelling behind the trochlea and ending rounded at its origin."""
+    # its insertion's middle 120 deg from the front pole, superotemporally: the reflected tendon's anterior border
+    # then passes about 5 mm behind the superior rectus's nasal insertion corner, and the insertion's anterior end
+    # lies about 7.5 mm behind the rectus's temporal one (5.1 and 7.7 mm in enucleated eyes stained with trypan
+    # blue, J Korean Ophthalmol Soc 2012); at 110 deg it crossed 2.5 mm behind the corner and lifted the rectus's
+    # tendon off the sclera next to its insertion
+    I = on_sphere(R + 0.22 * sc, np.radians(120), np.radians(112))
+    # under the superior rectus it lies on the eyeball, the rectus over it; it leaves the eyeball for the trochlea
+    # past the rectus's nasal border (its middle 6.5 mm nasal), the bend rounded. (A straight line from the
+    # trochlea, laid on the eyeball where it would pass inside it, met the eyeball under the rectus and raised its
+    # tendon a millimetre; leaving at 7.5 mm raised it more.)
+    reflected = rounded(wrap_path(I, trochlea, R + 0.22 * sc, nasal_to=6.5 * sc), sc)
     # round the bend at the trochlea, 2.5 mm either way
     back = trochlea + unit(O - trochlea) * 2.5 * sc
     front = trochlea + unit(reflected[-8] - trochlea) * 2.5 * sc
-    bend = np.array([(1 - q) ** 2 * front + 2 * q * (1 - q) * trochlea + q * q * back for q in np.linspace(0, 1, 7)])
+    bend = np.array([(1 - q) ** 2 * front + 2 * q * (1 - q) * trochlea + q * q * back for q in np.linspace(0, 1, 9)])
     keep = np.linalg.norm(reflected - trochlea, axis=1) > 2.5 * sc
     dense = np.vstack([reflected[keep], bend, [back + (O - back) * q for q in np.linspace(0, 1, 30)[1:]]])
-    path, s = resample(dense, lambda at: 0.7 * sc if at < 12 * sc else 1.5 * sc)
+    along = np.r_[0, np.cumsum(np.linalg.norm(np.diff(dense, axis=0), axis=1))]
+    there, whole = along[np.argmin(np.linalg.norm(dense - trochlea, axis=1))], along[-1]
+    # finely along the fan and round the trochlea, coarser along the belly, finely again at its rounded end
+    path, s = resample(dense, lambda at: 0.5 * sc if at < 8 * sc else 0.7 * sc if at < there + 5 * sc
+                       else 0.3 * sc if at > whole - 2 * sc else 1.3 * sc)
     total = s[-1]
     to_trochlea = s[np.argmin(np.linalg.norm(path - trochlea, axis=1))]
     belly_start = to_trochlea + 10 * sc
-    # the reflected tendon a flat band where it passes under the superior rectus (3.5 to 13 mm from its insertion),
-    # round again in the trochlea
+    # the reflected tendon a flat band where it passes under the superior rectus (3.5 to 13 mm from its insertion)
+    # and on to within a few millimetres of the trochlea, round only in it
     flat = min(14 * sc, to_trochlea - 4 * sc)
-    at = [0, 2 * sc, 7 * sc, flat, to_trochlea, belly_start, belly_start + 4 * sc, 0.5 * (belly_start + total),
-          total - 4 * sc, total]
-    width = profile(s, at, [10.0, 8.0, 3.4, 2.8, 1.7, 1.8, 3.6, 4.6, 3.2, 2.4]) * sc
-    thick = profile(s, at, [0.4, 0.5, 0.6, 0.7, 1.5, 1.6, 3.0, 3.9, 2.6, 1.5]) * sc
+    at = [0, 0.4 * sc, 3 * sc, 7 * sc, flat, to_trochlea - 2.5 * sc, to_trochlea, belly_start, belly_start + 4 * sc,
+          0.5 * (belly_start + total), total - 3 * sc, total]
+    width = profile(s, at, [10.0, 9.4, 6.5, 3.6, 3.2, 2.6, 1.8, 1.8, 3.6, 4.6, 3.4, 2.4]) * sc
+    thick = profile(s, at, [0.03, 0.2, 0.35, 0.45, 0.5, 0.7, 1.4, 1.6, 3.0, 3.9, 2.8, 1.8]) * sc
+    p = profile(s, at, [1.6, 1.6, 1.7, 1.8, 1.8, 1.9, 2.1, 2.2, 2.3, 2.3, 2.3, 2.2])
+    end = dome(s, total, 1.8 * sc)
+    width, thick = width * end, thick * end
     path = clear_of_globe(path, thick, R, 0.04 * sc)
-    return sweep(path, width, thick, thickness_way(path, A, R), hug=hugging(path, R, sc))
+    return sweep(path, width, thick, thickness_way(path, A, R), p=p, hug=hugging(path, R, sc),
+                 back=insertion_curve(s, sc), seat=R + BED * sc)
 
 
 def inferior_oblique(R, sc, O, I, A):
     """From the orbit's floor behind its rim, under the inferior rectus and around the eyeball to its insertion
-    below the lateral rectus, by a short tendon."""
+    below the lateral rectus, by a short tendon thinning to its insertion, its edges thinning to nothing; its belly
+    ending rounded at its origin."""
     I = unit(I) * (R + 0.3 * sc)
-    path, s = resample(wrap_path(I, O, R + 0.3 * sc), 0.9 * sc)
+    path, s = stepped(wrap_path(I, O, R + 0.3 * sc), 6 * sc, sc, coarse=1.0)
     total = s[-1]
-    at = [0, 1.5 * sc, 4 * sc, 0.45 * total, total - 3 * sc, total]
-    width = profile(s, at, [9.0, 8.0, 6.5, 6.8, 5.4, 4.8]) * sc
-    thick = profile(s, at, [0.55, 0.9, 2.0, 2.6, 2.3, 2.0]) * sc
+    at = [0, 0.4 * sc, 2.5 * sc, 5 * sc, 0.45 * total, total - 3 * sc, total]
+    width = profile(s, at, [9.0, 8.6, 7.6, 6.6, 6.0, 4.4, 2.8]) * sc
+    thick = profile(s, at, [0.03, 0.26, 0.8, 1.6, 2.0, 1.6, 1.0]) * sc
+    p = profile(s, at, [1.7, 1.7, 1.9, 2.2, 2.3, 2.3, 2.2])
+    end = dome(s, total, 1.8 * sc)
+    width, thick = width * end, thick * end
     path = clear_of_globe(path, thick, R, 0.04 * sc)
-    return sweep(path, width, thick, thickness_way(path, A, R), hug=hugging(path, R, sc))
+    return sweep(path, width, thick, thickness_way(path, A, R), p=p, hug=hugging(path, R, sc),
+                 back=insertion_curve(s, sc, deep=0.7), seat=R + BED * sc)
+
+
+def even_out(v, v0, sc, n=SECTION, reach=2.0, anchor=None):
+    """A muscle's moves since it was swept (v now, v0 as swept: an end point, rings of n points, an end point) made
+    smooth along it, so that it bends over what it crosses in an even rise rather than a step: each ring's move as a
+    whole widened to the largest within `reach` mm along the muscle, then blurred over half that (so it keeps nearly
+    all of what clears the other); how a ring was pressed out of its shape (by the optic nerve, the eyeball) blurred
+    over 0.6 mm along the muscle and a little around it; the end points moved with their rings; with `anchor`, no
+    move as a whole at the insertion, whole from `anchor` mm along."""
+    rings, rings0 = v[1:-1].reshape(-1, n, 3), v0[1:-1].reshape(-1, n, 3)
+    move = rings - rings0
+    whole = move.mean(1)
+    shape = move - whole[:, None]
+    first, last = v[0] - v0[0] - whole[0], v[-1] - v0[-1] - whole[-1]
+    s = np.r_[0, np.cumsum(np.linalg.norm(np.diff(rings0.mean(1), axis=0), axis=1))]
+    gap = np.abs(s[:, None] - s[None, :])
+    size = np.linalg.norm(whole, axis=1)
+    wide = whole[np.argmax(np.where(gap <= reach * sc, size[None, :], -1.0), axis=1)]
+    g = np.exp(-0.5 * (gap / (0.5 * reach * sc)) ** 2)
+    whole = (g / g.sum(1, keepdims=True)) @ wide
+    if anchor is not None:
+        whole = whole * smooth(0, anchor, s)[:, None]
+    g = np.exp(-0.5 * (gap / (0.6 * sc)) ** 2)
+    shape = np.einsum("ik,kjc->ijc", g / g.sum(1, keepdims=True), shape)
+    shape = 0.5 * shape + 0.25 * (np.roll(shape, 1, axis=1) + np.roll(shape, -1, axis=1))
+    v[1:-1] = (rings0 + whole[:, None] + shape).reshape(-1, 3)
+    v[0] = v0[0] + whole[0] + first
+    v[-1] = v0[-1] + whole[-1] + last
+
+
+def drape_over(v, inner, clearance, sc, n=SECTION, reach=1.0, radial=None, cap=3.0, rounds=12):
+    """A muscle lying on the eyeball (a sweep: an end point, rings of n points, an end point) laid over another
+    that passes under it on the eyeball (inner: its points), as a tendon drapes over what crosses under it: each
+    column of its section (a point on its top and the one under it on its underside) lifted along its radius until
+    its underside clears what lies under it there (the inner's points within `reach` mm of its direction, about the
+    widest gap between two columns, so nothing of the other comes up between them; nearer the eyeball's centre than
+    `radial`) by `clearance`, at most `cap` mm (the inferior oblique under the inferior rectus's belly needs two); then the lift spread to its neighbours along
+    the muscle and around it, never below what a column needs, so it rises over the other in a swell, and where
+    nothing lies under it the muscle stays on the sclera (moving whole sections, by what the deepest point of each
+    needed, lifted a tendon's whole width off the sclera where only its edge crossed the other: a curled slab).
+    How many sections moved."""
+    rings = v[1:-1].reshape(-1, n, 3)
+    k = len(rings)
+    pts = inner if radial is None else inner[np.linalg.norm(inner, axis=1) < radial]
+    if not len(pts):
+        return 0
+    h = np.linalg.norm(pts, axis=1)
+    r = np.linalg.norm(rings, axis=2)
+    d = rings / r[..., None]
+    tree = cKDTree(pts / h[:, None])
+    hits = tree.query_ball_point(d.reshape(-1, 3), reach * sc / r.mean())
+    top = np.array([h[u].max() if u else -np.inf for u in hits]).reshape(k, n)
+    partner = n - 1 - np.arange(n)                     # the point across the section's thickness from each
+    top = np.maximum(top, top[:, partner])
+    under = np.minimum(r, r[:, partner])
+    need = np.clip(np.where(np.isfinite(top), top + clearance - under, 0.0), 0.0, cap * sc)
+    lift = need.copy()
+    for _ in range(rounds):
+        along = lift.copy()
+        along[1:-1] = 0.5 * lift[1:-1] + 0.25 * (lift[:-2] + lift[2:])
+        around = 0.5 * along + 0.25 * (np.roll(along, 1, axis=1) + np.roll(along, -1, axis=1))
+        lift = np.maximum(need, around)
+    rings += d * lift[..., None]
+    v[0] += unit(v[0]) * lift[0].mean()
+    v[-1] += unit(v[-1]) * lift[-1].mean()
+    return int((lift.max(1) > 1e-6).sum())
 
 
 def vertex_normals(v, f):
@@ -554,8 +760,8 @@ def vertex_normals(v, f):
     return unit(n)
 
 
-def lift_off(v, pts, nrm, clearance, reach=3.0, n=14, rounds=12, dense=4, radial=None, hold=(4.0, 8.0), limit=None, spent=None,
-             globe=None):
+def lift_off(v, pts, nrm, clearance, reach=3.0, n=SECTION, rounds=12, dense=4, radial=None, hold=(4.0, 8.0), limit=None, spent=None,
+             globe=None, anchor=None):
     """A muscle (a sweep from its insertion to its origin: an end point first and last, rings of n points between)
     moved off a surface (pts, nrm: its points and outward normals) a section at a time: each ring (checked at
     `dense` points along each of its edges and at `dense` steps toward the next ring, so nothing thin passes between
@@ -568,7 +774,8 @@ def lift_off(v, pts, nrm, clearance, reach=3.0, n=14, rounds=12, dense=4, radial
     where it is caught between two; with `globe` (a distance from the eyeball's centre), never moved into the
     eyeball: a move that would carry a ring under it loses its part toward the centre and then as much of the rest
     as it needs (so a muscle caught between a wall and the eyeball is left there); the origin held where it is
-    (`hold`: mm from it where the moves start and are whole); how many rings moved."""
+    (`hold`: mm from it where the moves start and are whole), and with `anchor` the insertion too (no move at it,
+    whole moves from `anchor` mm along: a tendon stays where it is inserted on the sclera); how many rings moved."""
     rings = v[1:-1].reshape(-1, n, 3)
     k = len(rings)
     t = np.arange(dense) / dense
@@ -577,8 +784,15 @@ def lift_off(v, pts, nrm, clearance, reach=3.0, n=14, rounds=12, dense=4, radial
     centres = rings.mean(1)
     from_origin = np.r_[np.cumsum(np.linalg.norm(np.diff(centres[::-1], axis=0), axis=1))[::-1], 0.0]
     weight = smooth(hold[0], hold[1], from_origin)
+    if anchor is not None:
+        weight = weight * smooth(0, anchor, from_origin[0] - from_origin)
     if radial is not None:
+        # what lies on the eyeball under it: the other's points nearer its centre than `radial`
         heights = np.linalg.norm(pts, axis=1)
+        pts = pts[heights < radial]
+        heights = heights[heights < radial]
+        if not len(pts):
+            return 0
         tree = cKDTree(pts / heights[:, None])
     else:
         tree = cKDTree(pts)
@@ -664,6 +878,35 @@ def tube_way(v, centre, radius, clearance):
 
 
 # MARK: the atlas
+
+def drape(v, f, muscles, R, sc, reach=1.4, gap=0.06, rounds=8):
+    """The bulbar conjunctiva (v, f, in the eye's frame, mm) laid over the muscles where they pass under it, as the
+    film lies over the recti's tendons: each point lifted along its radius to `gap` over the highest muscle point
+    within `reach` of it (as far as a point of a triangle lies from that triangle's farthest corner, so no
+    tendon's edge comes up through a triangle between them), then the lift spread to its neighbours, never below
+    what a point needs, so the film rises over a tendon in a gentle swell rather than a step."""
+    pts = np.vstack(muscles)
+    pts = pts[np.linalg.norm(pts, axis=1) < R + 2.5 * sc]
+    if not len(pts):
+        return v
+    rv = np.linalg.norm(v, axis=1)
+    d = v / rv[:, None]
+    tree = cKDTree(unit(pts) * rv.mean())
+    need = np.zeros(len(v))
+    for i, hits in enumerate(tree.query_ball_point(d * rv.mean(), reach * sc)):
+        if hits:
+            need[i] = max(0.0, float(np.linalg.norm(pts[hits], axis=1).max()) + gap * sc - rv[i])
+    e = np.vstack([f[:, [0, 1]], f[:, [1, 2]], f[:, [2, 0]]])
+    e = np.unique(np.sort(e, axis=1), axis=0)
+    deg = np.bincount(e.ravel(), minlength=len(v)).astype(float)
+    lift = need.copy()
+    for _ in range(rounds):
+        total = np.zeros(len(v))
+        np.add.at(total, e[:, 0], lift[e[:, 1]])
+        np.add.at(total, e[:, 1], lift[e[:, 0]])
+        lift = np.maximum(need, 0.5 * lift + 0.5 * total / np.maximum(deg, 1))
+    return v + d * lift[:, None]
+
 
 def side_of(node):
     return "R" if node.endswith("_R") or "_right" in node else "L"
@@ -783,8 +1026,11 @@ def remake(folder, quiet=False):
                     hit = sel[sel[:, 1] > sel[:, 1].max() - 0.8 * sc].mean(0) + [0, 1.2 * sc, 0]
             io_origin = hit if hit is not None else np.array([11.0, -12.5, 5.0]) * sc
             built = {k: rectus(Rm, sc, k, A + RING * sc * np.r_[RECTI[k][0], 0], A) for k in RECTI}
-            built["superior_oblique"] = superior_oblique(Rm, sc, A + RING * sc * np.r_[unit(np.array([0.5, 1.0])), 0] + [0, 0, 1.5 * sc],
-                                                         trochlea, A)
+            # the superior oblique from the sphenoid's body above and medial to the optic canal: between the superior
+            # and the medial rectus's origins on the ring, clear of both (2.4 mm from the superior rectus's, its
+            # rounded end passed into the rectus's)
+            built["superior_oblique"] = superior_oblique(Rm, sc, A + 1.15 * RING * sc * np.r_[unit(np.array([0.9, 1.0])), 0]
+                                                         + [0, 0, 1.5 * sc], trochlea, A)
             built["inferior_oblique"] = inferior_oblique(Rm, sc, io_origin, on_sphere(1, np.radians(128), np.radians(208)), A)
             # where one passes another the outer gives way (the superior rectus over the superior oblique's tendon,
             # the inferior oblique under the inferior rectus, the lateral rectus over the inferior oblique's
@@ -792,15 +1038,17 @@ def remake(folder, quiet=False):
             # a section at a time; then the optic nerve's sheath, the bone and the eyeball itself, three times over
             moved = {}
             # each ring's nudges off the bone so far, so the cap holds over all three rounds
-            spent = {k: np.zeros(((len(v) - 2) // 14, 3)) for k, (v, f) in built.items()}
+            spent = {k: np.zeros(((len(v) - 2) // SECTION, 3)) for k, (v, f) in built.items()}
             pairs = (("superior_rectus", "superior_oblique"), ("inferior_oblique", "inferior_rectus"),
                      ("lateral_rectus", "inferior_oblique"), ("superior_oblique", "medial_rectus"),
                      ("superior_rectus", "medial_rectus"), ("inferior_rectus", "medial_rectus"),
                      ("superior_rectus", "lateral_rectus"), ("inferior_rectus", "lateral_rectus"))
-            # the crossings on the eyeball, where the outer is lifted away from its centre
+            # the crossings on the eyeball, where the outer is laid over the inner once the rest has settled
             on_globe = pairs[:3]
             # (each other last: where the orbit is too tight for both, a muscle may touch the bone, never another)
-            for _ in range(3):
+            designed = {k: v.copy() for k, (v, f) in built.items()}
+
+            def settle():
                 if centre_line:
                     for k, (v, f) in built.items():
                         moved[k] = moved.get(k, 0) + tube_way(v, np.array(centre_line), np.array(radius), 0.25 * sc)
@@ -808,24 +1056,37 @@ def remake(folder, quiet=False):
                     for k, (v, f) in built.items():
                         moved[k] = moved.get(k, 0) + lift_off(v, near[keep], near_n, 0.3 * sc, reach=3.0 * sc,
                                                               hold=(4 * sc, 8 * sc), limit=1.0 * sc, spent=spent[k],
-                                                              globe=Rm + 0.03 * sc)
+                                                              globe=Rm + FLOOR * sc, anchor=2.5 * sc)
                 for k, (v, f) in built.items():
                     d = np.linalg.norm(v, axis=1)
-                    inside = d < Rm + 0.03 * sc
-                    v[inside] *= ((Rm + 0.03 * sc) / d[inside])[:, None]
+                    inside = d < Rm + FLOOR * sc
+                    v[inside] *= ((Rm + FLOOR * sc) / d[inside])[:, None]
                 for outer, inner in pairs:
+                    if (outer, inner) in on_globe:
+                        continue
                     iv, jf = built[inner]
                     moved[outer] = moved.get(outer, 0) + lift_off(built[outer][0], iv, vertex_normals(iv, jf), 0.12 * sc,
-                                                                  reach=2.5 * sc,
-                                                                  radial=Rm + 6 * sc if (outer, inner) in on_globe else None,
-                                                                  hold=(4 * sc, 8 * sc), globe=Rm + 0.03 * sc)
+                                                                  reach=2.5 * sc, hold=(4 * sc, 8 * sc),
+                                                                  globe=Rm + FLOOR * sc, anchor=2.5 * sc)
+
+            for _ in range(3):
+                settle()
+            # the moves made smooth along each muscle (so it bends over what it crosses, without a step), and once
+            # more what that smoothing gave back settled
+            for k, (v, f) in built.items():
+                even_out(v, designed[k], sc, anchor=2.5 * sc)
+            settle()
+            # where one crosses another on the eyeball, the outer laid over the inner, column by column
+            for outer, inner in on_globe:
+                moved[outer] = moved.get(outer, 0) + drape_over(built[outer][0], built[inner][0], 0.12 * sc, sc,
+                                                                radial=Rm + 6 * sc)
             # each end's cap clear of the eyeball too: a wide tendon's cap is its end point joined to its last ring,
             # flat across the curve, and the middles of those spokes sag into the eyeball (a quarter of a millimetre
             # across a fan 10 mm wide), so the end point is lifted until they clear it
             for k, (v, f) in built.items():
-                for pole, ring in ((0, slice(1, 15)), (len(v) - 1, slice(len(v) - 15, len(v) - 1))):
+                for pole, ring in ((0, slice(1, SECTION + 1)), (len(v) - 1, slice(len(v) - SECTION - 1, len(v) - 1))):
                     for _ in range(4):
-                        need = Rm + 0.03 * sc - np.linalg.norm((v[pole] + v[ring]) / 2, axis=1)
+                        need = Rm + FLOOR * sc - np.linalg.norm((v[pole] + v[ring]) / 2, axis=1)
                         if need.max() <= 1e-4:
                             break
                         v[pole] += unit(v[pole]) * 2.2 * need.max()
@@ -841,6 +1102,12 @@ def remake(folder, quiet=False):
             for k, n in mine.items():
                 v, f = built[k]
                 made_muscles[n] = (world(v), f[:, ::-1] if flip else f)
+            # the conjunctiva over the tendons, now they are where they end
+            for n in made_eyes:
+                if side_of(n) == side and key_of(n) == "bulbar_conjunctiva":
+                    cv, cf = ball["bulbar_conjunctiva"]
+                    cv = drape(cv, cf, [v for v, f in built.values()], Rm, sc)
+                    made_eyes[n] = (world(cv), cf[:, ::-1] if flip else cf)
             said.append(f"{body['id']} {side}: radius {Rm:.2f} mm, cornea {apex:.2f} mm before its middle, optic disc "
                         f"{np.degrees(np.arccos(-disc[2])):.0f} deg off the back pole; common ring {np.round(A, 1)} mm, trochlea "
                         f"{np.round(trochlea, 1)}, inferior oblique from {np.round(io_origin, 1)}"
@@ -851,6 +1118,8 @@ def remake(folder, quiet=False):
         for st in eyes["structures"]:
             colour, opacity, rough = LOOK[key_of(st["node"])]
             st["colour"], st["opacity"], st["roughness"] = colour, opacity, rough
+            if key_of(st["node"]) in SURFACE:
+                st["surface"] = SURFACE[key_of(st["node"])]
         if muscles and made_muscles:
             rewrite(muscles, [made_muscles[st["node"]] for st in muscles["structures"]])
             for st in muscles["structures"]:

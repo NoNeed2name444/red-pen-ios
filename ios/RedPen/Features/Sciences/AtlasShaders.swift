@@ -12,7 +12,9 @@ import Foundation
 // - muscle: its fibres in fine rounded cords, each with a dark seam
 //   between it and the next, running the way the fibres run and
 //   converging where the muscle narrows; where the muscle turns into
-//   tendon, white and glossy, its cords fainter. The bundles (fascicles),
+//   tendon, white with a soft sheen, its cords nearly gone (a tendon shows
+//   fine lines, not the ridged cords of a belly, and a sharp gloss on it
+//   reads as plastic). The bundles (fascicles),
 //   a few millimetres across, come from the build (tools/anatomy_fibres.py
 //   lays them along the fibres as a stripe pattern; AnatomyStripes): the
 //   texture coordinates say where a point lies across them, one bundle a
@@ -25,6 +27,13 @@ import Foundation
 //   shimmer where a pixel is shaded once (as on the phone and the tablet).
 //   The cords' relief tilts the normal (a bump) across them, the way found
 //   from how that coordinate changes between pixels.
+// - iris: its stroma's fine radial fibres and the broader bands they make,
+//   the collarette (a wavering crest about a third of the way out, the
+//   pupillary zone inside it a little lighter and warmer), crypts (dark
+//   pits just outside it), darker toward its root, as the limbal ring is
+//   seen, and the pigment of the pupil's rim (the ruff) dark: drawn about
+//   the iris's own middle and axis (AnatomyMesh.ringFrame), so a flat
+//   brown disc reads as an iris.
 // The pattern is fixed to the body: it comes from the point's place in the
 // body's own frame (scn_node's inverse model-view), not from texture
 // coordinates, so it runs on unbroken where two pieces of a bone meet and
@@ -37,7 +46,10 @@ import Foundation
 // leaves out the fine grain, and a muscle's cords go no finer than
 // 1.4 mm), and for muscle rpBundle (the bundles' width in
 // metres, AnatomyStripes.bundle; under 1.5 mm reads as 1.5) and rpTendon
-// (tendon's linear colour over muscle's, per channel). Muscle reads its
+// (tendon's linear colour over muscle's, per channel); for the iris
+// rpIrisCentre and rpIrisAxis (its middle and the unit axis it is turned
+// about, in the body's frame) and rpIrisRadii (the pupil's rim's and the
+// root's distance off that axis, in metres; the third unused). Muscle reads its
 // texture coordinates (AnatomyStripes.coordinates), so its material carries
 // a texture (AnatomyAtlasView's swatch), without which SceneKit passes none; where
 // they do not run (a muscle without bundles), it stays plain. Listed in
@@ -69,6 +81,58 @@ nonisolated enum AtlasShaders {
         float3 rp_tint = mix(float3(1.0, 0.965, 0.9), float3(1.0, 1.0, 1.0), rp_mc);
         _surface.diffuse = float4(_surface.diffuse.rgb * rp_tint * rp_shade + float3(rpProbe), _surface.diffuse.a);
         _surface.roughness = clamp(_surface.roughness + 0.08 * (rp_mc - 0.5) - 0.05 * rp_fine * (rp_g - 0.5), 0.2, 1.0);
+        """
+
+    /// Iris: radial fibres, the collarette and crypts, its rim and root dark.
+    static let iris: String = """
+        #pragma arguments
+        float rpProbe;
+        float rpDetail;
+        float3 rpIrisCentre;
+        float3 rpIrisAxis;
+        float3 rpIrisRadii;
+        #pragma body
+        // the point in the body's own frame (metres), and its place on the iris: how far out from the pupil's
+        // rim to the root (0 to 1), and its direction about the axis (as a point on a circle, so no seam)
+        float3 rp_p = (scn_node.inverseModelViewTransform * float4(_surface.position, 1.0)).xyz;
+        float3 rp_ax = normalize(rpIrisAxis);
+        float3 rp_d = rp_p - rpIrisCentre;
+        float3 rp_q = rp_d - dot(rp_d, rp_ax) * rp_ax;
+        float rp_r = length(rp_q);
+        float3 rp_e1 = normalize(cross(rp_ax, abs(rp_ax.y) < 0.9 ? float3(0.0, 1.0, 0.0) : float3(1.0, 0.0, 0.0)));
+        float3 rp_e2 = cross(rp_ax, rp_e1);
+        float2 rp_c = float2(dot(rp_q, rp_e1), dot(rp_q, rp_e2)) / max(rp_r, 0.000001);
+        float rp_t = clamp((rp_r - rpIrisRadii.x) / max(rpIrisRadii.y - rpIrisRadii.x, 0.0001), 0.0, 1.0);
+        // its fine fibres only where they are a few pixels across (a tenth of a millimetre or so)
+        float rp_px = max(length(dfdx(rp_p)), length(dfdy(rp_p)));
+        float rp_fine = 1.0 - smoothstep(0.00008, 0.0002, rp_px);
+        // fibres: fast about the axis, slow along the radius, so they run outward
+
+        """ + GraphShaderKit.latticeFbm("rp_f", "float3(rp_c * 34.0, rp_t * 3.0)", octaves: "2") + """
+        float rp_fc = mix(0.5, clamp((rp_f - 0.5) * 2.2 + 0.5, 0.0, 1.0), rp_fine);
+        // the broader bands the fibres gather into
+
+        """ + GraphShaderKit.lattice("rp_b", "float3(rp_c * 9.0, rp_t * 1.5 + 4.0)") + """
+        // the collarette, wavering about a third of the way out
+
+        """ + GraphShaderKit.lattice("rp_w", "float3(rp_c * 2.5, 7.0)") + """
+        float rp_col = 0.36 + 0.1 * (rp_w - 0.5);
+        float rp_in = 1.0 - smoothstep(rp_col - 0.04, rp_col + 0.02, rp_t);
+        float rp_crest = exp(-((rp_t - rp_col) / 0.03) * ((rp_t - rp_col) / 0.03));
+        // crypts: dark pits in the ciliary zone just outside the collarette, a few, soft-edged
+
+        """ + GraphShaderKit.latticeFbm("rp_k", "float3(rp_c * 8.0, rp_t * 5.0 + 3.0)", octaves: "2") + """
+        float rp_crypt = smoothstep(0.6, 0.7, rp_k) * smoothstep(rp_col, rp_col + 0.06, rp_t)
+            * (1.0 - smoothstep(0.58, 0.72, rp_t));
+        // darker toward the root, and the pupil's pigmented rim
+        float rp_root = smoothstep(0.82, 1.0, rp_t);
+        float rp_ruff = 1.0 - smoothstep(0.0, 0.06, rp_t);
+        float3 rp_tint = mix(float3(1.0), float3(1.25, 1.12, 0.85), 0.8 * rp_in)
+            * mix(float3(0.93, 0.96, 1.05), float3(1.06, 1.03, 0.95), rp_fc);
+        float rp_shade = (0.72 + 0.56 * rp_fc) * (1.0 + 0.25 * (rp_b - 0.5)) * (1.0 + 0.35 * rp_crest)
+            * (1.0 - 0.5 * rp_crypt) * (1.0 - 0.6 * rp_root) * (1.0 - 0.7 * rp_ruff);
+        _surface.diffuse = float4(_surface.diffuse.rgb * rp_tint * rp_shade + float3(rpProbe), _surface.diffuse.a);
+        _surface.roughness = clamp(_surface.roughness - 0.1 * rp_crest + 0.1 * rp_crypt, 0.2, 1.0);
         """
 
     /// Muscle: its fibres in bundles, white tendon at its ends.
@@ -108,10 +172,11 @@ nonisolated enum AtlasShaders {
         float3 rp_g = abs(rp_det) > 1e-14 ? (rp_cx * rp_ax + rp_cy * rp_ay) / rp_det : float3(0.0);
         float3 rp_gw = rp_g * rp_w;
         float rp_gl = length(rp_gw);
-        // the pattern where that coordinate runs (not at a fork, nor where it barely changes); fainter in tendon
+        // the pattern where that coordinate runs (not at a fork, nor where it barely changes); in tendon a
+        // twentieth
         float rp_k = rp_open * smoothstep(0.15, 0.35, rp_gl);
         rp_gw = rp_gl > 2.5 ? rp_gw * (2.5 / rp_gl) : rp_gw;
-        float rp_kb = rp_k * (1.0 - 0.65 * rp_tendon);
+        float rp_kb = rp_k * (1.0 - 0.95 * rp_tendon);
         // how deep the seams run, in patches a few centimetres across: here the cords stand
         // apart, there they lie close and read as one
 
@@ -183,6 +248,6 @@ nonisolated enum AtlasShaders {
         float3 rp_colour = _surface.diffuse.rgb * mix(float3(1.0), rpTendon, rp_tendon);
         _surface.diffuse = float4(rp_colour * rp_shade + float3(rpProbe), _surface.diffuse.a);
         // the fascia over the cords' crowns, and tendon, catch the light more
-        _surface.roughness = clamp(_surface.roughness - 0.1 * rp_kb * (rp_cord - 0.5 * rp_on) - 0.25 * rp_tendon, 0.15, 1.0);
+        _surface.roughness = clamp(_surface.roughness - 0.1 * rp_kb * (rp_cord - 0.5 * rp_on) - 0.1 * rp_tendon, 0.15, 1.0);
         """
 }

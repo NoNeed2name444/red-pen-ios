@@ -12,12 +12,16 @@ Male. The vertebrae, sacrum and coccyx are scans of one dry skeleton's
 (KA 25). The ribs, shoulder girdle, arm, hand and foot bones, the woman's
 hip bones, the hip and back muscles, thyroid, adrenals, oesophagus and
 stomach come from five TotalSegmentator CT scans. All are CC BY 4.0 but the
-Visible Human CT, which NLM gives under its Terms and Conditions. The
+Visible Human CT, which NLM gives under its Terms and Conditions. The eyes
+and their muscles, and the gluteus maximus, are made anew to the measures
+of public-domain textbooks (below). The
 files here were made from the downloads below by `tools/anatomy_atlas.py`,
 `tools/anatomy_gaps.py`, `tools/anatomy_skull.py`,
 `tools/anatomy_limbs.py`, `tools/anatomy_elbows.py`,
-`tools/anatomy_feet.py`, `tools/anatomy_bones.py` and
-`tools/anatomy_fibres.py`, which say exactly how:
+`tools/anatomy_feet.py`, `tools/anatomy_bones.py`,
+`tools/anatomy_eyes.py`, `tools/anatomy_gluteus.py`,
+`tools/anatomy_apart.py` and `tools/anatomy_fibres.py`, which say exactly
+how:
 
     python3 -I tools/anatomy_atlas.py --male 3d-vh-m-united.glb \
         --female 3d-vh-f-united.glb --crosswalk asct-b-3d-models-crosswalk.csv \
@@ -138,7 +142,26 @@ Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024), CC BY
   left with none, is given its neighbour's, laid into it; a disc is laid
   under the fifth lumbar vertebra, where the organ set has none (see KA
   25 below); and the rectum and the vessels about the sacrum are eased out
-  of the scanned sacrum and coccyx (also there).
+  of the scanned sacrum and coccyx (also there). The eyes and their
+  muscles are made anew where the organ set put them (below). The ends
+  of the vessels, ducts and gut, where the organ set cuts one open as it
+  meets the next, are closed as a cut tube is, open and hollow
+  (`tools/anatomy_apart.py`): where the organ set draws a tube with its
+  lumen, the two rims of its wall are joined by a ring; where it draws
+  only the outside, the end is given a wall as thick as its tissue's (an
+  artery's an eighth of its radius, a vein's a fourteenth, a gut's 3 mm,
+  none under 0.35 mm) and a lumen running in along the tube, sealed out
+  of sight; a branch's mouth, cut out of a curved wall, is closed by a
+  smooth sheet. A dome over each end was tried first and read as a solid
+  stump. In the pelvis (from just
+  above the iliac crests to below the ischial tuberosities) each
+  structure is eased out of what it passes into: the organs and the gut
+  off the bones and the discs, the vessels off those and off the organs
+  (only a duct, or a vessel in its own organ, runs through one, as in the
+  body), the ducts off all of these, each by a few millimetres at most
+  and by a field smooth along the structure, so none is stretched or
+  torn; and the hip muscles, which the vessels and organs lie against,
+  grooved where they lie.
 
 ### The woman: 3D Reference Organ Set for Female, v1.10
 
@@ -163,7 +186,8 @@ Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024), CC BY
   their place, below) and the fat of each breast; the sixth lumbar
   vertebra the Visible Human Female has is named as the normal variant it
   is. Once the scanned spine is in, the vessels about the sacrum are eased
-  out of it (see KA 25 below).
+  out of it (see KA 25 below); her eyes and the structures of her pelvis
+  as the man's.
 
 ### The skull: the Visible Human Project's head CT (NLM)
 
@@ -298,16 +322,33 @@ Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024), CC BY
   11 mm under the vertebra's lower endplate, centred under it; in both
   bodies it is widened evenly across the body (by 1.137 in the man, 1.149
   in the woman) and moved sideways, then bent by a field smooth through
-  space (10 mm), so its auricular surfaces lie 2.5 mm from the ilia and
-  nowhere cut into them. Where the last lumbar vertebra's facets and the
+  space (10 mm), so its auricular surfaces lie 2.5 mm from the ilia. The
+  woman's sacrum still crossed her hip bones at the back of its joints
+  (145 of its points), so it is then drawn out of them there
+  (`tools/anatomy_apart.py`): each point inside marched out along the
+  surface's inward normal, the moves spread smoothly over 4 mm, until it
+  lies a joint's width (1 mm) off them (moved by up to 4.2 mm, no points
+  left). The man's crosses his organ set's ilia (276 of its points)
+  and is left as it is: drawn out, some of its edges would stretch past
+  1.5 times their length (wanted: his hip bones from his own CT, as the
+  woman's are from hers). Where the last lumbar vertebra's facets and the
   sacrum's then ran into each other (by up to 6 mm in the man), the
   sacrum is pushed out of the vertebra, then the vertebra out of the
   sacrum, each by a field smooth over 6 mm, to a joint's width (1 mm).
-  The intervertebral discs are the organ sets', set right (see the man's
-  organ set), with a disc laid under the man's fifth lumbar vertebra: the
-  one above carried into the space between the vertebra and S1, each
-  point keeping its place across the disc and its share of the way from
-  one face to the other, so it fills the space, wedge and all. The hip
+  KA 25's lumbar bodies are flatter than the man's (L3 to L5 2 to 5.5 mm
+  shorter), so the spaces between his placed vertebrae came out up to
+  18.4 mm, where his organ set's discs are 7 to 14 mm: where a space is more
+  than 2 mm taller than the mean of the body's lumbar discs, the vertebrae
+  are stretched along the column, each endplate moved out along its
+  vertebra's axis, each vertebra by at most 15% of its height (the last
+  one's lower endplate held, as the sacrum is seated by it): his spaces
+  now 8.3 to 12.8 mm. A disc is laid under the man's fifth lumbar vertebra,
+  where his organ set has none (the one above carried into the space),
+  and then every disc of both bodies is made anew between the scanned
+  bones above and below it: its faces on their endplates, its wall from
+  rim to rim, its nucleus pulposus a lens within it. The organ sets'
+  discs, fitted to their own vertebrae, overhung the scanned bodies by up
+  to 7 mm in front and stood up to 4 mm off them. The hip
   and back muscles, and the gut and vessels about the sacrum, are then
   moved out of the new bones by the field that pushes the
   TotalSegmentator parts out of what they cut into, here spread over
@@ -358,9 +399,11 @@ Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024), CC BY
   female body's hip bones, the clavicles and scapulae, the humeri, the radius, ulna, carpal bones (as
   one structure), metacarpals and phalanges of each forearm and hand, the
   tarsal bones, metatarsals, phalanges and the great toe's two sesamoids
-  (as one structure) of each foot, gluteus maximus, medius and minimus,
-  iliopsoas, the deep back muscles, the thyroid, the adrenals, the
-  oesophagus and the stomach, in both bodies.
+  (as one structure) of each foot, gluteus medius and minimus, iliopsoas,
+  the deep back muscles, the thyroid, the adrenals, the oesophagus and the
+  stomach, in both bodies. The scan's gluteus maximus is carried through
+  the build, then replaced by one made from its attachments (below): the
+  scan's is an oval pad over the buttock that stops short of the femur.
 - Changes: each mask smoothed and meshed (marching cubes), simplified to
   the part's budget, and carried into its body by a smooth warp (thin-plate
   splines, fitted on the vertebrae, sacrum, hip bones, the femurs' tops
@@ -394,7 +437,22 @@ Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024), CC BY
   Whatever still cut into an organ or bone is
   pushed out, smoothly, a few millimetres at a time; once the scanned
   vertebrae, sacrum and coccyx are in (`tools/anatomy_bones.py`), the hip
-  and back muscles are pushed out of them again the same way. The dataset segments
+  and back muscles are pushed out of them again the same way. Each rib is
+  then seated on the scanned spine (`tools/anatomy_ribs.py`, after Gray's
+  Anatomy, 1918, public domain): the scan's ribs stop at the transverse
+  processes, so each has its neck and head drawn out of its last 30 mm to
+  its joint on the vertebral bodies, the second to the ninth at the disc
+  above their own vertebra, the first and the last three on their own,
+  1.5 mm off the bone; its back end first eased out of any process it ran
+  into and brought to the level of its own process's tip, the move fading
+  along the rib so its sides and front stay where the cage has them. The
+  lungs and organs the ribs then met are moved out of them, the airways
+  and vessels in the lungs carried along; each point of a lung moved
+  level, the shortest way into the chest's cavity at its own height, so
+  the lungs keep their height (moved the shortest way in any direction,
+  their tops were driven 18 to 20 mm down by the vertebrae above them),
+  and what a first smooth move leaves in a rib moved again over a
+  shorter reach. The dataset segments
   no bone below the humerus, so the forearm and hand bones are found in
   the CT by density (`tools/anatomy_limbs.py`): the bone traced along each
   finger, the fingers named by where their metacarpals lie (the thumb's
@@ -459,6 +517,41 @@ Artificial Intelligence 2023, https://doi.org/10.1148/ryai.230024), CC BY
   Börner. 2026. https://doi.org/10.48539/HBM626.BRWN.943.
 - Use: each mesh's label and UBERON id. UBERON itself is CC BY 3.0
   (http://purl.obolibrary.org/obo/uberon.owl, header `dcterms:license`).
+
+### Made to measure: the eyes and the gluteus maximus
+
+- Sources: Henry Gray, *Anatomy of the Human Body*, 20th edition, revised
+  by Warren H. Lewis (Lea & Febiger, 1918), its text on the eye and its
+  figures 869 to 883, and on the gluteus maximus; Frederic Henry Gerrish
+  (ed.), *A Text-book of Anatomy by American Authors* (1902), figure 349,
+  which draws the gluteus maximus's outline and attachments on the
+  bones; both in the public domain. The gluteus maximus's volume is
+  checked against what MRI measures in living adults (Belzunce et al.,
+  BMJ Open Sport Exerc Med 2023;9:e001672: median 770 cm³ in the men, 621
+  in the women).
+- Use: measures and descriptions only: nothing of these is shipped, and
+  no mesh or image is copied. The shapes were looked at against the
+  reference index's images (`docs/sciences/anatomy-references.json`),
+  never traced.
+- The eyes (`tools/anatomy_eyes.py`), each in the frame of its organ
+  set's eyeball (the centre and radius of its sclera, its optical axis
+  through its cornea): the sclera, cornea, the angle's meshwork and
+  Schlemm's canal, the choroid, retina and ora serrata, the optic disc,
+  macula and fovea, the iris with its pupil, the lens, the ciliary body
+  with its processes and the zonule, the aqueous and vitreous, and the
+  bulbar and palpebral conjunctiva, each to the textbook's measures; each
+  with its own colour, see-through or not, in the manifest. The four recti
+  from the common tendinous ring to flat tendons on the spiral of
+  Tillaux, the superior oblique through its trochlea, the inferior
+  oblique from the orbit's floor around the eyeball, none entering the
+  eyeball, the optic nerve or another muscle.
+- The gluteus maximus (`tools/anatomy_gluteus.py`), on each body's own
+  bones: its corners on the iliac crest, the coccyx, over the greater
+  trochanter and at the gluteal tuberosity's lower end; laid on what lies
+  under it, thickest through its belly (42 mm in the man, 36 in the
+  woman, scaled by the femur), at least 6 mm under the skin, smooth over
+  what lies under it; its volume 790 and 775 cm³ (left and right) in the man and 558 and
+  556 in the woman.
 
 ## What is not here yet, and why
 

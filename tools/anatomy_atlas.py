@@ -28,12 +28,13 @@ added by tools/anatomy_gaps.py, tools/anatomy_skull.py,
 tools/anatomy_limbs.py, tools/anatomy_elbows.py and tools/anatomy_feet.py,
 fitted into each body and kept clear of what is already there; then the
 skull, vertebrae, sacrum and coccyx are replaced by scans of real bone,
-each fitted onto the one it replaces, by tools/anatomy_bones.py, the eyes
+each fitted onto the one it replaces, by tools/anatomy_bones.py, each rib
+seated on the scanned spine by tools/anatomy_ribs.py, the eyes
 and their muscles made anew to the textbook's measures by
 tools/anatomy_eyes.py, the gluteus maximus made anew from its
-attachments on each body's own bones by tools/anatomy_gluteus.py, and each
-tube closed at its cut ends and the pelvis's structures kept out of one
-another by tools/anatomy_apart.py; see their headers.
+attachments on each body's own bones by tools/anatomy_gluteus.py, and the
+pelvis's structures kept out of one another and each tube's cut ends made
+hollow by tools/anatomy_apart.py; see their headers.
 
 Repairs on the way (checked by rendering the result single-sided, as the
 app draws it): stray debris left out; each structure simplified piece by
@@ -661,13 +662,20 @@ CHANGES = (
     "body, the choroid, retina, optic disc and macula, each with its own colour, and the six muscles from the "
     "common tendinous ring (the obliques from the trochlea and the orbit's floor) to tendons inserted where the "
     "textbook puts them, clear of the eyeball, the optic nerve and each other, and eased off the orbit's walls; "
+    "each rib seated on the scanned spine (Gray's Anatomy, 1918): the scan's ribs stop at the transverse "
+    "processes, so each has its neck and head drawn out of its end to its joint on the vertebral bodies, the second "
+    "to the ninth at the disc above its own vertebra, the first and the last three on their own vertebra, 1.5 mm off "
+    "the bone, its back end first eased out of any process it ran into and brought to the level of its own "
+    "process's tip, the move fading along the rib so its sides and front stay where the cage has them; the lungs "
+    "and organs the ribs then met moved out of them; "
     "each gluteus maximus made anew from its attachments on the body's own bones (Gray's Anatomy, 1918, and "
     "Gerrish's Text-book of Anatomy, 1902, both public domain), a thick rhomboid from the back of the ilium, the "
     "sacrum, the coccyx and the sacrotuberous ligament down and out to the iliotibial tract and the gluteal "
     "tuberosity, laid on what lies under it, as thick as MRI measures it in living adults (Belzunce et al. 2023), "
     "its borders rounded and its surface smooth, clear of the bones, the other muscles and the skin, the two apart "
-    "over the coccyx; each vessel and gut tube, cut open by the organ set where it meets the next, closed at "
-    "its cut ends (a low dome over a cut across it, a smooth sheet over a branch's mouth); and in the pelvis "
+    "over the coccyx; each vessel and gut tube, cut open by the organ set where it meets the next, closed there "
+    "as a cut tube is, open and hollow: its wall a ring at the rim (two rims of one wall joined), its lumen "
+    "running in out of sight (a smooth sheet over a branch's mouth); and in the pelvis "
     "nothing passing into anything else: the woman's sacrum drawn out of her hip bones at its joints, a joint's "
     "width off them; the organs and the gut eased off the bones and the discs, the vessels off those and the "
     "organs (only a duct, or a vessel in its own organ, running through one), the ducts off all of these, each "
@@ -719,14 +727,18 @@ def main():
     # maximus and iliopsoas arise on them
     import anatomy_bones
     anatomy_bones.replace(a.out, a.vhskull, a.ka25, a.ka25_cache, atlas=sys.modules[__name__])
+    # each rib seated on the scanned spine: after the vertebrae are in, before the fibres (the back muscles the
+    # ribs may meet are laid after)
+    import anatomy_ribs
+    print(anatomy_ribs.remake(a.out, quiet=True))
     # the eyes and their muscles, made to the textbook's measures: after the skull, which the muscles keep clear of
     import anatomy_eyes
     print(anatomy_eyes.remake(a.out, quiet=True))
     # the gluteus maximus, made from its attachments: after the sacrum and coccyx it arises on, before the fibres
     import anatomy_gluteus
     print(anatomy_gluteus.remake(a.out, quiet=True))
-    # each tube closed and the pelvis's structures out of one another: after the bones and the gluteus maximus
-    # they keep clear of, before the fibres (the hip muscles that give way are laid after)
+    # the pelvis's structures out of one another, then each tube's cut ends hollow: after the bones and the
+    # gluteus maximus they keep clear of, before the fibres (the hip muscles that give way are laid after)
     import anatomy_apart
     print(anatomy_apart.remake(a.out, quiet=True))
     # the skeletal muscles' fibres, in bundles: last, as it rewrites the muscles' files
