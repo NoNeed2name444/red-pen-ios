@@ -10,7 +10,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasContentDescription
-import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -22,7 +21,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
-import androidx.compose.ui.test.performScrollToNode
 import androidx.test.core.app.ApplicationProvider
 import com.stethoscore.app.data.AnkiCard
 import com.stethoscore.app.data.MCQQuestion
@@ -247,13 +245,17 @@ class StudyReachTest {
         val store = StudyStore(folder.newFolder("exam")).also { it.loadExamples() }
         LearnRouter.close()
         compose.setContent { CompositionLocalProvider(LocalLLMService provides owner(FakeJobs(listOf(questions())))) { StethoscoreApp(store, forceDark = false) } }
-        // the card stands on home's Questions page
-        compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsActions.ScrollToIndex)).performScrollToNode(hasTestTag("examDashboard"))
+        // the card is not on home (as iOS): it stands on the exam plan, which home's Open plan opens
+        val openPlan = SemanticsMatcher("Open plan") {
+            it.config.getOrElseNullable(SemanticsActions.OnClick) { null }?.label == "Opens the exam plan and forecast"
+        }
+        compose.onAllNodes(openPlan).onFirst().performSemanticsAction(SemanticsActions.OnClick)
+        until { compose.onAllNodesWithTag("examDashboard").fetchSemanticsNodes().isNotEmpty() }
         val studyNext = SemanticsMatcher("Study next's row") {
             it.config.getOrElseNullable(SemanticsActions.OnClick) { null }?.label?.startsWith("Makes a question set on it") == true
         }
         until { compose.onAllNodes(studyNext).fetchSemanticsNodes().isNotEmpty() }
-        // home's New set button and dock float over the list's foot, where a row scrolled to can stand
+        // the plan's own list scrolls the row into view; its row is tapped by its action, as before
         compose.onAllNodes(studyNext).onFirst().performScrollTo().performSemanticsAction(SemanticsActions.OnClick)
         makeReachesTheWriter("Write PLAB 1 (UKMLA) questions on ")
     }

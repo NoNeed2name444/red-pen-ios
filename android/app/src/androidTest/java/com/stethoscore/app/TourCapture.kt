@@ -144,6 +144,13 @@ class TourCapture(private val compose: ComposeContentTestRule) {
         compose.waitForIdle()
     }
 
+    /** Scrolls [matcher] into view in a plain scrolling page (verticalScroll, not a lazy list: scrollTo is for those), then waits for it. */
+    fun scrollIntoView(what: String, matcher: SemanticsMatcher) {
+        waitFor(what, matcher)
+        compose.onAllNodes(matcher).onFirst().performScrollTo()
+        compose.waitForIdle()
+    }
+
     fun ui(block: () -> Unit) = InstrumentationRegistry.getInstrumentation().runOnMainSync(block)
 
     // MARK: what the tests start from

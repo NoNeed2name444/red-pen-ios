@@ -146,12 +146,13 @@ class TourTest {
         tour.inEachMode(content = { m -> tour.App(stores.getValue(m), screen, m) }) { m -> ready(); tour.shot(row, name, m) }
     }
 
-    /** Opens a learning sheet over home, each mode. */
-    private fun learn(row: Int, name: String, modes: List<Mode> = Mode.entries, store: () -> StudyStore = tour::store, route: (StudyStore) -> LearnRoute) {
+    /** Opens a learning sheet over home, each mode; [ready] runs once it is open, before the shot (a scroll to what the shot is of). */
+    private fun learn(row: Int, name: String, modes: List<Mode> = Mode.entries, store: () -> StudyStore = tour::store, ready: () -> Unit = {}, route: (StudyStore) -> LearnRoute) {
         val stores = Mode.entries.associateWith { store() }
         tour.inEachMode(modes, before = { m -> tour.ui { LearnRouter.open(route(stores.getValue(m))) } },
             content = { m -> tour.App(stores.getValue(m), "home", m) }) { m ->
             tour.waitFor("the learning sheet ($name)") { LearnRouter.route != null }
+            ready()
             tour.shot(row, name, m)
         }
     }
@@ -497,13 +498,10 @@ class TourTest {
 
     @Test fun r063_examPicker() = appRoute(63, "exam-picker", "exam")
 
-    @Test fun r064_examCard() {
-        val stores = Mode.entries.associateWith { tour.store() }
-        tour.inEachMode(content = { m -> tour.App(stores.getValue(m), "home", m) }) { m ->
-            tour.scrollTo("home's exam card", hasTestTag("examDashboard"))
-            tour.shot(64, "exam-card", m)
-        }
-    }
+    /** The exam card where it stands since T0219: on the exam plan (iOS ExamPlanView), no longer on home. */
+    @Test fun r064_examCard() = learn(64, "exam-card", ready = {
+        tour.scrollIntoView("the exam plan's exam card", hasTestTag("examDashboard"))
+    }) { LearnRoute.ExamPlan }
 
     // MARK: cards, textbook
 

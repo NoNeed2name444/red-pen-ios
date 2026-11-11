@@ -369,7 +369,7 @@ import com.stethoscore.app.ui.library.LibraryEtch
                                     // the round on Questions, and on Cards while cards are due; the tiles on Questions
                                     homeRoundItems(home.second,category=="Questions",book,::openBed,{ screen="vitals" },{ screen="ideas" },
                                         onPlan={ com.stethoscore.app.ui.learn.LearnRouter.open(com.stethoscore.app.ui.learn.LearnRoute.ExamPlan) })
-                                    if(category=="Questions") item { com.stethoscore.app.ui.exam.ExamDashboardCard(store,revision,{ newPreset=it;screen="new" }) }
+                                    // the exam's card is not on home (as iOS): the header's button sets the exam up, and the card stands on the exam plan
                                     if(category=="Questions") item { com.stethoscore.app.ui.mock.MockPaperTile({ screen="mock" }) }
                                 }
                                 if(query.isBlank() && category=="Cards" && store.library.isNotEmpty()) item { DueCardsTile(store,revision) { if(store.dueAcross().isNotEmpty()) screen="due" else nothingDue=true } }
