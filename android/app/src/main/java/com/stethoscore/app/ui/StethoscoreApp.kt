@@ -353,8 +353,10 @@ import com.stethoscore.app.ui.library.LibraryEtch
                                 item {
                                     val below=with(LocalDensity.current) { HomeFit.belowHeader.dp.toPx() }
                                     DisposableEffect(Unit) { onDispose { bandBottom=null } }
-                                    val examChosen=remember(revision) { com.stethoscore.app.exam.ExamChoice.current(com.stethoscore.app.exam.ExamChoice.defaults(context))!=null }
-                                    HomeHeader(remember(revision) { ExamCountdown.text(store.examDate,examName=ExamCountdown.examName(com.stethoscore.app.exam.ExamChoice.defaults(context))) },
+                                    // the exam and its date are changed on the exam plan's card (a learning sheet): closing it bumps LearnRouter.version, not revision (T0220)
+                                    val learnVersion=com.stethoscore.app.ui.learn.LearnRouter.version
+                                    val examChosen=remember(revision,learnVersion) { com.stethoscore.app.exam.ExamChoice.current(com.stethoscore.app.exam.ExamChoice.defaults(context))!=null }
+                                    HomeHeader(remember(revision,learnVersion) { ExamCountdown.text(store.examDate,examName=ExamCountdown.examName(com.stethoscore.app.exam.ExamChoice.defaults(context))) },
                                         Modifier.onGloballyPositioned { bandBottom=it.positionInWindow().y+it.size.height+below },
                                         examPrompt=ExamCountdown.setUp(examChosen),onExam={ examSetUp=true })
                                 }
