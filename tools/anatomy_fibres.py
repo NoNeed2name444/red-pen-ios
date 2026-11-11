@@ -78,6 +78,7 @@ from scipy.spatial import cKDTree
 CONTACT, WIDER, FINE = 0.004, 0.007, 0.0045
 EVEN = 0.0043   # a split muscle brought down to edges about this long at the median, under FINE
 
+HIP_BONE = r"ilium|ischium|pubis|hip_bone|_hip_"
 # (muscle, origin's bones, insertion's bones, options): regular expressions on structure names
 RULES = [
     # (tools/anatomy_gluteus.py makes it: its tendon the sheet it thins to at its insertion, so found as the eye
@@ -86,6 +87,26 @@ RULES = [
     (r"gluteus_medius", r"ilium|hip_bone|_hip_", r"femur", {}),
     (r"gluteus_minimus", r"ilium|hip_bone|_hip_", r"femur", {}),
     (r"iliopsoas", r"lumbar_vertebra|ilium|hip_bone|_hip_", r"femur", {"far": 0.4}),
+    # tools/anatomy_muscles_body.py's (its MUSCLES says where each arises and inserts)
+    (r"vastus_", r"femur", r"patella", {}),
+    (r"adductor_|pectineus|obturator_|gemelli|piriformis", HIP_BONE + r"|sacrum", r"femur", {}),
+    (r"semimembranosus|semitendinosus|gracilis|sartorius|tensor_fasciae", HIP_BONE, r"tibia", {}),
+    (r"biceps_femoris_long", HIP_BONE, r"fibula", {}),
+    (r"biceps_femoris_short", r"femur", r"fibula", {}),
+    (r"gastrocnemius|plantaris", r"femur", r"calcaneus", {}),
+    (r"soleus", r"tibia|fibula", r"calcaneus", {}),
+    (r"popliteus", r"femur", r"tibia", {}),
+    (r"tibialis_|flexor_digitorum_longus|flexor_hallucis|peroneus|extensor_digitorum", r"tibia|fibula",
+     r"cuneiform|navicular|metatarsal|phalanx", {}),
+    (r"trapezius", r"occipital|cervical_vertebra|thoracic_vertebra", r"clavicle|scapula", {}),
+    (r"rhomboid", r"cervical_vertebra|thoracic_vertebra", r"scapula", {}),
+    (r"latissimus", r"thoracic_vertebra|lumbar_vertebra|sacrum|rib_|" + HIP_BONE, r"humerus", {}),
+    (r"deltoid", r"clavicle|scapula", r"humerus", {}),
+    (r"supraspinatus|infraspinatus|subscapularis", r"scapula", r"humerus", {}),
+    (r"splenius_capitis", r"cervical_vertebra_7|thoracic_vertebra", r"temporal|occipital", {}),
+    (r"semispinalis_capitis", r"thoracic_vertebra|cervical_vertebra_[4-7]", r"occipital", {}),
+    (r"semispinalis_cervicis", r"thoracic_vertebra", r"cervical_vertebra_[2-5]", {}),
+    (r"quadratus_lumborum", HIP_BONE, r"rib_12|lumbar_vertebra", {}),
 ]
 # muscle that is not skeletal: the heart's, the eye's ciliary, the bladder's smooth muscle
 NOT_SKELETAL = re.compile(r"papillary|ciliary|smooth_muscle|gyrus")
@@ -94,18 +115,24 @@ NOT_SKELETAL = re.compile(r"papillary|ciliary|smooth_muscle|gyrus")
 # along them and their tendon where they are thin, not narrow
 THIN_TENDONS = re.compile(r"extraocular")
 
-# How a muscle's fibres lie where they do not simply run from its origin to its insertion (muscle, how, the angle
-# they make with its line of pull in degrees, the face they leave from as a direction in the body's frame: x its
-# left, y up, z forward). A bipennate muscle's fibres leave a tendon on that face to either side, going down the
-# muscle and round it; a unipennate one's all slant one way.
-#   rectus femoris: bipennate, its superficial fibres from the anterior aponeurosis (Gray 1918, p. 470); 14 degrees
-#   (Ward, Eng, Smallwood and Lieber 2009, Clin Orthop Relat Res 467:1074, table 1: 13.9)
 # Which end a muscle arises from, where its ends are the tips of its long axis (those say which two, not which is
 # which): the direction its origin lies in from its insertion, in the body's frame.
 ORIGIN_TOWARD = [
     (r"rectus_femoris|quadriceps", (0.0, 1.0, 0.0)),      # the anterior inferior iliac spine, above; the patella below
     (r"deep_back_muscles", (0.0, -1.0, 0.0)),             # the sacrum and iliac crest (the erector spinae's common origin)
+    # tools/anatomy_muscles_body.py's: "medial" is toward the midline, whichever side the muscle is on
+    (r"trapezius|rhomboid|latissimus|supraspinatus|infraspinatus|subscapularis|obturator_|gemelli|piriformis", "medial"),
+    (r"splenius|semispinalis|quadratus_lumborum", (0.0, -1.0, 0.0)),
+    (r"deltoid|tensor_fasciae|pectineus|vastus_|adductor_|biceps_femoris|semimembranosus|semitendinosus|gracilis"
+     r"|sartorius|tibialis_|flexor_digitorum_longus|flexor_hallucis|popliteus|peroneus|extensor_digitorum|soleus"
+     r"|plantaris|gastrocnemius", (0.0, 1.0, 0.0)),
 ]
+# How a muscle's fibres lie where they do not simply run from its origin to its insertion (muscle, how, the angle
+# they make with its line of pull in degrees, the face they leave from as a direction in the body's frame: x its
+# left, y up, z forward). A bipennate muscle's fibres leave a tendon on that face to either side, going down the
+# muscle and round it; a unipennate one's all slant one way round it (the right muscle's the mirror of the left's).
+#   rectus femoris: bipennate, its superficial fibres from the anterior aponeurosis (Gray 1918, p. 470); 14 degrees
+#   (Ward, Eng, Smallwood and Lieber 2009, Clin Orthop Relat Res 467:1074, table 1: 13.9)
 ARCHITECTURE = [
     (r"rectus_femoris", "bipennate", 14.0, (0.0, 0.0, 1.0)),
 ]
@@ -269,6 +296,14 @@ def long_axis(v):
     return np.linalg.svd(v - v.mean(0), full_matrices=False)[2][0]
 
 
+def origin_toward(name):
+    """The direction a muscle's origin lies in from its insertion (ORIGIN_TOWARD), or None."""
+    way = next((r[1] for r in ORIGIN_TOWARD if re.search(r[0], name)), None)
+    if isinstance(way, str):      # "medial": the body's left is +x
+        return np.array([1.0 if side(name) == "R" else -1.0, 0.0, 0.0])
+    return None if way is None else np.asarray(way, float)
+
+
 def ends(name, v, bones):
     """The vertices held at u = 0 (origin) and 1 (insertion), by its rule's bones or its long axis's tips."""
     rule = next((r for r in RULES if re.search(r[0], name)), None)
@@ -297,6 +332,16 @@ def ends(name, v, bones):
                 o = o & (np.abs(t - t[i].mean()) > options["far"] * np.ptp(t))
         if o.sum() >= 3 and i.sum() >= 3:
             return o, i, "bones"
+        # One end on its bone and the other short of its own (a belly whose tendon is not modelled): that end
+        # is the tip farthest the other way, and the end on the bone keeps clear of it.
+        toward = origin_toward(name)
+        if toward is not None and (o.sum() >= 3 or i.sum() >= 3):
+            t = v @ toward
+            lo, mid_lo, mid_hi, hi = np.quantile(t, [0.03, 0.2, 0.8, 0.97])
+            if o.sum() >= 3 and (o & (t > mid_lo)).sum() >= 3:
+                return o & (t > mid_lo), t <= lo, "its origin's bone and its far tip"
+            if i.sum() >= 3 and (i & (t < mid_hi)).sum() >= 3:
+                return t >= hi, i & (t < mid_hi), "its far tip and its insertion's bone"
     t = v @ long_axis(v)
     lo, hi = np.quantile(t, [0.03, 0.97])
     return t <= lo, t >= hi, "tips"
@@ -550,13 +595,13 @@ def fibre_angle(name, v, f, u, z, flow):
     _, how, degrees, toward = rule
     k = np.tan(np.radians(degrees)) / flow
     uc = np.clip(u, 0, 1)
-    if how == "unipennate":
-        return z * np.exp(-2j * np.pi * uc * k), how, None
+    if how == "unipennate":   # (the angle runs the other way round a mirrored muscle: the right's the left's mirrored)
+        return z * np.exp((2j if side(name) == "R" else -2j) * np.pi * uc * k), how, None
     vn, _ = normals(v, f)
     area = vertex_area(v, f)
     facing = (vn @ np.asarray(toward, float) > 0.7) & (uc > 0.25) & (uc < 0.75)
     if not facing.any():
-        return z, "along", None
+        return z, "along: no face of it looks the way its rule says its fibres leave", None
     middle = (z[facing] * area[facing]).sum()
     s_ = np.abs(np.angle(z * np.conj(middle / max(abs(middle), 1e-30)))) / (2 * np.pi)   # 0 to half a turn
     # a turn's length across the belly, and the rounding's width in turns
@@ -615,10 +660,131 @@ def mirror(name):
     return name[:-1] + ("R" if m.group(1) == "L" else "L") if m else None
 
 
+def pieces(n, f):
+    """The mesh's connected pieces: each vertex's piece, and how many there are."""
+    from scipy.sparse.csgraph import connected_components
+    e = edges_of(f)
+    count, label = connected_components(sp.coo_matrix((np.ones(len(e)), (e[:, 0], e[:, 1])), shape=(n, n)), directed=False)
+    return label, count
+
+
+BROAD = 0.012   # an end is broad where some of it lies this far (over the surface) inside its own patch
+FAR = 0.7       # of a broad end, the part kept: what lies in the last three tenths of its way from the other end
+
+
+def far_rim(v, f, held, other):
+    """A broad end brought down to its far rim. Where a muscle lies on its bone over a whole face (the gluteus
+    minimus on the ilium), that face is all "its origin's bone", and held as one end it leaves u flat over
+    the muscle's top: its lines all left the patch by the edge nearest the insertion, and a third of the
+    muscle had none (the woman's right gluteus minimus). The muscle's surface fibres arise at the far edge of
+    such an attachment and run the muscle's whole length, so that edge is the end: of a patch some of which lies
+    BROAD inside it, the part in the last (1 - FAR) of its range of distances from the other end, over the
+    surface. A narrow one (a line of attachment, however long: the latissimus's along the spine) is kept whole."""
+    from scipy.sparse.csgraph import dijkstra
+    if not held.any() or not other.any() or held.all():
+        return held
+    n = len(v)
+    e = edges_of(f)
+    g = sp.coo_matrix((np.linalg.norm(v[e[:, 0]] - v[e[:, 1]], axis=1), (e[:, 0], e[:, 1])), shape=(n, n)).tocsr()
+    depth = dijkstra(g, directed=False, indices=np.flatnonzero(~held), min_only=True)
+    if not (depth[held] > BROAD).any():
+        return held
+    d = dijkstra(g, directed=False, indices=np.flatnonzero(other), min_only=True)
+    ok = held & np.isfinite(d)
+    if not ok.any():
+        return held
+    lo, hi = d[ok].min(), d[ok].max()
+    kept = ok & (d >= lo + FAR * (hi - lo))
+    return kept if kept.sum() >= 3 else held
+
+
+def shut_in(v, f, held0, held1):
+    """The two ends with each run of free surface that touches one of them only added to it: such a run (an
+    island inside a broad attachment, or a lobe past it) has no way to the other end, so u is one number all
+    over it and no line could be drawn across it; it is part of that attachment. (A run that touches neither
+    cannot be: the piece is connected and has both ends.) Returns the ends and the area's share so moved."""
+    from scipy.sparse.csgraph import connected_components
+    n = len(v)
+    e = edges_of(f)
+    free = ~(held0 | held1)
+    inside = free[e[:, 0]] & free[e[:, 1]]
+    _, label = connected_components(sp.coo_matrix((np.ones(inside.sum()), (e[inside, 0], e[inside, 1])), shape=(n, n)),
+                                    directed=False)
+    touch0, touch1 = np.zeros(n, bool), np.zeros(n, bool)
+    for a_, b_ in ((e[:, 0], e[:, 1]), (e[:, 1], e[:, 0])):
+        touch0[label[a_[free[a_] & held0[b_]]]] = True
+        touch1[label[a_[free[a_] & held1[b_]]]] = True
+    to0, to1 = free & touch0[label] & ~touch1[label], free & touch1[label] & ~touch0[label]
+    area = vertex_area(v, f)
+    return held0 | to0, held1 | to1, float(area[to0 | to1].sum() / max(area.sum(), 1e-30))
+
+
+def stalled(v, f, u, held0, held1):
+    """The free vertices where u has all but stopped at an end's value (it changes under a tenth as fast as it
+    would evenly down the muscle's length, and is within a twentieth of 0 or of 1): surface behind that end, with
+    no way to the other but past it (a muscle's top rising above its highest hold on the bone; a lobe cut off by
+    the way one_patch joined two patches). Returns the two sets and their share of the area."""
+    from scipy.sparse.csgraph import dijkstra
+    e = edges_of(f)
+    g = sp.coo_matrix((np.linalg.norm(v[e[:, 0]] - v[e[:, 1]], axis=1), (e[:, 0], e[:, 1])), shape=(len(v), len(v))).tocsr()
+    d = dijkstra(g, directed=False, indices=np.flatnonzero(held1), min_only=True)
+    length = float(np.median(d[held0 & np.isfinite(d)])) if (held0 & np.isfinite(d)).any() else 0.0
+    if length <= 0:
+        return np.zeros(len(v), bool), np.zeros(len(v), bool), 0.0
+    grad, _, twice = face_gradient(v, f, u)
+    size = np.linalg.norm(grad, axis=1)
+    top, under = np.zeros(len(v)), np.zeros(len(v))
+    for k in range(3):
+        np.add.at(top, f[:, k], size * twice)
+        np.add.at(under, f[:, k], twice)
+    slow = ~(held0 | held1) & (top / np.maximum(under, 1e-30) < 0.1 / length)
+    at0, at1 = slow & (u < 0.05), slow & (u > 0.95)
+    area = vertex_area(v, f)
+    return at0, at1, float(area[at0 | at1].sum() / max(area.sum(), 1e-30))
+
+
+def lay_piece(name, v, f, bones):
+    """One connected piece's fibres: (the two numbers each vertex carries, a line of the log)."""
+    held0, held1, how = far_ends(v, f) if THIN_TENDONS.search(name) else ends(name, v, bones)
+    toward = origin_toward(name)
+    if how == "tips" and toward is not None and (v[held0].mean(0) - v[held1].mean(0)) @ toward < 0:
+        held0, held1 = held1, held0
+    moved = 0.0
+    for again in range(3):
+        if how != "far ends":
+            held0, held1 = far_rim(v, f, held0, held1), far_rim(v, f, held1, held0)
+        held0 = one_patch(v, f, held0, held1)
+        held1 = one_patch(v, f, held1, held0)
+        held0, held1, shut = shut_in(v, f, held0, held1)
+        u = harmonic(v, f, held0, held1, positive=False)
+        # surface behind an end joins it, and the end (now broad) is brought down to its far rim: the lines
+        # then start from the muscle's true far edge
+        at0, at1, share = stalled(v, f, u, held0, held1)
+        moved = max(moved, shut + share)
+        if how == "far ends" or share < 0.015 or again == 2:
+            break
+        held0, held1 = held0 | at0, held1 | at1
+    z, flow, miss = turning(v, f, u, held0 | held1)
+    off = along_fibres(v, f, u, z)
+    c, lie, leaves = fibre_angle(name, v, f, u, z, flow)
+    uc = np.clip(u, 0, 1)
+    rule = next((r for r in RULES if re.search(r[0], name)), None)
+    thin = THIN_TENDONS.search(name) or (rule is not None and rule[3].get("tendon") == "thin")
+    tendon = thin_share(v, f, uc) if thin else tendon_share(v, uc, origin=how == "tips" or how.startswith("its far"))
+    if leaves is not None:
+        tendon = np.maximum(tendon, leaves)
+    pair = np.stack([c.real, c.imag], 1) * (2.0 - np.clip(tendon, 0, 1))[:, None]
+    log = (f"fibres from {how} ({lie}), {off:.3f} off u's lines, misfit {miss:.4f} turns, u {u.min():.2f} to "
+           f"{u.max():.2f}, tendon {float((tendon > 0.5).mean()):.0%}"
+           + (f", {moved:.0%} of its surface behind an end" if moved > 0.005 else ""))
+    return pair, log
+
+
 def lay(name, v, f, bones, level=None, count=None):
     """A muscle made finer (split `level` times, or as often as it needs, then brought down to about `count`
     triangles where the split made more) and its fibres: (positions, triangles, the two numbers each vertex
-    carries, log)."""
+    carries, log). A muscle in several pieces (the cricothyroid's two parts) has each laid by itself, between
+    its own ends: across a piece that held neither end, or one only, no line could be drawn."""
     v, f = weld(v, f)
     if level is None:
         level, count = splits(v, f)
@@ -628,30 +794,27 @@ def lay(name, v, f, bones, level=None, count=None):
         v = taubin(v, f)
         if count is not None and count < len(f) / 1.1:
             v, f = coarsen(v, f, count)
-    held0, held1, how = far_ends(v, f) if THIN_TENDONS.search(name) else ends(name, v, bones)
-    toward = next((np.asarray(r[1]) for r in ORIGIN_TOWARD if re.search(r[0], name)), None)
-    if how == "tips" and toward is not None and (v[held0].mean(0) - v[held1].mean(0)) @ toward < 0:
-        held0, held1 = held1, held0
-    held0, held1 = one_patch(v, f, held0, held1), one_patch(v, f, held1, held0)
-    u = harmonic(v, f, held0, held1, positive=False)
-    z, flow, miss = turning(v, f, u, held0 | held1)
-    off = along_fibres(v, f, u, z)
-    c, lie, leaves = fibre_angle(name, v, f, u, z, flow)
-    uc = np.clip(u, 0, 1)
-    rule = next((r for r in RULES if re.search(r[0], name)), None)
-    thin = THIN_TENDONS.search(name) or (rule is not None and rule[3].get("tendon") == "thin")
-    tendon = thin_share(v, f, uc) if thin else tendon_share(v, uc, origin=how != "bones")
-    if leaves is not None:
-        tendon = np.maximum(tendon, leaves)
-    pair = np.stack([c.real, c.imag], 1) * (2.0 - np.clip(tendon, 0, 1))[:, None]
-    log = (f"{name}: {level} split{'s' * (level != 1)}, {len(f)} triangles, {len(v)} vertices, fibres from {how} "
-           f"({lie}), {off:.3f} off u's lines, misfit {miss:.4f} turns, u {u.min():.2f} to {u.max():.2f}, "
-           f"tendon {float((tendon > 0.5).mean()):.0%}")
+    label, n = pieces(len(v), f)
+    pair = np.zeros((len(v), 2))
+    pair[:, 0] = 2.0     # (a crumb too small to lay: belly, the angle 0)
+    logs = []
+    for k in range(n):
+        mine = label == k
+        fk = f[mine[f[:, 0]]]
+        if len(fk) < 8:
+            continue
+        index = np.cumsum(mine) - 1
+        pair[mine], said = lay_piece(name, v[mine], index[fk], bones)
+        logs.append(said)
+    head = f"{name}: {level} split{'s' * (level != 1)}, {len(f)} triangles, {len(v)} vertices, "
+    log = head + (logs[0] if len(logs) == 1 else f"{len(logs)} pieces: " + "; ".join(logs))
     return v, f, pair.astype(np.float32), log
 
 
-def annotate(folder, quiet=False):
-    """Lays the fibres on every skeletal muscle in `folder`'s atlas; returns how many."""
+def annotate(folder, quiet=False, again=False):
+    """Lays the fibres on every skeletal muscle in `folder`'s atlas that has none yet; returns how many. With
+    `again`, on those that have them too: their meshes are kept as they are (they were made fine when their
+    fibres were first laid) and only the fibres laid anew."""
     path = os.path.join(folder, "anatomy.json")
     manifest = json.load(open(path))
     done = 0
@@ -673,8 +836,10 @@ def annotate(folder, quiet=False):
                     if skeletal(st):
                         need[st["node"]] = splits(*weld(v, f))
         for part in body["parts"]:
-            if part["system"] != "muscular" or "fibres" in part:
+            if part["system"] != "muscular" or ("fibres" in part and not again):
                 continue
+            if "fibres" in part:
+                need.update({st["node"]: (0, 0) for st in part["structures"]})
             meshes = read_part(os.path.join(folder, part["file"]))
             out, entries = [], []
             for st, (v, f) in zip(part["structures"], meshes):
@@ -705,6 +870,7 @@ def annotate(folder, quiet=False):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
+    args = [a for a in sys.argv[1:] if a != "--again"]
+    if len(args) != 1:
         sys.exit(__doc__)
-    print(f"{annotate(sys.argv[1])} muscles with their fibres laid")
+    print(f"{annotate(args[0], again='--again' in sys.argv)} muscles with their fibres laid")

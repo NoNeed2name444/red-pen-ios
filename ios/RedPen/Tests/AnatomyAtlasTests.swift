@@ -567,6 +567,14 @@ check("a fibres file with bytes left over is refused", {
     catch AnatomyAtlas.ReadError.leftover { return true } catch { return false }
 }())
 check("a mesh file is not a fibres file", (try? AnatomyAtlas.fibres(from: first)) == nil)
+check("a fibres file naming more structures than it can hold is refused, not given room", {
+    do { _ = try AnatomyAtlas.fibres(from: Data("SAF2".utf8) + Data([0xff, 0xff, 0xff, 0xff])); return false }
+    catch AnatomyAtlas.ReadError.truncated { return true } catch { return false }
+}())
+check("so is one whose structure names more vertices than the file has", {
+    do { _ = try AnatomyAtlas.fibres(from: Data("SAF2".utf8) + Data([1, 0, 0, 0, 0xff, 0xff, 0xff, 0x7f, 0, 0, 0, 0])); return false }
+    catch AnatomyAtlas.ReadError.truncated { return true } catch { return false }
+}())
 if let hip = male.part("hip-muscles"), let listed = hip.fibres, let ms = meshes[hip.file],
    let data = try? Data(contentsOf: folder.appendingPathComponent(listed.file)) {
     let shuffled = Array(ms.reversed())

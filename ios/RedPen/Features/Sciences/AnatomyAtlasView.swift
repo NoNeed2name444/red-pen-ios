@@ -591,8 +591,13 @@ final class AtlasModel: NSObject, ObservableObject {
                     let shade: SIMD3<Float> = AtlasRelief.shade(bend)
                     return [shade.x, shade.y, shade.z]
                 }
+                // (a muscle with no fibres laid, as the heart's and the eye's inner ones, gets the pair
+                // (0, 0) at every vertex, which its shader reads as "no lines": never coordinates left
+                // unset, whose value is not promised)
+                let around: [Float]? = structure.tissue == .muscle
+                    ? (lines?.coordinates() ?? [Float](repeating: 0, count: shaded.0.vertexCount * 2)) : nil
                 let node = SCNNode(geometry: geometry(shaded.0, normals: shaded.1.0, relief: relief,
-                                                      coordinates: lines?.coordinates(), surface))
+                                                      coordinates: around, surface))
                 node.name = part.id + "/" + structure.node
                 // what is see-through is drawn after what it covers (the fat, the
                 // cornea), the skin last; an inner one (the lens, the humours) is

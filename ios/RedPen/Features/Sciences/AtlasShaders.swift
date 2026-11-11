@@ -11,8 +11,8 @@ import Foundation
 //   and not as noise;
 // - muscle: flesh, not painted plastic: silky, as a fresh muscle is under
 //   its fascia. Its fibres are soft streaks along the lines they truly run
-//   by, of every width from 16 mm bands down to quarter-millimetre lines,
-//   dense and overlapping, none with a hard edge, each paler or deeper red
+//   by, of every width between 16 mm bands and quarter-millimetre lines
+//   (both ends of that range fading to nothing), dense and overlapping, none with a hard edge, each paler or deeper red
 //   than the next and changing slowly along its length; their relief
 //   slight. The red is warm, a little paler and pinker where the belly
 //   faces the eye and deeper where it turns away (a wide soft sheen in
@@ -40,10 +40,12 @@ import Foundation
 //   seen, and the pigment of the pupil's rim (the ruff) dark: drawn about
 //   the iris's own middle and axis (AnatomyMesh.ringFrame), so a flat
 //   brown disc reads as an iris.
-// The pattern is fixed to the body: it comes from the point's place in the
-// body's own frame (scn_node's inverse model-view), not from texture
-// coordinates, so it runs on unbroken where two pieces of a bone meet and
-// does not swim as the body turns. Detail finer than a couple of pixels
+// Bone's and the iris's patterns are fixed to the body: they come from the
+// point's place in the body's own frame (scn_node's inverse model-view),
+// not from texture coordinates, so they run on unbroken where two pieces of
+// a bone meet and do not swim as the body turns. Muscle's fibres come from
+// its texture coordinates (above), and only its slow drift along a fibre
+// and its broad variation from the point's place. Detail finer than a couple of pixels
 // fades out instead of shimmering. The noise is GraphShaderKit's lattice
 // noise, exact at any distance from the origin.
 //
@@ -179,8 +181,8 @@ nonisolated enum AtlasShaders {
         // how a streak changes along its length: slowly, over a few centimetres
 
         """ + GraphShaderKit.latticeFbm("rp_tt", "rp_p * 22.0 + float3(3.1, 7.7, 1.3)", octaves: "2") + """
-        // The fibres: soft streaks along them of every width from 16 mm down to a quarter of a millimetre
-        // (1 mm without the fine detail), each width's a noise across the fibres with a whole number of
+        // The fibres: soft streaks along them of every width between 16 mm and a quarter of a millimetre
+        // (1 mm without the fine detail; the widest and the finest fade to nothing), each width's a noise across the fibres with a whole number of
         // cells to a turn (a power of two, so it runs on round the muscle unbroken), the cells' strengths
         // drifting along the fibre. A width is drawn by its true size on the muscle: as the fibres run
         // together toward a tendon the cells narrow, the fine ones fade out and coarser ones take their
@@ -195,13 +197,16 @@ nonisolated enum AtlasShaders {
         for (int rp_o = 0; rp_o < 7; rp_o++) {
             float rp_j = rp_j0 + float(rp_o);
             float rp_x = rp_j - rp_jf;
-            float rp_cells = exp2(rp_j);
+            // (the count by a shift: exp2 may come a hair short of the whole number on a chip, and the
+            // mask below would lose its lowest bit)
+            uint rp_n = 1u << uint(rp_j);
+            float rp_cells = float(rp_n);
             float rp_wt = smoothstep(0.0, 1.0, rp_x) * (1.0 - smoothstep(rp_top - 1.0, rp_top, rp_x))
                 * smoothstep(1.0, 2.2, 1.0 / (rp_cells * rp_gp));
             float rp_q = rp_c * rp_cells;
             float rp_qi = floor(rp_q);
             float rp_qf = rp_q - rp_qi;
-            uint rp_mask = uint(rp_cells) - 1u;
+            uint rp_mask = rp_n - 1u;
             uint rp_i0 = uint(rp_qi) & rp_mask;
             float2 rp_gv = float2(0.0);
             for (int rp_k = 0; rp_k < 2; rp_k++) {
@@ -223,8 +228,11 @@ nonisolated enum AtlasShaders {
             rp_sum += rp_wt * exp2(-0.12 * rp_x) * 2.0 * (rp_a + (rp_b - rp_a) * rp_s);
             rp_slope += rp_wt * 2.0 * (rp_gv.x + (rp_gv.y - rp_gv.x) * rp_s + (rp_b - rp_a) * 6.0 * rp_qf * (1.0 - rp_qf));
         }
-        rp_sum = rp_has * clamp(rp_sum * 0.85, -1.5, 1.5);
-        rp_slope = rp_has * rp_slope;
+        // (where the angle stands still, a patch the build could give no lines, there is nothing to draw
+        // streaks across: plain flesh, not the lengthwise drift alone, which would show as rings)
+        float rp_live = rp_has * smoothstep(0.02, 0.1, rp_gl);
+        rp_sum = rp_live * clamp(rp_sum * 0.85, -1.5, 1.5);
+        rp_slope = rp_live * rp_slope;
         // tendon runs into the red along the fibres, further on one than on the next, not across them in
         // a line
         float rp_tf = smoothstep(0.12, 0.88, rp_tendon + 1.4 * rp_sum * rp_tendon * (1.0 - rp_tendon));

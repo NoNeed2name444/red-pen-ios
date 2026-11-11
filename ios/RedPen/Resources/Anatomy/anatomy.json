@@ -10078,7 +10078,7 @@
      "system": "muscular",
      "file": "male-larynx-muscles.atlas",
      "bytes": 77668,
-     "sha256": "17dfe647846edb5fd77b0c175a90b98fb56c0ed2795eb29dd06dbd82be26880c",
+     "sha256": "fd0d80490cddce0e6bc46615a57eba487739d8372fcd0d8292e3027631fce1d0",
      "triangles": 8597,
      "bounds": [
       -0.02001,
@@ -10192,7 +10192,7 @@
      "fibres": {
       "file": "male-larynx-muscles.fibres",
       "bytes": 34012,
-      "sha256": "d7d9425686a9db63617a764066c80bfa10e0fe36f7cfd46e079592907ca92bbe"
+      "sha256": "e9dd79c74a0c189e06c5ae8f5ce6c7e024159e65cfad0e717bc4f3748dd680bb"
      }
     },
     {
@@ -10252,7 +10252,7 @@
      "fibres": {
       "file": "male-knee-muscles.fibres",
       "bytes": 98992,
-      "sha256": "f0b83211470f00ea542050142cd426bd681a274dcce61df8971a92576425e749"
+      "sha256": "e0cf7299c07bae5af017f97fcb92ee5a2c2d17e0012cb0ac81e987b7d6a0d1e9"
      }
     },
     {
@@ -10350,7 +10350,7 @@
      "fibres": {
       "file": "male-hip-muscles.fibres",
       "bytes": 300048,
-      "sha256": "3be5843b84aae8df3c1b40816fd1631f69f790803e1fb33a0a6f4a7e578632c2"
+      "sha256": "8cd42b7b071c2f9866c45147ea170c146eb66706a853d1385a9bc77b0971480f"
      }
     },
     {
@@ -10392,7 +10392,7 @@
      "fibres": {
       "file": "male-back-muscles.fibres",
       "bytes": 100440,
-      "sha256": "a33b376fba295aad2c6d8ecfd3723c594108a4bb58e2fec7e689f08cbe07141a"
+      "sha256": "e80a20a823b8c786f8fcf268d573fcd63b013f9d9de34b916e45e24626e55d8d"
      }
     }
    ],
@@ -20953,7 +20953,7 @@
      "fibres": {
       "file": "female-hip-muscles.fibres",
       "bytes": 284528,
-      "sha256": "1a1dceb29080fe16b047d2b7b80cb78ecba61660a58144c7794cc6cf815594cb"
+      "sha256": "e1a6211c74a10fd509910475372d0c9f377c779b389fec16ca08001146ebd8cb"
      }
     },
     {
@@ -20995,7 +20995,7 @@
      "fibres": {
       "file": "female-back-muscles.fibres",
       "bytes": 98640,
-      "sha256": "283e387efa06b1fceb9361c5902df6d18940c1b3a1dd00ef1513b124804bd5c7"
+      "sha256": "cd9603b16b2272287f5b7f7d328fc7504f2fab8392849a91330e5fea5828fd7f"
      }
     }
    ],

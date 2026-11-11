@@ -33,7 +33,7 @@ static float3 v3(float x, float y, float z) { return mk_float3(x, y, z); }
 static float3 nrm(float3 a) { float l = length(a); return l > 0 ? a / l : a; }
 
 struct Mesh {
-    float3 colour; float rough; float opacity = 1; int surface; float3 axis; float bundle; float3 tendon;
+    float3 colour; float rough; float opacity = 1; int surface; float3 axis; float unused; float3 tendon;
     float3 ringCentre; float ringInner = 0, ringOuter = 0; std::string name;
     std::vector<float3> p, n, relief; std::vector<float2> tc; std::vector<uint32_t> idx;
 };
@@ -59,7 +59,7 @@ static std::vector<Mesh> load(const char *path) {
         if (withOpacity) m.opacity = f32();
         m.surface = (int)u32();
         float ax = f32(), ay = f32(), az = f32();
-        m.axis = v3(ax, ay, az); m.bundle = f32();
+        m.axis = v3(ax, ay, az); m.unused = f32();
         float tr = f32(), tg = f32(), tb = f32();
         m.tendon = v3(tr, tg, tb);
         if (withRing) {
@@ -465,6 +465,29 @@ int main(int argc, char **argv) {
         a = a / float(SS * SS);
         unsigned char *q = &img[(y * W + x) * 3];
         q[0] = (unsigned char)(srgb(a.x) * 255 + 0.5f); q[1] = (unsigned char)(srgb(a.y) * 255 + 0.5f); q[2] = (unsigned char)(srgb(a.z) * 255 + 0.5f);
+    }
+    // LAB_IDS (a path) lists what the picture shows, for labelling it: each structure's name, how many pixels of
+    // it are seen, and the seen pixel nearest the middle of them (x, y in the picture)
+    if (const char *path = std::getenv("LAB_IDS")) {
+        std::vector<double> sx(meshes.size(), 0), sy(meshes.size(), 0);
+        std::vector<long> seen(meshes.size(), 0);
+        for (int y = 0; y < SH; y++) for (int x = 0; x < SW; x++) {
+            int mi = id[y * SW + x];
+            if (mi >= 0) { sx[mi] += x; sy[mi] += y; seen[mi]++; }
+        }
+        std::vector<double> best(meshes.size(), 1e30);
+        std::vector<int> bx(meshes.size(), 0), by(meshes.size(), 0);
+        for (int y = 0; y < SH; y++) for (int x = 0; x < SW; x++) {
+            int mi = id[y * SW + x];
+            if (mi < 0) continue;
+            double ddx = x - sx[mi] / seen[mi], ddy = y - sy[mi] / seen[mi], d = ddx * ddx + ddy * ddy;
+            if (d < best[mi]) { best[mi] = d; bx[mi] = x; by[mi] = y; }
+        }
+        FILE *ids = std::fopen(path, "w");
+        for (size_t mi = 0; mi < meshes.size(); mi++)
+            if (seen[mi]) std::fprintf(ids, "%s\t%ld\t%.1f\t%.1f\n", meshes[mi].name.c_str(), seen[mi] / (SS * SS),
+                                       bx[mi] / float(SS), by[mi] / float(SS));
+        std::fclose(ids);
     }
     FILE *f = std::fopen(argv[2], "wb");
     std::fprintf(f, "P6\n%d %d\n255\n", W, H);

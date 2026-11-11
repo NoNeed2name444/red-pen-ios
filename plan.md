@@ -3359,13 +3359,47 @@ for screenshots.
       - The app's atlas: the new fibres laid on the muscles as they were
         (their meshes unchanged but for the three smallest larynx muscles,
         cut finer); 870,230 and 869,459 triangles.
+      - A second agent's check of the change, and what it led to. 15 of
+        the 58 muscles had surface with no lines at all (one angle over a
+        patch; a third of the woman's right gluteus minimus, an eighth of
+        each iliopsoas, a third of each cricothyroid), drawn as rings.
+        Three causes, each now handled in the build: a muscle in two
+        pieces had one laid and the other left (each piece is now laid
+        between its own ends); a muscle lying on its bone over a whole
+        face had that face held as its origin, so its lines all left by
+        the patch's near edge and its top had none (a broad end is now
+        brought down to its far rim, far_rim); and surface behind an end
+        had no way to the other (it now joins that end, which is then
+        brought down to its far rim: stalled). After: 3 muscles keep 3 to
+        4% (the vocalis, the woman's right gluteus minimus and left
+        iliopsoas), none more. The shader draws plain flesh, not rings,
+        where the angle stands still. Also: the count of cells is made
+        by a shift (exp2 is not promised exact on a chip, and one short
+        would crease every muscle at every second cell); the fibres
+        reader refuses a count its file cannot hold before setting room
+        aside (two tests); a muscle with no fibres laid is given the pair
+        (0, 0) at every vertex rather than no coordinates.
+        `tools/anatomy_fibres.py <folder> --again` lays the fibres anew
+        on muscles that have them (meshes kept).
+      - [ ] From the same check, not yet done: the streaks' widths are
+        chosen from the angle's change, which is one number a triangle,
+        so on a few muscles (gluteus medius and minimus, iliopsoas) the
+        coarsest and finest streaks step at triangle edges; and tendon is
+        read from the pair's distance from the origin, which a wide step
+        in angle across one edge shortens, so the smallest larynx bellies
+        show pale flecks. Both want a number of their own at each vertex
+        (the angle's rate of change; tendon), which is a third and fourth
+        number in the fibres file and a second set of coordinates in the
+        view: to be tried on a Mac run, where the shader is seen.
       - [ ] Every other pennate, fan-shaped and multi-headed muscle gets
         its row in ARCHITECTURE (and its true origin and insertion areas
         in RULES) as it is added; the larynx's muscles still run tip to
         tip.
-      - [ ] A small mark where the rectus femoris's two sides meet below
-        its aponeurosis (one triangle's worth); the meeting line is
-        rounded over an edge and a half, as the mesh can hold.
+      - [ ] Marks where the rectus femoris's two sides meet below its
+        aponeurosis: a chain of small zig-zag patches down the front
+        midline (the check's close-up; not one triangle's worth, as first
+        written here); the meeting line is rounded over an edge and a
+        half, as the mesh can hold. Wants the same per-vertex numbers.
       - [ ] The 8 muscles a body that are not skeletal (papillary muscles,
         the bladder neck's smooth muscle, the ciliary muscles) are tagged
         muscle, so the first two show skeletal red; give each its organ's

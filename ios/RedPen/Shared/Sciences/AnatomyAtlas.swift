@@ -642,7 +642,7 @@ struct AnatomyFibres: Hashable {
 
     var vertexCount: Int { around.count / 2 }
 
-    /// The two numbers a vertex the muscle's shader (AtlasShaders.muscle)
+    /// Two numbers a vertex, which the muscle's shader (AtlasShaders.muscle)
     /// reads as its texture coordinates: the points as they are.
     func coordinates() -> [Float] { around }
 
@@ -786,13 +786,16 @@ enum AnatomyAtlas {
         guard bytes[0] == 0x53, bytes[1] == 0x41, bytes[2] == 0x46, bytes[3] == 0x32 else { throw ReadError.notAnAtlas }
         at = 4
         let count = Int(u32())
+        // (a structure takes four bytes at least: a count the file cannot hold is refused before any
+        // room is set aside for it)
+        guard count <= (bytes.count - 8) / 4 else { throw ReadError.truncated(at: 4) }
         var out: [AnatomyFibres?] = []
         out.reserveCapacity(count)
         for _ in 0..<count {
             try need(4)
             let vertices = Int(u32())
             guard vertices > 0 else { out.append(nil); continue }
-            try need(vertices * 8)
+            guard vertices <= (bytes.count - at) / 8 else { throw ReadError.truncated(at: at) }
             let around: [Float] = (0..<(2 * vertices)).map { _ in Float(bitPattern: u32()) }
             out.append(AnatomyFibres(around: around))
         }
