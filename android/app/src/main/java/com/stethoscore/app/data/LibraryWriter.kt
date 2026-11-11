@@ -32,6 +32,8 @@ class LibraryWriter(private val executor: Executor) {
 
     /** Called on the writing thread before each write, for tests (the thread, a write that is cut off). */
     @Volatile internal var beforeWrite: (() -> Unit)? = null
+    /** Called on the writing thread after each background write, before its callback runs, for tests (a write finished but not yet told to the store). */
+    @Volatile internal var beforeCallback: (() -> Unit)? = null
     /** How many writes reached the disk, for tests. */
     @Volatile var writes = 0
         private set
@@ -60,6 +62,9 @@ class LibraryWriter(private val executor: Executor) {
             writes++
         }
     }
+
+    /** The number of the snapshot waiting to be written, or 0 for none. */
+    fun pendingGeneration(): Long = synchronized(state) { pending?.generation ?: 0L }
 
     /** Drops the waiting snapshot, if any (a failed write put memory back, so it no longer matches). */
     fun dropPending() { synchronized(state) { pending = null; state.notifyAll() } }
@@ -91,6 +96,7 @@ class LibraryWriter(private val executor: Executor) {
                     } catch (e: Exception) { e }
                 }
                 if (error === SKIPPED) continue
+                beforeCallback?.invoke()
                 // the callbacks run outside the write lock: they take the store's lock
                 runCatching { if (error == null) job.written() else job.failed(error) }
             }

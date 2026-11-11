@@ -78,6 +78,12 @@ class StudyStore(private val directory: File, private val writer: LibraryWriter 
     private var committed = current()
     /** The number ([LibraryWriter.nextGeneration]) of the snapshot [committed] is; under the store's lock. */
     private var committedGeneration = 0L
+    /**
+     * The newest snapshot whose file write finished, set by the write itself
+     * under the writer's lock. [committed] only catches up in [written], which
+     * needs the store's lock, so a revert reads this first (catchUpWithDisk).
+     */
+    @Volatile private var lastOnDisk: Pair<Long, Saved>? = null
     /** Called when a background save (progress, ratings, answers) fails; the change is undone. */
     var onSaveError: ((String) -> Unit)? = null
     /** Told of each answer checked and card rated, so a running ward round can count them (iOS StudyLog.recorded). */
@@ -214,6 +220,20 @@ class StudyStore(private val directory: File, private val writer: LibraryWriter 
     /** Called between the fsync and the rename, for tests (a write cut off before it replaces the file). */
     @Volatile internal var beforeRename: (() -> Unit)? = null
 
+    /** Writes [saved] and notes that it is on disk; runs inside the writer's lock, on whichever thread writes. */
+    private fun writeSnapshot(number: Long, saved: Saved) {
+        writeFile(saved)
+        lastOnDisk = number to saved
+    }
+    /**
+     * Under the store's lock: the newest snapshot on disk is the saved state,
+     * even when its write's callback has not run yet. Without this a revert
+     * after a failed write could go back past a change already on disk.
+     */
+    private fun catchUpWithDisk() {
+        val disk = lastOnDisk ?: return
+        if (disk.first > committedGeneration) { committed = disk.second; committedGeneration = disk.first }
+    }
     /**
      * Saves now, on the calling thread, for a change whose caller shows the
      * failure (an edit, an import). It waits for a background write already
@@ -226,9 +246,10 @@ class StudyStore(private val directory: File, private val writer: LibraryWriter 
             check(loadError == null) { loadError ?: "Library unavailable" }
             val number = writer.nextGeneration()
             val saved = current()
-            writer.writeNow(LibraryWriter.Job(number, { writeFile(saved) }, {}, {}))
+            writer.writeNow(LibraryWriter.Job(number, { writeSnapshot(number, saved) }, {}, {}))
             if (number > committedGeneration) { committed = saved; committedGeneration = number }
         } catch (e: Exception) {
+            catchUpWithDisk()
             restore(committed)
             writer.dropPending()
             throw if (e is IllegalStateException) e else IllegalStateException("Could not save your library: ${e.message.orEmpty()}", e)
@@ -241,18 +262,22 @@ class StudyStore(private val directory: File, private val writer: LibraryWriter 
         publishGlance()
     }
     /**
-     * A background write failed: memory goes back to the last saved state (the
-     * changes since are not on disk either) and the failure is reported. A
-     * newer write that already reached the disk covers it, so nothing is lost.
+     * A background write failed. A newer write that already reached the disk,
+     * or a newer snapshot still waiting, carries these changes too, so nothing
+     * is undone and nothing reported: only the newest write failing is. Then
+     * memory goes back to the last saved state (the changes since are not on
+     * disk either) and the failure is reported.
      */
     private fun writeFailed(number: Long, e: Exception) {
         val reverted = synchronized(this) {
+            catchUpWithDisk()
             if (number <= committedGeneration) return@synchronized false
+            if (writer.pendingGeneration() > number) return@synchronized false
             restore(committed)
             writer.dropPending()
             true
         }
-        if (reverted) onSaveError?.invoke(e.message ?: "Could not save your library.")
+        if (reverted) onSaveError?.invoke((e.message ?: "Could not save your library.").trimEnd('.') + ". Changes since the last save were undone.")
     }
     /**
      * The digest from what is here now (iOS GlancePublisher.publish): the due
@@ -307,7 +332,7 @@ class StudyStore(private val directory: File, private val writer: LibraryWriter 
         loadError?.let { message -> restore(committed); onSaveError?.invoke(message); return }
         val number = writer.nextGeneration()
         val saved = current()
-        writer.submit(LibraryWriter.Job(number, { writeFile(saved) }, { written(number, saved) }, { writeFailed(number, it) }))
+        writer.submit(LibraryWriter.Job(number, { writeSnapshot(number, saved) }, { written(number, saved) }, { writeFailed(number, it) }))
     }
 
     @Synchronized fun addSet(set: StudySet) {

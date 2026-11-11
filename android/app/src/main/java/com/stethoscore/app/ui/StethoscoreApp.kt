@@ -106,7 +106,8 @@ import com.stethoscore.app.ui.library.LibraryEtch
     // New set's preset from the exam card's Study next (batch 16)
     var newPreset by remember { mutableStateOf<com.stethoscore.app.exam.NewSetPreset?>(null) }
     val scope=rememberCoroutineScope()
-    DisposableEffect(store) { store.onSaveError={ message -> notice=message;revision++ };onDispose { store.onSaveError=null } }
+    // a background save fails on the library's writer thread; the notice and the revision are the main thread's
+    DisposableEffect(store) { val main=android.os.Handler(android.os.Looper.getMainLooper());store.onSaveError={ message -> main.post { notice=message;revision++ } };onDispose { store.onSaveError=null;main.removeCallbacksAndMessages(null) } }
     com.stethoscore.app.ui.learn.LearnHostEffects(store)
     fun refresh() { revision++ }
     // a set the cloud finished while the app was closed, collected after the first frame
