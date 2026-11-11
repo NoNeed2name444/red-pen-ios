@@ -7,6 +7,10 @@ import XCTest
 /// (`-a11yProbeVariant a` to `f`, PreviewExtras' A11yProbe), runs only the
 /// Dynamic Type audit, and prints one PROBE-FLAG line for each text it
 /// flags, then PROBE-DONE. It runs in the accessibility step beside the real audit (app-build.yml).
+///
+/// The probe of the default-size audit (T0218) is not here: it needs
+/// AccessibilityUITests' private way around the app, so it is
+/// AccessibilityUITests.testDefaultSizeAuditProbeDiagnostic, and the same step runs it.
 final class A11yProbeUITests: XCTestCase {
     func testDynamicTypeProbeDiagnostic() throws {
         for variant in ["a", "b", "c", "d", "e", "f"] {

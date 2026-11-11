@@ -396,6 +396,223 @@ final class AccessibilityUITests: XCTestCase {
         return false
     }
 
+    // MARK: - The default-size probe (T0218)
+
+    /// Diagnostic, not a check (as A11yProbeUITests, T0177): it passes
+    /// whatever the audit returns, and fails only when a screen cannot be
+    /// opened.
+    ///
+    /// testAccessibilityAuditOfMainScreens still fails on issues that name no
+    /// element ("Hit area is too small", "Text clipped") and on Dynamic Type
+    /// flags that came and went between runs. This walks the same four
+    /// screens the same way (library, quiz, card revealed, settings) at the
+    /// default text size, and on each one prints, to a11y.log:
+    ///  - PROBE-NODE: every node of the screen's accessibility snapshot,
+    ///    before the first pass (at most 1500; PROBE-NODE-CAP says when it
+    ///    stopped), with SMALL when a side is under 44 points and EDGE when
+    ///    the frame crosses the window's edge;
+    ///  - PROBE-ISSUE and PROBE-PASS: the audit run three times in one
+    ///    launch with the real audit's types (Self.audited), each issue and
+    ///    the issues in each pass, so a flag that repeats shows against one
+    ///    that flickers;
+    ///  - PROBE-NILHINT: for each issue with no element, the nodes under 44
+    ///    points that are on screen at that pass;
+    ///  - PROBE-DONE, once a screen is finished.
+    /// It runs in the accessibility step with the rest of this class
+    /// (app-build.yml), because it needs this class's private way around.
+    func testDefaultSizeAuditProbeDiagnostic() {
+        launch(.standard)
+        guard LibraryDock(app: app).waitForLibrary(timeout: 20) else {
+            XCTFail("probe: the library did not open")
+            return
+        }
+        probe("library")
+
+        if !choose("questions") {
+            XCTFail("probe: Questions could not be chosen from the dock")
+        } else if !openSet("mcq") {
+            XCTFail("probe: the example question set did not open")
+        } else {
+            probe("quiz")
+            backHome(after: "quiz")
+        }
+        if !choose("cards") {
+            XCTFail("probe: Cards could not be chosen from the dock")
+        } else if !openSet("anki") {
+            XCTFail("probe: the example deck did not open")
+        } else {
+            let reveal = app.buttons["Reveal"].firstMatch
+            if reveal.waitForExistence(timeout: 6) {
+                reveal.tap()
+                // held still first, as the real audit does (T0198)
+                settle(element("ankiCardFront"), "card front")
+                probe("card-revealed")
+            } else {
+                XCTFail("probe: no Reveal button, so the revealed card did not open")
+            }
+            backHome(after: "card")
+        }
+        let menu = element("libraryMenu")
+        guard menu.waitForExistence(timeout: 6) else {
+            XCTFail("probe: no account menu (libraryMenu)")
+            return
+        }
+        menu.tap()
+        let named = NSPredicate(format: "label == %@", "Settings")
+        let item = app.buttons.matching(named).firstMatch
+        if !item.waitForExistence(timeout: 4) {
+            XCTFail("probe: no Settings item in the account menu")
+        } else {
+            item.tap()
+            if app.navigationBars["Settings"].waitForExistence(timeout: 8) {
+                probe("settings")
+            } else {
+                XCTFail("probe: the Settings bar did not show after its menu item")
+            }
+        }
+        backHome(after: "settings")
+    }
+
+    /// The screen being probed, the pass it is on, and what that pass has
+    /// found so far.
+    private var probeScreen = ""
+    private var probePass = 0
+    private var probeIssues = 0
+    private var probeNils = 0
+    /// The screen's tree for that pass, read once, at its first issue with no
+    /// element.
+    private var probeSnapshot: (any XCUIElementSnapshot)?
+
+    /// One screen already open: its tree, then three audits, then PROBE-DONE.
+    private func probe(_ screen: String) {
+        probeScreen = screen
+        snap("probe-\(screen)")
+        XCTContext.runActivity(named: "Probe tree: \(screen)") { _ in
+            probeTree()
+        }
+        for pass in 1...3 {
+            probePass = pass
+            probeIssues = 0
+            probeNils = 0
+            probeSnapshot = nil
+            XCTContext.runActivity(named: "Probe audit: \(screen) pass \(pass)") { _ in
+                do {
+                    try app.performAccessibilityAudit(for: Self.audited) { [unowned self] issue in
+                        self.probeIssue(issue)
+                    }
+                } catch {
+                    print("PROBE-ERROR \(screen) pass=\(pass) \(error)")
+                }
+            }
+            print("PROBE-PASS \(screen) pass=\(pass) issues=\(probeIssues)")
+        }
+        print("PROBE-DONE \(screen)")
+    }
+
+    /// `PROBE-NODE <screen> depth=<d> type=<elementType raw value> id=<id>
+    /// label=<first 40 characters> frame=<x,y,w,h> enabled=<b> inview=<b>`,
+    /// then SMALL and EDGE where they apply, for every node of the screen,
+    /// parents before their children, up to 1500.
+    private func probeTree() {
+        let screen: String = probeScreen
+        let shot: (any XCUIElementSnapshot)? = try? app.snapshot()
+        guard let tree = shot else {
+            print("PROBE-NODE \(screen) no snapshot of the screen")
+            return
+        }
+        let window: CGRect = app.windows.firstMatch.frame
+        var count = 0
+        var capped = false
+        func walk(_ node: any XCUIElementSnapshot, depth: Int) {
+            guard count < 1500 else {
+                capped = true
+                return
+            }
+            count += 1
+            print("PROBE-NODE \(screen) depth=\(depth) \(probeDescribe(node, window: window).text)")
+            for child in node.children { walk(child, depth: depth + 1) }
+        }
+        walk(tree, depth: 0)
+        if capped { print("PROBE-NODE-CAP \(screen) the nodes after the first 1500 are not printed") }
+    }
+
+    /// A node as a PROBE-NODE line says it after its depth, and whether it is
+    /// SMALL (a side under 44 points) and in view (not empty, and touching
+    /// the window). XCUIElementSnapshot has no isHittable, so `inview` stands
+    /// where a hittable flag would.
+    private func probeDescribe(_ node: any XCUIElementSnapshot,
+                               window: CGRect) -> (text: String, small: Bool, inView: Bool) {
+        let frame: CGRect = node.frame
+        let label: String = node.label.replacingOccurrences(of: "\n", with: " ")
+        let small: Bool = frame.width < 44 || frame.height < 44
+        let inView: Bool = !frame.isEmpty && frame.intersects(window)
+        let edge: Bool = inView && !window.insetBy(dx: -0.5, dy: -0.5).contains(frame)
+        var text = "type=\(node.elementType.rawValue) id=\(node.identifier) label=\(label.prefix(40))"
+        text += " frame=\(frame.minX),\(frame.minY),\(frame.width),\(frame.height)"
+        text += " enabled=\(node.isEnabled) inview=\(inView)"
+        if small { text += " SMALL" }
+        if edge { text += " EDGE" }
+        return (text, small, inView)
+    }
+
+    /// One audit issue, printed and let through. `PROBE-ISSUE <screen>
+    /// pass=<n> <compact> element=<identifier, else label, else nil>
+    /// frame=<x,y,w,h or nil> type=<elementType raw value or nil>
+    /// detailed=<first 160 characters>`. An issue with no element also gets
+    /// its PROBE-NILHINT lines.
+    private func probeIssue(_ issue: XCUIAccessibilityAuditIssue) -> Bool {
+        probeIssues += 1
+        let owner: XCUIElement? = issue.element
+        var who = "nil"
+        var box = "nil"
+        var kind = "nil"
+        if let found = owner {
+            let name: String = found.identifier.isEmpty ? found.label : found.identifier
+            who = name.isEmpty ? "unnamed" : String(name.prefix(60))
+            let frame: CGRect = found.frame
+            box = "\(frame.minX),\(frame.minY),\(frame.width),\(frame.height)"
+            kind = "\(found.elementType.rawValue)"
+        }
+        let detail: String = issue.detailedDescription.replacingOccurrences(of: "\n", with: " ")
+        print("PROBE-ISSUE \(probeScreen) pass=\(probePass) \(issue.compactDescription) element=\(who) frame=\(box) type=\(kind) detailed=\(detail.prefix(160))")
+        if owner == nil {
+            probeNils += 1
+            probeNilHint()
+        }
+        return true
+    }
+
+    /// For an issue with no element: `PROBE-NILHINT <screen> pass=<n>
+    /// nil=<k>` and, for each node in view and under 44 points a side, of any
+    /// type, that node as PROBE-NODE says it, at most 60 (k counts the pass's
+    /// issues with no element).
+    private func probeNilHint() {
+        let head = "PROBE-NILHINT \(probeScreen) pass=\(probePass) nil=\(probeNils)"
+        if probeSnapshot == nil { probeSnapshot = try? app.snapshot() }
+        guard let tree = probeSnapshot else {
+            print("\(head) no snapshot of the screen")
+            return
+        }
+        let window: CGRect = app.windows.firstMatch.frame
+        var shown = 0
+        var more = 0
+        func walk(_ node: any XCUIElementSnapshot) {
+            let part = probeDescribe(node, window: window)
+            if part.small && part.inView {
+                if shown < 60 {
+                    print("\(head) \(part.text)")
+                    shown += 1
+                } else {
+                    more += 1
+                }
+            }
+            for child in node.children { walk(child) }
+        }
+        walk(tree)
+        if shown == 0 { print("\(head) no node under 44 points in view") }
+        if more > 0 { print("\(head) \(more) more not printed") }
+    }
+
     // MARK: - Getting around
 
     private func launch(_ size: TextSize) {
