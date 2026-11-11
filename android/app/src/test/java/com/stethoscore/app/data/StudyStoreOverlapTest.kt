@@ -108,7 +108,7 @@ class StudyStoreOverlapTest {
         store.flush()
         assertTrue(store.reviews.isEmpty())
         assertEquals(1, errors.size)
-        assertTrue(errors.single(), errors.single().endsWith("Changes since the last save were undone."))
+        assertTrue(errors.single(), errors.single().endsWith("Your latest changes were undone. Make them again."))
         assertTrue(reopened().reviews.isEmpty())
     }
 }

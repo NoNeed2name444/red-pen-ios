@@ -277,7 +277,7 @@ class StudyStore(private val directory: File, private val writer: LibraryWriter 
             writer.dropPending()
             true
         }
-        if (reverted) onSaveError?.invoke((e.message ?: "Could not save your library.").trimEnd('.') + ". Changes since the last save were undone.")
+        if (reverted) onSaveError?.invoke((e.message ?: "Could not save your library.").trimEnd('.') + ". Your latest changes were undone. Make them again.")
     }
     /**
      * The digest from what is here now (iOS GlancePublisher.publish): the due

@@ -39,7 +39,7 @@ class SaveErrorNoticeTest {
             store.rateCard(store.library.single().cards.single(), AnkiRating.EASY)
             store.flush()
             compose.waitForIdle()
-            compose.onNodeWithText("Changes since the last save were undone.", substring = true).assertExists()
+            compose.onNodeWithText("Your latest changes were undone. Make them again.", substring = true).assertExists()
         } finally { thread.shutdownNow() }
     }
 }
