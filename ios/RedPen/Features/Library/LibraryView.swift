@@ -1187,6 +1187,7 @@ struct LibraryView: View {
                     // its name said outright: with the placeholder emptied
                     // for SearchPrompt, UIKit's field had no description
                     .accessibilityLabel(Text(searchPrompt))
+                    .accessibilityIdentifier("librarySearch")
             }
             if !searchText.wrappedValue.isEmpty {
                 Button {
@@ -1202,20 +1203,6 @@ struct LibraryView: View {
             }
         }
         .wardField()
-        // The audit measured the text field alone, a 24-point line inside this
-        // 44-point well (run 42142451702, AUDIT-NIL), and a tap on the well
-        // outside that line missed it. The well is the control: at least 44
-        // points, tapping anywhere on it gives the field the keyboard, and
-        // the well, not the line, carries "librarySearch". The field keeps
-        // its own name and traits, so VoiceOver reads what it did. The clear
-        // button, a child, keeps its own tap. Unproven until the next Mac
-        // run; the fallback is a UITextField-backed field whose sizeThatFits
-        // returns at least 44.
-        .frame(minHeight: 44)
-        .contentShape(Rectangle())
-        .onTapGesture { searchFocused = true }
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("librarySearch")
     }
 
     /// Beside the search field (above it, at the accessibility sizes):

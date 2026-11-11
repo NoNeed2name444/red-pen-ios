@@ -21,12 +21,15 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 // T0217: the controls iOS's default-size audit found too small to hit (app build run
 // 42142451702, AUDIT-NIL): home's Open plan, the library's search field and the study
-// screens' More. Here each one's touch target is at least 48 dp both ways.
+// screens' More. Here each one's touch target is at least 48 dp both ways. Native graphics, so
+// the words are measured as the device measures them, not by Robolectric's legacy text.
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class AuditHitAreaTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
@@ -42,17 +45,18 @@ class AuditHitAreaTest {
         assertTrue("$name's touch area is $least tall: $tall", tall >= least)
     }
 
-    // At the standard sizes the row is trimmed to the words' height by design, so its own height is
-    // not the target; Compose reaches the touch to 48 dp round it, and its width is the control's.
+    // At the standard sizes the row is trimmed to the words' height in its row by design, so its own
+    // height is not the target (the node reads 42 dp under native graphics); Compose reaches the
+    // touch to 48 dp round the words, and the control is its words wide (81 dp). No floor is added
+    // there, so this test has nothing of the app's to catch: it records the width and the reach.
     @Test fun openPlanIsA48DpTarget() {
         compose.setContent { StethoscoreTheme { HomePlanButton(onPlan = {}) } }
         compose.onNodeWithText("Open plan").assertTarget("Open plan", ownHeight = false)
     }
 
-    // At the accessibility sizes the row keeps its whole target's height: its own bounds are the
-    // target (the words and 12 dp a side, floored at the least target). Robolectric measures it
-    // 60 dp tall at 1.65 and 59 dp at 2.0, so the floor alone is not what these tests catch; they
-    // fail if the padding goes (35 dp) and pass again with the floor in place (48 dp).
+    // At the accessibility sizes the row keeps its whole target's height, the words and 12 dp a side:
+    // 54 dp at 1.65 and 59 dp at 2.0 under native graphics, with no floor in the app. With the
+    // padding removed they read 30 and 35 dp and these two fail; that is what they catch.
     private fun openPlanAt(scale: Float) {
         compose.setContent {
             CompositionLocalProvider(LocalDensity provides Density(1f, scale)) {

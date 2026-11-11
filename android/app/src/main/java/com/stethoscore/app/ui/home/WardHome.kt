@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -91,7 +90,6 @@ import com.stethoscore.app.ui.wardRgb
 import com.stethoscore.app.ui.ward.WardButtonBox
 import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardCardFace
-import com.stethoscore.app.ui.ward.WardControlSize
 import com.stethoscore.app.ui.ward.WardIconSquare
 import com.stethoscore.app.ui.ward.WardLift
 import com.stethoscore.app.ui.ward.WardPartLedger
@@ -362,11 +360,6 @@ fun LazyListScope.homeRoundItems(model: HomeRoundModel, tiles: Boolean, book: Ho
             val trim = if (large) 0 else 24.dp.roundToPx()
             layout(placeable.width, maxOf(0, placeable.height - trim)) { placeable.place(0, -trim / 2) }
         }.clickable(role = Role.Button, onClickLabel = "Opens the exam plan and forecast", onClick = onPlan)
-        // a floor of the least target wide, and where the row is not trimmed (the accessibility
-        // sizes) tall (T0217, iOS audit run 42142451702, AUDIT-NIL). The words and 12 dp a side
-        // already come to about 60 dp there, so the height holds only if the type or padding
-        // shrinks. Trimmed, the row stays the words' height and Compose reaches the touch to 48 dp
-        .sizeIn(minWidth = WardControlSize.target.wardDp, minHeight = if (large) WardControlSize.target.wardDp else 0.dp)
         .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Icon(Icons.AutoMirrored.Rounded.TrendingUp, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(16.dp))

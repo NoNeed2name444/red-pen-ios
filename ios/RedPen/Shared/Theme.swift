@@ -945,11 +945,14 @@ private struct StudyMoreMenu<Extra: View>: ViewModifier {
                     }
                     .menuStyle(.button)
                     .buttonStyle(StudyMoreCircleStyle())
-                    // the bar keeps the 44-point circle's place; the
-                    // target's extra 2 points a side reach past it
-                    .padding(-StudyMoreCircleStyle.outset)
+                    // The accessibility modifiers sit on the view whose layout
+                    // size is 48 (the 44-point circle and 2 points a side), so
+                    // the element is 48 square. The negative padding is
+                    // outside them: the bar still sees 44, and the circle
+                    // keeps its place.
                     .accessibilityIdentifier("studyMore")
                     .accessibilityHint("Other things you can do on this screen")
+                    .padding(-StudyMoreCircleStyle.outset)
                     // once, when study screens are familiar (StudyTips)
                     .studyTip(.turnInto, when: turnInto)
                 }
