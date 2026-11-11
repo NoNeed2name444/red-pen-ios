@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -351,7 +352,7 @@ fun LazyListScope.homeRoundItems(model: HomeRoundModel, tiles: Boolean, book: Ho
  * The round's way into the exam plan (HomeRoundCard.planButton): a 44-point
  * target that takes only the words' height in the heading's row.
  */
-@Composable private fun HomePlanButton(onPlan: () -> Unit) {
+@Composable internal fun HomePlanButton(onPlan: () -> Unit) {
     val large = wardAccessibilitySize()
     Row(Modifier.layout { measurable, constraints ->
             // the words' height in the row, the target 12 above and below it; on its own line at
@@ -360,6 +361,10 @@ fun LazyListScope.homeRoundItems(model: HomeRoundModel, tiles: Boolean, book: Ho
             val trim = if (large) 0 else 24.dp.roundToPx()
             layout(placeable.width, maxOf(0, placeable.height - trim)) { placeable.place(0, -trim / 2) }
         }.clickable(role = Role.Button, onClickLabel = "Opens the exam plan and forecast", onClick = onPlan)
+        // at least 48 dp each way at the accessibility sizes, where the row is not trimmed (12 a
+        // side came to 42 dp; T0217, iOS audit run 42142451702, AUDIT-NIL); trimmed, Compose
+        // reaches the touch to 48 dp round the words
+        .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
         .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Icon(Icons.AutoMirrored.Rounded.TrendingUp, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(16.dp))

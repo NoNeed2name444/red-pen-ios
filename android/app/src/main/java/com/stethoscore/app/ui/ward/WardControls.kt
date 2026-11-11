@@ -287,13 +287,15 @@ enum class WardButtonKind { primary, secondary, destructive, compact, quiet;
     val look = WardControl.circle.look(WardControlState(isChosen = on, isHeld = touch.held, isEnabled = enabled))
     Box(
         modifier
+            // the control is the whole 48 dp target, the circle drawn 44 inside it: selectable
+            // inside the 44, the control measured 44 (T0217, iOS audit run 42142451702, AUDIT-NIL)
+            .selectable(on, enabled = enabled, role = Role.Button, interactionSource = source, indication = null, onClick = onClick)
             .minimumInteractiveComponentSize()
             .size(WardControlSize.buttonSmall.wardDp)
             .capPop(touch.held)
             .wardFocusRing(CircleShape, touch.focused, wardColor(WardControlStates.focusInk))
             .wardChosenEdge(CircleShape, on)
-            .wardPressFace(CircleShape, if (enabled) lift else WardLift.low, wardDepth(look.stand.isPressedIn))
-            .selectable(on, enabled = enabled, role = Role.Button, interactionSource = source, indication = null, onClick = onClick),
+            .wardPressFace(CircleShape, if (enabled) lift else WardLift.low, wardDepth(look.stand.isPressedIn)),
         contentAlignment = Alignment.Center,
     ) {
         Icon(icon, contentDescription, tint = wardColor(look.glyph!!), modifier = Modifier.size(20.dp))
