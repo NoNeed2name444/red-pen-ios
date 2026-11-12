@@ -84,8 +84,22 @@ class StudyStore(private val directory: File, private val writer: LibraryWriter 
      * needs the store's lock, so a revert reads this first (catchUpWithDisk).
      */
     @Volatile private var lastOnDisk: Pair<Long, Saved>? = null
-    /** Called when a background save (progress, ratings, answers) fails; the change is undone. */
-    var onSaveError: ((String) -> Unit)? = null
+    /**
+     * Called when a background save (progress, ratings, answers) fails; the change is undone.
+     * A recreated activity (a rotation) has none for a moment, and the one going away drops
+     * what it was handed but could not yet show: see [reportSaveError].
+     */
+    var onSaveError: ((String) -> Unit)?
+        get() = synchronized(notices) { saveErrorHandler }
+        set(value) = replaceSaveErrorHandler(value)
+    /** Guards the handler and the notices below; never held while a handler runs. */
+    private val notices = Object()
+    private var saveErrorHandler: ((String) -> Unit)? = null
+    /** Notices raised with no handler to tell; the next handler is told them, once. */
+    private val unheard = LinkedHashSet<String>()
+    /** Notices handed to the handler while a [flush] waited: that flush is the stopping activity's, whose handler may go before it shows them. */
+    private val handedWhileFlushing = LinkedHashSet<String>()
+    private var flushes = 0
     /** Told of each answer checked and card rated, so a running ward round can count them (iOS StudyLog.recorded). */
     var onStudied: ((Int) -> Unit)? = null
 
@@ -133,7 +147,34 @@ class StudyStore(private val directory: File, private val writer: LibraryWriter 
      */
     fun flush() {
         check(!Thread.holdsLock(this)) { "flush() inside the store's lock would wait on itself" }
-        writer.flush()
+        // a new flush is a later turn of the main thread: what an earlier one handed over has been shown
+        synchronized(notices) { if (flushes++ == 0) handedWhileFlushing.clear() }
+        try { writer.flush() } finally { synchronized(notices) { flushes-- } }
+    }
+    /**
+     * Tells the handler of a failed background save. With none to tell, the next
+     * one is told. A failure that comes while [flush] waits (onStop) is handed over
+     * and kept too: the activity is then often recreated, and its handler goes at
+     * onDestroy with the notice it had only posted to the main thread, so the next
+     * handler is told it unless another flush shows the first was seen.
+     */
+    private fun reportSaveError(message: String) {
+        val handler = synchronized(notices) {
+            val current = saveErrorHandler
+            if (current == null) unheard += message else if (flushes > 0) handedWhileFlushing += message
+            current
+        }
+        handler?.invoke(message)
+    }
+    private fun replaceSaveErrorHandler(handler: ((String) -> Unit)?) {
+        val told = synchronized(notices) {
+            if (handler === saveErrorHandler) return
+            unheard += handedWhileFlushing
+            handedWhileFlushing.clear()
+            saveErrorHandler = handler
+            if (handler == null) emptyList() else unheard.toList().also { unheard.clear() }
+        }
+        if (handler != null) told.forEach(handler)
     }
     private fun parse(root: JSONObject): Saved {
         val sets = root.objects("library") { it }
@@ -277,7 +318,7 @@ class StudyStore(private val directory: File, private val writer: LibraryWriter 
             writer.dropPending()
             true
         }
-        if (reverted) onSaveError?.invoke((e.message ?: "Could not save your library.").trimEnd('.') + ". Your latest changes were undone. Make them again.")
+        if (reverted) reportSaveError((e.message ?: "Could not save your library.").trimEnd('.') + ". Your latest changes were undone. Make them again.")
     }
     /**
      * The digest from what is here now (iOS GlancePublisher.publish): the due
@@ -329,7 +370,7 @@ class StudyStore(private val directory: File, private val writer: LibraryWriter 
      * [onSaveError] instead of thrown, and memory goes back to what is on disk.
      */
     private fun saveQuietly() {
-        loadError?.let { message -> restore(committed); onSaveError?.invoke(message); return }
+        loadError?.let { message -> restore(committed); reportSaveError(message); return }
         val number = writer.nextGeneration()
         val saved = current()
         writer.submit(LibraryWriter.Job(number, { writeSnapshot(number, saved) }, { written(number, saved) }, { writeFailed(number, it) }))

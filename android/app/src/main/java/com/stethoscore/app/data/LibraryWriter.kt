@@ -85,6 +85,7 @@ class LibraryWriter(private val executor: Executor) {
         try {
             while (true) {
                 val job = synchronized(state) { pending.also { pending = null } } ?: break
+                var interrupted = false
                 val error = io.withLock {
                     if (job.generation <= writtenGeneration) return@withLock SKIPPED
                     try {
@@ -93,12 +94,21 @@ class LibraryWriter(private val executor: Executor) {
                         writtenGeneration = job.generation
                         writes++
                         null
-                    } catch (e: Exception) { e }
+                    } catch (t: Throwable) {
+                        // A write that ended any way but done is told to the store as a failed one (the callbacks
+                        // below are shielded from anything too), so memory goes back and the person is told; left
+                        // to escape, the snapshot would be neither written nor reported.
+                        if (t is InterruptedException) interrupted = true
+                        t as? Exception ?: IllegalStateException(t.message ?: t.javaClass.simpleName, t)
+                    }
                 }
                 if (error === SKIPPED) continue
-                beforeCallback?.invoke()
+                // the hook is the tests'; whatever it throws neither skips the callback nor ends the drain
+                runCatching { beforeCallback?.invoke() }
                 // the callbacks run outside the write lock: they take the store's lock
                 runCatching { if (error == null) job.written() else job.failed(error) }
+                // the interrupt that cut the write off stays set for the thread's owner (the executor)
+                if (interrupted) Thread.currentThread().interrupt()
             }
         } finally {
             if (!outer) inDrain.set(false)
