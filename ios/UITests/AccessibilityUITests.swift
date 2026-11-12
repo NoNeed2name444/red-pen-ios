@@ -368,8 +368,19 @@ final class AccessibilityUITests: XCTestCase {
 
     /// Back to the library after `screen`, saying so when it could not get
     /// there, since the screens after it may then be skipped too.
+    ///
+    /// An app that stopped running after a clean audit is a failure too
+    /// (T0242): goHome gives up on it at once, and nothing after it would
+    /// fail on its own (choose and waitForExistence fail silently). So it
+    /// prints `PROBE-CRASH <screen> pass=0` (0: after the audit, on the way
+    /// back) and fails the test. It does not relaunch and does not touch
+    /// `relaunches`: recoverFromCrash keeps that count.
     private func backHome(after screen: String) {
         if !goHome() {
+            if app.state == .notRunning {
+                print("PROBE-CRASH \(screen) pass=0")
+                XCTFail("the app stopped running on the way back to the library after the \(screen) screen")
+            }
             skipped(screen, "no way back to the library after it; the screens after it may be skipped")
         }
     }
@@ -501,7 +512,9 @@ final class AccessibilityUITests: XCTestCase {
     ///    points that are on screen at that pass;
     ///  - PROBE-DONE, once a screen is finished;
     ///  - PROBE-CRASH <screen> pass=<n> when the app stopped running during
-    ///    that pass (T0242), then PROBE-CRASH-RELAUNCH <screen> relaunch=<k>
+    ///    that pass (T0242; pass=0 when it was found gone on the way back to
+    ///    the library after the screen, which fails the test with no
+    ///    relaunch), then PROBE-CRASH-RELAUNCH <screen> relaunch=<k>
     ///    of 2 and the walk goes on from the library (recoverFromCrash). The
     ///    test fails: a crash is a red. At most two relaunches a test; the
     ///    third crash prints PROBE-CRASH-STOP and ends the walk.
