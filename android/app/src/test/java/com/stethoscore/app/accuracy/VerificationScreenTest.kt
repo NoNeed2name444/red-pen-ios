@@ -12,9 +12,10 @@ import org.junit.Test
 // ios/RedPen/Tests/VerificationScreenTests.swift, check for check: the
 // verification layer's first stage on generated material. A broken item is
 // removed with its reason, a red flag is kept and held, and the status line
-// says what happened and that the checkers are on the rest. The last four
-// tests are not in the iOS file: they pin the two tables and the empty case
-// of VerificationScreen.swift itself.
+// says what happened and that the checkers are on the rest. The tests after
+// the first MARK are not in the iOS file: they pin the two tables, the empty
+// case and what its checks leave open (counting by reason, the first breaking
+// hit, what holds an item) in VerificationScreen.swift itself.
 class VerificationScreenTest {
 
     private val good = MCQQuestion(stem = "First-line drug for absence seizures?", options = listOf("Ethosuximide", "Phenytoin", "Carbamazepine", "Gabapentin"),
@@ -120,5 +121,48 @@ class VerificationScreenTest {
         assertEquals(1, screened.kept.size)
         assertEquals(0, screened.held)
         assertEquals("", VerificationScreen.note(VerificationScreen.Outcome<AnkiCard>()))
+    }
+
+    // MARK: pins from the independent check (attempt 2): what the iOS checks leave open
+
+    private fun q(stem: String, options: List<String>, key: Int, explanation: String = "") =
+        MCQQuestion(stem = stem, options = options, correctIndex = key, explanation = explanation)
+
+    // the same reason met twice is one entry with count 2
+    @Test fun sameReasonTwiceIsCountedTwice() {
+        val a = q("Which nerve supplies deltoid?", listOf("Axillary", "Radial", "Ulnar", "Median"), 7)
+        val b = q("Which nerve supplies biceps?", listOf("Musculocutaneous", "Radial", "Ulnar", "Median"), 9)
+        val c = q("Which tissue?", listOf("w", "x", "y", "z"), 0, "Ans-b. The second.")
+        val d = q("Which gland?", listOf("Thyroid", "Adrenal", "Pituitary", "Pineal"), 0, "Thyroid is not the correct answer.")
+        val out = VerificationScreen.questions(listOf(a, c, b, d))
+        assertEquals(4, out.removedCount)
+        assertEquals(listOf("no answer key", "key contradicted by its explanation"), out.removed.map { it.reason })
+        assertEquals(listOf(2, 2), out.removed.map { it.count })
+        assertEquals(" On-device checks: 4 removed (2 no answer key, 2 key contradicted by its explanation). The independent checkers are verifying the rest now.",
+            VerificationScreen.note(out))
+    }
+
+    // the first breaking hit names the reason (duplicate-option is met before key-explanation-conflict)
+    @Test fun theFirstBreakingHitNamesTheReason() {
+        val both = q("Which infection?", listOf("Measles", "Rubella", "Measles", "Mumps"), 0, "Ans-b. The second.")
+        val out = VerificationScreen.questions(listOf(both))
+        assertEquals(listOf("two identical correct options"), out.removed.map { it.reason })
+    }
+
+    // a minor hit alone does not hold an item
+    @Test fun aMinorHitDoesNotHold() {
+        val minor = q("Which are causes of hypoglycaemia?", listOf("Insulin", "Sulfonylureas", "All of the above", "None of the above"), 0, "")
+        val out = VerificationScreen.questions(listOf(minor))
+        assertEquals(1, out.kept.size)
+        assertEquals(0, out.held)
+        assertEquals(" On-device checks passed. The independent checkers are verifying the rest now.", VerificationScreen.note(out))
+    }
+
+    // a card with a red flag is held
+    @Test fun aRedFlagCardIsHeld() {
+        val card = AnkiCard(type = AnkiCardType.QA, front = "Which drug is given in asystole?", bullets = listOf("Atropine 3 mg IV for asystole"))
+        val out = VerificationScreen.cards(listOf(card))
+        assertEquals(1, out.kept.size)
+        assertEquals(1, out.held)
     }
 }

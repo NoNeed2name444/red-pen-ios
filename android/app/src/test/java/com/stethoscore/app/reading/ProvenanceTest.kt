@@ -11,8 +11,9 @@ import org.junit.Test
 
 // ios/RedPen/Tests/SlideTests.swift, "which page a card came off" (lines 66-107,
 // Provenance), check for check; the rest of that file (slide reading, editing a
-// question) is other batches'. The last four tests are not in the iOS file: they
-// pin what Provenance.swift does that its tests leave open.
+// question) is other batches'. The tests after the first MARK are not in the iOS
+// file: they pin what Provenance.swift does that its tests leave open (the floor,
+// the best share, and what a question's and a card's material is made of).
 class ProvenanceTest {
 
     private val pages = listOf(
@@ -97,5 +98,73 @@ class ProvenanceTest {
         // and the share is of the question's words: 2 of 3 is 0.667
         assertEquals(1, Provenance.page("malar rash cranial", rash, floor = 0.66))
         assertNull(Provenance.page("malar rash cranial", rash, floor = 0.67))
+    }
+
+    // MARK: pins from the independent check (attempt 2): what the iOS checks leave open
+
+    private fun q(stem: String, options: List<String>, key: Int, explanation: String = "") =
+        MCQQuestion(stem = stem, options = options, correctIndex = key, explanation = explanation)
+
+    // the floor itself is enough (>=): 3 of 10 words is exactly 0.3
+    @Test fun aShareExactlyAtTheFloorIsNamed() {
+        val deck = listOf(SourcePage(1, "alpha bravo charlie"))
+        assertEquals(1, Provenance.page("alpha bravo charlie delta echo foxtrot golf hotel india juliet", deck))
+    }
+
+    // 2 of 7 (0.2857) is below the floor
+    @Test fun aShareJustBelowTheFloorIsNotNamed() {
+        val deck = listOf(SourcePage(1, "alpha bravo"))
+        assertNull(Provenance.page("alpha bravo charlie delta echo foxtrot golf", deck))
+    }
+
+    // the best share wins whichever order the pages come in
+    @Test fun theBestSharingPageWins() {
+        val deck = listOf(
+            SourcePage(1, "alpha bravo zulu yankee"),            // 2 of 4
+            SourcePage(2, "alpha bravo charlie delta"),          // 4 of 4
+            SourcePage(3, "alpha bravo xray whiskey"),           // 2 of 4
+        )
+        assertEquals(2, Provenance.page("alpha bravo charlie delta", deck))
+        val flipped = listOf(deck[1], deck[0], deck[2])
+        assertEquals(2, Provenance.page("alpha bravo charlie delta", flipped))
+    }
+
+    // key and explanation are weighed with the stem
+    @Test fun theKeyIsWeighedWithTheStem() {
+        val k = q("Which drug is it?", listOf("Cyclophosphamide", "Aspirin"), 0)
+        assertEquals("Lupus, p. 3", Provenance.attribute(listOf(k), pages, "Lupus").single().source)
+    }
+
+    @Test fun theExplanationIsWeighedWithTheStem() {
+        val e = q("Which drug is it?", listOf("Aspirin", "Ibuprofen"), 0, "Cyclophosphamide")
+        assertEquals("Lupus, p. 3", Provenance.attribute(listOf(e), pages, "Lupus").single().source)
+    }
+
+    // a key out of range is not a crash, and the stem and explanation still count
+    @Test fun anOutOfRangeKeyDoesNotCrash() {
+        val bad = q("Which rash spares the nasolabial fold?", listOf("Malar", "Discoid"), 9)
+        assertEquals("Lupus, p. 2", Provenance.attribute(listOf(bad), pages, "Lupus").single().source)
+    }
+
+    // bullets, cloze text and why are weighed for a card
+    @Test fun aCardIsWeighedByItsBullets() {
+        val c = AnkiCard(type = AnkiCardType.QA, front = "Which?", bullets = listOf("spares the nasolabial fold"))
+        assertEquals("Lupus, p. 2", Provenance.attribute(listOf(c), pages, "Lupus").single().source)
+    }
+
+    @Test fun aClozeCardIsWeighedByItsClozeText() {
+        val c = AnkiCard(type = AnkiCardType.CLOZE, clozeText = "Class IV is treated with {{c1::cyclophosphamide}}")
+        assertEquals("Lupus, p. 3", Provenance.attribute(listOf(c), pages, "Lupus").single().source)
+    }
+
+    @Test fun aCardIsWeighedByItsWhy() {
+        val c = AnkiCard(type = AnkiCardType.QA, front = "Which?", bullets = listOf("Aspirin"), why = "nasolabial fold spares")
+        assertEquals("Lupus, p. 2", Provenance.attribute(listOf(c), pages, "Lupus").single().source)
+    }
+
+    // a question that already has a source and matches a page is re-cited (iOS overwrites for questions)
+    @Test fun aMatchedQuestionIsRecited() {
+        val old = q("Which rash spares the nasolabial fold?", listOf("Malar", "Discoid"), 0).copy(source = "Neuro, p. 4")
+        assertEquals("Lupus, p. 2", Provenance.attribute(listOf(old), pages, "Lupus").single().source)
     }
 }
