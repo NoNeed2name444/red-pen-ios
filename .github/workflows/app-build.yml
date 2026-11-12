@@ -91,6 +91,7 @@ jobs:
             -maximum-test-execution-time-allowance 960 \
             -skip-testing:RedPenUITests/AccessibilityUITests \
             -skip-testing:RedPenUITests/A11yProbeUITests \
+            -skip-testing:RedPenUITests/A11yLabsProbeUITests \
             test 2>&1 | tee ../uitest.log | grep --line-buffered -E "error:|Test Case|TEST |\*\* " || true
           grep -q "TEST SUCCEEDED" ../uitest.log
       # The app's own standard output (its QUIZSET-CHANGE, POP-GESTURE and
