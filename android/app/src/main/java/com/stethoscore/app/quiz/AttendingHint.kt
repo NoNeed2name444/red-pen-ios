@@ -8,9 +8,9 @@ import org.json.JSONObject
 //
 // The attending's hint: the next step in the reasoning - what the key finding
 // points to, which kind of option can be ruled out - without naming the
-// answer. On iOS a model writes it when there is one, checked so it never
-// gives the answer away; Android has no question writer yet, so the hint is
-// always the fallback made from the item's own differential or a fixed nudge.
+// answer. A model writes it where the app may call one (HintWriter), checked
+// so it never gives the answer away; otherwise, or when the model fails, it is
+// the fallback made from the item's own differential or a fixed nudge.
 
 /** One diagnosis in a differential, with the case's own findings for and against it and the test that settles it. */
 data class DifferentialEntry(
@@ -28,6 +28,22 @@ data class DifferentialTiers(
 ) {
     val isEmpty: Boolean get() = mostLikely.isEmpty() && expanded.isEmpty() && cantMiss.isEmpty()
 
+    /**
+     * The differential as one block of text for a model (iOS checkText, the
+     * wording the server's jobs.js writes): a line a tier, the empty tiers left out.
+     */
+    val checkText: String get() = listOf("Most likely" to mostLikely, "Expanded" to expanded, "Can’t miss" to cantMiss)
+        .filter { (_, entries) -> entries.isNotEmpty() }
+        .joinToString("\n") { (title, entries) -> "- " + title + ": " + entries.joinToString("; ") { describe(it) } }
+
+    private fun describe(e: DifferentialEntry): String {
+        val parts = mutableListOf<String>()
+        if (e.supporting.isNotEmpty()) parts += "for: " + e.supporting.joinToString(", ")
+        if (e.against.isNotEmpty()) parts += "against: " + e.against.joinToString(", ")
+        if (e.test.isNotEmpty()) parts += "test: " + e.test
+        return if (parts.isEmpty()) e.name else e.name + " (" + parts.joinToString("; ") + ")"
+    }
+
     companion object {
         /** A question's differential, as iOS writes it into the question's JSON; null when there is none. */
         fun fromQuestionJson(raw: String): DifferentialTiers? = runCatching {
@@ -44,6 +60,31 @@ data class DifferentialTiers(
 }
 
 object AttendingHint {
+
+    /** What the writer is told (iOS AttendingHint.instructions, word for word). */
+    val instructions: String = listOf(
+        "You are an experienced attending physician teaching a medical student at the bedside.",
+        "The student is stuck on the question below. Give ONE short Socratic nudge - the next reasoning step: which finding matters most and what it points towards in general terms, or which category of option it rules out.",
+        "NEVER name, paraphrase, abbreviate or hint at the wording of the correct answer, and never say which option letter is right. Do not list the options back.",
+        "At most two sentences, plain text, no preamble.",
+    ).joinToString("\n")
+
+    /**
+     * The item as the writer sees it: the stem, the options, and the
+     * differential when there is one (so the nudge follows the same route).
+     */
+    fun input(stem: String, options: List<String>, answer: String, differential: DifferentialTiers?): String {
+        val lines = mutableListOf("Question:", stem, "", "Options:")
+        for (o in options) lines += "- $o"
+        lines += ""
+        lines += "Correct answer (NEVER reveal it): $answer"
+        if (differential != null && !differential.isEmpty) {
+            lines += ""
+            lines += "The expert's differential:"
+            lines += differential.checkText
+        }
+        return lines.joinToString("\n")
+    }
 
     /** Words too common in medicine to give an answer away on their own. */
     val commonWords: Set<String> = setOf(

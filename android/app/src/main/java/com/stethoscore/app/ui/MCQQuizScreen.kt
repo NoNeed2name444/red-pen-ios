@@ -83,10 +83,11 @@ import kotlin.math.abs
 // Check accuracy is in the More menu (iOS studyMoreMenu, T0115b2), opening
 // AccuracyWhySheet. Not here yet, because their batches have not come: the
 // accuracy badge, Turn into, Report a problem, Save to Ideas, How to reach
-// it (Reasoning), and the keyboard shortcuts. Android has no question writer,
-// so the hint is always the attending's own (AttendingHint.fallback) and
-// Write a twin writes one with the writer New set uses (TwinWriter), or
-// says that none is set up.
+// it (Reasoning), and the keyboard shortcuts. The hint is written by the model
+// where the app may call one (HintWriter, through llm.backend()) and is the
+// attending's own (AttendingHint.fallback) where it may not or the model
+// fails. Write a twin writes one with the writer New set uses (TwinWriter),
+// or says that none is set up.
 
 /** Settings the question screen reads (iOS @AppStorage), from the app's one preferences file. */
 internal object QuizPrefs {
@@ -328,13 +329,33 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
 
     // MARK: the attending's hint
     val canHint = !a.checked && !examMode && pendingResume == null
+    val hintStore = remember { HintStore.from(context) }
+    // the hints being written now: a saved "" with no call behind it (the screen was rebuilt meanwhile) is written again
+    val hintCalls = remember { mutableSetOf<String>() }
+    fun writeHint(question: MCQQuestion) {
+        if (!hintCalls.add(question.id)) return
+        val answer = question.options.getOrNull(question.correctIndex) ?: ""
+        val differential = DifferentialTiers.fromQuestionJson(question.rawJson)
+        // null unless the app may call a model now (Pro, and the $20 cap): then the attending's own hint
+        val writer = llm.backend()
+        scope.launch {
+            try {
+                val text = HintWriter.hint(question.id, question.stem, question.options, answer, differential, writer, hintStore)
+                // not if the quiz was started again while it was written
+                if (hints[question.id] == "") hints = hints + (question.id to text)
+            } finally {
+                hintCalls.remove(question.id)
+            }
+        }
+    }
     fun askHint() {
         if (hints[q.id] != null) return
         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-        val answer = q.options.getOrNull(q.correctIndex) ?: ""
-        // Android has no question writer: the attending's own hint, from the reasoning when there is one
-        hints = hints + (q.id to AttendingHint.fallback(answer, q.stem, q.options, DifferentialTiers.fromQuestionJson(q.rawJson)))
+        // "" is a hint being written: the card says so until the text comes (as iOS)
+        hints = hints + (q.id to "")
+        writeHint(q)
     }
+    LaunchedEffect(q.id, hints[q.id]) { if (hints[q.id] == "") writeHint(q) }
 
     // MARK: fixing a miss
     fun insertRetest() {
@@ -503,7 +524,13 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
                     }
                     Spacer(Modifier.weight(1f))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (canHint) HintChip(used = hints[q.id] != null, action = ::askHint)
+                        if (canHint) {
+                            val asked = hints[q.id]
+                            // while the writer works the chip is held, in the same 48 dp target, and says so aloud
+                            Box(if (asked == "") Modifier.clearAndSetSemantics { contentDescription = HintWriter.writing; role = Role.Button; disabled() } else Modifier) {
+                                HintChip(used = asked != null, action = ::askHint)
+                            }
+                        }
                         if (flaggable) {
                             val on = q.id in flagged
                             WardChipButton(if (on) "Flagged" else "Flag",
@@ -535,7 +562,10 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
                 q.imageIndex?.takeIf { it in set.images.indices }?.let { Box(Modifier.heightIn(max = 220.dp)) { CardImage(set, it) } }
             }
 
-            hints[q.id]?.takeIf { !examMode }?.let { AttendingHintCard(it.ifEmpty { null }) }
+            // a polite live region: "Thinking it through…" is heard as the writer starts, and the hint as it arrives
+            hints[q.id]?.takeIf { !examMode }?.let { text ->
+                Box(Modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }) { AttendingHintCard(text.ifEmpty { null }) }
+            }
 
             // the options
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
