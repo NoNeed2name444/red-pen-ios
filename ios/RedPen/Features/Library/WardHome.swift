@@ -325,6 +325,7 @@ struct HomeHeader: View {
             Text(greeting)
                 .font(WardType.face(.footnote, weight: .regular))
                 .foregroundStyle(Color.wardInkSecondary)
+                .fixedSize(horizontal: false, vertical: true)
                 .launchEntrance()
                 .a11yProbeHide("library-header")
             if let countdown {

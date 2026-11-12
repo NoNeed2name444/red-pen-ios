@@ -163,24 +163,13 @@ struct ChartLabsTable: View {
         }
     }
 
-    /// The table as it has always been drawn (V0).
+    /// The table as V3 draws it: each row or stacked result combined as one
+    /// spoken line (`ChartQuiz.spoken`).
     private var present: some View {
-        ViewThatFits(in: .horizontal) {
-            Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: WardSpace.m, verticalSpacing: WardSpace.s) {
-                ForEach(labs.indices, id: \.self) { i in row(labs[i]) }
-            }
-            VStack(alignment: .leading, spacing: WardSpace.s) {
-                ForEach(labs.indices, id: \.self) { i in stacked(labs[i]) }
-            }
-        }
-        .font(WardType.mono(.subheadline, weight: .regular))
-        .padding(WardSpace.m)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        // over a mode's wash, see-through: one tone with the ground
-        .background(modeWash == nil ? Color.wardBackground : Color.clear,
-                    in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(labs.map { ChartQuiz.spoken($0) }.joined(separator: ". "))
+        dressed(ViewThatFits(in: .horizontal) {
+            gridOf { combined(row($0), $0) }
+            stackOf { combined(stacked($0), $0) }
+        })
     }
 
     private func row(_ lab: PatientChart.Lab) -> some View {

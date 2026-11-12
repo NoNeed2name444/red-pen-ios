@@ -25,6 +25,11 @@ struct AnkiCardFace: View {
         VStack(alignment: .leading, spacing: WardSpace.l) {
             Text(badge)
                 .modifier(WardSmallCaps(colour: .wardPrimaryInk))
+                .padding(.vertical, 15)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+                .accessibilityElement(children: .combine)
+                .padding(.vertical, -15)
 
             if card.pictureOnFront { picture }
 
@@ -225,7 +230,14 @@ struct AnkiCardFace: View {
 
     private var why: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Why / how").wardSmallCaps().accessibilityAddTraits(.isHeader)
+            Text("Why / how")
+                .wardSmallCaps()
+                .padding(.vertical, 15)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(.isHeader)
+                .padding(.vertical, -15)
             Text(card.why).font(WardType.body).lineSpacing(2).foregroundStyle(Color.wardInk)
         }
         .padding(12)
