@@ -52,10 +52,10 @@ import com.stethoscore.app.ui.ward.wardRaised
         LibraryPageTop(feature.title, onBack)
         LazyColumn(Modifier.weight(1f).fillMaxWidth().widthIn(max = 760.dp), contentPadding = PaddingValues(WardSpace.gutter.wardDp, WardSpace.s.wardDp, WardSpace.gutter.wardDp, WardSpace.xl.wardDp),
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            item { LibraryHeading(heading, Modifier.padding(horizontal = 4.dp)) }
-            if (sets.isEmpty()) item { WardEmptyState(modeIcon(kind), "None yet", "Tap New to make one.") }
-            items(sets, key = { it.id }) { set ->
-                val due = remember(revision, set) { if (set.kind == StudySetKind.ANKI) store.dueCards(set).size else 0 }
+            item(contentType = LibraryContent.heading) { LibraryHeading(heading, Modifier.padding(horizontal = 4.dp)) }
+            if (sets.isEmpty()) item(contentType = LibraryContent.empty) { WardEmptyState(modeIcon(kind), "None yet", "Tap New to make one.") }
+            items(sets, key = { it.id }, contentType = { LibraryContent.row }) { set ->
+                val due = rememberRowFigures(set, store, revision)?.due ?: 0
                 LibrarySetRow(set, due, null, Modifier.fillMaxWidth().wardRaised(WardRadius.card, WardLift.low)
                     .clickable(role = Role.Button) { onOpen(set) }.padding(horizontal = WardSpace.gutter.wardDp, vertical = 10.dp))
             }

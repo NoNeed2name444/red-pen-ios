@@ -232,13 +232,17 @@ fun shownSets(store: StudyStore, category: StudyCategory, searching: Boolean, se
     return store.library.filter { it.id in order }.sortedBy { order[it.id] ?: 0 }
 }
 
-/** The kinds of item in the library's part of the list, so the list reuses a row only as a row (contentType). */
+/** The kinds of item in the library's part of the list, so the list reuses an item only as one of its own kind (contentType). */
 internal object LibraryContent {
     const val heading = "heading"
     const val row = "row"
     const val tile = "tile"
     const val empty = "empty"
     const val chips = "chips"
+    const val hit = "hit"
+    const val tiles = "tiles"
+    const val note = "note"
+    const val toggle = "toggle"
 }
 
 /**
@@ -376,13 +380,33 @@ fun LazyListScope.libraryItems(
 
 // MARK: - Rows
 
+/** A set row's two figures: the cards due (a deck's only) and how far through the set the student is. */
+internal data class RowFigures(val setId: String, val due: Int, val progress: Double?)
+
+internal fun rowFigures(set: StudySet, store: StudyStore): RowFigures =
+    RowFigures(set.id, if (set.kind == StudySetKind.ANKI) store.dueCards(set).size else 0, LibraryStats.progress(store, set))
+
+/**
+ * A row's figures, worked out off the main thread as the search's index is (a deck's queue and a set's
+ * progress each read every item), again whenever [revision] or the set changes. Until the first answer
+ * for this set the row shows no figure; while a new one is worked out it keeps the last one for this
+ * same set, never one belonging to another set.
+ */
+@Composable internal fun rememberRowFigures(set: StudySet, store: StudyStore, revision: Int): RowFigures? {
+    val figures by produceState<RowFigures?>(null, revision, set) {
+        value = withContext(Dispatchers.Default) { rowFigures(set, store) }
+    }
+    return figures?.takeIf { it.setId == set.id }
+}
+
 /**
  * One set's row: opens it normally, ticks it while picking, and its menu
  * behind the ellipsis beside it (iOS LibraryRows.row).
  */
 @Composable fun LibraryRow(set: StudySet, store: StudyStore, revision: Int, state: LibraryState, actions: LibraryActions) {
-    val due = remember(revision, set) { if (set.kind == StudySetKind.ANKI) store.dueCards(set).size else 0 }
-    val progress = remember(revision, set) { LibraryStats.progress(store, set) }
+    val figures = rememberRowFigures(set, store, revision)
+    val due = figures?.due ?: 0
+    val progress = figures?.progress
     val tile = Modifier.fillMaxWidth().wardRaised(WardRadius.card, WardLift.low)
     if (state.selecting) {
         val on = set.id in state.selected
@@ -545,20 +569,20 @@ fun LazyListScope.libraryItems(
 private fun LazyListScope.searchItems(query: String, store: StudyStore, search: LibrarySearchState, state: LibraryState, actions: LibraryActions) {
     val hits = search.results.items
     if (hits.isNotEmpty()) {
-        item(key = "hits-heading") { LibraryHeading(itemsHeading(state.scope)) }
-        items(hits, key = { "hit-" + it.id }) { hit -> SearchRow(hit) { openHit(hit, store, state, actions) } }
-        if (search.results.more) item(key = "hits-more") {
+        item(key = "hits-heading", contentType = LibraryContent.heading) { LibraryHeading(itemsHeading(state.scope)) }
+        items(hits, key = { "hit-" + it.id }, contentType = { LibraryContent.hit }) { hit -> SearchRow(hit) { openHit(hit, store, state, actions) } }
+        if (search.results.more) item(key = "hits-more", contentType = LibraryContent.note) {
             Text("The first ${LibrarySearch.itemLimit}. Add a word to narrow it.", style = WardTextStyle.footnote.textStyle(),
                 color = wardColor(WardToken.inkSecondary))
         }
     } else if (state.scope != LibrarySearch.Scope.ALL && !search.busy) {
-        item(key = "hits-none") {
+        item(key = "hits-none", contentType = LibraryContent.empty) {
             WardEmptyState(Icons.Rounded.Search, "No results",
                 "Nothing in ${state.scope.title.lowercase()} matches “$query”. Check the spelling or try another word.")
         }
     }
     if (hits.isNotEmpty() && state.scope != LibrarySearch.Scope.NOTES && state.scope != LibrarySearch.Scope.LECTURES) {
-        item(key = "hits-session") { BuildSessionTile { state.session = query } }
+        item(key = "hits-session", contentType = LibraryContent.tile) { BuildSessionTile { state.session = query } }
     }
 }
 
@@ -652,18 +676,18 @@ fun openHit(hit: LibrarySearch.Hit, store: StudyStore, state: LibraryState, acti
 private fun LazyListScope.tileSection(group: FeatureGroup, category: StudyCategory, store: StudyStore, state: LibraryState, actions: LibraryActions) {
     val features = category.features(group)
     if (features.isEmpty()) return
-    item(key = "tiles-heading-" + group.name) { LibraryHeading(group.title) }
-    items(features.chunked(2), key = { "tiles-" + it.first().rawValue }) { pair -> TileRow(pair, store, state, actions) }
+    item(key = "tiles-heading-" + group.name, contentType = LibraryContent.heading) { LibraryHeading(group.title) }
+    items(features.chunked(2), key = { "tiles-" + it.first().rawValue }, contentType = { LibraryContent.tiles }) { pair -> TileRow(pair, store, state, actions) }
 }
 
 private fun LazyListScope.practiseSection(category: StudyCategory, store: StudyStore, state: LibraryState, actions: LibraryActions) {
     val features = category.features(FeatureGroup.PRACTISE)
     if (features.isEmpty()) return
-    item(key = "tiles-heading-practise") { LibraryHeading(FeatureGroup.PRACTISE.title) }
-    items(features.take(4).chunked(2), key = { "tiles-" + it.first().rawValue }) { pair -> TileRow(pair, store, state, actions) }
+    item(key = "tiles-heading-practise", contentType = LibraryContent.heading) { LibraryHeading(FeatureGroup.PRACTISE.title) }
+    items(features.take(4).chunked(2), key = { "tiles-" + it.first().rawValue }, contentType = { LibraryContent.tiles }) { pair -> TileRow(pair, store, state, actions) }
     val rest = features.drop(4)
     if (rest.isEmpty()) return
-    item(key = "more-practise") {
+    item(key = "more-practise", contentType = LibraryContent.toggle) {
         Row(Modifier.fillMaxWidth().heightIn(min = WardControlSize.target.wardDp).clickable(role = Role.Button) { state.morePractise = !state.morePractise }
             .padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("More ways to practise", style = WardTextStyle.footnote.textStyle(WardWeight.semibold), color = wardColor(WardToken.primaryInk),
@@ -672,7 +696,7 @@ private fun LazyListScope.practiseSection(category: StudyCategory, store: StudyS
                 modifier = Modifier.size(18.dp).then(if (state.morePractise) Modifier.rotate(90f) else Modifier))
         }
     }
-    if (state.morePractise) items(rest.chunked(2), key = { "tiles-" + it.first().rawValue }) { pair -> TileRow(pair, store, state, actions) }
+    if (state.morePractise) items(rest.chunked(2), key = { "tiles-" + it.first().rawValue }, contentType = { LibraryContent.tiles }) { pair -> TileRow(pair, store, state, actions) }
 }
 
 @Composable private fun TileRow(features: List<CategoryFeature>, store: StudyStore, state: LibraryState, actions: LibraryActions) {

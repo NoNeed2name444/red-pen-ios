@@ -189,16 +189,26 @@ private sealed class FolderPrompt {
 @Composable private fun SearchResults(book: IdeaBook, query: String, bottom: androidx.compose.ui.unit.Dp, open: (String) -> Unit, move: (Note) -> Unit) {
     val found = book.search(query)
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 8.dp, end = 8.dp, top = 8.dp, bottom = bottom)) {
-        if (found.isEmpty()) item {
+        if (found.isEmpty()) item(contentType = IdeaContent.empty) {
             Text("Nothing matches “$query”.", Modifier.fillMaxWidth().wardRowTile(), style = WardType.body.textStyle(), color = wardColor(WardToken.inkSecondary))
         } else {
             sectionHeader("${found.size} found")
-            items(found, key = { it.id }) { note -> NoteRow(book, note, open, move) }
+            items(found, key = { it.id }, contentType = { IdeaContent.note }) { note -> NoteRow(book, note, open, move) }
         }
     }
 }
 
-private fun LazyListScope.sectionHeader(text: String) = item {
+/** The kinds of item in the ideas lists, so a scrolled-off item is reused only as one of its own kind (contentType). */
+private object IdeaContent {
+    const val path = "path"
+    const val back = "back"
+    const val header = "header"
+    const val folder = "folder"
+    const val note = "note"
+    const val empty = "empty"
+}
+
+private fun LazyListScope.sectionHeader(text: String) = item(contentType = IdeaContent.header) {
     WardSmallCapsText(text, Modifier.padding(horizontal = 20.dp).padding(top = 12.dp, bottom = 2.dp).semantics { heading() })
 }
 
@@ -213,11 +223,11 @@ private fun LazyListScope.sectionHeader(text: String) = item {
     Box(Modifier.fillMaxSize()) {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 8.dp, end = 8.dp, top = 4.dp, bottom = bottom)) {
             if (current != null) {
-                item {
+                item(contentType = IdeaContent.path) {
                     Text(book.path(current.id).joinToString(" / ") { it.name }, Modifier.padding(horizontal = 20.dp).padding(top = 12.dp),
                         style = WardType.caption.textStyle(), color = wardColor(WardToken.inkSecondary))
                 }
-                item {
+                item(contentType = IdeaContent.back) {
                     val parentName = book.folder(current.parentId)?.name ?: "All ideas"
                     Row(Modifier.fillMaxWidth().combinedClickable(role = Role.Button) { setFolder(current.parentId) }.wardRowTile(),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -228,15 +238,15 @@ private fun LazyListScope.sectionHeader(text: String) = item {
             }
             if (subfolders.isNotEmpty()) {
                 sectionHeader("Folders")
-                items(subfolders, key = { "f-" + it.id }) { folder -> FolderRow(book, folder, { setFolder(folder.id) }, name) }
+                items(subfolders, key = { "f-" + it.id }, contentType = { IdeaContent.folder }) { folder -> FolderRow(book, folder, { setFolder(folder.id) }, name) }
             }
             sectionHeader(heading)
-            if (here.isEmpty()) item {
+            if (here.isEmpty()) item(contentType = IdeaContent.empty) {
                 Text(if (current != null) "Nothing in this folder yet. Ideas dumped while it is open land here."
                     else "Type an idea and press return.",
                     Modifier.fillMaxWidth().wardRowTile(), style = WardType.caption.textStyle().copy(fontSize = WardTextStyle.footnote.textStyle().fontSize),
                     color = wardColor(WardToken.inkSecondary))
-            } else items(here, key = { it.id }) { note -> NoteRow(book, note, open, move) }
+            } else items(here, key = { it.id }, contentType = { IdeaContent.note }) { note -> NoteRow(book, note, open, move) }
         }
         if (book.notes.isEmpty() && book.folders.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(bottom = bottom), contentAlignment = Alignment.Center) {

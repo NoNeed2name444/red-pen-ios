@@ -3,6 +3,7 @@ package com.stethoscore.app.ui.library
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.Composable
+import com.stethoscore.app.data.LibrarySearch
 import com.stethoscore.app.data.StudyStore
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -32,8 +33,11 @@ class LibraryItemsTest {
     private val actions = LibraryActions(open = {}, quiz = {}, review = {}, newSet = {}, shelf = {}, stats = {}, due = {}, ideas = {},
         exportPdf = {}, shareJson = {}, change = { it() })
 
-    private fun listed(store: StudyStore, category: StudyCategory, query: String = ""): List<Pair<Any?, Any?>> =
-        Recorder().apply { libraryItems(store, 0, category, query, LibrarySearchState(), LibraryState(), actions) }.items
+    private fun listed(
+        store: StudyStore, category: StudyCategory, query: String = "",
+        search: LibrarySearchState = LibrarySearchState(), state: LibraryState = LibraryState(),
+    ): List<Pair<Any?, Any?>> =
+        Recorder().apply { libraryItems(store, 0, category, query, search, state, actions) }.items
 
     @Test fun setRowsHeadingsAndTilesEachHaveTheirKind() {
         val store = StudyStore(folder.newFolder("examples")).also { it.loadExamples() }
@@ -54,5 +58,39 @@ class LibraryItemsTest {
         val searching = listed(store, StudyCategory.QUESTIONS, query = "zzzz nothing matches")
         assertEquals(LibraryContent.chips, searching.first { it.first == "search-scope" }.second)
         assertEquals(LibraryContent.empty, searching.first { it.first == "no-results" }.second)
+    }
+
+    private fun hit(n: Int) = LibrarySearch.Hit(LibrarySearch.Kind.QUESTION, "set-$n", "q$n", null, "a snippet $n", 0..1, "Set $n")
+
+    @Test fun theTileSectionsAndTheSearchHitsEachHaveTheirKind() {
+        val store = StudyStore(folder.newFolder("tiles")).also { it.loadExamples() }
+        val everywhere = StudyCategory.entries.flatMap { category ->
+            listed(store, category) + listed(store, category, state = LibraryState().apply { morePractise = true })
+        }
+        val tiles = everywhere.filter { (it.first as String).let { key -> key.startsWith("tiles-") && !key.startsWith("tiles-heading") } }
+        assertTrue("the categories list tiles", tiles.isNotEmpty())
+        for ((key, kind) in tiles) assertEquals("$key", LibraryContent.tiles, kind)
+        for ((key, kind) in everywhere.filter { (it.first as String).startsWith("tiles-heading") }) assertEquals("$key", LibraryContent.heading, kind)
+        assertEquals(LibraryContent.toggle, everywhere.first { it.first == "more-practise" }.second)
+
+        val found = LibrarySearchState(LibrarySearch.Results("set", LibrarySearch.Scope.ALL, listOf("set-1"), List(3) { hit(it) }, more = true))
+        val searching = listed(store, StudyCategory.QUESTIONS, query = "set", search = found)
+        assertEquals(LibraryContent.heading, searching.first { it.first == "hits-heading" }.second)
+        for (n in 0 until 3) assertEquals(LibraryContent.hit, searching.first { it.first == "hit-" + hit(n).id }.second)
+        assertEquals(LibraryContent.note, searching.first { it.first == "hits-more" }.second)
+        assertEquals(LibraryContent.tile, searching.first { it.first == "hits-session" }.second)
+        val none = listed(store, StudyCategory.QUESTIONS, query = "set", state = LibraryState().apply { scope = LibrarySearch.Scope.NOTES })
+        assertEquals(LibraryContent.empty, none.first { it.first == "hits-none" }.second)
+    }
+
+    @Test fun noItemTheLibraryListsIsWithoutAKind() {
+        val store = StudyStore(folder.newFolder("every")).also { it.loadExamples() }
+        val found = LibrarySearchState(LibrarySearch.Results("set", LibrarySearch.Scope.ALL, emptyList(), List(2) { hit(it) }, more = true))
+        val shown = StudyCategory.entries.flatMap { category ->
+            listed(store, category) + listed(store, category, query = "set", search = found) +
+                listed(store, category, state = LibraryState().apply { morePractise = true })
+        } + listed(StudyStore(folder.newFolder("blank")), StudyCategory.CARDS)
+        assertTrue("items were listed", shown.size > 20)
+        for ((key, kind) in shown) assertTrue("$key has a kind", kind != null)
     }
 }

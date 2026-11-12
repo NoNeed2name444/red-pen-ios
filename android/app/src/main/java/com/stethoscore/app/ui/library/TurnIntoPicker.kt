@@ -205,17 +205,17 @@ internal fun turnNote(source: StudySet, kind: StudySetKind, ready: Map<StudySetK
         LazyColumn(Modifier.weight(1f).fillMaxWidth().widthIn(max = 760.dp),
             contentPadding = PaddingValues(WardSpace.gutter.wardDp, WardSpace.s.wardDp, WardSpace.gutter.wardDp, WardSpace.xl.wardDp),
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            item { LibraryHeading("Pick a set to turn", Modifier.padding(horizontal = 4.dp)) }
-            if (sets.isEmpty()) item {
+            item(contentType = LibraryContent.heading) { LibraryHeading("Pick a set to turn", Modifier.padding(horizontal = 4.dp)) }
+            if (sets.isEmpty()) item(contentType = LibraryContent.empty) {
                 WardEmptyState(Icons.Rounded.Autorenew, "Nothing to turn yet",
                     "Make a set here first. Then any of them can become questions, flashcards, an OSCE station or a textbook.")
             }
-            items(sets, key = { it.id }) { set ->
+            items(sets, key = { it.id }, contentType = { LibraryContent.row }) { set ->
                 LibrarySetRow(set, 0, null, Modifier.fillMaxWidth().wardRaised(WardRadius.card, WardLift.low)
                     .clickable(role = Role.Button) { turning = set }.testTag("turnPick-${set.kind.rawValue}")
                     .padding(horizontal = WardSpace.gutter.wardDp, vertical = 10.dp))
             }
-            item {
+            item(contentType = LibraryContent.note) {
                 Text("The set you pick stays as it is; the new one opens straight away.", Modifier.padding(horizontal = 4.dp),
                     style = WardTextStyle.footnote.textStyle(), color = wardColor(WardToken.inkSecondary))
             }

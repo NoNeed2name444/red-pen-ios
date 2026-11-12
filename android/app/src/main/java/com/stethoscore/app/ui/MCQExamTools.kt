@@ -181,6 +181,15 @@ enum class ExamToolSheet { labs, calculator }
 
 // MARK: - reference ranges
 
+/** The kinds of item in the lab values list, so a scrolled-off row is reused only as a row (contentType). */
+private object LabContent {
+    const val units = "units"
+    const val search = "search"
+    const val caveat = "caveat"
+    const val group = "group"
+    const val row = "row"
+}
+
 @Composable fun LabRangesSheet(track: ExamTrack, onDone: () -> Unit) {
     // kept across a turn or a fold, as the sheet is (toolSheet is saveable where it opens)
     var query by rememberSaveable { mutableStateOf("") }
@@ -189,20 +198,20 @@ enum class ExamToolSheet { labs, calculator }
     Column(Modifier.fillMaxWidth().fillMaxHeight(0.9f)) {
         SheetTitle("Lab values", onDone)
         LazyColumn(Modifier.fillMaxWidth(), contentPadding = PaddingValues(WardSpace.l.wardDp), verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
-            item {
+            item(contentType = LabContent.units) {
                 // the units switch sits on the base itself, not on a tile
                 WardUnitsPicker(conventional) { conventional = it }
             }
-            item {
+            item(contentType = LabContent.search) {
                 OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth(), placeholder = { Text("Search lab values") },
                     leadingIcon = { Icon(Icons.Rounded.Search, null) }, singleLine = true, shape = CircleShape)
             }
-            item { Text(LabRanges.caveat, style = WardTextStyle.footnote.textStyle(), color = wardColor(WardToken.inkSecondary)) }
+            item(contentType = LabContent.caveat) { Text(LabRanges.caveat, style = WardTextStyle.footnote.textStyle(), color = wardColor(WardToken.inkSecondary)) }
             LabRanges.groups.forEach { group ->
                 val rows = found.filter { it.group == group }
                 if (rows.isNotEmpty()) {
-                    item(key = group) { WardSmallCapsText(group, Modifier.padding(top = WardSpace.m.wardDp).semantics { heading() }) }
-                    items(rows, key = { it.id }) { row ->
+                    item(key = group, contentType = LabContent.group) { WardSmallCapsText(group, Modifier.padding(top = WardSpace.m.wardDp).semantics { heading() }) }
+                    items(rows, key = { it.id }, contentType = { LabContent.row }) { row ->
                         Row(Modifier.fillMaxWidth().wardRaised(WardRadius.field).padding(WardSpace.m.wardDp).semantics(mergeDescendants = true) {},
                             horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
                             Text(row.name, Modifier.weight(1f), color = wardColor(WardToken.ink))

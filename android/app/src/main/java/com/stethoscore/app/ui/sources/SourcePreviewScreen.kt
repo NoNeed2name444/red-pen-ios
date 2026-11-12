@@ -184,8 +184,8 @@ internal val sourcePreviewInsets: WindowInsets @Composable get() = WindowInsets.
         return
     }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)) {
-        item { WardSectionLabel(SourceReaderWords.resultsHeading(hits, source), Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) }
-        items(hits, key = { it.id }) { hit ->
+        item(contentType = "heading") { WardSectionLabel(SourceReaderWords.resultsHeading(hits, source), Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) }
+        items(hits, key = { it.id }, contentType = { "hit" }) { hit ->
             Column(Modifier.fillMaxWidth().clickable(role = Role.Button) { open(hit.page) }.wardRowTile(),
                 verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("${source.sourceKind.pageNoun} ${hit.page}", style = WardTextStyle.caption.textStyle(WardWeight.semibold),
