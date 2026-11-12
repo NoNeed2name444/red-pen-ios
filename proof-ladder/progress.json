@@ -1,18 +1,18 @@
 {
  "v": 1,
  "started": "2026-10-14",
- "updated": "2026-11-11T12:15:07.010Z",
- "checked": 3467,
- "right": 1672,
- "wrong": 1795,
+ "updated": "2026-11-12T12:34:29.982Z",
+ "checked": 3527,
+ "right": 1703,
+ "wrong": 1824,
  "verified": 0,
  "errors": 0,
- "flagged": 821,
- "check": 2646,
+ "flagged": 824,
+ "check": 2703,
  "unchecked": 553,
  "rightVerified": 0,
  "cursor": {
-  "medmcqa-train": 119839
+  "medmcqa-train": 121690
  },
  "days": [
   {
@@ -140,6 +140,12 @@
    "checked": 60,
    "verified": 0,
    "errors": 0
+  },
+  {
+   "day": "2026-11-12",
+   "checked": 60,
+   "verified": 0,
+   "errors": 0
   }
  ],
  "spentByLadder": 0,
@@ -165,40 +171,40 @@
    "runner": true
   },
   "openai": {
-   "answered": 812,
-   "right": 705,
+   "answered": 871,
+   "right": 757,
    "runner": false
   },
   "nvidia": {
-   "answered": 808,
-   "right": 691,
+   "answered": 868,
+   "right": 744,
    "runner": false
   }
  },
  "runners": {
   "granite-4.0-h-tiny": {
-   "answered": 3907,
-   "right": 2245
+   "answered": 3964,
+   "right": 2275
   },
   "phi-4-mini-instruct": {
-   "answered": 2710,
-   "right": 1566
+   "answered": 2761,
+   "right": 1597
   }
  },
  "held": {
   "Checkers from 3 different model families, solving it without the key, chose another answer.": 426,
   "The checkers were not confident enough.": 621,
-  "It cannot be read into statements a source could prove word for word.": 297,
-  "A dose, diagnosis or treatment no official source states word for word yet.": 745,
-  "No official source states it word for word yet.": 1661,
-  "A safety rule failed.": 249,
-  "The checkers judged it likely wrong.": 978,
-  "Unresolved: independent checkers solving it blind did not agree.": 202,
-  "Checkers from 2 different model families, solving it without the key, chose another answer.": 948,
+  "It cannot be read into statements a source could prove word for word.": 301,
+  "A dose, diagnosis or treatment no official source states word for word yet.": 761,
+  "No official source states it word for word yet.": 1701,
+  "A safety rule failed.": 252,
+  "The checkers judged it likely wrong.": 1007,
+  "Unresolved: independent checkers solving it blind did not agree.": 206,
+  "Checkers from 2 different model families, solving it without the key, chose another answer.": 974,
   "It makes more claims than one check proves; split it to have it proven.": 114,
   "A checker found literature against it.": 24,
-  "Not yet passed by three model families.": 1776,
-  "Fewer than three independent blind solves reached the key.": 915,
+  "Not yet passed by three model families.": 1833,
+  "Fewer than three independent blind solves reached the key.": 945,
   "A checker raised a concern.": 109,
   "One of its other options could not be read for certain.": 3,
   "A safety rule raised a concern.": 6,
@@ -209,13 +215,13 @@
  },
  "spend": {
   "month": "2026-11",
-  "day": "2026-11-11",
+  "day": "2026-11-12",
   "start": 3.602076,
   "end": 3.602076,
   "cap": 40
  },
  "last": {
-  "day": "2026-11-11",
+  "day": "2026-11-12",
   "sent": 60,
   "stopped": "the ladder's half of the Workers AI pool (15 batches)",
   "runners": [
