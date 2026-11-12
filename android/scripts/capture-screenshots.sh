@@ -8,18 +8,24 @@
 #                                          is two jobs: fold-shots, its nine WindowShots passes (flat, book and
 #                                          tabletop, folded, three turns each), and fold-tests, FoldLayoutTest in
 #                                          three turns and RotationStateTest through its states
+# HANG_LIMIT_SECONDS=N sets how long one instrumentation run may take before it counts as hung (T0248): the default
+# is 480 for a WindowShots pass and 300 for every other run. A hung run leaves test-results/hang-<pass>-<test>-*.txt
+# and screenshots/hang-<pass>-<test>.png, is force-stopped, and fails like any other failed run.
 set -euo pipefail
 mkdir -p screenshots test-results
-trap 'adb logcat -d > test-results/logcat.txt 2>&1 || true' EXIT
+trap 'timeout -k 10 120 adb logcat -d > test-results/logcat.txt 2>&1 || true' EXIT
 sdkmanager --version | tee test-results/sdkmanager-version.txt
 grep -h "^target=" "${ANDROID_AVD_HOME:-$HOME/.android/avd}/test.ini" | tee test-results/avd-target.txt
 grep -qx "target=android-37.0" test-results/avd-target.txt
 adb wait-for-device
+# the whole output first, then the test: `grep -q` at the end of a pipeline can leave adb a broken pipe, which under pipefail fails it
 for attempt in $(seq 1 60); do
-  if adb shell pm path android | grep -q 'package:'; then break; fi
+  package_path=$(adb shell pm path android || true)
+  if [[ "$package_path" == *package:* ]]; then break; fi
   sleep 2
 done
-adb shell pm path android | grep -q 'package:'
+package_path=$(adb shell pm path android)
+[[ "$package_path" == *package:* ]]
 # Wait for the full boot, then give the launcher time to settle: on the software GPU a
 # launcher still starting up raises "Pixel Launcher isn't responding" over every screen.
 for attempt in $(seq 1 90); do
@@ -40,6 +46,77 @@ adb shell input keyevent 82
 adb install -r -t built-apks/outputs/apk/debug/app-debug.apk
 adb install -r -t built-apks/outputs/apk/androidTest/debug/app-debug-androidTest.apk
 runner=com.stethoscore.app.test/androidx.test.runner.AndroidJUnitRunner
+# The hang guard (T0248). Every instrumentation run below goes through run_instrument, which holds it to a time limit.
+# When the limit runs out it collects the evidence a stuck run leaves nowhere else (hang_evidence), force-stops the
+# app and its test package, and returns 1 with instrument_hung=1: the caller fails the run the way it fails any run,
+# so the step ends within minutes with the evidence in the artifact, not at the job's 40 with an empty log.
+instrument_hung=0
+hang_limit() { # default seconds
+  if [ -z "${HANG_LIMIT_SECONDS:-}" ]; then echo "$1"
+  elif [[ "$HANG_LIMIT_SECONDS" =~ ^[1-9][0-9]*$ ]]; then echo "$HANG_LIMIT_SECONDS"
+  else echo "HANG_LIMIT_SECONDS=$HANG_LIMIT_SECONDS is not a whole number of seconds; using $1" >&2; echo "$1"; fi
+}
+# One piece of evidence: the command's output, at most [lines] lines, into [file]. Bounded to 60 seconds; never fails.
+hang_step() { # file lines command...
+  local file=$1 lines=$2
+  shift 2
+  { timeout -k 5 60 "$@" 2>&1 | tr -d '\r' | head -n "$lines" > "$file"; } || true
+}
+hang_evidence() { # label
+  local out="test-results/hang-$1" shot="screenshots/hang-$1.png" pids pid pkg
+  mkdir -p screenshots
+  # the log first, before the thread dump below adds its own lines to it
+  hang_step "$out-logcat.txt" 6000 adb logcat -d -b all -t 6000
+  # an ART thread dump of the app: SIGQUIT makes it write every thread's stack to logcat; keep the last dump that
+  # starts at the app's command line, to its end, at most 400 lines
+  pids=$(timeout -k 5 60 adb shell pidof com.stethoscore.app 2>/dev/null | tr -d '\r') || true
+  if [ -n "$pids" ]; then
+    # (the shell user may not signal an app's process; run-as does it as the app, which is a debug build)
+    for pid in $pids; do
+      timeout -k 5 60 adb shell kill -3 "$pid" > /dev/null 2>&1 || timeout -k 5 60 adb shell run-as com.stethoscore.app kill -3 "$pid" > /dev/null 2>&1 || true
+    done
+    sleep 3
+    { timeout -k 5 60 adb logcat -d -b all -t 3000 2>&1 | tr -d '\r' | awk '
+        /Cmd line: com\.stethoscore\.app/ { n = 0; on = 1 }
+        on { buf[++n] = $0 }
+        /----- end [0-9]+ -----/ { on = 0 }
+        END { for (i = 1; i <= n && i <= 400; i++) print buf[i] }' > "$out-threads.txt"; } || true
+    [ -s "$out-threads.txt" ] || echo "no thread dump of com.stethoscore.app in the last 3000 logcat lines (pid $pids)" > "$out-threads.txt"
+  else
+    echo "no process com.stethoscore.app (pidof printed nothing)" > "$out-threads.txt"
+  fi
+  hang_step "$out-activity-top.txt" 150 adb shell dumpsys activity top
+  { timeout -k 5 60 adb shell dumpsys window windows 2>&1 | tr -d '\r' | grep -E 'mCurrentFocus|mFocusedApp|Window #' > "$out-windows.txt"; } || true
+  hang_step "$out-meminfo.txt" 40 adb shell dumpsys meminfo com.stethoscore.app
+  hang_step "$out-top.txt" 25 adb shell top -b -n 1
+  { timeout -k 5 60 adb exec-out screencap -p > "$shot" || rm -f "$shot"; } || true
+  [ -s "$shot" ] || rm -f "$shot"
+  # stop the work on the device: the instrumentation may still be running there after its adb client was killed
+  for pkg in com.stethoscore.app com.stethoscore.app.test; do
+    timeout -k 5 60 adb shell am force-stop "$pkg" || true
+  done
+}
+run_instrument() { # pass log default-limit instrument-arguments...
+  local pass=$1 log=$2 limit status=(0 0) rc=0 s t0 test_name label
+  limit=$(hang_limit "$3")
+  shift 3
+  instrument_hung=0
+  t0=$SECONDS
+  timeout -k 10 "$limit" adb shell am instrument -w -r "$@" | tee "$log" || status=("${PIPESTATUS[@]}")
+  # timeout ends with 124 when its limit ran out, or 137 when it had to kill; 124 or 137 from adb itself is not a hang
+  if { [ "${status[0]}" -eq 124 ] || [ "${status[0]}" -eq 137 ]; } && [ $((SECONDS - t0)) -ge $((limit - 1)) ]; then
+    instrument_hung=1
+    # the test that was running: the last one the instrumentation named (INSTRUMENTATION_STATUS: test=...)
+    test_name=$(sed -n 's/^INSTRUMENTATION_STATUS: test=//p' "$log" | tr -d '\r' | tail -n 1) || true
+    label=$(printf '%s-%s' "$pass" "${test_name:-no-test}" | tr -c 'A-Za-z0-9._-' '-')
+    echo "HANG $pass: no result after ${limit} s, last test started: ${test_name:-none}; evidence in test-results/hang-$label-*.txt and screenshots/hang-$label.png" | tee -a test-results/hang.txt
+    hang_evidence "$label"
+    return 1
+  fi
+  # not a hang: the status the pipeline always had (the last that failed, under pipefail)
+  for s in "${status[@]}"; do if [ "$s" -ne 0 ]; then rc=$s; fi; done
+  return "$rc"
+}
 # "tour": only the app tour (TourTest), every listed row in light and dark, into screenshots/tour/.
 if [ "${1:-}" = tour ]; then
   mkdir -p screenshots/tour
@@ -48,7 +125,7 @@ if [ "${1:-}" = tour ]; then
   shots=$(grep -oE 'r[0-9]{3}-[a-z0-9-]+-(light|dark)' ../tools/tour_screens_android.txt | sort -u | wc -l)
   echo "expecting OK ($tests tests) and $shots tour pictures" | tee test-results/expected.txt
   [ "$tests" -gt 0 ] && [ "$shots" -gt 0 ]
-  adb shell am instrument -w -r -e class com.stethoscore.app.TourTest com.stethoscore.app.test/androidx.test.runner.AndroidJUnitRunner | tee test-results/instrumentation.txt
+  run_instrument tour test-results/instrumentation.txt 300 -e class com.stethoscore.app.TourTest com.stethoscore.app.test/androidx.test.runner.AndroidJUnitRunner
   adb pull /sdcard/Download/stethoscore-tour/. screenshots/tour/ || true
   grep -qF "OK ($tests tests)" test-results/instrumentation.txt
   test "$(find screenshots/tour -name '*.png' | wc -l)" -eq "$shots"
@@ -63,7 +140,7 @@ tests=$(awk '/^class WindowShots/{exit} /@Test/{c++} END{print c+0}' "$test_sour
 shots=$(grep -o '\bshot("[^"]*")' "$test_source" | sort -u | wc -l)
 echo "expecting OK ($tests tests) and $shots pictures" | tee test-results/expected.txt
 [ "$tests" -gt 0 ] && [ "$shots" -gt 0 ]
-adb shell am instrument -w -r -e class com.stethoscore.app.ScreenshotTest com.stethoscore.app.test/androidx.test.runner.AndroidJUnitRunner | tee test-results/instrumentation.txt
+run_instrument screenshot-test test-results/instrumentation.txt 300 -e class com.stethoscore.app.ScreenshotTest com.stethoscore.app.test/androidx.test.runner.AndroidJUnitRunner
 # Pull first, so a failed run still uploads the pictures it took.
 adb pull /sdcard/Download/stethoscore-screenshots/. screenshots/ || true
 grep -qF "OK ($tests tests)" test-results/instrumentation.txt
@@ -76,7 +153,7 @@ widget_shots=$(( $(grep -o 'shots("[^"]*"' "$widget_source" | sort -u | wc -l) *
 echo "expecting OK ($widget_tests tests) and $widget_shots widget pictures" | tee test-results/expected-widgets.txt
 [ "$widget_tests" -gt 0 ] && [ "$widget_shots" -gt 0 ]
 mkdir -p screenshots/widgets
-adb shell am instrument -w -r -e class com.stethoscore.app.WidgetShots "$runner" | tee test-results/instrumentation-widgets.txt
+run_instrument widgets test-results/instrumentation-widgets.txt 300 -e class com.stethoscore.app.WidgetShots "$runner"
 adb pull /sdcard/Android/data/com.stethoscore.app/files/widgets/. screenshots/widgets/ || true
 grep -qF "OK ($widget_tests tests)" test-results/instrumentation-widgets.txt
 test "$(find screenshots/widgets -name '*.png' | wc -l)" -eq "$widget_shots"
@@ -162,10 +239,13 @@ shots_pass() { # posture orient rotation modes sizes
   n_sizes=$( [ -n "$sizes" ] && echo "$sizes" | tr ',' '\n' | grep -c . || echo 1)
   expected=$((expected + window_tests * n_modes * n_sizes))
   passes=$((passes + 1))
-  local log="test-results/window-$posture-$orient${sizes:+-sized}.txt"
+  local pass="window-$posture-$orient${sizes:+-sized}"
+  local log="test-results/$pass.txt"
   # rotation: the user_rotation value just set; each test sets it again before its activity starts (PassDisplay)
-  adb shell am instrument -w -r -e class com.stethoscore.app.WindowShots -e profile "$kind" -e posture "$posture" \
-    -e orient "$orient" -e rotation "$rotation" -e modes "$modes" ${sizes:+-e sizes "$sizes"} -e naturalTall "$tall" $runner | tee "$log" || true
+  run_instrument "$pass" "$log" 480 -e class com.stethoscore.app.WindowShots -e profile "$kind" -e posture "$posture" \
+    -e orient "$orient" -e rotation "$rotation" -e modes "$modes" ${sizes:+-e sizes "$sizes"} -e naturalTall "$tall" $runner || true
+  # a hung pass has its evidence and is failed; the device is not asked for more diagnostics
+  if [ "$instrument_hung" = 1 ]; then return 1; fi
   rot_diag "$posture $orient pass end"
   # the verdict is this line (the run above is `|| true` so the pass-end diagnostics always print)
   grep -qF "OK ($window_tests tests)" "$log"
@@ -180,7 +260,7 @@ fold_layout_passes() {
   tests=$(grep -c '@Test' app/src/androidTest/java/com/stethoscore/app/FoldLayoutTest.kt)
   for r in 0 1 3; do
     rotate $r
-    adb shell am instrument -w -r -e class com.stethoscore.app.FoldLayoutTest $runner | tee "test-results/fold-layout-$r.txt"
+    run_instrument "fold-layout-$r" "test-results/fold-layout-$r.txt" 300 -e class com.stethoscore.app.FoldLayoutTest $runner
     grep -qF "OK ($tests tests)" "test-results/fold-layout-$r.txt"
   done
 }
@@ -189,7 +269,7 @@ rotation_state() { # the device states to fold through, comma separated, or none
   tests=$(grep -c '@Test' app/src/androidTest/java/com/stethoscore/app/RotationStateTest.kt)
   rotate 0
   rot_diag "RotationStateTest start (foldStates: ${1:-none})"
-  adb shell am instrument -w -r -e class com.stethoscore.app.RotationStateTest ${1:+-e foldStates "$1"} $runner | tee test-results/rotation-state.txt
+  run_instrument rotation-state test-results/rotation-state.txt 300 -e class com.stethoscore.app.RotationStateTest ${1:+-e foldStates "$1"} $runner
   grep -qF "OK ($tests tests)" test-results/rotation-state.txt
 }
 # Split screen at its exact window sizes (dp, an 8 dp divider), portrait splits stacked and landscape side by side.
