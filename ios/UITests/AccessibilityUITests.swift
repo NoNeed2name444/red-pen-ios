@@ -239,16 +239,22 @@ final class AccessibilityUITests: XCTestCase {
     /// The library, a quiz, the example card revealed and Settings, each
     /// audited for `types`. A screen it cannot reach is not audited, and
     /// says so in one AUDIT-SKIP line rather than failing the test.
+    ///
+    /// An app that stops running during an audit (T0242: run 43183776170, the
+    /// revealed card) is a failure, and does not void the rest of the walk:
+    /// `audit` says PROBE-CRASH, fails the test and starts the app again at the
+    /// library, and the walk goes on with the next screen (recoverFromCrash).
     private func auditMainScreens(_ types: XCUIAccessibilityAuditType) throws {
-        try audit("library", types)
+        if try audit("library", types) == .gaveUp { return }
 
         if !choose("questions") {
             skipped("quiz", "Questions could not be chosen from the dock")
         } else if !openSet("mcq") {
             skipped("quiz", "the example question set did not open")
         } else {
-            try audit("quiz", types)
-            backHome(after: "quiz")
+            let step = try audit("quiz", types)
+            if step == .gaveUp { return }
+            if step == .running { backHome(after: "quiz") }
         }
         if !choose("cards") {
             skipped("card", "Cards could not be chosen from the dock")
@@ -266,9 +272,16 @@ final class AccessibilityUITests: XCTestCase {
             // has stopped moving, its frame logged before and after
             let front = element("ankiCardFront")
             settle(front, "card front")
-            try audit("card, revealed", types)
-            print("CARD-SETTLE card front after audit frame=\(front.exists ? "\(front.frame)" : "gone")")
-            backHome(after: "card")
+            switch try audit("card, revealed", types) {
+            case .gaveUp:
+                return
+            case .relaunched:
+                // the app is back at the library; the card is gone with it
+                break
+            case .running:
+                print("CARD-SETTLE card front after audit frame=\(front.exists ? "\(front.frame)" : "gone")")
+                backHome(after: "card")
+            }
         }
         let menu = element("libraryMenu")
         guard menu.waitForExistence(timeout: 6) else {
@@ -283,12 +296,68 @@ final class AccessibilityUITests: XCTestCase {
         } else {
             item.tap()
             if app.navigationBars["Settings"].waitForExistence(timeout: 8) {
-                try audit("settings", types)
+                // the last screen: nothing follows it, so no relaunch for it
+                if try audit("settings", types, more: false) != .running { return }
             } else {
                 skipped("settings", "the Settings bar did not show after its menu item")
             }
         }
         backHome(after: "settings")
+    }
+
+    // MARK: - An app that stops running (T0242)
+
+    /// What a screen's audit left of the app.
+    private enum CrashStep {
+        /// The app is still running: nothing was done.
+        case running
+        /// It had stopped: PROBE-CRASH, a failure, and a new launch at the
+        /// library (or no new launch when nothing follows the screen).
+        case relaunched
+        /// It had stopped, and this test has used its relaunches.
+        case gaveUp
+    }
+
+    /// The most times one test starts the app again after it stopped. A third
+    /// stop ends the test's walk (the failures stay), so a crash that repeats
+    /// cannot run the step out of its time.
+    private static let maxRelaunches = 2
+    private var relaunches = 0
+
+    /// The audit's error domain, and the code it answers with when the app it
+    /// was told to audit is gone: `Code=-51 "Invalid XCUIApplication."`.
+    private static let auditDomain = "com.apple.xcode.xctest.accessibilityAudit"
+
+    /// The app is not running: it stopped (a crash), or the audit says so.
+    private func appIsGone(_ error: Error? = nil) -> Bool {
+        if app.state == .notRunning { return true }
+        guard let error else { return false }
+        let failure = error as NSError
+        return failure.domain == Self.auditDomain && failure.code == -51
+    }
+
+    /// Called after the audit pass `pass` of `screen`. If the app is running,
+    /// it does nothing. If it is gone it prints `PROBE-CRASH <screen>
+    /// pass=<n>`, fails the test (a crash stays a red: nothing is expected to
+    /// fail, nothing is skipped), and, while the test has relaunches left and
+    /// `more` screens or passes follow, starts the app again at the same text
+    /// size, signed in at the library, so the evidence after it is still
+    /// produced. The second relaunch is the last: the third crash prints
+    /// `PROBE-CRASH-STOP` and returns `.gaveUp`, and the caller ends its walk.
+    private func recoverFromCrash(_ screen: String, pass: Int, after error: Error? = nil,
+                                  more: Bool = true) -> CrashStep {
+        guard appIsGone(error) else { return .running }
+        print("PROBE-CRASH \(screen) pass=\(pass)")
+        XCTFail("the app stopped running during the \(screen) audit (pass \(pass)); a crash report is in the run's artifacts")
+        guard more else { return .relaunched }
+        guard relaunches < Self.maxRelaunches else {
+            print("PROBE-CRASH-STOP \(screen) pass=\(pass) the app stopped again; this test has used its \(Self.maxRelaunches) relaunches")
+            return .gaveUp
+        }
+        relaunches += 1
+        print("PROBE-CRASH-RELAUNCH \(screen) relaunch=\(relaunches) of \(Self.maxRelaunches)")
+        launch(size)
+        return .relaunched
     }
 
     /// One line in a11y.log for a screen the audit walk did not audit:
@@ -310,15 +379,28 @@ final class AccessibilityUITests: XCTestCase {
     /// That screen's tree, read once, at its first issue with no element.
     private var auditTree: (any XCUIElementSnapshot)?
 
-    private func audit(_ screen: String, _ types: XCUIAccessibilityAuditType) throws {
+    /// One audit pass of `screen`. Its error is thrown, as it was, unless the
+    /// app is gone: then recoverFromCrash answers instead (pass 1, the walk
+    /// runs one pass a screen). `more` is false for the walk's last screen.
+    @discardableResult
+    private func audit(_ screen: String, _ types: XCUIAccessibilityAuditType,
+                       more: Bool = true) throws -> CrashStep {
         auditing = screen
         auditTree = nil
-        try XCTContext.runActivity(named: "Audit: \(screen)") { _ in
+        var thrown: Error?
+        XCTContext.runActivity(named: "Audit: \(screen)") { _ in
             snap("audit-\(screen)")
-            try app.performAccessibilityAudit(for: types) { [unowned self] issue in
-                self.isBenign(issue)
+            do {
+                try app.performAccessibilityAudit(for: types) { [unowned self] issue in
+                    self.isBenign(issue)
+                }
+            } catch {
+                thrown = error
             }
         }
+        let step = recoverFromCrash(screen, pass: 1, after: thrown, more: more)
+        if step == .running, let thrown { throw thrown }
+        return step
     }
 
     /// An issue the audit could not tie to an element still fails (isBenign);
@@ -417,7 +499,12 @@ final class AccessibilityUITests: XCTestCase {
     ///    that flickers;
     ///  - PROBE-NILHINT: for each issue with no element, the nodes under 44
     ///    points that are on screen at that pass;
-    ///  - PROBE-DONE, once a screen is finished.
+    ///  - PROBE-DONE, once a screen is finished;
+    ///  - PROBE-CRASH <screen> pass=<n> when the app stopped running during
+    ///    that pass (T0242), then PROBE-CRASH-RELAUNCH <screen> relaunch=<k>
+    ///    of 2 and the walk goes on from the library (recoverFromCrash). The
+    ///    test fails: a crash is a red. At most two relaunches a test; the
+    ///    third crash prints PROBE-CRASH-STOP and ends the walk.
     /// It runs in the accessibility step with the rest of this class
     /// (app-build.yml), because it needs this class's private way around.
     func testDefaultSizeAuditProbeDiagnostic() {
@@ -426,15 +513,16 @@ final class AccessibilityUITests: XCTestCase {
             XCTFail("probe: the library did not open")
             return
         }
-        probe("library")
+        if probe("library") == .gaveUp { return }
 
         if !choose("questions") {
             XCTFail("probe: Questions could not be chosen from the dock")
         } else if !openSet("mcq") {
             XCTFail("probe: the example question set did not open")
         } else {
-            probe("quiz")
-            backHome(after: "quiz")
+            let step = probe("quiz")
+            if step == .gaveUp { return }
+            if step == .running { backHome(after: "quiz") }
         }
         if !choose("cards") {
             XCTFail("probe: Cards could not be chosen from the dock")
@@ -446,12 +534,18 @@ final class AccessibilityUITests: XCTestCase {
                 reveal.tap()
                 // held still first, as the real audit does (T0198)
                 settle(element("ankiCardFront"), "card front")
-                probe("card-revealed")
+                // after a relaunch the library is up and backHome finds it
+                if probe("card-revealed") == .gaveUp { return }
             } else {
                 XCTFail("probe: no Reveal button, so the revealed card did not open")
             }
             backHome(after: "card")
         }
+        probeSettings()
+    }
+
+    /// Settings, from the account menu, probed: the last screen of the probe.
+    private func probeSettings() {
         let menu = element("libraryMenu")
         guard menu.waitForExistence(timeout: 6) else {
             XCTFail("probe: no account menu (libraryMenu)")
@@ -465,7 +559,7 @@ final class AccessibilityUITests: XCTestCase {
         } else {
             item.tap()
             if app.navigationBars["Settings"].waitForExistence(timeout: 8) {
-                probe("settings")
+                if probe("settings", more: false) != .running { return }
             } else {
                 XCTFail("probe: the Settings bar did not show after its menu item")
             }
@@ -484,7 +578,14 @@ final class AccessibilityUITests: XCTestCase {
     private var probeSnapshot: (any XCUIElementSnapshot)?
 
     /// One screen already open: its tree, then three audits, then PROBE-DONE.
-    private func probe(_ screen: String) {
+    ///
+    /// After each pass the app is looked at (recoverFromCrash, T0242): if it
+    /// stopped, PROBE-CRASH is printed, the test fails, the screen's later
+    /// passes are not run (the app starts again at the library, so they would
+    /// audit nothing), and the caller goes on with the next screen. `more` is
+    /// false for the last screen.
+    @discardableResult
+    private func probe(_ screen: String, more: Bool = true) -> CrashStep {
         probeScreen = screen
         snap("probe-\(screen)")
         XCTContext.runActivity(named: "Probe tree: \(screen)") { _ in
@@ -495,18 +596,26 @@ final class AccessibilityUITests: XCTestCase {
             probeIssues = 0
             probeNils = 0
             probeSnapshot = nil
+            var thrown: Error?
             XCTContext.runActivity(named: "Probe audit: \(screen) pass \(pass)") { _ in
                 do {
                     try app.performAccessibilityAudit(for: Self.audited) { [unowned self] issue in
                         self.probeIssue(issue)
                     }
                 } catch {
+                    thrown = error
                     print("PROBE-ERROR \(screen) pass=\(pass) \(error)")
                 }
             }
             print("PROBE-PASS \(screen) pass=\(pass) issues=\(probeIssues)")
+            let step = recoverFromCrash(screen, pass: pass, after: thrown, more: more)
+            if step != .running {
+                print("PROBE-DONE \(screen)")
+                return step
+            }
         }
         print("PROBE-DONE \(screen)")
+        return .running
     }
 
     /// `PROBE-NODE <screen> depth=<d> type=<elementType raw value> id=<id>
@@ -615,40 +724,45 @@ final class AccessibilityUITests: XCTestCase {
 
     // MARK: - The bisect of the probe's issues with no element (T0224)
 
-    /// The regions of each screen, as Shared/A11yProbeHide.swift names them, in
-    /// the order in which one is thought most likely to hold its issue: when a
-    /// screen's time runs out it is the last ones that are not run. The two
-    /// text screens ("Text clipped") start with the text-heavy regions; the
-    /// card ("Hit area is too small") with the controls, the rating row and
-    /// the top bar first (the Accuracy and Save to Ideas buttons of its bottom
-    /// bar both set a 44 point minimum height, so it comes after them).
+    /// The regions of each screen, as Shared/A11yProbeHide.swift names them: 7,
+    /// 6 and 5, 18 in all, each run with a baseline. The ones that no run has
+    /// shown yet come first, in the order in which one is thought most likely
+    /// to hold its issue (the two text screens, "Text clipped", the text-heavy
+    /// regions first; the card, "Hit area is too small", the controls first, its
+    /// bottom bar's two buttons both set a 44 point minimum height); the ones
+    /// that run 43183776170 (be893b6a) already showed come last, so a screen
+    /// cut short loses repeats and not new evidence. Its results: card
+    /// `card-rating-row` hidden left the 2 "Hit area is too small"; library
+    /// `library-revision-card` and `library-set-rows` hidden left the "Text
+    /// clipped"; quiz `quiz-lab-table` hidden took 6 issues to 1 (a "Text
+    /// clipped" with no element), `quiz-stem` hidden took the 6 to 6.
     private static let libraryRegions: [String] = [
-        "library-revision-card", "library-set-rows", "library-header", "library-tiles",
-        "library-plan-card", "library-search", "library-tab-bar",
+        "library-header", "library-tiles", "library-plan-card", "library-search", "library-tab-bar",
+        "library-revision-card", "library-set-rows",
     ]
     private static let quizRegions: [String] = [
-        "quiz-lab-table", "quiz-stem", "quiz-options", "quiz-top-bar", "quiz-progress", "quiz-bottom-bar",
+        "quiz-options", "quiz-top-bar", "quiz-progress", "quiz-bottom-bar", "quiz-lab-table", "quiz-stem",
     ]
     private static let cardRegions: [String] = [
-        "card-rating-row", "card-top-bar", "card-bottom-bar", "card-face", "card-progress-row",
+        "card-top-bar", "card-bottom-bar", "card-face", "card-progress-row", "card-rating-row",
     ]
 
     /// The library, opened as the "library" preview (the bisect, below).
     func testProbeBisectLibraryDiagnostic() {
         bisect("library", opening: "library", ready: ["libraryMenu", "librarySearch", "dockCategory-questions"],
-               regions: Self.libraryRegions, budget: 75)
+               regions: Self.libraryRegions, budget: 225)
     }
 
     /// The example quiz, opened as the "quiz" preview.
     func testProbeBisectQuizDiagnostic() {
         bisect("quiz", opening: "quiz", ready: ["studyMore", "studyBarFold"],
-               regions: Self.quizRegions, budget: 65)
+               regions: Self.quizRegions, budget: 175)
     }
 
     /// The example card revealed, opened as the "anki-revealed" preview.
     func testProbeBisectCardDiagnostic() {
         bisect("card-revealed", opening: "anki-revealed", ready: ["studyMore", "studyBarFold"],
-               regions: Self.cardRegions, budget: 55)
+               regions: Self.cardRegions, budget: 150)
     }
 
     /// What the audit found in the variant being run: the issue's text and its
@@ -678,9 +792,14 @@ final class AccessibilityUITests: XCTestCase {
     /// launched the same way. Read: `grep -E "PROBE-BISECT" a11y.log`.
     ///
     /// The other lines: `PROBE-BISECT-ERROR <screen> hide=<region> <why>` for a
-    /// variant whose screen did not open, whose audit threw, or that was not
-    /// run because the screen's time was used up; `PROBE-BISECT-DONE <screen>
-    /// launches=<n> of <m> seconds=<s>`, which is the time actually spent.
+    /// variant whose screen did not open, whose audit threw, during which the
+    /// app stopped running, or that was not run because the screen's time was
+    /// used up; `PROBE-BISECT-DONE <screen> launches=<n> of <m> seconds=<s>`,
+    /// which is the time actually spent. An app that stops running (T0242)
+    /// also prints `PROBE-CRASH <screen> pass=<n>` (pass 0: before the audit
+    /// began, pass 1: during it) and fails the test; the next variant starts
+    /// the app anew, which is the relaunch, and a test has two of them: after
+    /// a third stop the variants left print PROBE-BISECT-ERROR and are not run.
     ///
     /// The screens are opened with `-uiPreviewScreen` (library, quiz,
     /// anki-revealed: the screenshot route, on the same sample sets the probe
@@ -689,7 +808,8 @@ final class AccessibilityUITests: XCTestCase {
     /// the default size (each of the class's tests signed in again, so a
     /// relaunch would), getting to the quiz or the card 16 to 20 s more, and
     /// an audit about 8 s: 28 to 50 s a variant, about 13 minutes for the 19
-    /// variants, against a step with 283 s to its 1800 s cap (1517 s cold).
+    /// variants, against a step with 283 s to its then cap of 1800 s (1517 s
+    /// cold; the cap is 2700 s since T0242).
     /// The preview route costs a launch and an audit, about 15 s a variant
     /// (assumed: launch 3 to 5 s, audit 8 s, waits 2 s). What it cannot show
     /// is whether the preview screen has the issue the walk's screen has: the
@@ -697,23 +817,28 @@ final class AccessibilityUITests: XCTestCase {
     /// run says so (library 1, quiz 3 to 5 with the Dynamic Type flags that
     /// come and go, card-revealed 2).
     ///
-    /// Time: each screen has a budget in seconds (library 75, quiz 65, card
-    /// 55: 195 s in all). The step has a cap of 1800 s and its cold run
-    /// measured 1517 s (run 43134634665, the probe test included), so 1517 +
-    /// 195 = 1712 s leaves 88 s. A region is started only if it and the
-    /// baseline after it would still fit in what is left, each costed as the
-    /// variant before it (the first region always runs); one that does not fit
-    /// prints a PROBE-BISECT-ERROR line and is left out. The baseline
-    /// (`hide=none`) of a screen always runs, last. At 15 s a variant that is
-    /// 4 regions of the library, 3 of the quiz and 2 of the card (9 of the
-    /// 18); at 16 s, 3, 3 and 2 (8); at 20 s, 2, 2 and 1 (5): 5 to 9 regions
-    /// in one go, 8 to 12 launches with the 3 baselines, and the rest need a
-    /// second run with the lists turned. The lists are in the order in which a
-    /// region is thought most likely to hold its issue, so the ones left out
-    /// are the least likely. These tests are named to run after the others of
-    /// the class (XCTest runs a class alphabetically), so a step cut at its
-    /// cap would lose only them. They never fail on what the audit finds; a
-    /// launch that cannot be made is the only way they fail.
+    /// Time: each screen has a budget in seconds, sized for all of its
+    /// variants. A region is started only if it and the baseline after it
+    /// would still fit in what is left, each costed as the variant before it
+    /// (the first region always runs); one that does not fit prints a
+    /// PROBE-BISECT-ERROR line and is left out. The baseline (`hide=none`) of a
+    /// screen always runs, last. So the last of n regions needs the time of n +
+    /// 1 variants. Run 43183776170 measured 23.4 s a launch for the library
+    /// (70.2 s for 3), 19.3 s for the quiz (57.8 s for 3) and 21.2 s for the
+    /// card (42.3 s for 2): at 28, 25 and 25 s a variant, the library's 8
+    /// launches need 8 x 28 = 224 s (budget 225), the quiz's 7 need 7 x 25 =
+    /// 175 s, the card's 6 need 6 x 25 = 150 s: 550 s for the 21 launches, the
+    /// 18 regions and 3 baselines. The step's cap is 2700 s (45 min). That run
+    /// took 1813 s, 170 of them these tests (42 + 70 + 58), so with the
+    /// budgets used up in full the step takes 1813 - 170 + 550 = 2193 s. A
+    /// stopped app adds at most two relaunches in each of the two walk tests,
+    /// about 60 s each (a launch and sign-in of about 23 s, then the screen
+    /// that the stop used to skip: an estimate): 2193 + 4 x 60 = 2433 s, 267 s
+    /// under the cap. These tests are named to run after the others of the
+    /// class (XCTest runs a class alphabetically), so a step cut at its cap
+    /// would lose only them. They never fail on what the audit finds; a
+    /// launch that cannot be made, or an app that stops running, are the only
+    /// ways they fail.
     ///
     /// `bisect` runs one screen: a launch for each of `regions`, then the
     /// baseline. `opening` is the `-uiPreviewScreen` that opens it, and
@@ -725,7 +850,14 @@ final class AccessibilityUITests: XCTestCase {
         let started = Date()
         var cost: TimeInterval = 0
         var launches = 0
+        var crashes = 0
         for region in regions + ["none"] {
+            // a third stop ends the test's launches (maxRelaunches), the
+            // baseline too
+            if crashes > Self.maxRelaunches {
+                print("PROBE-BISECT-ERROR \(screen) hide=\(region) not run: the app stopped \(crashes) times in this test, one more than its \(Self.maxRelaunches) relaunches")
+                continue
+            }
             // the screen's time is not run over: a region leaves room for the
             // baseline after it, and the first variant always runs; the
             // baseline itself is never left out
@@ -734,7 +866,7 @@ final class AccessibilityUITests: XCTestCase {
                 continue
             }
             let began = Date()
-            bisectVariant(screen, opening: route, ready: ready, hide: region)
+            if bisectVariant(screen, opening: route, ready: ready, hide: region) { crashes += 1 }
             cost = Date().timeIntervalSince(began)
             launches += 1
         }
@@ -742,7 +874,10 @@ final class AccessibilityUITests: XCTestCase {
     }
 
     /// One launch with one region hidden, one audit, one PROBE-BISECT line.
-    private func bisectVariant(_ screen: String, opening route: String, ready: [String], hide region: String) {
+    /// True when the app stopped running during it (bisectCrash).
+    @discardableResult
+    private func bisectVariant(_ screen: String, opening route: String, ready: [String],
+                               hide region: String) -> Bool {
         let head = "PROBE-BISECT \(screen) hide=\(region)"
         app = XCUIApplication()
         app.keepTraceOffConsole()
@@ -755,31 +890,51 @@ final class AccessibilityUITests: XCTestCase {
         let marker = app.descendants(matching: .any)
             .matching(NSCompoundPredicate(orPredicateWithSubpredicates: marks)).firstMatch
         guard marker.waitForExistence(timeout: 20) else {
+            if appIsGone() {
+                bisectCrash(screen, hide: region, pass: 0)
+                return true
+            }
             print("PROBE-BISECT-ERROR \(screen) hide=\(region) the screen did not open within 20 s")
             app.terminate()
-            return
+            return false
         }
         // the screen a moment to settle before it is read
         usleep(500_000)
         let nodes: Int = bisectNodes()
         bisectTally = [:]
-        var threw = ""
+        var thrown: Error?
         XCTContext.runActivity(named: "Bisect: \(screen) hide=\(region)") { _ in
             do {
                 try app.performAccessibilityAudit(for: Self.audited) { [unowned self] issue in
                     self.bisectIssue(issue)
                 }
             } catch {
-                threw = "\(error)"
+                thrown = error
             }
         }
-        if threw.isEmpty {
+        if appIsGone(thrown) {
+            bisectCrash(screen, hide: region, pass: 1)
+            return true
+        }
+        if let thrown {
+            let threw: String = "\(thrown)"
+            print("PROBE-BISECT-ERROR \(screen) hide=\(region) the audit threw \(threw.replacingOccurrences(of: "\n", with: " "))")
+        } else {
             let total: Int = bisectTally.values.reduce(0, +)
             let kinds: String = bisectTally.keys.sorted().map { "\($0)=\(bisectTally[$0] ?? 0)" }.joined(separator: "; ")
             print("\(head) issues=\(total) \(kinds.isEmpty ? "no issue" : kinds) nodes=\(nodes)")
-        } else {
-            print("PROBE-BISECT-ERROR \(screen) hide=\(region) the audit threw \(threw.replacingOccurrences(of: "\n", with: " "))")
         }
+        app.terminate()
+        return false
+    }
+
+    /// The app stopped running in this variant: PROBE-CRASH, the variant's
+    /// own PROBE-BISECT-ERROR line, and a failure (a crash stays a red). The
+    /// next variant launches the app anew.
+    private func bisectCrash(_ screen: String, hide region: String, pass: Int) {
+        print("PROBE-CRASH \(screen) pass=\(pass)")
+        print("PROBE-BISECT-ERROR \(screen) hide=\(region) the app stopped running (pass \(pass); 0 is before the audit began)")
+        XCTFail("the app stopped running in the \(screen) bisect with \(region) hidden (pass \(pass))")
         app.terminate()
     }
 
@@ -922,6 +1077,9 @@ final class AccessibilityUITests: XCTestCase {
     @discardableResult
     private func goHome() -> Bool {
         for _ in 0..<6 {
+            // an app that stopped running has no way back: each look below
+            // waits out its retries (about 9 s a round, run 43183776170)
+            if app.state == .notRunning { return false }
             if atLibrary() { return true }
             let cancel = app.buttons["Cancel"].firstMatch
             let done = app.buttons["learnDone"].firstMatch
