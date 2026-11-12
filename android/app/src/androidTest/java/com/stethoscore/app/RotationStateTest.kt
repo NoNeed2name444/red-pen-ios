@@ -4,6 +4,7 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
@@ -13,6 +14,7 @@ import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToKey
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
@@ -87,12 +89,28 @@ class RotationStateTest {
         try { compose.waitUntil(20_000) { exists(matcher) } } catch (e: androidx.compose.ui.test.ComposeTimeoutException) { throw AssertionError("no $what; lists at ${listsAt()}", e) }
     }
 
-    /** Where each scrolling list stands, for the failure message and the ROT-DIAG lines: its scroll value (first visible item and offset) over its largest. */
+    /**
+     * Where each scrolling list stands, for the failure message and the ROT-DIAG lines: its scroll value over its
+     * largest, read as a lazy list gives it (500 for each row above the first visible one, then the pixels
+     * scrolled into that row), and the lowest and highest "Scroll filler" rows composed, where home has them.
+     */
     private fun listsAt(): String = try {
-        compose.onAllNodes(hasScrollToNodeAction()).fetchSemanticsNodes().joinToString(" ") { node ->
-            node.config.getOrElseNullable(SemanticsProperties.VerticalScrollAxisRange) { null }?.let { "${it.value()}/${it.maxValue()}" } ?: "-"
+        val lists = compose.onAllNodes(hasScrollToNodeAction()).fetchSemanticsNodes().joinToString(" ") { node ->
+            node.config.getOrElseNullable(SemanticsProperties.VerticalScrollAxisRange) { null }?.let {
+                val row = (it.value() / 500).toInt()
+                "${it.value()}/${it.maxValue()} (row $row, ${(it.value() - row * 500).toInt()} px in)"
+            } ?: "-"
         }.ifEmpty { "none" }
+        val fillers = compose.onAllNodes(hasText("Scroll filler ", substring = true)).fetchSemanticsNodes()
+            .mapNotNull { Regex("""Scroll filler (\d+)""").find(it.config[SemanticsProperties.Text].joinToString())?.groupValues?.get(1)?.toInt() }
+        lists + if (fillers.isEmpty()) "" else "; fillers composed ${fillers.min()}..${fillers.max()}"
     } catch (e: Exception) { "unread (${e.javaClass.simpleName})" }
+
+    /** Whether the matched row is the list's first: its top lies less than its own height below the list's top. */
+    private fun isFirstRow(row: SemanticsMatcher, list: SemanticsMatcher): Boolean {
+        val bounds = compose.onAllNodes(row).onFirst().getUnclippedBoundsInRoot()
+        return bounds.top - compose.onNode(list).getUnclippedBoundsInRoot().top < bounds.bottom - bounds.top
+    }
 
     /** Tapped by its click action (a bar's button can lie below the fold of a short landscape window), brought into view first where it scrolls. */
     private fun tap(what: String, matcher: SemanticsMatcher) {
@@ -182,20 +200,26 @@ class RotationStateTest {
         assertTrue("the app's own store lacks 'Scroll filler 20': the process store was made before the fillers were saved (a stale ProcessStore), so home's list can never show the row",
             ProcessStore.get(instrumentation.targetContext).library.any { it.name == "Scroll filler 20" })
         val list = hasScrollToNodeAction()
-        // A row from the middle of the list, not its last line (T0245). A turn keeps the list's first visible
-        // row, so after a turn to a shorter window the last line ("Study aid", the footer) lies below the
-        // window and is not composed: the tablets' "no home after natural" / "after left" (a tall window
-        // turned to a short one). The row put at the top stays the top row in every window.
+        // A row from the middle of the list, not its last line (T0245), put at the top of the list by its key
+        // (T0250). A turn keeps the list's first row and its offset, so the row put at the top stays the top
+        // row in every window. performScrollToNode does not put it there: it walks the list a window's
+        // height at a time and leaves the row wherever it first showed, a few rows down a tall window. In a
+        // short one (the small profile turned, 640 x 360 dp) that row lies below the window and is not
+        // composed: "no home after left" with the list still at the row it was on. The last line ("Study aid",
+        // the footer) failed the same way on the tablets (T0245).
         val anchor = hasText("Scroll filler 20")
+        val anchorKey = "set-" + store.library.first { it.name == "Scroll filler 20" }.id
         waitFor("home's list", hasContentDescription("Account and settings"))
-        compose.onNode(list).performScrollToNode(anchor)
+        compose.onNode(list).performScrollToKey(anchorKey)
         compose.waitForIdle()
         assertTrue("home's list scrolled past its header", !exists(hasContentDescription("Account and settings")))
+        assertTrue("'Scroll filler 20' is the list's first row before the turns; lists at ${listsAt()}", isFirstRow(anchor, list))
         turnAndCheck { step ->
             waitFor("home after $step", anchor)
             // the row is on the screen, still where the list was put, and the list is not back at its top
             compose.onAllNodes(anchor).onFirst().assertIsDisplayed()
             assertTrue("home's list kept its place after $step", !exists(hasContentDescription("Account and settings")))
+            assertTrue("'Scroll filler 20' is still the list's first row after $step; lists at ${listsAt()}", isFirstRow(anchor, list))
         }
         compose.onNode(list).performScrollToNode(hasContentDescription("Search"))
         compose.onAllNodes(hasSetTextAction() and hasContentDescription("Search")).onFirst().performTextInput("nephr")
