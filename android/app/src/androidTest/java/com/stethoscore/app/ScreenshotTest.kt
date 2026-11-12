@@ -4,7 +4,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.safeDrawingPadding
+import android.os.Bundle
 import android.os.SystemClock
+import android.util.Log
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -21,6 +23,8 @@ import com.stethoscore.app.ui.map.MapDrawn
 import com.stethoscore.app.ui.map.MapDrawnKey
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TestWatcher
+import org.junit.runner.Description
 import org.junit.runner.RunWith
 import java.io.File
 import java.util.regex.Pattern
@@ -208,6 +212,96 @@ class ScreenshotTest {
 }
 
 /**
+ * The rotation, the display and the top activity at one moment (T0245), on one line tagged ROT-DIAG: in
+ * the instrumentation output, so in the CI step's log between the test lines (INSTRUMENTATION_STATUS:
+ * ROT-DIAG=...), and in logcat. [level] 0 is the two rotation settings and the display size; 1 adds the
+ * window manager's rotation lines, the resumed activity, wakefulness and the device state; 2 (a failure)
+ * adds the keyguard and the displays' states. capture-screenshots.sh prints the same fields between passes.
+ */
+internal object RotDiag {
+    private const val TAG = "ROT-DIAG"
+    fun snapshot(label: String, level: Int = 1) {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val device = UiDevice.getInstance(instrumentation)
+        fun sh(command: String): String = try { device.executeShellCommand(command) } catch (e: Exception) { "error ${e.javaClass.simpleName}" }
+        fun pick(text: String, pattern: String, max: Int = 10, separator: String = " ") =
+            Regex(pattern).findAll(text).map { it.value.trim().take(160) }.distinct().take(max).joinToString(separator).ifEmpty { "-" }
+        val parts = mutableListOf(
+            "user_rotation=${sh("settings get system user_rotation").trim()} accelerometer_rotation=${sh("settings get system accelerometer_rotation").trim()}",
+            "display=${device.displayWidth}x${device.displayHeight} orientation=${instrumentation.targetContext.resources.configuration.orientation}")
+        if (level >= 1) {
+            parts += "window: " + pick(sh("dumpsys window displays"),
+                """\b(?:mCurrentRotation|mRotation|mUserRotationMode|mUserRotation|mLastOrientation|mFixedToUserRotation)=\S+|cur=\d+x\d+ app=\d+x\d+""")
+            parts += "resumed: " + pick(sh("dumpsys activity activities"), """[A-Za-z]*ResumedActivity[^\n]*""", 4, " | ")
+            parts += pick(sh("dumpsys power"), """mWakefulness=\w+""")
+            parts += "device_state: " + sh("cmd device_state state").lineSequence().map { it.trim() }.filter { it.isNotEmpty() }.take(3).joinToString(" | ").ifEmpty { "-" }
+        }
+        if (level >= 2) {
+            parts += "keyguard: " + pick(sh("dumpsys window policy"), """\w*[Kk]eyguard\w*[Ss]howing\w*=\w+|mAwake=\w+""")
+            parts += "displays: " + pick(sh("dumpsys display"), """\bmState=\w+""")
+        }
+        val line = "$label: ${parts.joinToString("; ")}".take(1800)
+        Log.i(TAG, line)
+        instrumentation.sendStatus(2, Bundle().apply { putString(TAG, line) })
+    }
+}
+
+/**
+ * The device turn capture-screenshots.sh set for this WindowShots pass: arguments rotation (the
+ * user_rotation value, 0, 1 or 3), orient and naturalTall (whether the screen in use stands tall in its
+ * natural way up). None of them when the class is run by hand, and then nothing here acts.
+ */
+internal object PassTurn {
+    private val args get() = InstrumentationRegistry.getArguments()
+    val rotation: Int? get() = args.getString("rotation")?.toIntOrNull()
+    private val turned get() = (args.getString("orient") ?: "natural") != "natural"
+    private val naturalTall get() = (args.getString("naturalTall") ?: "true") == "true"
+
+    /** Whether the display stands as the pass wants: wide where a tall natural screen is turned (or a wide one is not), and the other way round. */
+    fun holds(device: UiDevice) = (device.displayWidth > device.displayHeight) == (naturalTall == turned)
+
+    /** The script's own two settings, again: a locked user rotation. */
+    fun apply(device: UiDevice) {
+        val r = rotation ?: return
+        device.executeShellCommand("settings put system accelerometer_rotation 0")
+        device.executeShellCommand("settings put system user_rotation $r")
+    }
+
+    /** Polls until [holds], for at most [millis]; whether it does. */
+    fun await(device: UiDevice, millis: Long): Boolean {
+        val end = SystemClock.uptimeMillis() + millis
+        while (!holds(device)) {
+            if (SystemClock.uptimeMillis() > end) return false
+            SystemClock.sleep(100)
+        }
+        return true
+    }
+}
+
+/**
+ * Before every WindowShots test, outside the compose rule so before its activity starts: the device awake
+ * with the keyguard away (a folded foldable sleeps), and the pass's turn set again. The script sets the turn
+ * once, before the pass; on a phone only the first test kept it (T0245), so each test now starts from the
+ * state the pass was meant to start from, and the activity launches into it. Logs the ROT-DIAG lines.
+ */
+class PassDisplay : TestWatcher() {
+    override fun starting(description: Description) {
+        val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        device.executeShellCommand("input keyevent KEYCODE_WAKEUP")
+        device.executeShellCommand("wm dismiss-keyguard")
+        val end = SystemClock.uptimeMillis() + 5_000
+        while (!device.executeShellCommand("dumpsys power").contains("mWakefulness=Awake") && SystemClock.uptimeMillis() < end) SystemClock.sleep(250)
+        if (PassTurn.rotation == null) return
+        PassTurn.apply(device)
+        // a launcher that turns with the user rotation (a tablet's) has turned within this; a phone's stays natural until an activity is up
+        val turned = PassTurn.await(device, 1_500)
+        RotDiag.snapshot("${description.methodName} before launch (display as the pass wants: $turned)", 0)
+    }
+    override fun failed(e: Throwable, description: Description) = RotDiag.snapshot("${description.methodName} FAILED ${e.javaClass.simpleName}", 2)
+    override fun finished(description: Description) = RotDiag.snapshot("${description.methodName} finished", 1)
+}
+
+/**
  * The window matrix's stills (T0139), named for the run's profile, posture and orientation,
  * which capture-screenshots.sh sets before it starts this class (the device turned, folded or
  * not), so a turn never recreates the composition under a still. Six key screens (home, the
@@ -221,8 +315,10 @@ class ScreenshotTest {
  */
 @RunWith(AndroidJUnit4::class)
 class WindowShots {
-    @get:Rule val compose = createComposeRule()
-    @get:Rule val learnClosed = LearnRouterClosed()
+    // the pass's display first (the outer rule), then the activity: order 0 runs outside order 1
+    @get:Rule(order = 0) val passDisplay = PassDisplay()
+    @get:Rule(order = 1) val compose = createComposeRule()
+    @get:Rule(order = 1) val learnClosed = LearnRouterClosed()
     private val args get() = InstrumentationRegistry.getArguments()
     private fun arg(name:String,default:String)=args.getString(name)?.takeIf { it.isNotBlank() } ?: default
     private val directory="/sdcard/Download/stethoscore-screenshots/window"
@@ -270,6 +366,16 @@ class WindowShots {
         val modes=arg("modes","light").split(',').map { it.trim() }
         val profile=arg("profile","device"); val posture=arg("posture","open"); val orient=arg("orient","natural")
         val stores=HashMap<Pair<Boolean,androidx.compose.ui.unit.DpSize?>,StudyStore>()
+        val device=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        // The turn is set before the activity starts (PassDisplay). If it is gone anyway, put it back before
+        // the content is set: a turn after setContent recreates the activity and drops the content.
+        if (orient!="natural" && PassTurn.rotation!=null && !PassTurn.holds(device)) {
+            PassTurn.apply(device)
+            val back=PassTurn.await(device,8_000)
+            SystemClock.sleep(1_000) // the activity the turn recreates
+            compose.waitForIdle()
+            RotDiag.snapshot("$screen $orient: not turned after launch, turn set again (display now as the pass wants: $back)")
+        }
         compose.setContent {
             val d=dark.value; val z=size.value
             androidx.compose.runtime.key(d,z) {
@@ -280,17 +386,20 @@ class WindowShots {
                 }
             }
         }
-        val device=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         for (z in sizes()) for (m in modes) {
             compose.runOnIdle { dark.value=m=="dark"; size.value=z }
             compose.waitForIdle()
             InstrumentationRegistry.getInstrumentation().runOnMainSync { com.stethoscore.app.ui.learn.LearnRouter.close() }
             steps(stores.getValue((m=="dark") to z))
+            // a still of a screen with no compose root on it (no activity up, the device asleep) is a still of nothing:
+            // every step above that reads the tree fails then, but "settings" has none, so this does for it (throws "No compose hierarchies found")
+            check(compose.onAllNodes(isRoot()).fetchSemanticsNodes().isNotEmpty()) { "$screen $orient: no compose root to shoot" }
             val where=z?.let { "${it.width.value.toInt()}x${it.height.value.toInt()}" } ?: orient
             ScreenshotTest.still(compose,directory,"w-$profile-$posture-$where-$screen-$m")
             // the script measures the screen in use for each pass (a fold's cover screen stands tall, its open screen wide)
             if (z==null && orient!="natural") {
                 val tall=arg("naturalTall","true")=="true"
+                if ((device.displayWidth>device.displayHeight)!=tall) RotDiag.snapshot("$screen $orient: the display is not as the pass wants",2)
                 check((device.displayWidth>device.displayHeight)==tall) {
                     "$screen $orient: the still is ${device.displayWidth}x${device.displayHeight}, not ${if(tall) "wider than tall" else "taller than wide"}" }
             }

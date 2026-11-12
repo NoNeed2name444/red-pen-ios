@@ -117,6 +117,35 @@ rotate() {
   adb shell settings put system user_rotation "$1"
   sleep 2
 }
+# One line tagged ROT-DIAG (T0245): the two rotation settings, the window manager's rotation lines, the resumed
+# activity, wakefulness, the displays' states, the device state and the physical size. Read it in the step's log
+# (grep ROT-DIAG, with the timestamps) and in test-results/rot-diag.txt; the tests print the same fields between
+# their own tests (INSTRUMENTATION_STATUS: ROT-DIAG=...). It never fails the run.
+rot_diag() { # label
+  local rot win act pow disp state size
+  rot="user_rotation=$(adb shell settings get system user_rotation | tr -d '\r') accelerometer_rotation=$(adb shell settings get system accelerometer_rotation | tr -d '\r')" || true
+  win=$(adb shell dumpsys window displays | tr -d '\r' | grep -oE '(mCurrentRotation|mRotation|mUserRotationMode|mUserRotation|mLastOrientation|mFixedToUserRotation)=[^ ,]+|cur=[0-9]+x[0-9]+ app=[0-9]+x[0-9]+' | sort -u | tr '\n' ' ' || true)
+  act=$(adb shell dumpsys activity activities | tr -d '\r' | grep -E 'ResumedActivity' | sed 's/^ *//' | cut -c1-140 | head -3 | tr '\n' '|' || true)
+  pow=$(adb shell dumpsys power | tr -d '\r' | grep -oE 'mWakefulness=[A-Za-z]+' | head -1 || true)
+  disp=$(adb shell dumpsys display | tr -d '\r' | grep -oE '\bmState=[A-Z_]+' | sort | uniq -c | tr -s ' \n' ' ' || true)
+  state=$(adb shell cmd device_state state 2>&1 | tr -d '\r' | head -3 | tr '\n' '|' || true)
+  size=$(adb shell wm size | tr -d '\r' | tr '\n' ' ' || true)
+  echo "ROT-DIAG $1: $rot; window: ${win:--}; resumed: ${act:--}; ${pow:--}; displays: ${disp:--}; device_state: ${state:--}; wm: ${size:--}" | tee -a test-results/rot-diag.txt
+}
+# After a posture change (a fold or an unfold): the device awake and the keyguard away, since closing a foldable can
+# put it to sleep, and an activity started on a sleeping device is created but never resumed, so its compose tree
+# never exists ("No compose hierarchies found"); then what is on show.
+settle_device() { # label
+  local i
+  adb shell input keyevent KEYCODE_WAKEUP || true
+  adb shell wm dismiss-keyguard || true
+  for i in $(seq 1 20); do
+    if adb shell dumpsys power | tr -d '\r' | grep -q 'mWakefulness=Awake'; then break; fi
+    sleep 1
+  done
+  sleep 2
+  rot_diag "$1"
+}
 # One WindowShots run: every key screen at the posture and turn given, in [modes], and at [sizes] if any.
 shots_pass() { # posture orient rotation modes sizes
   local posture=$1 orient=$2 rotation=$3 modes=$4 sizes=${5:-}
@@ -124,13 +153,17 @@ shots_pass() { # posture orient rotation modes sizes
   local n_modes n_sizes tall
   tall=$(natural_tall)
   echo "$posture $tall" >> test-results/natural-tall.txt
+  rot_diag "$posture $orient pass start (rotation $rotation, naturalTall $tall)"
   n_modes=$(echo "$modes" | tr ',' '\n' | grep -c .)
   n_sizes=$( [ -n "$sizes" ] && echo "$sizes" | tr ',' '\n' | grep -c . || echo 1)
   expected=$((expected + window_tests * n_modes * n_sizes))
   passes=$((passes + 1))
   local log="test-results/window-$posture-$orient${sizes:+-sized}.txt"
+  # rotation: the user_rotation value just set; each test sets it again before its activity starts (PassDisplay)
   adb shell am instrument -w -r -e class com.stethoscore.app.WindowShots -e profile "$kind" -e posture "$posture" \
-    -e orient "$orient" -e modes "$modes" ${sizes:+-e sizes "$sizes"} -e naturalTall "$tall" $runner | tee "$log"
+    -e orient "$orient" -e rotation "$rotation" -e modes "$modes" ${sizes:+-e sizes "$sizes"} -e naturalTall "$tall" $runner | tee "$log" || true
+  rot_diag "$posture $orient pass end"
+  # the verdict is this line (the run above is `|| true` so the pass-end diagnostics always print)
   grep -qF "OK ($window_tests tests)" "$log"
 }
 orient_passes() { # posture
@@ -151,6 +184,7 @@ rotation_state() { # the device states to fold through, comma separated, or none
   local tests
   tests=$(grep -c '@Test' app/src/androidTest/java/com/stethoscore/app/RotationStateTest.kt)
   rotate 0
+  rot_diag "RotationStateTest start (foldStates: ${1:-none})"
   adb shell am instrument -w -r -e class com.stethoscore.app.RotationStateTest ${1:+-e foldStates "$1"} $runner | tee test-results/rotation-state.txt
   grep -qF "OK ($tests tests)" test-results/rotation-state.txt
 }
@@ -206,11 +240,17 @@ case "$kind" in
     echo "device states: open=${open:-none} half=${half:-none} closed=${closed:-none}" | tee test-results/postures.txt
     if [ "$part" != tests ]; then
       # each posture the image has, by device_state, else the emulator console's fold and unfold
+      # a fold must not put the device to sleep (the platform's fold-lock setting; the wake after each posture holds if this image names it otherwise)
+      adb shell settings put secure fold_lock_behavior_setting stay_awake_on_fold_key || true
+      adb shell settings put system fold_lock_behavior_setting stay_awake_on_fold_key || true
+      adb shell svc power stayon true || true
       if [ -n "$open" ]; then adb shell cmd device_state state "$open"; else adb emu unfold || true; fi
+      settle_device "posture flat"
       orient_passes flat
       if [ "$kind" = fold ]; then
         if [ -n "$half" ]; then
           adb shell cmd device_state state "$half"
+          settle_device "posture half open"
           # half open, upright: the book; turned, the fold lies across: the tabletop
           shots_pass book natural 0 light
           shots_pass tabletop left 1 light
@@ -218,8 +258,10 @@ case "$kind" in
         else echo "no half-open state on this image: book and tabletop proved by FoldLayoutTest only" | tee -a test-results/postures.txt; fi
       fi
       if [ -n "$closed" ]; then adb shell cmd device_state state "$closed"; else adb emu fold || true; fi
+      settle_device "posture folded"
       orient_passes folded
       adb shell cmd device_state state reset || adb emu unfold || true
+      settle_device "posture reset"
     fi
     if [ "$part" != shots ]; then
       [ "$kind" = fold ] && fold_layout_passes

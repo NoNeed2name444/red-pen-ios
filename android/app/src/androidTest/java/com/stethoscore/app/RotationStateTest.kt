@@ -1,7 +1,9 @@
 package com.stethoscore.app
 
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
@@ -77,8 +79,15 @@ class RotationStateTest {
     private fun exists(matcher: SemanticsMatcher) = compose.onAllNodes(matcher).fetchSemanticsNodes().isNotEmpty()
 
     private fun waitFor(what: String, matcher: SemanticsMatcher) {
-        try { compose.waitUntil(20_000) { exists(matcher) } } catch (e: androidx.compose.ui.test.ComposeTimeoutException) { throw AssertionError("no $what", e) }
+        try { compose.waitUntil(20_000) { exists(matcher) } } catch (e: androidx.compose.ui.test.ComposeTimeoutException) { throw AssertionError("no $what; lists at ${listsAt()}", e) }
     }
+
+    /** Where each scrolling list stands, for the failure message and the ROT-DIAG lines: its scroll value (first visible item and offset) over its largest. */
+    private fun listsAt(): String = try {
+        compose.onAllNodes(hasScrollToNodeAction()).fetchSemanticsNodes().joinToString(" ") { node ->
+            node.config.getOrElseNullable(SemanticsProperties.VerticalScrollAxisRange) { null }?.let { "${it.value()}/${it.maxValue()}" } ?: "-"
+        }.ifEmpty { "none" }
+    } catch (e: Exception) { "unread (${e.javaClass.simpleName})" }
 
     /** Tapped by its click action (a bar's button can lie below the fold of a short landscape window), brought into view first where it scrolls. */
     private fun tap(what: String, matcher: SemanticsMatcher) {
@@ -110,6 +119,7 @@ class RotationStateTest {
                 assertEquals("$name swaps the display's sides", natural.first > natural.second, turned.first < turned.second)
             }
             instrumentation.runOnMainSync { LearnRouter.close() }
+            RotDiag.snapshot("RotationStateTest after $name; lists at ${listsAt()}")
             check(name)
         }
     }
@@ -161,13 +171,19 @@ class RotationStateTest {
         instrumentation.runOnMainSync { LearnRouter.close() }
         compose.waitForIdle()
         val list = hasScrollToNodeAction()
+        // A row from the middle of the list, not its last line (T0245). A turn keeps the list's first visible
+        // row, so after a turn to a shorter window the last line ("Study aid", the footer) lies below the
+        // window and is not composed: the tablets' "no home after natural" / "after left" (a tall window
+        // turned to a short one). The row put at the top stays the top row in every window.
+        val anchor = hasText("Scroll filler 20")
         waitFor("home's list", hasContentDescription("Account and settings"))
-        compose.onNode(list).performScrollToNode(hasText("Study aid", substring = true))
+        compose.onNode(list).performScrollToNode(anchor)
         compose.waitForIdle()
         assertTrue("home's list scrolled past its header", !exists(hasContentDescription("Account and settings")))
         turnAndCheck { step ->
-            waitFor("home after $step", hasText("Study aid", substring = true))
-            // the list is not back at its top
+            waitFor("home after $step", anchor)
+            // the row is on the screen, still where the list was put, and the list is not back at its top
+            compose.onAllNodes(anchor).onFirst().assertIsDisplayed()
             assertTrue("home's list kept its place after $step", !exists(hasContentDescription("Account and settings")))
         }
         compose.onNode(list).performScrollToNode(hasContentDescription("Search"))
