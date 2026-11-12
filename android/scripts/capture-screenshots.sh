@@ -57,9 +57,10 @@ fi
 if [ "${1:-}" != matrix ]; then
 # What the run must show, read from the test itself: one result per @Test, one picture per shot("...") name.
 # (the ScreenshotTest class's own @Tests: WindowShots, below it in the file, is the window matrix's)
+# \b keeps a call like RotDiag.snapshot("...") from counting as a picture: "snapshot(" ends in "shot("
 test_source=app/src/androidTest/java/com/stethoscore/app/ScreenshotTest.kt
 tests=$(awk '/^class WindowShots/{exit} /@Test/{c++} END{print c+0}' "$test_source")
-shots=$(grep -o 'shot("[^"]*")' "$test_source" | sort -u | wc -l)
+shots=$(grep -o '\bshot("[^"]*")' "$test_source" | sort -u | wc -l)
 echo "expecting OK ($tests tests) and $shots pictures" | tee test-results/expected.txt
 [ "$tests" -gt 0 ] && [ "$shots" -gt 0 ]
 adb shell am instrument -w -r -e class com.stethoscore.app.ScreenshotTest com.stethoscore.app.test/androidx.test.runner.AndroidJUnitRunner | tee test-results/instrumentation.txt
