@@ -150,6 +150,15 @@ object CoverageWords {
 
     /** The summary of a kept check (iOS checkSummary, :286-306). */
     fun checkedBy(who: String, whenText: String): String = "Checked by $who \u00B7 $whenText"
+
+    /**
+     * When a check was made: "now" under a minute, as iOS's relative date says it
+     * (CoverageView.swift:285), then the platform's own relative time.
+     */
+    fun checkedWhen(date: Long, now: Long): String =
+        if (kotlin.math.abs(now - date) < 60_000) "now"
+        else DateUtils.getRelativeTimeSpanString(date, now, DateUtils.SECOND_IN_MILLIS).toString()
+
     fun fallbackNote(who: String): String =
         "${CoverageCloudCheck.displayName(CoverageCloudCheck.preferredModel)} wasn't available, so $who checked it."
     fun failedLine(failed: List<String>): String =
@@ -306,7 +315,7 @@ object CoverageWords {
 /** Who made the kept check and when, and what did not go to plan (iOS checkSummary, :274-301). */
 @Composable private fun CheckSummary(check: CoverageCheck, modifier: Modifier = Modifier) {
     val who = CoverageCloudCheck.displayName(check.source)
-    val whenText = remember(check.date) { DateUtils.getRelativeTimeSpanString(check.date, System.currentTimeMillis(), DateUtils.SECOND_IN_MILLIS).toString() }
+    val whenText = CoverageWords.checkedWhen(check.date, System.currentTimeMillis())
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(CoverageWords.checkedBy(who, whenText), style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.ink))
         if (!check.byPreferredModel) Text(CoverageWords.fallbackNote(who), style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary))

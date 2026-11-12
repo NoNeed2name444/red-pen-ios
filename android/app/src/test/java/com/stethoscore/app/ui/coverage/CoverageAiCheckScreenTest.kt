@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import androidx.test.core.app.ApplicationProvider
+import com.stethoscore.app.coverage.CoverageCloudCheck
 import com.stethoscore.app.coverage.Syllabus
 import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.llm.CloudJobs
@@ -93,6 +94,10 @@ class CoverageAiCheckScreenTest {
         fun runAll() {
             while (true) (synchronized(queue) { queue.removeFirstOrNull() } ?: break).run()
         }
+        /** Lets the oldest waiting request go, and only that one. */
+        fun runOne() {
+            (synchronized(queue) { queue.removeFirstOrNull() } ?: return).run()
+        }
     }
 
     // the worker and the builds
@@ -134,6 +139,11 @@ class CoverageAiCheckScreenTest {
             done()
         }
     }
+
+    /** The checks kept on the device, by file name. */
+    private fun kept(): List<String> =
+        File(ApplicationProvider.getApplicationContext<Context>().filesDir, "Coverage").listFiles().orEmpty()
+            .map { it.name }.filter { it.startsWith("check-") }
 
     private fun there(text: String) = compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
     private fun thereContaining(text: String) = compose.onAllNodesWithText(text, substring = true).fetchSemanticsNodes().isNotEmpty()
@@ -197,6 +207,12 @@ class CoverageAiCheckScreenTest {
         assertEquals(3, parked.waiting)
         assertTrue(seen.isEmpty())
 
+        // one answer in, and the count says so (the real number of areas, not a stand-in); the next request takes its place
+        parked.runOne()
+        until { there("Checking 1 of ${areas.size} areas…") }
+        assertEquals(1, seen.size)
+        assertEquals("a finished request makes room for the next", 3, parked.waiting)
+
         parked.runAll()
         until { thereContaining("Checked by") }
         assertEquals("one request for each area", areas.size, seen.size)
@@ -220,6 +236,79 @@ class CoverageAiCheckScreenTest {
         assertTrue(there(hint))
     }
 
+    @Test fun stopWhileARequestIsBeingAnsweredKeepsNothing() {
+        val parked = Parked()
+        CloudJobs.io = parked
+        var tapped = false
+        // Stop is tapped from inside the worker, so the request has begun and its answer is still on the way
+        show(owner(worker {
+            if (!tapped) {
+                tapped = true
+                compose.onNode(hasContentDescription("Stop the AI check")).performClick()
+            }
+            verdicts(it)
+        }))
+        compose.onNodeWithText("Check with AI").performClick()
+        until { thereContaining("Checking 0 of") }
+        parked.runOne()
+        assertTrue("the request had begun", tapped)
+        until { there("Check with AI") }
+        assertTrue(!thereContaining("Checking "))
+        // the other requests, still waiting, go nowhere; the answer that was on its way is dropped
+        parked.runAll()
+        compose.waitForIdle()
+        assertEquals("only the request that had begun reached the worker", 1, seen.size)
+        assertTrue(!thereContaining("Checked by") && !thereContaining("Seen in"))
+        assertTrue("nothing was kept: ${kept()}", kept().isEmpty())
+        assertTrue(there(hint))
+    }
+
+    @Test fun leavingTheScreenWithRequestsWaitingSendsNothingAndKeepsNothing() {
+        val parked = Parked()
+        CloudJobs.io = parked
+        val spend = OwnerSpend(OwnerSpend.MemoryStore())
+        val llm = owner(spend = spend)
+        val store = StudyStore(folder.newFolder())
+        var open by mutableStateOf(true)
+        compose.setContent { CompositionLocalProvider(LocalLLMService provides llm) { StethoscoreTheme { if (open) CoverageScreen(store, {}) } } }
+        until { there("Check with AI") }
+        compose.onNodeWithText("Check with AI").performClick()
+        until { thereContaining("Checking 0 of") }
+        assertEquals(3, parked.waiting)
+
+        compose.runOnIdle { open = false }
+        compose.waitForIdle()
+        assertTrue(!there("Gaps only"))
+        parked.runAll()
+        compose.waitForIdle()
+        assertTrue("nothing was sent after the screen was left", seen.isEmpty())
+        assertEquals("nothing was counted against the cap", 0L, spend.spentMicros)
+        assertTrue("nothing was kept: ${kept()}", kept().isEmpty())
+    }
+
+    @Test fun aRunForAServiceThatIsReplacedStopsWithIt() {
+        // the screen stays; the service it was given is swapped, so the checker built on the old one goes. Its run goes too.
+        val parked = Parked()
+        CloudJobs.io = parked
+        val spend = OwnerSpend(OwnerSpend.MemoryStore())
+        var llm by mutableStateOf(owner(spend = spend))
+        val store = StudyStore(folder.newFolder())
+        compose.setContent { CompositionLocalProvider(LocalLLMService provides llm) { StethoscoreTheme { CoverageScreen(store, {}) } } }
+        until { there("Check with AI") }
+        compose.onNodeWithText("Check with AI").performClick()
+        until { thereContaining("Checking 0 of") }
+        assertEquals(3, parked.waiting)
+
+        compose.runOnIdle { llm = owner() }
+        until { there("Check with AI") }
+        assertTrue(!thereContaining("Checking "))
+        parked.runAll()
+        compose.waitForIdle()
+        assertTrue("the old run sent nothing: ${seen.size}", seen.isEmpty())
+        assertEquals("and counted nothing", 0L, spend.spentMicros)
+        assertTrue("and kept nothing: ${kept()}", kept().isEmpty())
+    }
+
     @Test fun aFinishedCheckSaysWhoMadeItAndMarksEachRow() {
         val server = worker()
         show(owner(server))
@@ -237,6 +326,36 @@ class CoverageAiCheckScreenTest {
         assertTrue(seen.all { it.path == "/v1/chat/completions" && it.bearer == FakeServer.standInKey() })
         assertTrue(seen.all { it.body!!.getString("prefer") == preferred && it.body!!.getString("model") == "cramdown-writer" })
         compose.onNodeWithText("Check again").assertTarget("Check again")
+    }
+
+    @Test fun aCheckMadeJustNowSaysNowNotZeroSeconds() {
+        show(owner())
+        compose.onNodeWithText("Check with AI").performClick()
+        until { thereContaining("Checked by") }
+        assertTrue(there("Checked by Gemini 3.1 Pro \u00B7 now"))
+        assertTrue(!thereContaining("seconds ago"))
+    }
+
+    @Test fun aCheckIsNowForAMinuteThenTheRelativeTime() {
+        val then = 1_700_000_000_000L
+        assertEquals("now", CoverageWords.checkedWhen(then, then))
+        assertEquals("now", CoverageWords.checkedWhen(then, then + 59_999))
+        assertEquals("1 minute ago", CoverageWords.checkedWhen(then, then + 60_000))
+        assertEquals("5 minutes ago", CoverageWords.checkedWhen(then, then + 5 * 60_000))
+        assertEquals("2 hours ago", CoverageWords.checkedWhen(then, then + 2 * 3_600_000))
+    }
+
+    // when two models answered, the one that answered more areas is named, and is first in the kept check
+    @Test fun theModelThatAnsweredMostAreasIsTheOneNamed() {
+        val few = areas.first().name
+        show(owner(worker { verdicts(it, if (areaOf(it) == few) "model-few" else "model-many") }))
+        compose.onNodeWithText("Check with AI").performClick()
+        until { thereContaining("Checked by") }
+        assertTrue(thereContaining("Checked by model-many"))
+        assertTrue(!thereContaining("Checked by model-few"))
+        // most areas first (CoverageChecker.kt: sources ranked by how many areas each answered; iOS CoverageChecker.swift:109)
+        val check = CoverageCloudCheck.load(File(ApplicationProvider.getApplicationContext<Context>().filesDir, "Coverage"), ExamTrack.general)
+        assertEquals(listOf("model-many", "model-few"), check?.sources)
     }
 
     @Test fun aCheckAnotherModelMadeSaysThePreferredOneWasNotThere() {
@@ -274,6 +393,18 @@ class CoverageAiCheckScreenTest {
         assertTrue(there("1 area could not be checked this time: $first."))
         assertTrue(!thereContaining("Seen in $first"))
         assertTrue(thereContaining("Seen in ${areas.last().name}"))
+    }
+
+    @Test fun anAreaWhoseReplyCannotBeReadIsNamedAndTheRestStand() {
+        val first = areas.first().name
+        show(owner(worker { if (areaOf(it) == first) FakeServer.chat("I could not do that.") else verdicts(it) }))
+        compose.onNodeWithText("Check with AI").performClick()
+        until { thereContaining("Checked by") }
+        assertTrue(there("1 area could not be checked this time: $first."))
+        assertTrue(!thereContaining("Seen in $first"))
+        assertTrue(thereContaining("Seen in ${areas.last().name}"))
+        val check = CoverageCloudCheck.load(File(ApplicationProvider.getApplicationContext<Context>().filesDir, "Coverage"), ExamTrack.general)
+        assertEquals(listOf(first), check?.failedAreas)
     }
 
     @Test fun whenNothingComesBackTheBannerSaysWhyAndTheKeywordCheckStands() {
