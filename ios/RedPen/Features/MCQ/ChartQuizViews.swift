@@ -135,14 +135,18 @@ struct ChartVitalsGrid: View {
 }
 
 /// The results as a monospaced table - name, value, unit, H or L - with a
-/// flagged value and its letter in Resus Red. The table is read whole, one
-/// result after another as ChartQuiz.spoken says it, by one element round the
-/// layout (`.ignore` and a label, as MCQQuizView's sureLabel is). The name
-/// cell drew only "Albumin" and was labelled with the rest of the result, and
-/// the default-size audit flagged it, "Text clipped" and "Dynamic Type font
-/// sizes are partially unsupported", in all 6 probe passes of runs
-/// 43134634665 and 43101491081. That label is the suspected cause, not a
-/// proven one: a Mac run decides.
+/// flagged value and its letter in Resus Red. Each result is one combined
+/// element (`.combine` and a label), read as ChartQuiz.spoken says it: the
+/// GridRow in the wide layout, the stacked VStack in the narrow one. This is
+/// the shape the T0241 probe calls "V3". The name cell draws only the name and
+/// has no label of its own. Whether the modifier on a GridRow gives one
+/// element per result or one per cell is open until a Mac run settles it: the
+/// run's PROBE-NODE quiz lines show it, and one node per lab labelled
+/// "Albumin 22 g/L, low" means one element.
+/// Until T0249 one `.ignore` element round the whole table read it all, the
+/// name cell drew only "Albumin" and the default-size audit flagged that cell,
+/// "Text clipped" and "Dynamic Type font sizes are partially unsupported", in
+/// all 6 probe passes of runs 43134634665 and 43101491081.
 /// When large text leaves the four columns no room, each result is stacked:
 /// its name, then its value, unit and flag, as ChartChipsRow stacks its chips
 /// (the default-size audit, run 42076348385, found "Albumin" cut in its
@@ -163,8 +167,10 @@ struct ChartLabsTable: View {
         }
     }
 
-    /// The table as V3 draws it: each row or stacked result combined as one
-    /// spoken line (`ChartQuiz.spoken`).
+    /// The shape the T0241 probe (Shared/A11yProbeLabs.swift) called V3: one
+    /// combined spoken line per result (`ChartQuiz.spoken`), on the GridRow in
+    /// the wide layout and on the stack in the narrow one. Its probe run still
+    /// showed one "Text clipped" with no element.
     private var present: some View {
         dressed(ViewThatFits(in: .horizontal) {
             gridOf { combined(row($0), $0) }
