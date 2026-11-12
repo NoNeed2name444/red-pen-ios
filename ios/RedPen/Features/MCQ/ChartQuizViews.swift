@@ -137,10 +137,12 @@ struct ChartVitalsGrid: View {
 /// The results as a monospaced table - name, value, unit, H or L - with a
 /// flagged value and its letter in Resus Red. The table is read whole, one
 /// result after another as ChartQuiz.spoken says it, by one element round the
-/// layout: a cell given the whole result's words as its label was a StaticText
-/// 65 by 18 points holding "Albumin 22 g/L, low", and the default-size audit
-/// flagged it, "Text clipped" and "Dynamic Type font sizes are partially
-/// unsupported", in all 6 probe passes of runs 43134634665 and 43101491081.
+/// layout (`.ignore` and a label, as MCQQuizView's sureLabel is). The name
+/// cell drew only "Albumin" and was labelled with the rest of the result, and
+/// the default-size audit flagged it, "Text clipped" and "Dynamic Type font
+/// sizes are partially unsupported", in all 6 probe passes of runs
+/// 43134634665 and 43101491081. That label is the suspected cause, not a
+/// proven one: a Mac run decides.
 /// When large text leaves the four columns no room, each result is stacked:
 /// its name, then its value, unit and flag, as ChartChipsRow stacks its chips
 /// (the default-size audit, run 42076348385, found "Albumin" cut in its
