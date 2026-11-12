@@ -53,6 +53,7 @@ import com.stethoscore.app.ui.ward.WardButtonKind
 import com.stethoscore.app.ui.ward.WardCardFace
 import com.stethoscore.app.ui.ward.WardChip
 import com.stethoscore.app.ui.ward.WardChipButton
+import com.stethoscore.app.ui.ward.WardControlSize
 import com.stethoscore.app.ui.ward.WardSmallCapsText
 import com.stethoscore.app.ui.ward.WardTimerPill
 import com.stethoscore.app.ui.mock.StudyTitleBar
@@ -689,10 +690,10 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
                 if (!actionsInline) answerRow()
             }
         }
-        // in a window so short that the title bar, the header and this deck would leave the page above it less than a
-        // touch target (T0247: 412 x 302 dp, 0 px, so no option could be scrolled into view), the deck without How sure?
-        // (optional) and its fold band; Back and the main action stay
-        FirstThatLeavesRoom(48.dp,
+        // in a window so short that the title bar, the header and this deck would leave the page above it less than the
+        // least touch target (WardControlSize.target; T0247: 412 x 302 dp, 0 px, so no option could be scrolled into
+        // view), the deck without How sure? (optional) and its fold band; Back and the main action stay
+        FirstThatLeavesRoom(WardControlSize.target.wardDp,
             { StudyActionBar(folds = true, shown = p != null || !actionsInline || (!a.checked && asksConfidence)) { deckBody(asksConfidence) } },
             { StudyActionBar(shown = p != null || !actionsInline) { deckBody(false) } })
     }

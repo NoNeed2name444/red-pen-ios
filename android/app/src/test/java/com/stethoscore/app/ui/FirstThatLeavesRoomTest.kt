@@ -6,12 +6,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.stethoscore.app.ui.ward.WardControlSize
+import com.stethoscore.app.ui.ward.wardDp
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -49,6 +52,27 @@ class FirstThatLeavesRoomTest {
     @Test fun theFirstChoiceWhenThePageKeepsItsRoom() { show(300.dp); shows("tall") }
     @Test fun aSmallerChoiceWhenTheFirstTakesTheRoom() { show(150.dp); shows("short") }
     @Test fun theLastChoiceWhenNoneLeavesIt() { show(80.dp); shows("least") }
+
+    // The boundary, in whole pixels: a choice that leaves exactly the room is kept, and with one pixel less the next
+    // is chosen. The room is the quiz's own (WardControlSize.target); the first choice is 200 dp tall.
+    private fun showAtBoundary(pixelsOverTheBoundary: Int) {
+        compose.setContent {
+            val room = WardControlSize.target.wardDp
+            val first = 200.dp
+            val parent = with(LocalDensity.current) { (first.roundToPx() + room.roundToPx() + pixelsOverTheBoundary).toDp() }
+            Box(Modifier.height(parent)) {
+                FirstThatLeavesRoom(
+                    room,
+                    { Box(Modifier.size(100.dp, first).testTag("tall")) },
+                    { Box(Modifier.size(100.dp, 60.dp).testTag("short")) },
+                )
+            }
+        }
+    }
+
+    @Test fun aChoiceThatLeavesExactlyTheRoomIsKept() { showAtBoundary(0); shows("tall") }
+    @Test fun oneStepOverTheBoundaryKeepsTheFirstChoice() { showAtBoundary(1); shows("tall") }
+    @Test fun oneStepUnderTheBoundaryPicksTheNextChoice() { showAtBoundary(-1); shows("short") }
     @Test fun aHeightThatChangesPicksAgain() {
         show(300.dp); shows("tall")
         height.value = 150.dp; compose.waitForIdle(); shows("short")

@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.quiz.ChartQuiz
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -41,6 +42,9 @@ import org.robolectric.annotation.GraphicsMode
 // 0 px tall, and performScrollTo (which loops until the node is in view) looped for good. This drives the same steps
 // at the six sizes of that pass, at the phone's 420 dpi. Scrolling is bounded here, so a question area that cannot
 // show an option fails the test instead of hanging it, and a timeout bounds the whole run as well.
+// It also pins which deck each size keeps (FirstThatLeavesRoom): the full one, with the fold band and the optional
+// "How sure?" row, where the page above it keeps a touch target of room, and the compact one, with Back and the main
+// action only, where it would not.
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w412dp-h915dp-420dpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -95,7 +99,18 @@ class SplitWindowQuizTest {
         compose.waitForIdle()
     }
 
-    private fun quizChecked(z: DpSize) {
+    /** The deck a window keeps: Full has the fold band and the How sure? row, Compact has neither. */
+    private enum class Deck { Full, Compact }
+
+    /** The deck on show under an unanswered question; a deck with only one of the two extras fails the check. */
+    private fun deckKept(): Deck {
+        val band = compose.onAllNodes(hasContentDescription("Hide buttons")).fetchSemanticsNodes().isNotEmpty()
+        val sure = compose.onAllNodes(hasContentDescription("How sure are you? Optional")).fetchSemanticsNodes().isNotEmpty()
+        check(band == sure) { "a deck with the fold band $band and the How sure? row $sure: it must hold both or neither" }
+        return if (band) Deck.Full else Deck.Compact
+    }
+
+    private fun quizChecked(z: DpSize, deck: Deck) {
         val stores = HashMap<DpSize, StudyStore>()
         compose.setContent {
             val zz = size.value
@@ -112,6 +127,9 @@ class SplitWindowQuizTest {
         compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(set.name))
         tap("the set's row", hasText(set.name) and hasClickAction())
         val q = set.questions.first()
+        // the deck holds Back and the main action either way; wait for it, then see which one the window kept
+        waitFor("the deck's main action", hasText(ChartQuiz.primaryTitle(false, false, false, false, false)))
+        assertEquals("the deck kept at $z", deck, deckKept())
         // every option, not only the right one: where the options are shuffled to is not the test's to know
         for (option in q.options) reach("the option '${option.take(20)}'", hasClickAction() and hasContentDescription(": $option", substring = true))
         tap("the right answer", hasClickAction() and hasContentDescription(": " + q.options[q.correctIndex], substring = true))
@@ -119,10 +137,10 @@ class SplitWindowQuizTest {
         waitFor("Next question", hasText(ChartQuiz.primaryTitle(true, true, false, false, false)))
     }
 
-    @Test(timeout = 120_000) fun at412x302() = quizChecked(DpSize(412.dp, 302.dp))
-    @Test(timeout = 120_000) fun at412x453() = quizChecked(DpSize(412.dp, 453.dp))
-    @Test(timeout = 120_000) fun at412x604() = quizChecked(DpSize(412.dp, 604.dp))
-    @Test(timeout = 120_000) fun at302x412() = quizChecked(DpSize(302.dp, 412.dp))
-    @Test(timeout = 120_000) fun at453x412() = quizChecked(DpSize(453.dp, 412.dp))
-    @Test(timeout = 120_000) fun at604x412() = quizChecked(DpSize(604.dp, 412.dp))
+    @Test(timeout = 120_000) fun at412x302() = quizChecked(DpSize(412.dp, 302.dp), Deck.Compact)
+    @Test(timeout = 120_000) fun at412x453() = quizChecked(DpSize(412.dp, 453.dp), Deck.Full)
+    @Test(timeout = 120_000) fun at412x604() = quizChecked(DpSize(412.dp, 604.dp), Deck.Full)
+    @Test(timeout = 120_000) fun at302x412() = quizChecked(DpSize(302.dp, 412.dp), Deck.Compact)
+    @Test(timeout = 120_000) fun at453x412() = quizChecked(DpSize(453.dp, 412.dp), Deck.Full)
+    @Test(timeout = 120_000) fun at604x412() = quizChecked(DpSize(604.dp, 412.dp), Deck.Full)
 }
