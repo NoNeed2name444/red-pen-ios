@@ -617,34 +617,38 @@ final class AccessibilityUITests: XCTestCase {
 
     /// The regions of each screen, as Shared/A11yProbeHide.swift names them, in
     /// the order in which one is thought most likely to hold its issue: when a
-    /// screen's time runs out it is the last ones that are not run.
+    /// screen's time runs out it is the last ones that are not run. The two
+    /// text screens ("Text clipped") start with the text-heavy regions; the
+    /// card ("Hit area is too small") with the controls, the rating row and
+    /// the top bar first (the Accuracy and Save to Ideas buttons of its bottom
+    /// bar both set a 44 point minimum height, so it comes after them).
     private static let libraryRegions: [String] = [
-        "library-revision-card", "library-header", "library-plan-card", "library-search",
-        "library-tab-bar", "library-tiles", "library-set-rows",
+        "library-revision-card", "library-set-rows", "library-header", "library-tiles",
+        "library-plan-card", "library-search", "library-tab-bar",
     ]
     private static let quizRegions: [String] = [
-        "quiz-lab-table", "quiz-stem", "quiz-progress", "quiz-bottom-bar", "quiz-options", "quiz-top-bar",
+        "quiz-lab-table", "quiz-stem", "quiz-options", "quiz-top-bar", "quiz-progress", "quiz-bottom-bar",
     ]
     private static let cardRegions: [String] = [
-        "card-bottom-bar", "card-rating-row", "card-top-bar", "card-face", "card-progress-row",
+        "card-rating-row", "card-top-bar", "card-bottom-bar", "card-face", "card-progress-row",
     ]
 
     /// The library, opened as the "library" preview (the bisect, below).
     func testProbeBisectLibraryDiagnostic() {
         bisect("library", opening: "library", ready: ["libraryMenu", "librarySearch", "dockCategory-questions"],
-               regions: Self.libraryRegions, budget: 105)
+               regions: Self.libraryRegions, budget: 75)
     }
 
     /// The example quiz, opened as the "quiz" preview.
     func testProbeBisectQuizDiagnostic() {
         bisect("quiz", opening: "quiz", ready: ["studyMore", "studyBarFold"],
-               regions: Self.quizRegions, budget: 95)
+               regions: Self.quizRegions, budget: 65)
     }
 
     /// The example card revealed, opened as the "anki-revealed" preview.
     func testProbeBisectCardDiagnostic() {
         bisect("card-revealed", opening: "anki-revealed", ready: ["studyMore", "studyBarFold"],
-               regions: Self.cardRegions, budget: 80)
+               regions: Self.cardRegions, budget: 55)
     }
 
     /// What the audit found in the variant being run: the issue's text and its
@@ -685,7 +689,7 @@ final class AccessibilityUITests: XCTestCase {
     /// the default size (each of the class's tests signed in again, so a
     /// relaunch would), getting to the quiz or the card 16 to 20 s more, and
     /// an audit about 8 s: 28 to 50 s a variant, about 13 minutes for the 19
-    /// variants, against a step with about 5 minutes to its 30-minute cap.
+    /// variants, against a step with 283 s to its 1800 s cap (1517 s cold).
     /// The preview route costs a launch and an audit, about 15 s a variant
     /// (assumed: launch 3 to 5 s, audit 8 s, waits 2 s). What it cannot show
     /// is whether the preview screen has the issue the walk's screen has: the
@@ -693,18 +697,23 @@ final class AccessibilityUITests: XCTestCase {
     /// run says so (library 1, quiz 3 to 5 with the Dynamic Type flags that
     /// come and go, card-revealed 2).
     ///
-    /// Time: each screen has a budget in seconds (library 105, quiz 95, card
-    /// 80: 280 s, about 4.7 minutes, in all). A variant is started only if
-    /// the one before it would still fit in what is left, and a region keeps
-    /// room for the baseline. At 15 to 16 s a variant that is 6 or 7 launches
-    /// for the library, 5 or 6 for the quiz and 4 or 5 for the card (15 to 18
-    /// of the 21), so the last one or two regions of each list are left out,
-    /// each with a PROBE-BISECT-ERROR line; the lists are in the order in which
-    /// a region is thought most likely to hold its issue. These tests are named
-    /// to run after the others of the class (XCTest runs a class
-    /// alphabetically), so a step cut at its cap would lose only them. They
-    /// never fail on what the audit finds; a launch that cannot be made is the
-    /// only way they fail.
+    /// Time: each screen has a budget in seconds (library 75, quiz 65, card
+    /// 55: 195 s in all). The step has a cap of 1800 s and its cold run
+    /// measured 1517 s (run 43134634665, the probe test included), so 1517 +
+    /// 195 = 1712 s leaves 88 s. A region is started only if it and the
+    /// baseline after it would still fit in what is left, each costed as the
+    /// variant before it (the first region always runs); one that does not fit
+    /// prints a PROBE-BISECT-ERROR line and is left out. The baseline
+    /// (`hide=none`) of a screen always runs, last. At 15 s a variant that is
+    /// 4 regions of the library, 3 of the quiz and 2 of the card (9 of the
+    /// 18); at 16 s, 3, 3 and 2 (8); at 20 s, 2, 2 and 1 (5): 5 to 9 regions
+    /// in one go, 8 to 12 launches with the 3 baselines, and the rest need a
+    /// second run with the lists turned. The lists are in the order in which a
+    /// region is thought most likely to hold its issue, so the ones left out
+    /// are the least likely. These tests are named to run after the others of
+    /// the class (XCTest runs a class alphabetically), so a step cut at its
+    /// cap would lose only them. They never fail on what the audit finds; a
+    /// launch that cannot be made is the only way they fail.
     ///
     /// `bisect` runs one screen: a launch for each of `regions`, then the
     /// baseline. `opening` is the `-uiPreviewScreen` that opens it, and
@@ -718,9 +727,9 @@ final class AccessibilityUITests: XCTestCase {
         var launches = 0
         for region in regions + ["none"] {
             // the screen's time is not run over: a region leaves room for the
-            // baseline after it, and the first variant always runs
-            let reserve: TimeInterval = region == "none" ? 0 : cost
-            if Date().timeIntervalSince(started) + cost + reserve > budget {
+            // baseline after it, and the first variant always runs; the
+            // baseline itself is never left out
+            if region != "none", Date().timeIntervalSince(started) + cost + cost > budget {
                 print("PROBE-BISECT-ERROR \(screen) hide=\(region) not run: the \(Int(budget)) s for this screen's variants is used up")
                 continue
             }

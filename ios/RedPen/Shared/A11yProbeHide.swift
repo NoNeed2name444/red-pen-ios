@@ -32,7 +32,7 @@ import SwiftUI
 ///   to Ideas), `card-rating-row` (Again to Easy).
 enum A11yProbeHide {
     /// The region named on the command line, or nil for a normal launch.
-    /// Read once, as the other launch arguments are (PreviewLaunch).
+    /// Read once, into a static let, as LaunchStage reads its launch arguments.
     static let region: String? = {
         let args = ProcessInfo.processInfo.arguments
         guard let i = args.firstIndex(of: "-a11yProbeHide"), i + 1 < args.count else { return nil }
