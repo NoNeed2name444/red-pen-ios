@@ -35,6 +35,8 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.stethoscore.app.llm.CloudJobRules
+import com.stethoscore.app.llm.CloudJobs
 import com.stethoscore.app.llm.GenerationRules
 import com.stethoscore.app.ui.vitals.EcgStrip
 import com.stethoscore.app.ui.ward.WardButtonKind
@@ -56,8 +58,9 @@ import kotlin.math.roundToLong
 // generation running right now, shown as a floating card with a strip for how
 // much is done and a Cancel that really stops it. Every generator reports here
 // instead of drawing its own spinner. Android has no continued-processing task
-// or finished notification yet, so BackgroundWork, AppNotifications and
-// stopAtExpiry are not ported.
+// or finished notification yet, so BackgroundWork and AppNotifications are not
+// ported; [GenerationCenter.stopAtExpiry] is, for whatever ends the run's time
+// when there is one.
 //
 // It lives for the process, as iOS's shared one does: a rotation recreates
 // MainActivity, and the work, its card, its status line and the set it makes
@@ -139,6 +142,8 @@ object GenerationCenter {
     /** Its screen is gone for good: its note, any result and what it held go with it. */
     fun forget(owner: UUID) { notes.remove(owner); results.remove(owner); held.remove(owner) }
     private var stop: (() -> Unit)? = null
+    /** The running job's cloud deliveries, told who stopped it. */
+    private var keep: CloudJobs.Delivery? = null
     /** The screen that started the running job (New set), if any. */
     private var owner: UUID? = null
 
@@ -147,15 +152,26 @@ object GenerationCenter {
 
     /**
      * Starts showing a job, or refuses with null while another one runs. The
-     * one running is never stopped to make room. [onCancel] must cancel the
-     * work and put the screen that started it back to idle; [owner] is the
-     * screen it is started under ([LocalGenerationOwner]), which stops it when it closes.
+     * one running is never stopped to make room: a cancelled cloud job is
+     * deleted on the server with what it had written (GenerationRules). Only
+     * the student stops it (the card's Cancel, closing the screen that
+     * started it), or the system, which leaves the cloud job to finish when
+     * the app can tell it was the system ([stopAtExpiry]). [onCancel] must
+     * cancel the work and put the screen that started it back to idle;
+     * [owner] is the screen it is started under ([LocalGenerationOwner]),
+     * which stops it when it closes; [keeping] is the generation's cloud
+     * deliveries, if it may run a cloud job: kept until the job ends or is
+     * stopped, so [stopAtExpiry] can tell it who stopped it. A refused job
+     * keeps nothing, and leaves the running job's delivery alone.
      */
-    @Synchronized fun begin(title: String, total: Int, owner: UUID? = null, onCancel: () -> Unit): UUID? {
+    @Synchronized fun begin(
+        title: String, total: Int, owner: UUID? = null, keeping: CloudJobs.Delivery? = null, onCancel: () -> Unit,
+    ): UUID? {
         if (GenerationRules.admit(job?.title) != GenerationRules.Admission.Start) return null
         val id = UUID.randomUUID()
         job = Job(id, title, 0, total)
         stop = onCancel
+        keep = keeping
         this.owner = owner
         return id
     }
@@ -186,9 +202,25 @@ object GenerationCenter {
         cancel()
     }
 
+    /**
+     * The time the system gave the run is up. The work stops as with Cancel;
+     * a cloud job under it is kept for the collector only when the stop was
+     * surely the system's, not the student's own Stop on a progress indicator
+     * shown while the app is away (CloudJobRules.stopAtExpiry, afterStop).
+     * The delivery is told before the work is, since the work reads it as it ends.
+     */
+    fun stopAtExpiry(appActive: Boolean) {
+        val stopping = synchronized(this) {
+            keep?.stopped(CloudJobRules.stopAtExpiry(appActive))
+            stop.also { clear() }
+        }
+        stopping?.invoke()
+    }
+
     private fun clear() {
         job = null
         stop = null
+        keep = null
         owner = null
     }
 }

@@ -1,7 +1,12 @@
 package com.stethoscore.app.llm
 
 import android.content.Context
+import com.stethoscore.app.accuracy.AccuracyItem
+import com.stethoscore.app.accuracy.AccuracyRules
+import com.stethoscore.app.data.AnkiCard
 import com.stethoscore.app.data.CaseChecks
+import com.stethoscore.app.data.MCQQuestion
+import com.stethoscore.app.data.OsceChecklist
 import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.data.StudyStore
@@ -21,11 +26,15 @@ import java.util.concurrent.atomic.AtomicBoolean
  * library, the next time the app is opened. Port of iOS
  * Shared/CloudJobCollector.swift (collect, collectOne, asText, screen).
  *
- * Not ported yet (T0115b): the notification that says a set is ready
- * ([Announce] is where it goes; Android has no channel for it yet), the
- * background check while the app is away, the collection every minute while
- * the app is open, the evidence the server's check cites (CloudChecks) and
- * the on-device screen of questions, stations and cards (VerificationScreen).
+ * Every kind a recipe can make is screened as iOS screens it (questions,
+ * stations, cards and cases through [VerificationScreen] and the case
+ * checks; a textbook is checked by the layer once saved), and "[name] is
+ * ready" goes to [Announce] once the set is on disk.
+ *
+ * Not ported yet (T0115b): the notification channel itself ([announcer] is
+ * what the app sets once it has one), the background check while the app is
+ * away, the collection every minute while the app is open, and the evidence
+ * the server's check cites (CloudChecks).
  */
 object CloudJobCollector {
 
@@ -39,6 +48,13 @@ object CloudJobCollector {
     fun interface Announce {
         fun ready(title: String, body: String, setId: String)
     }
+
+    /**
+     * Where a set made here is announced when [collect] is not given its own:
+     * the app sets it once it has a notification channel, and every
+     * collection after that - the one at start included - says so.
+     */
+    @Volatile var announcer: Announce? = null
 
     private val collecting = AtomicBoolean(false)
 
@@ -95,7 +111,7 @@ object CloudJobCollector {
         /** The bearer to ask about a job made under this identity, or null (LLMService.cloudBearer). */
         bearer: (String?) -> String?,
         client: (String) -> BackendClient,
-        announce: Announce? = null,
+        announce: Announce? = announcer,
         launch: String = CloudJobs.launch,
         now: () -> Long = System::currentTimeMillis,
     ): List<StudySet> {
@@ -190,7 +206,12 @@ object CloudJobCollector {
             // only copy; not on disk, the job stays to be collected again
             if (!library.add(set)) return null
             _delivered.value += 1
-            announce?.ready("${set.name} is ready", body, set.id)
+            // the set is on disk: a notification that fails must not leave the job to be collected, and made, again
+            try {
+                announce?.ready("${set.name} is ready", body, set.id)
+            } catch (e: Exception) {
+                // nothing to do: the set is in the library
+            }
         }
         store.remove(pending.id)
         // the server's copy, where this device can still reach it; otherwise it expires there on its own
@@ -212,14 +233,116 @@ object CloudJobCollector {
 
     /**
      * The verification layer's first stage on what a cloud job wrote, as the
-     * screens run it: cases through their structure checks; the rest is
-     * checked by the layer once saved. Returns the set and the note of what it did.
+     * screens run it (VerificationScreen): a broken question, station or card
+     * is removed with its reason and a red flag is held; cases go through
+     * their structure checks; the independent checkers take the set once it
+     * is saved. Returns the set and the note of what it did.
      */
     private fun screen(set: StudySet): Pair<StudySet, String> = when (set.kind) {
+        StudySetKind.MCQ -> {
+            val screened = VerificationScreen.questions(set.questions)
+            set.copy(questions = screened.kept) to VerificationScreen.note(screened)
+        }
+        StudySetKind.OSCE -> {
+            val screened = VerificationScreen.stations(set.osceChecklists)
+            set.copy(osceChecklists = screened.kept) to VerificationScreen.note(screened)
+        }
+        StudySetKind.ANKI -> {
+            val screened = VerificationScreen.cards(set.cards)
+            set.copy(cards = screened.kept) to VerificationScreen.note(screened)
+        }
         StudySetKind.CASES -> {
             val screened = CaseChecks.screen(set.caseFiles)
             set.copy(caseFiles = screened.kept) to CaseChecks.note(screened.kept.size, screened.dropped.size)
         }
+        // pages: checked by the layer once saved
         else -> set to " The verification layer checks it once the set is saved."
+    }
+}
+
+/**
+ * The verification layer's first stage on newly generated material, before it
+ * is saved: the same sensors the Worker runs (AccuracyRules), on the device
+ * and instant. Port of iOS Shared/Accuracy/VerificationScreen.swift.
+ *
+ * An item broken in its structure is removed, since it cannot be learned
+ * from: no key, a key its own explanation contradicts or calls wrong, a
+ * distractor that copies the key, "all of the above" keyed beside "none of
+ * the above". Everything else is kept. A medical red flag (a dose outside any
+ * usual range, a retired practice, a look-alike drug, an impossible result)
+ * is counted as held, for the checkers to clear. Lives beside the collector
+ * until the screens that make sets by hand use it too (T0115b).
+ */
+internal object VerificationScreen {
+    /** Hits that make an item unusable as written. */
+    fun breaks(hit: AccuracyRules.Hit): Boolean = when (hit.rule) {
+        "no-key", "key-explanation-conflict", "key-called-wrong", "all-above-contradiction" -> true
+        "duplicate-option" -> hit.isSevere
+        else -> false
+    }
+
+    /** Why an item was removed, in words. */
+    fun reason(rule: String): String = when (rule) {
+        "no-key" -> "no answer key"
+        "key-explanation-conflict", "key-called-wrong" -> "key contradicted by its explanation"
+        "duplicate-option" -> "two identical correct options"
+        "all-above-contradiction" -> "contradictory \u201Cof the above\u201D options"
+        else -> rule
+    }
+
+    class Outcome<Item>(
+        val kept: List<Item>,
+        /** Removed items, counted by reason, in the order first met. */
+        val removed: List<Pair<String, Int>>,
+        /** Kept but held for the checkers: a severe medical red flag. */
+        val held: Int,
+    ) {
+        val removedCount: Int get() = removed.sumOf { it.second }
+    }
+
+    fun questions(questions: List<MCQQuestion>): Outcome<MCQQuestion> = screen(questions) { AccuracyItem.mcq(it) }
+
+    fun stations(stations: List<OsceChecklist>): Outcome<OsceChecklist> = screen(stations) { AccuracyItem.osce(it) }
+
+    fun cards(cards: List<AnkiCard>): Outcome<AnkiCard> = screen(cards) { AccuracyItem.card(it) }
+
+    fun <Item> screen(items: List<Item>, asItem: (Item) -> AccuracyItem?): Outcome<Item> {
+        val kept = mutableListOf<Item>()
+        val removed = mutableListOf<Pair<String, Int>>()
+        var held = 0
+        for (thing in items) {
+            val checked = asItem(thing)
+            if (checked == null) {
+                kept += thing
+                continue
+            }
+            val hits = AccuracyRules.hits(checked)
+            val broken = hits.firstOrNull { breaks(it) }
+            if (broken != null) {
+                val why = reason(broken.rule)
+                val at = removed.indexOfFirst { it.first == why }
+                if (at >= 0) removed[at] = why to removed[at].second + 1 else removed += why to 1
+                continue
+            }
+            if (hits.any { it.isSevere }) held += 1
+            kept += thing
+        }
+        return Outcome(kept, removed, held)
+    }
+
+    /**
+     * The status line's sentence: what the on-device checks did, and that the
+     * independent checkers are on the rest. Empty when nothing was made.
+     */
+    fun note(outcome: Outcome<*>): String {
+        if (outcome.kept.isEmpty() && outcome.removedCount == 0) return ""
+        val parts = mutableListOf<String>()
+        if (outcome.removedCount > 0) {
+            val reasons = outcome.removed.joinToString(", ") { "${it.second} ${it.first}" }
+            parts += "${outcome.removedCount} removed ($reasons)"
+        }
+        if (outcome.held > 0) parts += "${outcome.held} held for a red flag"
+        val device = if (parts.isEmpty()) " On-device checks passed." else " On-device checks: " + parts.joinToString("; ") + "."
+        return device + " The independent checkers are verifying the rest now."
     }
 }

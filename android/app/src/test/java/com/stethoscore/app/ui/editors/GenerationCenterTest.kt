@@ -21,6 +21,8 @@ import androidx.compose.ui.test.junit4.StateRestorationTester
 import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.exam.NewSetPreset
+import com.stethoscore.app.llm.CloudEndpoint
+import com.stethoscore.app.llm.CloudJobRules
 import com.stethoscore.app.llm.CloudJobs
 import com.stethoscore.app.llm.FakeJobs
 import com.stethoscore.app.llm.FakeServer
@@ -28,7 +30,13 @@ import com.stethoscore.app.llm.LLMService
 import com.stethoscore.app.llm.OwnerSpend
 import com.stethoscore.app.ui.StethoscoreTheme
 import com.stethoscore.app.ui.learn.LearnRouter
+import com.stethoscore.app.network.BackendClient
 import com.stethoscore.app.ui.library.LibraryNewSetScreen
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Before
@@ -38,6 +46,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.android.controller.ActivityController
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -97,6 +106,129 @@ class GenerationCenterTest {
         assertEquals(1, stopped)
         GenerationCenter.cancel()
         assertEquals("nothing left to stop", 1, stopped)
+    }
+
+    // T0237: begin(keeping = delivery) as iOS's begin(_:total:owner:keeping:onCancel:)
+
+    private val handOver = CloudJobRules.StopFate.handOver
+    private val delete = CloudJobRules.StopFate.delete
+
+    @Test fun aRunTheSystemStoppedTellsItsDeliveryAndStops() {
+        val delivery = CloudJobs.Delivery()
+        var stopped = 0
+        val id = GenerationCenter.begin("Writing 8 cards", 8, keeping = delivery) { stopped++ }!!
+        assertEquals("nobody has stopped it yet", CloudJobRules.Stop.student, delivery.stoppedBy)
+        GenerationCenter.stopAtExpiry(appActive = true)
+        assertEquals(CloudJobRules.Stop.system, delivery.stoppedBy)
+        assertEquals(handOver, CloudJobRules.afterStop(delivery.stoppedBy))
+        assertEquals("the work was stopped, once", 1, stopped)
+        assertNull(GenerationCenter.job)
+        // a late report cannot bring the card back
+        GenerationCenter.update(id, 5, 8)
+        assertNull(GenerationCenter.job)
+        assertFalse(GenerationCenter.end(id))
+    }
+
+    @Test fun anExpiryWhileAwayIsTakenForTheStudentsOwnStop() {
+        val delivery = CloudJobs.Delivery()
+        var stopped = 0
+        GenerationCenter.begin("Writing 8 cards", 8, keeping = delivery) { stopped++ }
+        GenerationCenter.stopAtExpiry(appActive = false)
+        assertEquals(CloudJobRules.Stop.student, delivery.stoppedBy)
+        assertEquals(delete, CloudJobRules.afterStop(delivery.stoppedBy))
+        assertEquals(1, stopped)
+        assertNull(GenerationCenter.job)
+    }
+
+    @Test fun aFinishedOrCancelledRunKeepsNoDeliveryForAnExpiryToTouch() {
+        val finished = CloudJobs.Delivery()
+        val id = GenerationCenter.begin("Writing 8 cards", 8, keeping = finished) {}!!
+        assertTrue(GenerationCenter.end(id))
+        val cancelled = CloudJobs.Delivery()
+        GenerationCenter.begin("Writing 8 cards", 8, keeping = cancelled) {}
+        GenerationCenter.cancel()
+        val closed = CloudJobs.Delivery()
+        val screen = UUID.randomUUID()
+        GenerationCenter.begin("Writing 8 cards", 8, owner = screen, keeping = closed) {}
+        GenerationCenter.cancel(startedBy = screen)
+        // an expiry with nothing running changes nothing
+        GenerationCenter.stopAtExpiry(appActive = true)
+        // and one for the next run touches only the next run's delivery
+        val next = CloudJobs.Delivery()
+        GenerationCenter.begin("Writing 8 cards", 8, keeping = next) {}
+        GenerationCenter.stopAtExpiry(appActive = true)
+        for (old in listOf(finished, cancelled, closed)) assertEquals(CloudJobRules.Stop.student, old.stoppedBy)
+        assertEquals(CloudJobRules.Stop.system, next.stoppedBy)
+    }
+
+    @Test fun aRefusedRunLeavesTheRunningOnesDeliveryAlone() {
+        val running = CloudJobs.Delivery()
+        val refused = CloudJobs.Delivery()
+        var stopped = 0
+        GenerationCenter.begin("Writing 40 questions", 40, keeping = running) { stopped++ }
+        assertNull(GenerationCenter.begin("Writing 3 cases", 3, keeping = refused) { stopped++ })
+        GenerationCenter.stopAtExpiry(appActive = true)
+        assertEquals(CloudJobRules.Stop.system, running.stoppedBy)
+        assertEquals("the one refused was never begun", CloudJobRules.Stop.student, refused.stoppedBy)
+        assertEquals(1, stopped)
+    }
+
+    @Test fun aRunWithNoDeliveryStillStopsAtExpiry() {
+        var stopped = 0
+        GenerationCenter.begin("Writing 8 questions", 8) { stopped++ }
+        GenerationCenter.stopAtExpiry(appActive = true)
+        assertEquals(1, stopped)
+        assertNull(GenerationCenter.job)
+    }
+
+    // the whole of it: the work reads who stopped it as it ends, and the cloud job goes the way that says
+
+    /** A job id of the shape the client accepts (BackendClient.jobId): a cancel for any other is never sent. */
+    private val jobId = "0f8fad5b-d9cb-469f-a165-70867728950e"
+
+    private fun running(): FakeServer = FakeServer { request ->
+        when {
+            request.method == "POST" && request.path == "/jobs" ->
+                FakeServer.ok(JSONObject().put("job", JSONObject().put("id", jobId).put("status", "queued")))
+            request.method == "GET" && request.path == "/jobs/$jobId" ->
+                FakeServer.ok(JSONObject().put("job", JSONObject().put("id", jobId).put("status", "running").put("done", 0).put("total", 2)))
+            request.method == "DELETE" -> FakeServer.ok(JSONObject().put("ok", true))
+            else -> BackendClient.Reply(404, "{}")
+        }
+    }
+
+    /** A cloud job under [delivery] that is still writing, begun on the card, stopped by [stop]; its record and the server afterwards. */
+    private fun stoppedRun(delivery: CloudJobs.Delivery, stop: () -> Unit): Pair<CloudJobs.MemoryStore, FakeServer> = runBlocking {
+        val server = running()
+        val store = CloudJobs.MemoryStore()
+        val at = CloudEndpoint(server.client("bearer"), "owner", null)
+        val spec = CloudJobs.Spec("Writing 2 questions", "loop", "questions", 2, listOf("source"), listOf(CloudJobs.Step("s", "u", 0, 100, 0.7)))
+        val work = launch(Dispatchers.Default + CloudJobs.Context("{}", delivery)) {
+            CloudJobs.run(spec, at, store, pause = { delay(60_000) })
+        }
+        withTimeout(10_000) { while (store.all().isEmpty()) delay(5) }
+        GenerationCenter.begin("Writing 2 questions", 2, keeping = delivery) { work.cancel() }
+        stop()
+        work.join()
+        store to server
+    }
+
+    @Test fun aCloudRunTheSystemStoppedIsLeftToFinishForTheCollector() {
+        val (store, server) = stoppedRun(CloudJobs.Delivery()) { GenerationCenter.stopAtExpiry(appActive = true) }
+        assertNull("handed over: no run of the app is watching it", store.all().single().launch)
+        assertEquals("and the server is not told to forget it", 0, server.requests.count { it.method == "DELETE" })
+    }
+
+    @Test fun aCloudRunTheStudentStoppedIsStoppedAndForgotten() {
+        val (store, server) = stoppedRun(CloudJobs.Delivery()) { GenerationCenter.cancel() }
+        assertTrue(store.all().isEmpty())
+        assertEquals("the server is told to stop it, once", 1, server.requests.count { it.method == "DELETE" && it.path == "/jobs/$jobId" })
+    }
+
+    @Test fun aCloudRunStoppedByAnExpiryWhileAwayIsTreatedAsTheStudents() {
+        val (store, server) = stoppedRun(CloudJobs.Delivery()) { GenerationCenter.stopAtExpiry(appActive = false) }
+        assertTrue(store.all().isEmpty())
+        assertEquals("the server is told to stop it, once", 1, server.requests.count { it.method == "DELETE" && it.path == "/jobs/$jobId" })
     }
 
     @Test fun timeLeftWaitsForAPace() {

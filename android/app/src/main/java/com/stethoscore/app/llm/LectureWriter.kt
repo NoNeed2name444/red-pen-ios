@@ -7,7 +7,9 @@ import com.stethoscore.app.quiz.ExamTrack
 import com.stethoscore.app.reading.BookFigure
 import com.stethoscore.app.reading.BookFigures
 import com.stethoscore.app.reading.BookPages
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
+import kotlin.coroutines.coroutineContext
 
 /**
  * Cards and textbook pages written from a lecture, through the writer route
@@ -17,8 +19,10 @@ import org.json.JSONArray
  * through one parser. With Stethoscore Cloud the server writes the whole set
  * as one job; any other backend is asked a batch at a time (BatchWriting).
  *
- * Not ported: the job's recipe, so a run the app is closed on is not yet
- * collected as cards or a textbook (CloudRecipe has none for these kinds).
+ * A cloud job keeps its recipe with it (CloudRecipe), so a run the app is
+ * closed on is collected as these cards or this textbook: the screen's, when
+ * it set one (a textbook's figures; the image occlusion cards that go with the
+ * cards), else one made here from what the writer is given.
  */
 object LectureWriter {
 
@@ -42,10 +46,13 @@ object LectureWriter {
         figures: List<BookFigure> = emptyList(), style: CardStyle = CardStyle.mixed,
         exam: ExamTrack = ExamTrack.general,
         already: List<String> = emptyList(), parts: List<Int>? = null,
+        store: CloudJobs.PendingStore = CloudJobs.store,
         pause: suspend (Long) -> Unit = { kotlinx.coroutines.delay(it) },
         onProgress: (Int, Int) -> Unit = { _, _ -> },
     ): Draft {
-        if (kind == StudySetKind.BOOK) return book(source, count, subject, using, figures, exam, parts, pause, onProgress)
+        if (kind == StudySetKind.BOOK) {
+            return book(source, count, subject, using, figures, exam, parts, store, pause, onProgress)
+        }
         val perCall = if (using.isOnDevice) 6 else 12
         // a long lecture is taken a window at a time, round and round
         val budget = maxOf(2_000, using.promptBudgetChars)
@@ -64,7 +71,9 @@ object LectureWriter {
                 sources = windows, steps = steps, minFields = 2, keyFields = 1, cloze = kind == StudySetKind.ANKI,
                 patience = minOf(12, maxOf(3, windows.size + 2)), perReply = cloudPerCall,
             )
-            val replies = CloudJobs.run(spec, cloud, pause = pause, onProgress = onProgress)
+            val replies = withRecipe(CloudRecipe(kind, "", subject, count)) {
+                CloudJobs.run(spec, cloud, store, pause = pause, onProgress = onProgress)
+            }
             val collected = collectLines(replies, kind, count)
             if (collected.isEmpty()) throw LLMError.EmptyReply()
             return Draft(collected.joinToString("\n"))
@@ -122,10 +131,22 @@ object LectureWriter {
         replies.mapIndexed { i, reply -> BookPages.tidyPage(reply, "Part ${i + 1}", placement.getOrElse(i) { emptyList() }) }
             .joinToString("\n\n")
 
+    /**
+     * Runs a cloud job with its recipe set, so a run the app is closed on is
+     * collected as the set it was for (CloudJobCollector): the screen's own,
+     * when it set one around this call, else [fallback]. The screen's
+     * delivery, if any, is kept.
+     */
+    private suspend fun <T> withRecipe(fallback: CloudRecipe, work: suspend () -> T): T {
+        val outer = coroutineContext[CloudJobs.Context]
+        return withContext(CloudJobs.Context(outer?.recipe ?: fallback.json(), outer?.delivery)) { work() }
+    }
+
     /** A textbook, a page at a time from its own slice of the lecture, so a long lecture is covered end to end. */
     suspend fun book(
         source: String, pages: Int, subject: String, using: LLMBackend,
         figures: List<BookFigure> = emptyList(), exam: ExamTrack = ExamTrack.general, parts: List<Int>? = null,
+        store: CloudJobs.PendingStore = CloudJobs.store,
         pause: suspend (Long) -> Unit = { kotlinx.coroutines.delay(it) },
         onProgress: (Int, Int) -> Unit = { _, _ -> },
     ): Draft {
@@ -139,7 +160,12 @@ object LectureWriter {
             }
             val spec = CloudJobs.Spec("Writing ${slices.size} textbook pages", "each", "pages", slices.size, slices, steps)
             val extra = JSONArray(placement.map { JSONArray(it) }).toString()
-            val replies = CloudJobs.run(spec, cloud, pause = pause, onProgress = onProgress, extra = extra)
+            // the figures go with the job, in the order the placement counts them, so the
+            // textbook is still made with its pictures if the app is closed first
+            val recipe = CloudRecipe(StudySetKind.BOOK, "", subject, pages, figures = figures.map { it.imageBase64 })
+            val replies = withRecipe(recipe) {
+                CloudJobs.run(spec, cloud, store, pause = pause, onProgress = onProgress, extra = extra)
+            }
             if (replies.isEmpty()) throw LLMError.EmptyReply()
             return Draft(assembleBook(replies, placement))
         }
