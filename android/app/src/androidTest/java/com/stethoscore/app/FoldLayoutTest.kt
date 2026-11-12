@@ -40,10 +40,10 @@ import java.io.File
  * that does not split), and on each of the core screens no clickable node's
  * bounds meet the hinge and every clickable node's touch area is at least
  * 48 dp each way (WardControlSize.target). The whole size of a node counts only
- * where a scroll container cuts it: cut by the edge of a pane it scrolls in, on
- * the axis it scrolls on, a node counts at its layout size (T0244); cut by a
- * clip that does not scroll, it is read as cut. The script runs this class once
- * in each orientation (natural, left, right), the device turned before it starts.
+ * on an axis where an ancestor scrolls: a node cut by the edge of the pane it
+ * scrolls in counts at its layout size there (T0244); elsewhere the touch bounds
+ * stand as cut. The script runs this class once in each orientation (natural,
+ * left, right), the device turned before it starts.
  */
 @RunWith(AndroidJUnit4::class)
 class FoldLayoutTest {
