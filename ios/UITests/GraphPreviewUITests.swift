@@ -122,11 +122,11 @@ final class GraphPreviewUITests: XCTestCase {
         XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
         let look = app.buttons["Look"]
         XCTAssertTrue(look.waitForExistence(timeout: 10), "no Look tool")
-        look.tap()
+        tapLookEntry(app, look, bringingUp: app.buttons["Universe"])
         XCTAssertTrue(app.buttons["Universe"].waitForExistence(timeout: 5), "no Universe in the Look menu")
         let legend = app.buttons["How your universe is built"]
         XCTAssertTrue(legend.waitForExistence(timeout: 5), "no legend in the Look menu")
-        legend.tap()
+        tapLookEntry(app, legend, bringingUp: app.staticTexts["How your universe is built"])
         XCTAssertTrue(app.staticTexts["How your universe is built"].waitForExistence(timeout: 10), "the legend didn't open")
         sleep(1)
         snap(app, "10-look-menu-legend")
@@ -227,7 +227,7 @@ final class GraphPreviewUITests: XCTestCase {
         XCTAssertTrue(app.otherElements["graph3D"].waitForExistence(timeout: 30), "the 3D map didn't open")
         let look = app.buttons["Look"]
         XCTAssertTrue(look.waitForExistence(timeout: 10), "no Look tool")
-        look.tap()
+        tapLookEntry(app, look, bringingUp: app.buttons["Space"])
         XCTAssertTrue(app.buttons["Space"].waitForExistence(timeout: 5), "no Space theme in the Look menu")
         XCTAssertTrue(app.buttons["Neurons"].exists, "no Neurons theme in the Look menu")
         let legend = app.buttons["How your network is built"]
@@ -393,10 +393,10 @@ final class GraphPreviewUITests: XCTestCase {
             snap(app, "46-\(k + 1)-\(theme)-links-longer")
             let look = app.buttons["Look"]
             XCTAssertTrue(look.waitForExistence(timeout: 10), "no Look tool")
-            look.tap()
             let item = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Link length")).firstMatch
+            tapLookEntry(app, look, bringingUp: item)
             XCTAssertTrue(item.waitForExistence(timeout: 5), "no Link length in the Look menu")
-            item.tap()
+            tapLookEntry(app, item, bringingUp: app.otherElements["linkLengthBar"])
             XCTAssertTrue(app.otherElements["linkLengthBar"].waitForExistence(timeout: 5), "no Link length bar")
             snap(app, "47-\(k + 1)-\(theme)-link-length-bar")
             app.terminate()
@@ -640,6 +640,30 @@ final class GraphPreviewUITests: XCTestCase {
         }
         target.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         return true
+    }
+
+    /// Taps a Look menu entry - the Look tool, or an item in its menu - and,
+    /// while `result` (what the tap should bring up) is not there 3 s later,
+    /// taps again, at most twice more: the way testStraightLines presses its
+    /// banner once more when the example has not come up. A tap the simulator
+    /// cancels brings up nothing (the iPad's testLinkLength). When the menu
+    /// has closed by then, the Look tool is tapped first to open it again and
+    /// the item is waited for. Nothing is asserted here: the caller's own wait
+    /// and message on `result` follow, so a result that never comes still
+    /// fails there as before. The items only turn something on (the legend's
+    /// sheet, the Link length bar), so a repeat does no harm.
+    private func tapLookEntry(_ app: XCUIApplication, _ entry: XCUIElement, bringingUp result: XCUIElement) {
+        for attempt in 0...2 {
+            if attempt > 0 && !entry.exists {
+                let look = app.buttons["Look"]
+                guard look.exists else { return }
+                look.tap()
+                guard entry.exists || entry.waitForExistence(timeout: 3) else { return }
+            }
+            entry.tap()
+            // the last tap is followed by the caller's own wait
+            if attempt == 2 || result.exists || result.waitForExistence(timeout: 3) { return }
+        }
     }
 
     // MARK: the depth fade (plan 4f)
