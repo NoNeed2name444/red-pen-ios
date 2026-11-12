@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -105,8 +106,13 @@ import java.time.ZoneId
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(vertical = WardSpace.m.wardDp),
         verticalArrangement = Arrangement.spacedBy(WardSpace.section.wardDp)) {
         ReaderFormSection { Box(Modifier.wardRowTile()) { PhaseHero(read.phase) } }
-        // Your exam: the chosen exam's blueprint, readiness and what to study next
-        Box(Modifier.padding(horizontal = WardSpace.l.wardDp)) { com.stethoscore.app.ui.exam.ExamDashboardCard(store, version, onPreset) }
+        // Your exam: the chosen exam's blueprint, readiness and what to study next. The card is its own face, so no row tile behind it;
+        // its header is iOS's (ExamPlanView.swift: Section { ExamDashboardCard() } header: { Text("Your exam") }).
+        ReaderFormSection("Your exam") {
+            Box(Modifier.padding(horizontal = WardSpace.l.wardDp, vertical = WardSpace.s.wardDp)) {
+                com.stethoscore.app.ui.exam.ExamDashboardCard(store, version, onPreset)
+            }
+        }
         // the streak, the goal ring and a ward round
         ReaderFormSection("Today", "One missed day a week is a free rest day and keeps your streak. Minutes in a focus session count for the streak too. Set the daily goal in Settings → Study.") {
             Box(Modifier.wardRowTile()) { TodayGoalRow(read.today) }
@@ -155,7 +161,7 @@ import java.time.ZoneId
     NotYetNotice(notice) { notice = null }
     if (pocketOpen) com.stethoscore.app.ui.exam.ExamSheet({ pocketOpen = false }) {
         com.stethoscore.app.ui.exam.WardPocketScreen(com.stethoscore.app.ui.QuizPrefs.track(context), { pocketOpen = false },
-            { made -> runCatching { store.addSet(made) } })
+            { made -> runCatching { store.addSet(made) } }, store = store)
     }
 }
 
@@ -179,7 +185,7 @@ private class PlanReading(
 /** The phase, large: "T-9 · Mock week". */
 @Composable private fun PhaseHero(phase: ExamWeekPlanner.Phase) {
     val big = phase.days?.let { if (it == 0) "Today" else "T-$it" } ?: "—"
-    Row(Modifier.fillMaxWidth().padding(vertical = WardSpace.xs.wardDp).semantics(mergeDescendants = true) {},
+    Row(Modifier.fillMaxWidth().padding(vertical = WardSpace.xs.wardDp).semantics(mergeDescendants = true) {}.testTag("planPhase"),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
         Text(big, style = WardTextStyle.largeTitle.textStyle(WardWeight.bold, mono = true), color = wardColor(WardToken.ink))
         Column(verticalArrangement = Arrangement.spacedBy(WardSpace.xs.wardDp)) {
