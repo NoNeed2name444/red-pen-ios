@@ -60,6 +60,7 @@ import com.stethoscore.app.data.RuleGroup
 import com.stethoscore.app.data.RuleWriter
 import com.stethoscore.app.data.StudyRule
 import com.stethoscore.app.data.StudyStore
+import com.stethoscore.app.llm.LLMBackend
 import com.stethoscore.app.ui.editors.EcgLoader
 import com.stethoscore.app.ui.editors.rememberLLMService
 import com.stethoscore.app.ui.mock.BigButton
@@ -84,6 +85,7 @@ import com.stethoscore.app.ui.ward.WardWidthClass
 import com.stethoscore.app.ui.ward.currentWindowShape
 import com.stethoscore.app.ui.ward.textStyle
 import com.stethoscore.app.ui.wardColor
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -113,16 +115,16 @@ fun filterRuleGroups(groups: List<RuleGroup>, query: String): List<RuleGroup> {
 }
 
 @Composable fun RuleSheetScreen(store: StudyStore, onBack: () -> Unit) {
-    BackHandler(onBack = onBack)
+    // leaving clears a finished run's line; a run still going keeps its own
+    val leave = { if (!RuleWriting.running) RuleWriting.say(null); onBack() }
+    BackHandler(onBack = leave)
     val context = LocalContext.current
-    var revision by remember { mutableIntStateOf(0) }
+    // the run, its progress, the sheet's line and its redraw live with the process (RuleWriting), not in this composition
+    val revision = RuleWriting.revision
+    val writing = RuleWriting.running
+    val note = RuleWriting.note
     var query by rememberSaveable { mutableStateOf("") }
-    var note by remember { mutableStateOf<String?>(null) }
-    var noteFailed by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf(false) }
-    var writing by remember { mutableStateOf(false) }
-    var writtenSoFar by remember { mutableIntStateOf(0) }
-    var writingTotal by remember { mutableIntStateOf(0) }
     val llm = rememberLLMService()
     val sheet = remember(revision) { store.ruleSheet }
     val shown = remember(revision, query) { filterRuleGroups(StoreInsight.rulesBySubject(sheet), query) }
@@ -132,32 +134,16 @@ fun filterRuleGroups(groups: List<RuleGroup>, query: String): List<RuleGroup> {
     // the writer model, only where Android already allows a model call (Pro, inside the cap)
     val backend = remember(revision, writing) { llm.backend() }
     val canWrite = !writing && plain.isNotEmpty() && backend != null
-    fun delete(id: String) { store.deleteRule(id); revision++ }
+    fun delete(id: String) { store.deleteRule(id); RuleWriting.changed() }
 
-    /** Starts the model on every plain rule and returns at once; the sheet fills in as each batch comes back. */
+    /** Starts the model on every plain rule and returns at once; the sheet fills in as each batch comes back. A run already going is not doubled. */
     fun writeWithAI() {
-        val model = backend
-        if (writing || model == null || plain.isEmpty()) return
-        val todo = plain
-        writing = true
-        writtenSoFar = 0
-        writingTotal = todo.size
-        note = null
-        ruleWriting.launch {
-            RuleWriter.write(todo, model) { lines ->
-                store.applyWrittenRules(lines)
-                writtenSoFar += lines.size
-                revision++
-            }
-            val done = writtenSoFar
-            writing = false
-            noteFailed = done == 0
-            note = if (done == 0) WRITE_FAILED else "Rewrote $done of ${todo.size} rule${if (todo.size == 1) "" else "s"}."
-        }
+        val model = backend ?: return
+        RuleWriting.start(store, plain, model)
     }
 
     Column(Modifier.fillMaxSize()) {
-        StudyTitleBar("Rule sheet", onBack) {
+        StudyTitleBar("Rule sheet", leave) {
             WardCircleButton(Icons.Rounded.Share, "Share", { shareText(context, StoreInsight.ruleSheetText(store.ruleSheet)) },
                 enabled = sheet.isNotEmpty())
             if (sheet.isNotEmpty()) WardTextButton(if (editing) "Done" else "Edit", { editing = !editing }, kind = WardButtonKind.compact, fills = false)
@@ -178,7 +164,7 @@ fun filterRuleGroups(groups: List<RuleGroup>, query: String): List<RuleGroup> {
                             .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
                             .heightIn(min = 48.dp).wardRowTile(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(if (noteFailed) Icons.Rounded.ErrorOutline else Icons.Rounded.CheckCircleOutline, null,
+                            Icon(if (RuleWriting.failed) Icons.Rounded.ErrorOutline else Icons.Rounded.CheckCircleOutline, null,
                                 tint = wardColor(WardToken.inkSecondary), modifier = Modifier.size(18.dp))
                             Text(text, style = WardTextStyle.subheadline.textStyle(), color = wardColor(WardToken.inkSecondary))
                         }
@@ -195,12 +181,11 @@ fun filterRuleGroups(groups: List<RuleGroup>, query: String): List<RuleGroup> {
         }
         // the slab only while there is something to do
         if (missed > 0 || canWrite || writing) StudyActionBar {
-            if (writing) RuleWritingProgress(writtenSoFar, writingTotal)
+            if (writing) RuleWritingProgress(RuleWriting.done, RuleWriting.total)
             else RuleSheetButtons(missed, if (canWrite) plain.size else 0, onAdd = {
                 val added = StoreInsight.addRulesForMissed(store)
-                noteFailed = false
-                note = "Added $added rule${if (added == 1) "" else "s"}."
-                revision++
+                RuleWriting.say("Added $added rule${if (added == 1) "" else "s"}.")
+                RuleWriting.changed()
             }, onWrite = ::writeWithAI)
         }
     }
@@ -210,11 +195,76 @@ fun filterRuleGroups(groups: List<RuleGroup>, query: String): List<RuleGroup> {
 internal const val WRITE_FAILED = "The model did not answer in a usable way; your rules are unchanged. Try again later."
 
 /**
- * The model's run belongs to the app, not to the sheet: the work goes on, and
- * what it writes lands in the store, when the student goes elsewhere (iOS's
- * Task in the view; the progress says "You can keep using the app while it works").
+ * The model's run, and what the sheet says about it, kept for the process
+ * like GenerationCenter: a rotation or a fold recreates MainActivity, and
+ * with the run in one sheet's own state the next sheet saw no run, offered
+ * the buttons again, and a second tap sent every unwritten rule a second time.
+ * Here the work (iOS's Task in the view; "You can keep using the app while
+ * it works"), its progress, its last line and the sheet's redraw are one set
+ * of snapshot state, so any sheet, old or new, shows the same run and a second
+ * one cannot start while it goes.
  */
-private val ruleWriting = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+internal object RuleWriting {
+    /** A run is on: the buttons give way to the progress. */
+    var running by mutableStateOf(false)
+        private set
+    var done by mutableIntStateOf(0)
+        private set
+    var total by mutableIntStateOf(0)
+        private set
+    /** Bumped whenever the sheet's rules change, so every sheet redraws, whoever changed them. */
+    var revision by mutableIntStateOf(0)
+        private set
+    /** The line under the search: what was added, how many were rewritten, or that none was. */
+    var note by mutableStateOf<String?>(null)
+        private set
+    var failed by mutableStateOf(false)
+        private set
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+    fun changed() { revision++ }
+
+    fun say(text: String?, failed: Boolean = false) { note = text; this.failed = failed }
+
+    /** For a test's end: no run is left in the line, the count or the redraw. */
+    internal fun forget() { note = null; failed = false; done = 0; total = 0; revision = 0 }
+
+    /**
+     * Starts the model on [rules] and returns at once; false when a run is
+     * already on or there is nothing to write. A batch whose save fails stops
+     * the run (StudyStore.save throws, and puts the rules back as they were);
+     * what was written stands, and with nothing written the line is iOS's
+     * failure. Cancellation passes through, and the run is over either way.
+     */
+    fun start(store: StudyStore, rules: List<StudyRule>, model: LLMBackend): Boolean {
+        if (running || rules.isEmpty()) return false
+        running = true
+        done = 0
+        total = rules.size
+        say(null)
+        scope.launch {
+            try {
+                try {
+                    RuleWriter.write(rules, model) { lines ->
+                        store.applyWrittenRules(lines)
+                        done += lines.size
+                        revision++
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    // a save that failed stops the run, with the rules as they were
+                }
+                if (done == 0) say(WRITE_FAILED, failed = true)
+                else say("Rewrote $done of ${rules.size} rule${if (rules.size == 1) "" else "s"}.")
+            } finally {
+                running = false
+            }
+        }
+        return true
+    }
+}
 
 /**
  * The rule sheet's slab (RuleSheetButtons): "Write N rules with AI" beside

@@ -8,6 +8,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -25,9 +26,11 @@ import com.stethoscore.app.llm.OwnerSpend
 import com.stethoscore.app.network.BackendClient
 import com.stethoscore.app.ui.StethoscoreTheme
 import com.stethoscore.app.ui.editors.LocalLLMService
+import com.stethoscore.app.ui.ward.LocalWardReduceMotion
 import com.stethoscore.app.ui.ward.LocalWindowShape
 import com.stethoscore.app.ui.ward.WindowShape
 import org.junit.After
+import org.junit.Before
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -36,6 +39,7 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.IOException
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -47,7 +51,10 @@ import java.util.concurrent.TimeUnit
 // offered; while the model writes the buttons give way to the progress; a run
 // that brings nothing back leaves the plain rules and says so; and the button,
 // the progress and the note are each at least one 48 dp target tall, with
-// their words spoken.
+// their words spoken. The run belongs to the process (RuleWriting): a sheet
+// re-created mid-run (a rotation or a fold recreates the activity) shows the
+// same run, not the buttons, and nothing is sent twice; a save that fails
+// stops the run, and the next tap can start another.
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
 class RuleSheetWriteTest {
@@ -61,7 +68,14 @@ class RuleSheetWriteTest {
         FakeServer.chat("{\"rules\": [\"Thenar wasting → median nerve\", \"Ptosis + miosis → Horner syndrome\"]}")
     }
 
-    @After fun release() { hold?.countDown() }
+    // the run belongs to the process, so nothing of one test may reach the next
+    @Before fun clean() { RuleWriting.forget() }
+
+    @After fun release() {
+        hold?.countDown()
+        if (RuleWriting.running) until { !RuleWriting.running }
+        RuleWriting.forget()
+    }
 
     private val first = MCQQuestion(stem = "A hand shows thenar wasting. Which nerve is compressed?", options = listOf("Ulnar", "Median"),
         correctIndex = 1, explanation = "The median nerve runs under the flexor retinaculum. Wrist splints help.")
@@ -196,6 +210,81 @@ class RuleSheetWriteTest {
     @Test fun aWorkerThatRefusesLeavesThePlainRulesAndSaysSo() {
         chat = { BackendClient.Reply(500, "boom") }
         assertAFailureLeavesThePlainRules(storeWithRules())
+    }
+
+    // ---- a recreated sheet, and a save that fails
+
+    private val chatPath = "/v1/chat/completions"
+
+    @Test fun aRecreatedSheetKeepsTheRunAndDoesNotStartASecond() {
+        val store = storeWithRules()
+        hold = CountDownLatch(1)
+        val llm = service()
+        // StateRestorationTester saves and restores as a recreated activity does: a new sheet with
+        // none of the old one's remember state. The ECG loop is off, so the test can wait for idle.
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            CompositionLocalProvider(LocalWardReduceMotion provides true, LocalLLMService provides llm) {
+                StethoscoreTheme { RuleSheetScreen(store, onBack = {}) }
+            }
+        }
+        compose.waitForIdle()
+        compose.onNodeWithText("Write 2 rules with AI").performClick()
+        until { seen.any { it.path == chatPath } && compose.onAllNodesWithTag("ruleWritingProgress").fetchSemanticsNodes().isNotEmpty() }
+
+        restoration.emulateSavedInstanceStateRestore()
+        compose.waitForIdle()
+
+        assertTrue("the new sheet shows the run", compose.onAllNodesWithTag("ruleWritingProgress").fetchSemanticsNodes().isNotEmpty())
+        compose.onNodeWithTag("ruleWritingProgress")
+            .assertContentDescriptionEquals("Writing rules with AI, 0 of 2. Ten at a time. You can keep using the app while it works.")
+        assertTrue("and not the write button", !shown("Write 2 rules with AI"))
+        assertEquals("one request, not two", 1, seen.count { it.path == chatPath })
+
+        hold!!.countDown()
+        until { shown("Rewrote 2 of 2 rules.") }
+        assertEquals("still one request", 1, seen.count { it.path == chatPath })
+        assertTrue("the new sheet filled in as the batch landed", compose.onAllNodesWithText("Written with AI").fetchSemanticsNodes().size == 2)
+        assertEquals("Thenar wasting → median nerve", store.ruleSheet.getValue(first.id).text)
+        assertTrue("the run is over", !RuleWriting.running)
+    }
+
+    @Test fun aSaveThatFailsStopsTheRunWithTheFailureNoteAndANewTapStartsAgain() {
+        val store = storeWithRules()
+        store.beforeRename = { throw IOException("disk full") }
+        show(service(), store)
+        compose.onNodeWithText("Write 2 rules with AI").performClick()
+        until { shown(WRITE_FAILED) }
+
+        assertTrue("the run is over, not stuck", !RuleWriting.running)
+        assertEquals(plainText(first), store.ruleSheet.getValue(first.id).text)
+        assertEquals(plainText(second), store.ruleSheet.getValue(second.id).text)
+        assertTrue("the plain rules are as they were", store.ruleSheet.values.none { it.byAI })
+        assertTrue("no written chip", !shown("Written with AI"))
+        assertTrue("the button is back", shown("Write 2 rules with AI"))
+
+        store.beforeRename = null
+        compose.onNodeWithText("Write 2 rules with AI").performClick()
+        until { shown("Rewrote 2 of 2 rules.") }
+        assertTrue("the second run wrote them", store.ruleSheet.values.all { it.byAI })
+        assertEquals("one request for each run", 2, seen.count { it.path == chatPath })
+    }
+
+    @Test fun aSaveThatFailsAfterABatchKeepsWhatWasWritten() {
+        val store = StudyStore(folder.newFolder())
+        val questions = (1..12).map { MCQQuestion(stem = "Stem $it: which one?", options = listOf("a", "b"), correctIndex = 1, explanation = "") }
+        store.addRules(questions.mapIndexed { i, q -> RuleWriter.plainRule(q, "Anatomy").copy(date = 10_000L - i) })
+        chat = { FakeServer.chat("{\"rules\": [" + (1..10).joinToString(", ") { "\"Rule $it\"" } + "]}") }
+        var saves = 0
+        store.beforeRename = { if (++saves == 2) throw IOException("disk full") }
+        show(service(), store)
+        compose.onNodeWithText("Write 12 rules with AI").performClick()
+        until { shown("Rewrote 10 of 12 rules.") }
+
+        assertEquals("ten written, two left plain", 10, store.ruleSheet.values.count { it.byAI })
+        assertEquals(2, store.ruleSheet.values.count { !it.byAI })
+        assertTrue("the run is over, not stuck", !RuleWriting.running)
+        assertTrue("two plain rules are still offered", shown("Write 2 rules with AI"))
     }
 
     // ---- the slab's layout
