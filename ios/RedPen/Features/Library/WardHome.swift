@@ -89,9 +89,9 @@ extension LibraryView {
             let due: [ReviewPlan.Due] = dueNow()
             // the card and the tiles stand as low as the rows below them,
             // so the cell never cuts their lights
-            Section { roundCard(due: due).wardCardRow() }
+            Section { roundCard(due: due).a11yProbeHide("library-revision-card").wardCardRow() }
             if category == .questions {
-                Section { homeTiles(due: due.count).wardCardRow() }
+                Section { homeTiles(due: due.count).a11yProbeHide("library-tiles").wardCardRow() }
             }
         }
     }
@@ -319,15 +319,19 @@ struct HomeHeader: View {
                 // every line it wraps to, whole, at the largest sizes
                 .fixedSize(horizontal: false, vertical: true)
                 .launchEntrance()
+                .a11yProbeHide("library-header")
             nameLine
+                .a11yProbeHide("library-header")
             Text(greeting)
                 .font(WardType.face(.footnote, weight: .regular))
                 .foregroundStyle(Color.wardInkSecondary)
                 .launchEntrance()
+                .a11yProbeHide("library-header")
             if let countdown {
                 HomePill(text: countdown, symbol: "calendar")
                     .padding(.top, WardSpace.xs)
                     .launchEntrance()
+                    .a11yProbeHide("library-plan-card")
             } else if let examPrompt {
                 Button(action: onExam) {
                     Label(examPrompt, systemImage: "calendar")
@@ -337,6 +341,7 @@ struct HomeHeader: View {
                 .accessibilityIdentifier("homeExamSetUp")
                 .padding(.top, WardSpace.xs)
                 .launchEntrance()
+                .a11yProbeHide("library-plan-card")
             }
         }
         .padding(.top, WardSpace.xs)

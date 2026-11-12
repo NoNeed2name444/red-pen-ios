@@ -11,6 +11,11 @@ import XCTest
 /// The probe of the default-size audit (T0218) is not here: it needs
 /// AccessibilityUITests' private way around the app, so it is
 /// AccessibilityUITests.testDefaultSizeAuditProbeDiagnostic, and the same step runs it.
+///
+/// Nor is the bisect of that probe's four issues with no element (T0224): it
+/// launches the app once per region of a screen with `-a11yProbeHide <region>`
+/// (Shared/A11yProbeHide.swift) and prints a PROBE-BISECT line for each, as
+/// AccessibilityUITests.testProbeBisect{Library,Quiz,Card}Diagnostic.
 final class A11yProbeUITests: XCTestCase {
     func testDynamicTypeProbeDiagnostic() throws {
         for variant in ["a", "b", "c", "d", "e", "f"] {

@@ -705,6 +705,7 @@ struct LibraryView: View {
     private var rail: some View {
         if railed && !selecting {
             CategoryDock(selection: dockSelection, inIdeas: ideasSelection, axis: .vertical) { count(in: $0) }
+                .a11yProbeHide("library-tab-bar")
                 .environment(\.colorScheme, dockScheme)
                 .environment(\.wardHeld, underSky)
                 .wardUnlit()
@@ -749,6 +750,7 @@ struct LibraryView: View {
                 if newSet { newSetRow.launchEntrance().transition(.identity) }
                 if !railed {
                     CategoryDock(selection: dockSelection, inIdeas: ideasSelection) { count(in: $0) }
+                        .a11yProbeHide("library-tab-bar")
                         .environment(\.colorScheme, dockScheme)
                         .environment(\.wardHeld, underSky)
                         .launchEntrance()
@@ -1203,6 +1205,7 @@ struct LibraryView: View {
             }
         }
         .wardField()
+        .a11yProbeHide("library-search")
     }
 
     /// Beside the search field (above it, at the accessibility sizes):

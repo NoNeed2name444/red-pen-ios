@@ -135,6 +135,7 @@ extension LibraryView {
             }
         }
         .launchEntrance(inOpening: true)
+        .a11yProbeHide("library-set-rows")
         // where it stands, so a turn keeps the first row in view (HomeRowKeep)
         .modifier(HomeRowReport(id: set.id, track: rowTrack))
         // the tile's face stands a little out of the content (WardRowTile);

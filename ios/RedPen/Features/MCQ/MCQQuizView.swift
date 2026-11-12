@@ -200,6 +200,7 @@ struct MCQQuizView: View {
         .navigationTitle(ChartQuiz.title(subject: studySet.subject, name: studySet.name))
         .diagnosticsScreen("screen:mcq_quiz")
         .navigationBarTitleDisplayMode(.inline)
+        .a11yProbeHide("quiz-top-bar", navigationBar: true)
         .toolbar {
             if isUnsaved {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -530,6 +531,7 @@ struct MCQQuizView: View {
         return StudyProgressHeader(status, detail: detail, fraction: fraction) {
             headerAccessory
         }
+        .a11yProbeHide("quiz-progress")
     }
 
     /// The question as a patient's chart: SINGLE BEST ANSWER, Hint and Flag; once
@@ -551,6 +553,7 @@ struct MCQQuizView: View {
                     .font(WardType.face(.title3, weight: .semibold))
                     .foregroundStyle(Color.wardInk)
                     .lineSpacing(3)
+                    .a11yProbeHide("quiz-stem")
             } else {
                 chart(layout)
             }
@@ -578,16 +581,17 @@ struct MCQQuizView: View {
     /// or table. Story and question are highlighted apart (ChartQuiz.marks).
     @ViewBuilder
     private func chart(_ layout: ChartQuiz.Layout) -> some View {
-        if !layout.chips.isEmpty { ChartChipsRow(chips: layout.chips) }
-        if !layout.vitals.isEmpty { ChartVitalsGrid(vitals: layout.vitals) }
+        if !layout.chips.isEmpty { ChartChipsRow(chips: layout.chips).a11yProbeHide("quiz-stem") }
+        if !layout.vitals.isEmpty { ChartVitalsGrid(vitals: layout.vitals).a11yProbeHide("quiz-stem") }
         if !layout.story.isEmpty {
             HighlightableStem(stem: layout.story, plain: plainText(layout.story),
                               marked: chartMarks(question: false), highlighting: highlighting)
                 .font(WardType.body)
                 .foregroundStyle(Color.wardInk)
                 .lineSpacing(3)
+                .a11yProbeHide("quiz-stem")
         }
-        if !layout.labs.isEmpty { ChartLabsTable(labs: layout.labs) }
+        if !layout.labs.isEmpty { ChartLabsTable(labs: layout.labs).a11yProbeHide("quiz-lab-table") }
         if !layout.question.isEmpty {
             HighlightableStem(stem: layout.question, plain: plainText(layout.question),
                               marked: chartMarks(question: true), highlighting: highlighting,
@@ -595,6 +599,7 @@ struct MCQQuizView: View {
                 .font(WardType.headline)
                 .foregroundStyle(Color.wardInk)
                 .lineSpacing(3)
+                .a11yProbeHide("quiz-stem")
         }
     }
 
@@ -1071,6 +1076,7 @@ struct MCQQuizView: View {
                         .transition(.identity)
                 }
             }
+            .a11yProbeHide("quiz-options")
 
             // the deck's How sure? (or Start again and Resume) in the page
             // at the accessibility sizes, where it scrolls with the rest
@@ -1119,6 +1125,7 @@ struct MCQQuizView: View {
             if deckShown { footer }
             if pendingResume == nil { answerButtons(proxy) }
         }
+        .a11yProbeHide("quiz-bottom-bar")
     }
 
     /// Start again and Resume while a saved place waits, or How sure?

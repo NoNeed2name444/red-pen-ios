@@ -613,6 +613,189 @@ final class AccessibilityUITests: XCTestCase {
         if more > 0 { print("\(head) \(more) more not printed") }
     }
 
+    // MARK: - The bisect of the probe's issues with no element (T0224)
+
+    /// The regions of each screen, as Shared/A11yProbeHide.swift names them, in
+    /// the order in which one is thought most likely to hold its issue: when a
+    /// screen's time runs out it is the last ones that are not run.
+    private static let libraryRegions: [String] = [
+        "library-revision-card", "library-header", "library-plan-card", "library-search",
+        "library-tab-bar", "library-tiles", "library-set-rows",
+    ]
+    private static let quizRegions: [String] = [
+        "quiz-lab-table", "quiz-stem", "quiz-progress", "quiz-bottom-bar", "quiz-options", "quiz-top-bar",
+    ]
+    private static let cardRegions: [String] = [
+        "card-bottom-bar", "card-rating-row", "card-top-bar", "card-face", "card-progress-row",
+    ]
+
+    /// The library, opened as the "library" preview (the bisect, below).
+    func testProbeBisectLibraryDiagnostic() {
+        bisect("library", opening: "library", ready: ["libraryMenu", "librarySearch", "dockCategory-questions"],
+               regions: Self.libraryRegions, budget: 105)
+    }
+
+    /// The example quiz, opened as the "quiz" preview.
+    func testProbeBisectQuizDiagnostic() {
+        bisect("quiz", opening: "quiz", ready: ["studyMore", "studyBarFold"],
+               regions: Self.quizRegions, budget: 95)
+    }
+
+    /// The example card revealed, opened as the "anki-revealed" preview.
+    func testProbeBisectCardDiagnostic() {
+        bisect("card-revealed", opening: "anki-revealed", ready: ["studyMore", "studyBarFold"],
+               regions: Self.cardRegions, budget: 80)
+    }
+
+    /// What the audit found in the variant being run: the issue's text and its
+    /// element, and how many times.
+    private var bisectTally: [String: Int] = [:]
+
+    /// Diagnostic, not a check (as the probe above): the audit names no element
+    /// for four issues at the default size, which repeat on every pass of
+    /// every run: the library's one "Text clipped", the quiz's one "Text
+    /// clipped", and the revealed card's two "Hit area is too small". Each of
+    /// these tests takes one of those screens and launches the app once per
+    /// region of it, with `-a11yProbeHide <region>` (Shared/A11yProbeHide.swift),
+    /// which hides that region from the view tree and does not draw it. One
+    /// audit pass is run per launch, with the real audit's types, and one line
+    /// is printed:
+    ///
+    ///     PROBE-BISECT <screen> hide=<region> issues=<n> <issue>[<element>]=<count>; ... nodes=<n>
+    ///
+    /// `<issue>` is the audit's own short text ("Text clipped", "Hit area is
+    /// too small", "Dynamic Type font sizes are partially unsupported") and
+    /// `<element>` the element's identifier, else label (40 characters), else
+    /// nil where the audit names none. An issue count that drops when region R
+    /// is hidden puts the issue inside R; `nodes` is the size of the screen's
+    /// accessibility tree, so a hide that took nothing with it shows at once
+    /// (a region name the app does not know, or a view that was not on screen).
+    /// The last variant of a screen, `hide=none`, hides nothing: the baseline,
+    /// launched the same way. Read: `grep -E "PROBE-BISECT" a11y.log`.
+    ///
+    /// The other lines: `PROBE-BISECT-ERROR <screen> hide=<region> <why>` for a
+    /// variant whose screen did not open, whose audit threw, or that was not
+    /// run because the screen's time was used up; `PROBE-BISECT-DONE <screen>
+    /// launches=<n> of <m> seconds=<s>`, which is the time actually spent.
+    ///
+    /// The screens are opened with `-uiPreviewScreen` (library, quiz,
+    /// anki-revealed: the screenshot route, on the same sample sets the probe
+    /// opens), not by the probe's own walk through sign-in and the dock. In
+    /// run 43134634665's `t =` stamps a launch and sign-in took 19 to 23 s at
+    /// the default size (each of the class's tests signed in again, so a
+    /// relaunch would), getting to the quiz or the card 16 to 20 s more, and
+    /// an audit about 8 s: 28 to 50 s a variant, about 13 minutes for the 19
+    /// variants, against a step with about 5 minutes to its 30-minute cap.
+    /// The preview route costs a launch and an audit, about 15 s a variant
+    /// (assumed: launch 3 to 5 s, audit 8 s, waits 2 s). What it cannot show
+    /// is whether the preview screen has the issue the walk's screen has: the
+    /// `hide=none` line against the probe's own PROBE-PASS lines of the same
+    /// run says so (library 1, quiz 3 to 5 with the Dynamic Type flags that
+    /// come and go, card-revealed 2).
+    ///
+    /// Time: each screen has a budget in seconds (library 105, quiz 95, card
+    /// 80: 280 s, about 4.7 minutes, in all). A variant is started only if
+    /// the one before it would still fit in what is left, and a region keeps
+    /// room for the baseline. At 15 to 16 s a variant that is 6 or 7 launches
+    /// for the library, 5 or 6 for the quiz and 4 or 5 for the card (15 to 18
+    /// of the 21), so the last one or two regions of each list are left out,
+    /// each with a PROBE-BISECT-ERROR line; the lists are in the order in which
+    /// a region is thought most likely to hold its issue. These tests are named
+    /// to run after the others of the class (XCTest runs a class
+    /// alphabetically), so a step cut at its cap would lose only them. They
+    /// never fail on what the audit finds; a launch that cannot be made is the
+    /// only way they fail.
+    ///
+    /// `bisect` runs one screen: a launch for each of `regions`, then the
+    /// baseline. `opening` is the `-uiPreviewScreen` that opens it, and
+    /// `ready` the identifiers of which at least one is on the screen in
+    /// every variant (the hidden region's own are gone from it, so the list
+    /// spans the regions).
+    private func bisect(_ screen: String, opening route: String, ready: [String],
+                        regions: [String], budget: TimeInterval) {
+        let started = Date()
+        var cost: TimeInterval = 0
+        var launches = 0
+        for region in regions + ["none"] {
+            // the screen's time is not run over: a region leaves room for the
+            // baseline after it, and the first variant always runs
+            let reserve: TimeInterval = region == "none" ? 0 : cost
+            if Date().timeIntervalSince(started) + cost + reserve > budget {
+                print("PROBE-BISECT-ERROR \(screen) hide=\(region) not run: the \(Int(budget)) s for this screen's variants is used up")
+                continue
+            }
+            let began = Date()
+            bisectVariant(screen, opening: route, ready: ready, hide: region)
+            cost = Date().timeIntervalSince(began)
+            launches += 1
+        }
+        print("PROBE-BISECT-DONE \(screen) launches=\(launches) of \(regions.count + 1) seconds=\(Int(Date().timeIntervalSince(started)))")
+    }
+
+    /// One launch with one region hidden, one audit, one PROBE-BISECT line.
+    private func bisectVariant(_ screen: String, opening route: String, ready: [String], hide region: String) {
+        let head = "PROBE-BISECT \(screen) hide=\(region)"
+        app = XCUIApplication()
+        app.keepTraceOffConsole()
+        // as A11yProbeUITests: the personal build and a still sky, the screen
+        // opened straight away, and the region to hide
+        app.launchArguments += ["-personalBuild", "-stillSky", "-uiPreviewScreen", route,
+                                "-a11yProbeHide", region]
+        app.launch()
+        let marks: [NSPredicate] = ready.map { NSPredicate(format: "identifier == %@", $0) }
+        let marker = app.descendants(matching: .any)
+            .matching(NSCompoundPredicate(orPredicateWithSubpredicates: marks)).firstMatch
+        guard marker.waitForExistence(timeout: 20) else {
+            print("PROBE-BISECT-ERROR \(screen) hide=\(region) the screen did not open within 20 s")
+            app.terminate()
+            return
+        }
+        // the screen a moment to settle before it is read
+        usleep(500_000)
+        let nodes: Int = bisectNodes()
+        bisectTally = [:]
+        var threw = ""
+        XCTContext.runActivity(named: "Bisect: \(screen) hide=\(region)") { _ in
+            do {
+                try app.performAccessibilityAudit(for: Self.audited) { [unowned self] issue in
+                    self.bisectIssue(issue)
+                }
+            } catch {
+                threw = "\(error)"
+            }
+        }
+        if threw.isEmpty {
+            let total: Int = bisectTally.values.reduce(0, +)
+            let kinds: String = bisectTally.keys.sorted().map { "\($0)=\(bisectTally[$0] ?? 0)" }.joined(separator: "; ")
+            print("\(head) issues=\(total) \(kinds.isEmpty ? "no issue" : kinds) nodes=\(nodes)")
+        } else {
+            print("PROBE-BISECT-ERROR \(screen) hide=\(region) the audit threw \(threw.replacingOccurrences(of: "\n", with: " "))")
+        }
+        app.terminate()
+    }
+
+    /// One audit issue, counted and let through.
+    private func bisectIssue(_ issue: XCUIAccessibilityAuditIssue) -> Bool {
+        var who = "nil"
+        if let found = issue.element {
+            let name: String = (found.identifier.isEmpty ? found.label : found.identifier)
+                .replacingOccurrences(of: "\n", with: " ")
+            who = name.isEmpty ? "unnamed" : String(name.prefix(40))
+        }
+        bisectTally["\(issue.compactDescription)[\(who)]", default: 0] += 1
+        return true
+    }
+
+    /// How many nodes the screen's accessibility snapshot holds, or -1 when it
+    /// cannot be read.
+    private func bisectNodes() -> Int {
+        guard let tree = try? app.snapshot() else { return -1 }
+        func count(_ node: any XCUIElementSnapshot) -> Int {
+            node.children.reduce(1) { $0 + count($1) }
+        }
+        return count(tree)
+    }
+
     // MARK: - Getting around
 
     private func launch(_ size: TextSize) {

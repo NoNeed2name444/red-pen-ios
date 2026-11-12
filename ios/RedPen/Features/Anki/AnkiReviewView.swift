@@ -46,7 +46,7 @@ struct AnkiReviewView: View {
     var body: some View {
         VStack(spacing: 0) {
             // in the card's page at the accessibility sizes (decksInline)
-            if !decksInline || current == nil { header }
+            if !decksInline || current == nil { header.a11yProbeHide("card-progress-row") }
             if let current {
                 cardScroll(current)
             } else {
@@ -73,6 +73,7 @@ struct AnkiReviewView: View {
         }
         .navigationTitle(studySet.subject.isEmpty ? "Cards" : studySet.subject)
         .navigationBarTitleDisplayMode(.inline)
+        .a11yProbeHide("card-top-bar", navigationBar: true)
         .onAppear(perform: startSitting)
         .navigationDestination(item: $quizSet) { set in MCQQuizView(set: set, keepsProgress: false) }
         // A trace for the UI tests only (GraphPreviewUITests'
@@ -139,7 +140,7 @@ struct AnkiReviewView: View {
                 VStack(spacing: 0) {
                     Color.clear.frame(height: 1).id(Self.cardTop)
                     VStack {
-                        if decksInline { header }
+                        if decksInline { header.a11yProbeHide("card-progress-row") }
                         AnkiCardFace(card: item.card, images: studySet.images,
                                      revealed: revealed,
                                      sources: studySet.sources,
@@ -148,6 +149,7 @@ struct AnkiReviewView: View {
                                      },
                                      deck: studySet.cards)
                             .contentCard()
+                            .a11yProbeHide("card-face")
                             // the answer opens under the question (AnkiCardFace): no flip
                             .reviewCardActions(onBury: buryCurrent, onSuspend: suspendCurrent)
                             .padding(.horizontal, WardSpace.gutter)
@@ -166,6 +168,7 @@ struct AnkiReviewView: View {
                             .padding(.horizontal, WardSpace.gutter)
                             .padding(.bottom, 24)
                             .readableColumn()
+                            .a11yProbeHide("card-bottom-bar")
                         }
                         // the deck's Reveal, then the ratings, in the page at the
                         // accessibility sizes, where they scroll with the card
@@ -179,7 +182,7 @@ struct AnkiReviewView: View {
                 }
             }
             .reviewUndoChip(until: $undoUntil, action: undo)
-            .studyBar(folds: true, shown: !decksInline) { footer(item) }
+            .studyBar(folds: true, shown: !decksInline) { footer(item).a11yProbeHide("card-rating-row") }
             // rated at the accessibility sizes, the page is left at the deck;
             // the next card, or the same card coming back after Again, opens at its header (a no-op below them)
             .onChange(of: item.id) { _, _ in proxy.scrollTo(Self.cardTop, anchor: .top) }
