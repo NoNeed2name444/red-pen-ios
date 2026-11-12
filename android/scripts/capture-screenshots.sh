@@ -136,11 +136,14 @@ rot_diag() { # label
 # put it to sleep, and an activity started on a sleeping device is created but never resumed, so its compose tree
 # never exists ("No compose hierarchies found"); then what is on show.
 settle_device() { # label
-  local i
+  local i power
   adb shell input keyevent KEYCODE_WAKEUP || true
   adb shell wm dismiss-keyguard || true
   for i in $(seq 1 20); do
-    if adb shell dumpsys power | tr -d '\r' | grep -q 'mWakefulness=Awake'; then break; fi
+    # the whole output first, then the test: `grep -q` in this pipeline would stop at its first match and
+    # leave tr and adb a broken pipe, which under pipefail makes the pipeline fail with the device awake
+    power=$(adb shell dumpsys power | tr -d '\r' || true)
+    if [[ "$power" == *mWakefulness=Awake* ]]; then break; fi
     sleep 1
   done
   sleep 2
@@ -240,7 +243,7 @@ case "$kind" in
     echo "device states: open=${open:-none} half=${half:-none} closed=${closed:-none}" | tee test-results/postures.txt
     if [ "$part" != tests ]; then
       # each posture the image has, by device_state, else the emulator console's fold and unfold
-      # a fold must not put the device to sleep (the platform's fold-lock setting; the wake after each posture holds if this image names it otherwise)
+      # a fold must not put the device to sleep: the key and the value below are unverified guesses at the platform's fold-lock setting, so what holds is the wake after each posture (settle_device)
       adb shell settings put secure fold_lock_behavior_setting stay_awake_on_fold_key || true
       adb shell settings put system fold_lock_behavior_setting stay_awake_on_fold_key || true
       adb shell svc power stayon true || true
