@@ -33,6 +33,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -85,10 +86,12 @@ import java.time.ZoneId
 
 @Composable internal fun ExamPlanScreen(store: StudyStore, onPreset: (com.stethoscore.app.exam.NewSetPreset) -> Unit = {}) {
     val version = LearnRouter.version
+    // the card's picker sets the exam and the date while the plan is open, and nothing else bumps the router's version then
+    var examStamp by remember { mutableIntStateOf(0) }
     var notice by remember { mutableStateOf<String?>(null) }
     var pocketOpen by remember { mutableStateOf(false) }
     val context = androidx.compose.ui.platform.LocalContext.current
-    val read = remember(version) {
+    val read = remember(version, examStamp) {
         val now = System.currentTimeMillis()
         val phase = ExamWeekPlanner.phase(store.examDate?.let { Instant.ofEpochMilli(it) }, Instant.ofEpochMilli(now), ZoneId.systemDefault())
         val standings = LearnLibrary.securedStandings(store)
@@ -110,7 +113,7 @@ import java.time.ZoneId
         // its header is iOS's (ExamPlanView.swift: Section { ExamDashboardCard() } header: { Text("Your exam") }).
         ReaderFormSection("Your exam") {
             Box(Modifier.padding(horizontal = WardSpace.l.wardDp, vertical = WardSpace.s.wardDp)) {
-                com.stethoscore.app.ui.exam.ExamDashboardCard(store, version, onPreset)
+                com.stethoscore.app.ui.exam.ExamDashboardCard(store, version, onPreset, onChanged = { examStamp++ })
             }
         }
         // the streak, the goal ring and a ward round

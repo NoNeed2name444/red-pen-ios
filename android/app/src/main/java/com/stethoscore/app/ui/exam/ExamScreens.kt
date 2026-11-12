@@ -344,10 +344,11 @@ fun ExamBadge(examId: String?, modifier: Modifier = Modifier) {
  * it is an estimate.
  *
  * [onPreset] opens New set with the preset; [revision] changes when the
- * library or the answers do.
+ * library or the answers do; [onChanged] is told when the exam picker closes, so
+ * a host that shows the date (the exam plan's phase) reads it again.
  */
 @Composable
-fun ExamDashboardCard(store: StudyStore, revision: Int, onPreset: (NewSetPreset) -> Unit, modifier: Modifier = Modifier) {
+fun ExamDashboardCard(store: StudyStore, revision: Int, onPreset: (NewSetPreset) -> Unit, modifier: Modifier = Modifier, onChanged: () -> Unit = {}) {
     val context = LocalContext.current
     val defaults = remember { ExamChoice.defaults(context) }
     var version by remember { mutableIntStateOf(0) }
@@ -393,7 +394,7 @@ fun ExamDashboardCard(store: StudyStore, revision: Int, onPreset: (NewSetPreset)
         }
     }
     if (picking) ExamSheet({ picking = false }) {
-        ExamPickerScreen(store, { picking = false; version += 1 })
+        ExamPickerScreen(store, { picking = false; version += 1; onChanged() })
     }
 }
 

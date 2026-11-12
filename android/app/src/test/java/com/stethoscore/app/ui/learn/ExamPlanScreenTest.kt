@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
@@ -54,11 +55,11 @@ import java.util.Locale
 // gap between two sections. (iOS lists the card after Today and the ward round
 // tile; Android lists it second. That is not tested, and not changed here.)
 //
-// A date that was already set, changed in the plan's card: the card's pill and
-// home's header must follow the new date, not the first one.
-// HomeHeaderAfterPlanTest has only the first date set. (The plan's own phase
-// hero does not follow either date while the plan is open: ExamPlanScreen reads
-// it once per LearnRouter.version. That fix is outside T0229's scope; plan.md.)
+// A date that was already set, changed in the plan's card: the card's pill,
+// the plan's phase hero and home's header must follow the new date, not the
+// first one. HomeHeaderAfterPlanTest has only the first date set. The hero is
+// read once per LearnRouter.version, which the card's picker does not bump, so
+// the card tells the plan when its picker closes (ExamDashboardCard's onChanged).
 //
 // The Clinical reference opened from the plan is given the store, so its
 // Practise this opens New set on Make with the question writer, as it does
@@ -234,5 +235,15 @@ class ExamPlanScreenTest {
         val days = setThenChangeTheDate()
         compose.onAllNodesWithContentDescription("${days.second} days to go").assertCountEquals(1)
         compose.onAllNodesWithContentDescription("${days.first} days to go").assertCountEquals(0)
+    }
+
+    @Test fun aChangedDateIsThePlansPhase() {
+        chooseExam()
+        home()
+        openThePlan()
+        compose.onNodeWithTag("planPhase").assert(hasText("—"))
+        val days = setThenChangeTheDate { toFirst -> compose.onNodeWithTag("planPhase").assert(hasText("T-$toFirst")) }
+        compose.onNodeWithTag("planPhase").assert(hasText("T-${days.second}"))
+        compose.onNodeWithTag("planPhase").assert(!hasText("T-${days.first}"))
     }
 }
