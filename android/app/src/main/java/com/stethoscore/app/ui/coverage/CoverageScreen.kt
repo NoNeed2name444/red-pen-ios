@@ -1,5 +1,6 @@
 package com.stethoscore.app.ui.coverage
 
+import android.text.format.DateUtils
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -23,44 +24,58 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Cancel
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Checklist
 import androidx.compose.material.icons.rounded.Contrast
 import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material.icons.rounded.School
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.stethoscore.app.coverage.AreaCoverage
+import com.stethoscore.app.coverage.CoverageCheck
+import com.stethoscore.app.coverage.CoverageCloudCheck
 import com.stethoscore.app.coverage.CoverageEngine
 import com.stethoscore.app.coverage.CoverageStatus
-import com.stethoscore.app.data.StudyStore
+import com.stethoscore.app.coverage.CoverageVerdict
 import com.stethoscore.app.coverage.SubtopicCoverage
 import com.stethoscore.app.coverage.Syllabus
+import com.stethoscore.app.data.StudyStore
 import com.stethoscore.app.quiz.ExamTrack
 import com.stethoscore.app.ui.QuizPrefs
 import com.stethoscore.app.ui.editors.EcgLoader
+import com.stethoscore.app.ui.editors.rememberLLMService
+import com.stethoscore.app.ui.mock.BigButton
+import com.stethoscore.app.ui.mock.BigKind
 import com.stethoscore.app.ui.mock.ChipBox
 import com.stethoscore.app.ui.mock.StudyTitleBar
 import com.stethoscore.app.ui.mock.readableColumn
 import com.stethoscore.app.ui.sources.ReaderFormSection
 import com.stethoscore.app.ui.sources.wardRowTile
+import com.stethoscore.app.ui.vitals.EcgStrip
 import com.stethoscore.app.ui.ward.StudyActionBar
 import com.stethoscore.app.ui.ward.WardBanner
 import com.stethoscore.app.ui.ward.WardButtonBox
@@ -81,14 +96,17 @@ import com.stethoscore.app.ui.ward.wardPressFace
 import com.stethoscore.app.ui.wardColor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.util.Locale
 
 // A port of ios/RedPen/Features/Coverage/CoverageView.swift: what
 // the exam covers that the library does not - the exam's syllabus, area by
 // area, each subtopic marked covered, thin or not covered by the keyword
-// check (CoverageEngine). Not here: the AI check (CoverageChecker: the
-// cloud needs a sign-in Android lacks, so its blocker shows), a specific
-// exam's weighted blueprint, and writing questions with a writer: Generate
+// check (CoverageEngine) and, once the AI check has run, by its verdict
+// (CoverageChecker over coverage/CoverageCloudCheck.kt). The AI check runs only
+// where LLMService allows a model call, and says iOS's words where it does
+// not. Not here: the personal build's example check, a specific exam's
+// weighted blueprint, and writing questions with a writer: Generate
 // questions opens New set ready for an MCQ set on the gap instead, and
 // Choose a specific exam… opens the exam picker.
 
@@ -117,6 +135,29 @@ object CoverageWords {
         CoverageStatus.notCovered -> Icons.Rounded.Cancel
     }
 
+    /** The AI check's button: Check with AI before there is a check, Check again after (iOS CoverageView, :183). */
+    fun checkTitle(fresh: Boolean): String = if (fresh) "Check with AI" else "Check again"
+
+    /** While it runs (iOS CoverageCheckProgress, :507) and what Stop says (:517). */
+    fun progress(done: Int, total: Int): String = "Checking $done of $total areas\u2026"
+    const val stop = "Stop"
+
+    /** What a screen reader says for Stop: the only new words on Android. */
+    const val stopSpoken = "Stop the AI check"
+
+    /** The section's line before there is anything to report (iOS :261). */
+    const val checkHint = "The keyword check below is instant. Check with AI reads what your matching items actually say."
+
+    /** The summary of a kept check (iOS checkSummary, :286-306). */
+    fun checkedBy(who: String, whenText: String): String = "Checked by $who \u00B7 $whenText"
+    fun fallbackNote(who: String): String =
+        "${CoverageCloudCheck.displayName(CoverageCloudCheck.preferredModel)} wasn't available, so $who checked it."
+    fun failedLine(failed: List<String>): String =
+        "${failed.size} area${if (failed.size == 1) "" else "s"} could not be checked this time: ${failed.joinToString(", ")}."
+
+    /** What the keywords thought where the AI differs (iOS row, :398). */
+    fun keywordsSaid(status: CoverageStatus): String = "Keywords said ${status.label.lowercase(Locale.ROOT)}"
+
     /** The summary's footnote: where the syllabus is condensed from. */
     fun summaryFooter(track: ExamTrack): String =
         "Condensed from ${Syllabus.blueprint(track)}, so approximate: it shows where your gaps probably are, not what the exam will ask. Tap a count to show only those."
@@ -137,6 +178,13 @@ object CoverageWords {
     var menu by remember { mutableStateOf(false) }
     var notice by remember { mutableStateOf<String?>(null) }
     var picking by remember { mutableStateOf(false) }
+    // the AI check: its kept results live in the app's files, and a run stops with the screen
+    val llm = rememberLLMService()
+    val scope = rememberCoroutineScope()
+    val checker = remember(llm) { CoverageChecker(llm, File(context.filesDir, "Coverage"), scope) }
+    DisposableEffect(checker) { onDispose { checker.cancel() } }
+    // another exam has its own kept check; a run for the last one stops (iOS onChange of track, :94-97)
+    LaunchedEffect(track) { checker.cancel(); checker.load(track) }
     if (picking) {
         com.stethoscore.app.ui.exam.ExamPickerScreen(store, { picking = false; track = QuizPrefs.track(context) })
         return
@@ -150,10 +198,11 @@ object CoverageWords {
         val history = store.answerHistory
         areas = withContext(Dispatchers.Default) { CoverageEngine.assess(library, history, Syllabus.areas(track)) }
         computing = false
+        checker.load(track)
     }
     val ready = !(computing && areas.isEmpty())
-    val check = CoverageChecker.check
-    fun shown(sub: SubtopicCoverage): CoverageStatus = check?.verdicts?.get(sub.id)?.status ?: sub.status
+    val check = checker.check
+    fun shown(sub: SubtopicCoverage): CoverageStatus = check?.verdicts?.get(sub.id)?.status?.coverage ?: sub.status
     // Generate questions: New set on Make with the subtopic's brief as its
     // material, written to the chosen exam (iOS CoverageView.generate, :360-368)
     fun generate(sub: SubtopicCoverage, area: String) {
@@ -203,9 +252,15 @@ object CoverageWords {
                     }
                     ReaderFormSection(header = "AI check",
                         footer = "Sends each area’s subtopics and a short digest of your library — set names, matching questions and cards, lecture headings — to ${CoverageChecker.brand} Cloud.") {
-                        CoverageChecker.blocker?.let {
-                            Text(it, Modifier.fillMaxWidth().wardRowTile(), style = WardTextStyle.footnote.textStyle(), color = wardColor(WardToken.inkSecondary))
+                        // what the check, its failure or its blocker have to say; the hint only when none does (iOS aiSection, :246-264)
+                        val blocker = checker.blocker
+                        check?.let { CheckSummary(it, Modifier.fillMaxWidth().wardRowTile()) }
+                        checker.failure?.let {
+                            WardBanner(it, Icons.Rounded.Warning, WardTone.Danger,
+                                Modifier.padding(horizontal = 16.dp).semantics { liveRegion = LiveRegionMode.Polite })
                         }
+                        if (blocker != null) AiCheckNote(blocker)
+                        if (check == null && checker.failure == null && blocker == null) AiCheckNote(CoverageWords.checkHint)
                     }
                     for (area in areas) {
                         val rows = area.subtopics.filter { CoverageWords.passes(shown(it), statusFilter, gapsOnly) }
@@ -216,21 +271,58 @@ object CoverageWords {
                                 Text("$covered of ${area.subtopics.size} covered", style = WardTextStyle.caption.textStyle(mono = true),
                                     color = wardColor(WardToken.inkSecondary))
                             }
-                            for (sub in rows) SubtopicRow(sub, shown(sub)) { generate(sub, area.area.name) }
+                            for (sub in rows) SubtopicRow(sub, shown(sub), check?.verdicts?.get(sub.id)) { generate(sub, area.area.name) }
                         }
                     }
                 }
             }
         }
-        // the slab only once there is something to show
+        // the slab only once there is something to show and check: Everything / Gaps only, and the AI check
+        // (iOS bar and checkControl, :165-193) - Check with AI or Check again, or Stop while it runs
         if (ready) StudyActionBar {
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                WardSegmented(gapsOnly, listOf(false, true), { gapsOnly = it; statusFilter = null },
-                    Modifier.widthIn(max = 560.dp).fillMaxWidth().semantics { contentDescription = "Show" }) { gaps, style, colour ->
-                    Text(if (gaps) "Gaps only" else "Everything", style = style, color = colour, maxLines = 1)
+                Column(Modifier.widthIn(max = 560.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    WardSegmented(gapsOnly, listOf(false, true), { gapsOnly = it; statusFilter = null },
+                        Modifier.fillMaxWidth().semantics { contentDescription = "Show" }) { gaps, style, colour ->
+                        Text(if (gaps) "Gaps only" else "Everything", style = style, color = colour, maxLines = 1)
+                    }
+                    if (checker.running) CheckProgress(checker.done, checker.total) { checker.cancel() }
+                    else if (checker.blocker == null) {
+                        val fresh = check == null || check.isExample
+                        BigButton(CoverageWords.checkTitle(fresh), Icons.Rounded.Checklist, BigKind.primary,
+                            { checker.run(track, areas, store.library) }, Modifier.fillMaxWidth(), enabled = areas.isNotEmpty())
+                    }
                 }
             }
         }
+    }
+}
+
+/** The AI check section's own words in the page's footnote tile: why it cannot run, or what it does (iOS aiSection, :255-263). */
+@Composable private fun AiCheckNote(text: String) {
+    Text(text, Modifier.fillMaxWidth().wardRowTile(), style = WardTextStyle.footnote.textStyle(), color = wardColor(WardToken.inkSecondary))
+}
+
+/** Who made the kept check and when, and what did not go to plan (iOS checkSummary, :274-301). */
+@Composable private fun CheckSummary(check: CoverageCheck, modifier: Modifier = Modifier) {
+    val who = CoverageCloudCheck.displayName(check.source)
+    val whenText = remember(check.date) { DateUtils.getRelativeTimeSpanString(check.date, System.currentTimeMillis(), DateUtils.SECOND_IN_MILLIS).toString() }
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(CoverageWords.checkedBy(who, whenText), style = WardTextStyle.subheadline.textStyle(WardWeight.semibold), color = wardColor(WardToken.ink))
+        if (!check.byPreferredModel) Text(CoverageWords.fallbackNote(who), style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary))
+        if (check.failedAreas.isNotEmpty()) Text(CoverageWords.failedLine(check.failedAreas), style = WardTextStyle.caption.textStyle(),
+            color = wardColor(WardToken.inkSecondary))
+    }
+}
+
+/** While the AI check runs: how many areas are done, the strip, and Stop (iOS CoverageCheckProgress, :499-522). Said as it changes. */
+@Composable private fun CheckProgress(done: Int, total: Int, onStop: () -> Unit) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f).semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(CoverageWords.progress(done, total), style = WardTextStyle.subheadline.textStyle(WardWeight.semibold, mono = true), color = wardColor(WardToken.ink))
+            EcgStrip(done.toDouble() / maxOf(total, 1))
+        }
+        BigButton(CoverageWords.stop, null, BigKind.companion, onStop, label = CoverageWords.stopSpoken)
     }
 }
 
@@ -263,7 +355,7 @@ object CoverageWords {
 }
 
 @OptIn(ExperimentalFoundationApi::class)
-@Composable private fun SubtopicRow(sub: SubtopicCoverage, status: CoverageStatus, onGenerate: () -> Unit) {
+@Composable private fun SubtopicRow(sub: SubtopicCoverage, status: CoverageStatus, ai: CoverageVerdict?, onGenerate: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
     // the gaps carry the button; a covered topic keeps it in its menu
     val isGap = status != CoverageStatus.covered
@@ -276,6 +368,16 @@ object CoverageWords {
                 StatusChip(status)
             }
             Text(CoverageWords.detail(sub), style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary))
+            // what the AI check read in the library, where it disagrees what the keywords thought, and what to add (iOS row, :391-407)
+            if (ai != null) {
+                if (ai.evidence.isNotEmpty()) Text(ai.evidence, style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.ink))
+                if (ai.status.coverage != sub.status) Text(CoverageWords.keywordsSaid(sub.status), style = WardTextStyle.caption2.textStyle(),
+                    color = wardColor(WardToken.inkSecondary))
+                if (ai.suggestion.isNotEmpty()) Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Icon(Icons.Rounded.Lightbulb, null, tint = wardColor(WardToken.inkSecondary), modifier = Modifier.size(14.dp))
+                    Text(ai.suggestion, Modifier.weight(1f), style = WardTextStyle.caption.textStyle(), color = wardColor(WardToken.inkSecondary))
+                }
+            }
             if (isGap) ChipBox(false, onGenerate) {
                 Icon(Icons.Rounded.EditNote, null, tint = wardColor(WardToken.primaryInk), modifier = Modifier.size(14.dp))
                 Text("Generate questions", style = WardTextStyle.caption.textStyle(WardWeight.semibold), color = wardColor(WardToken.ink))
