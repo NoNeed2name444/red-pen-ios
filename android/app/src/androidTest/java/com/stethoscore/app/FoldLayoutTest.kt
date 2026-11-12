@@ -5,6 +5,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
@@ -38,10 +39,11 @@ import java.io.File
  * posture (book: half open, upright; tabletop: half open, across; a flat fold
  * that does not split), and on each of the core screens no clickable node's
  * bounds meet the hinge and every clickable node's touch area is at least
- * 48 dp each way (WardControlSize.target), measured whole: a node cut by the
- * edge of the pane it scrolls in counts at its layout size (T0244). The script
- * runs this class once in each orientation (natural, left, right), the device
- * turned before it starts.
+ * 48 dp each way (WardControlSize.target). The whole size of a node counts only
+ * where a scroll container cuts it: cut by the edge of a pane it scrolls in, on
+ * the axis it scrolls on, a node counts at its layout size (T0244); cut by a
+ * clip that does not scroll, it is read as cut. The script runs this class once
+ * in each orientation (natural, left, right), the device turned before it starts.
  */
 @RunWith(AndroidJUnit4::class)
 class FoldLayoutTest {
@@ -77,6 +79,14 @@ class FoldLayoutTest {
         return WardRect(b.left / density, b.top / density, b.width / density, b.height / density)
     }
 
+    /** Whether a container above [node] scrolls on the vertical or the horizontal axis. */
+    private fun scrollsOn(node: SemanticsNode, vertical: Boolean): Boolean {
+        val key = if (vertical) SemanticsProperties.VerticalScrollAxisRange else SemanticsProperties.HorizontalScrollAxisRange
+        var p = node.parent
+        while (p != null) { if (p.config.contains(key)) return true; p = p.parent }
+        return false
+    }
+
     /** Every clickable node on [name]: out of the hinge, and a finger's size. */
     private fun checkScreen(name: String, shape: WindowShape, posture: String): Int {
         val density = InstrumentationRegistry.getInstrumentation().targetContext.resources.displayMetrics.density.toDouble()
@@ -88,18 +98,19 @@ class FoldLayoutTest {
             val label = node.config.getOrElseNullable(androidx.compose.ui.semantics.SemanticsProperties.ContentDescription) { null }?.joinToString()
                 ?: node.config.getOrElseNullable(androidx.compose.ui.semantics.SemanticsProperties.Text) { null }?.joinToString() ?: "node ${node.id}"
             assertTrue("$posture, $name: \"$label\" at $r meets the hinge ${shape.separatingFold?.bounds}", !shape.meetsHinge(r))
-            // touchBoundsInRoot is cut by the viewport a node stands in: a row half under a pane's edge
-            // (tabletop's list above the hinge) reads as tall as the part that shows, though the row is
-            // taller than 48 dp whole (T0244). The node's layout size is not cut, so the target is the
-            // larger of the two each way: the touch bounds are never read lower than before, and the
-            // size only counts where it is the larger, so a node whose whole size is under 48 dp gains
-            // nothing from it and is judged on its touch bounds as before (cut by an edge, it fails).
-            // The threshold is the same.
+            // touchBoundsInRoot is cut by the viewport a node stands in: a row half under the edge of a
+            // scrolling pane (tabletop's list above the hinge, Settings' page) reads as tall as the part
+            // that shows plus 24 dp of reach, though the row is taller than 48 dp whole (T0244). A finger
+            // scrolls the rest into view, so on an axis where an ancestor scrolls, the node's whole layout
+            // size counts when it is the larger. Where no ancestor scrolls on that axis (a clip that stays
+            // put) nothing brings the cut part into view, so the touch bounds stand as they did. Either
+            // way the reading is never lower than before, and a node whose whole size is under 48 dp
+            // gains nothing from its size. The threshold is the same.
             val t = rect(node, density, touch = true)
             val nodeWide = node.size.width / density
             val nodeTall = node.size.height / density
-            val wide = maxOf(t.width, nodeWide)
-            val tall = maxOf(t.height, nodeTall)
+            val wide = if (nodeWide > t.width && scrollsOn(node, vertical = false)) nodeWide else t.width
+            val tall = if (nodeTall > t.height && scrollsOn(node, vertical = true)) nodeTall else t.height
             assertTrue("$posture, $name: \"$label\" is $wide x $tall dp (touch ${t.width} x ${t.height}, node $nodeWide x $nodeTall), under ${WardControlSize.target}",
                 wide >= WardControlSize.target - 0.5 && tall >= WardControlSize.target - 0.5)
         }
