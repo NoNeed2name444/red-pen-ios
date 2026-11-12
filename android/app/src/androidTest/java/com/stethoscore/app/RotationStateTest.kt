@@ -1,5 +1,6 @@
 package com.stethoscore.app
 
+import android.os.SystemClock
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -10,6 +11,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onFirst
@@ -121,21 +123,80 @@ class RotationStateTest {
         compose.waitForIdle()
     }
 
+    /** Whether the compose rule sees an app: it throws while the app has no hierarchy, as when its activity is stopped. */
+    private fun hierarchyPresent(): Boolean = try { exists(isRoot()) } catch (_: IllegalStateException) { false }
+
+    private fun isAwake(): Boolean = device.executeShellCommand("dumpsys power").contains("mWakefulness=Awake")
+
+    /** The wake and the keyguard dismissal capture-screenshots.sh settle_device sends after a posture change. */
+    private fun wakeAndDismiss() {
+        device.executeShellCommand("input keyevent KEYCODE_WAKEUP")
+        device.executeShellCommand("wm dismiss-keyguard")
+    }
+
+    /** The fields of a ROT-DIAG line that say why the app cannot be read, for the failure message of [settleDevice]. */
+    private fun deviceNow(): String {
+        fun sh(command: String): String = try { device.executeShellCommand(command) } catch (e: Exception) { "error ${e.javaClass.simpleName}" }
+        fun pick(text: String, pattern: String, max: Int, separator: String) =
+            Regex(pattern).findAll(text).map { it.value.trim().take(160) }.distinct().take(max).joinToString(separator).ifEmpty { "-" }
+        return "ROT-DIAG resumed: " + pick(sh("dumpsys activity activities"), """[A-Za-z]*ResumedActivity[^\n]*""", 4, " | ") +
+            "; " + pick(sh("dumpsys power"), """mWakefulness=\w+""", 1, " ") +
+            "; keyguard: " + pick(sh("dumpsys window policy"), """\w*[Kk]eyguard\w*[Ss]howing\w*=\w+|mAwake=\w+""", 4, " ") +
+            "; device_state: " + sh("cmd device_state state").lineSequence().map { it.trim() }.filter { it.isNotEmpty() }.take(3).joinToString(" | ").ifEmpty { "-" }
+    }
+
+    /**
+     * After a fold or an unfold (T0255): the device awake, the keyguard away and the app readable again. Closing the
+     * fold image's foldable puts the keyguard up and stops the app (its activity has no compose hierarchy then,
+     * "No compose hierarchies found"), and the fold's own sleep can follow once the display layout has changed.
+     * So this sends the wake and the dismissal capture-screenshots.sh settle_device sends, and polls until the
+     * device is awake and the compose rule sees an app, for 2 s without a break; whenever it does not, it
+     * sends them again. It gives up after 20 s, naming [step] and the device's state.
+     */
+    private fun settleDevice(step: String) {
+        val limit = 20_000L
+        val hold = 2_000L
+        val start = SystemClock.uptimeMillis()
+        var lastWake = start
+        var readableSince = -1L
+        wakeAndDismiss()
+        while (true) {
+            val now = SystemClock.uptimeMillis()
+            if (isAwake() && hierarchyPresent()) {
+                if (readableSince < 0) readableSince = now
+                if (now - readableSince >= hold) return
+            } else {
+                readableSince = -1
+                if (now - lastWake >= 500) { wakeAndDismiss(); lastWake = now }
+            }
+            if (now - start > limit) {
+                RotDiag.snapshot("RotationStateTest not settled after $step", 2)
+                throw AssertionError("after $step the device was not awake with the app readable for ${hold / 1000} s within ${limit / 1000} s; ${deviceNow()}")
+            }
+            SystemClock.sleep(200)
+        }
+    }
+
     /**
      * Natural, left, right, natural, then each fold state and back: after each, [check] runs on
      * the recreated activity. Left and right must be wider than tall where natural is taller.
+     * After a device state the device is settled first ([settleDevice]), since a fold can lock it.
      */
     private fun turnAndCheck(check: (String) -> Unit) {
         val natural = device.displayWidth to device.displayHeight
+        val deviceSteps: List<Pair<String, () -> Unit>> =
+            foldStates().map { state -> "device state $state" to { device.executeShellCommand("cmd device_state state $state"); Unit } } +
+                (if (foldStates().isEmpty()) emptyList() else listOf("device state reset" to { device.executeShellCommand("cmd device_state state reset"); Unit }))
         val steps: List<Pair<String, () -> Unit>> = listOf(
             "left" to { device.setOrientationLeft() },
             "right" to { device.setOrientationRight() },
             "natural" to { device.setOrientationNatural() },
-        ) + foldStates().map { state -> "device state $state" to { device.executeShellCommand("cmd device_state state $state"); Unit } } +
-            (if (foldStates().isEmpty()) emptyList() else listOf("device state reset" to { device.executeShellCommand("cmd device_state state reset"); Unit }))
+        ) + deviceSteps
+        val deviceStepNames = deviceSteps.map { it.first }.toSet()
         for ((name, turn) in steps) {
             turn()
             device.waitForIdle()
+            if (name in deviceStepNames) settleDevice(name)
             compose.waitForIdle()
             if (name == "left" || name == "right") {
                 val turned = device.displayWidth to device.displayHeight
