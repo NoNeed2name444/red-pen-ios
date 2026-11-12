@@ -83,6 +83,33 @@ class InsightTest {
         check("a deleted rule is gone for good", StudyStore(folder.root).ruleSheet.isEmpty())
     }
 
+    @Test fun aFailedWriteLeavesThePlainRules() = checks {
+        val store = StudyStore(folder.root)
+        val questions = (1..12).map { MCQQuestion(stem = "Stem $it: which nerve?", options = listOf("Ulnar", "Median"), correctIndex = 1, explanation = "") }
+        val plain = questions.map { RuleWriter.plainRule(it, "Anatomy") }
+        store.addRules(plain)
+        // the first batch of ten is written, the second (two rules) fails
+        val model = ScriptedWriter(listOf({ rulesReply(*Array(10) { "Written $it" }) }, { throw com.stethoscore.app.llm.LLMError.Http(500, "boom") }))
+        var batches = 0
+        kotlinx.coroutines.runBlocking { RuleWriter.write(plain, model) { batches += 1; store.applyWrittenRules(it) } }
+        val kept = StudyStore(folder.root).ruleSheet
+        check("both batches were tried, one came back", model.calls.size == 2 && batches == 1, "${model.calls.size} $batches")
+        check("the failed batch leaves the plain wording, not marked written",
+            plain.drop(10).all { kept[it.id]?.text == it.text && kept[it.id]?.byAI == false }, "${plain.drop(10).map { kept[it.id] }}")
+        check("the rest are written, marked, and kept over a restart",
+            plain.take(10).withIndex().all { (i, p) -> kept[p.id]?.text == "Written $i" && kept[p.id]?.byAI == true })
+        check("nobody lost a rule", kept.size == 12)
+        // and when no batch comes back at all, the sheet is exactly as it was
+        val second = folder.newFolder()
+        val again = StudyStore(second)
+        again.addRules(plain)
+        kotlinx.coroutines.runBlocking {
+            RuleWriter.write(plain, ScriptedWriter(listOf({ throw com.stethoscore.app.llm.LLMError.EmptyReply() }, { "Sorry, I can't." }))) { again.applyWrittenRules(it) }
+        }
+        check("a run with nothing usable changes nothing",
+            StudyStore(second).ruleSheet.mapValues { it.value.text to it.value.byAI } == plain.associate { it.id to (it.text to false) })
+    }
+
     @Test fun theSyllabusKeywordCheck() = checks {
         check("British and American spellings fold together",
             CoverageEngine.fold("haemorrhage") == CoverageEngine.fold("hemorrhage") && CoverageEngine.fold("tumour") == "tumor"

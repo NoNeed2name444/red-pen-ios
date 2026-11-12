@@ -1,5 +1,11 @@
 package com.stethoscore.app.data
 
+import com.stethoscore.app.llm.ChatTurn
+import com.stethoscore.app.llm.LLMBackend
+import com.stethoscore.app.llm.LLMText
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import org.json.JSONObject
 import kotlin.math.max
 import kotlin.math.min
@@ -197,8 +203,9 @@ enum class HeatLevel(val rawValue: Int) {
  * Turns a missed question into one line worth remembering (RuleWriter).
  * Without a model the line is mechanical but honest: the question being
  * asked, an arrow, and the right answer, with the explanation's first
- * sentence under it. Android has no writer model, so [prompt] and [parse]
- * wait for one.
+ * sentence under it. With a writer model ([write]) the lines can be rewritten
+ * as the kind of rule an examiner is testing ("Painless jaundice + palpable
+ * gallbladder → think pancreatic head carcinoma").
  */
 object RuleWriter {
     /** Questions sent to the model in one call. */
@@ -259,13 +266,53 @@ object RuleWriter {
         return lines.joinToString("\n")
     }
 
-    /** The rule lines in a reply, in order, or null when it is not the JSON asked for. */
+    /**
+     * The rule lines in a reply, in order, or null when it is not the JSON
+     * asked for: after the reasoning model's working is dropped
+     * ([LLMText.stripThinking]), the outermost `{...}` ([LLMText.jsonObject])
+     * must hold `rules` as an array of strings, and one entry that is not a
+     * string makes the whole reply unusable, as iOS's decoder does.
+     */
     fun parse(raw: String): List<String>? {
-        val text = raw.replace(Regex("(?s)<think>.*?</think>"), "")
-        val start = text.indexOf('{')
-        val end = text.lastIndexOf('}')
-        if (start < 0 || end <= start) return null
-        val rules = runCatching { JSONObject(text.substring(start, end + 1)).getJSONArray("rules") }.getOrNull() ?: return null
-        return (0 until rules.length()).map { rules.optString(it).trim() }
+        val text = LLMText.stripThinking(raw)
+        val json = LLMText.jsonObject(text) ?: return null
+        val rules = runCatching { JSONObject(json).getJSONArray("rules") }.getOrNull() ?: return null
+        return (0 until rules.length()).map { (rules.opt(it) as? String ?: return null).trim() }
+    }
+
+    /** "/no_think" on the last user turn skips a reasoning model's hidden working (iOS LLMText.noThinking). */
+    private fun noThinking(turns: List<ChatTurn>): List<ChatTurn> {
+        val last = turns.indexOfLast { it.role == ChatTurn.Role.user }
+        if (last < 0 || turns[last].text.contains("/no_think")) return turns
+        return turns.toMutableList().also { it[last] = turns[last].copy(text = turns[last].text + "\n/no_think") }
+    }
+
+    /**
+     * Rewrites [rules] with the model, [batchSize] at a time, calling
+     * [onBatch] with each batch's new lines by rule id as they arrive, so the
+     * sheet fills in as it goes. A batch that fails is skipped; the rules in
+     * it keep their plain wording. Stops, without another call, once the
+     * caller's coroutine is cancelled.
+     */
+    suspend fun write(rules: List<StudyRule>, backend: LLMBackend, onBatch: (Map<String, String>) -> Unit) {
+        var start = 0
+        while (start < rules.size) {
+            currentCoroutineContext().ensureActive()
+            val batch = rules.subList(start, min(start + batchSize, rules.size))
+            start += batchSize
+            var turns = listOf(ChatTurn.user(prompt(batch)))
+            if (backend.isOnDevice) turns = noThinking(turns)
+            val reply = try {
+                backend.complete(turns, 120 * batch.size + 200, 0.3)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                continue
+            }
+            val lines = parse(reply) ?: continue
+            val out = LinkedHashMap<String, String>()
+            for ((rule, line) in batch.zip(lines)) if (line.isNotEmpty() && line.length <= 300) out[rule.id] = line
+            if (out.isNotEmpty()) onBatch(out)
+        }
     }
 }
