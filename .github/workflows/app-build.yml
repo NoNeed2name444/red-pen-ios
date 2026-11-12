@@ -160,6 +160,7 @@ jobs:
             -maximum-test-execution-time-allowance 480 \
             -only-testing:RedPenUITests/AccessibilityUITests \
             -only-testing:RedPenUITests/A11yProbeUITests \
+            -only-testing:RedPenUITests/A11yLabsProbeUITests \
             test 2>&1 | tee ../a11y.log | grep --line-buffered -E "error:|Test Case|TEST |\*\* |PROBE-" || true
           grep -q "TEST SUCCEEDED" ../a11y.log
       - name: Summary of the accessibility run

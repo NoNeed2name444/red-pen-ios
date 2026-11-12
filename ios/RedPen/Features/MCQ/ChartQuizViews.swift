@@ -151,7 +151,20 @@ struct ChartLabsTable: View {
     let labs: [PatientChart.Lab]
     @Environment(\.wardModeWash) private var modeWash
 
+    /// A normal launch has no variant and draws `present`. A probe launch
+    /// (`-a11yProbeLabs`, Shared/A11yProbeLabs.swift; T0241) draws another
+    /// accessibility shape of the same table, to see which one the audit leaves
+    /// unflagged.
     var body: some View {
+        if let variant = A11yProbeLabs.variant {
+            probe(variant)
+        } else {
+            present
+        }
+    }
+
+    /// The table as it has always been drawn (V0).
+    private var present: some View {
         ViewThatFits(in: .horizontal) {
             Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: WardSpace.m, verticalSpacing: WardSpace.s) {
                 ForEach(labs.indices, id: \.self) { i in row(labs[i]) }
@@ -197,6 +210,120 @@ struct ChartLabsTable: View {
                 Text(lab.flag?.rawValue ?? "").fontWeight(.bold).foregroundStyle(Color.wardDanger)
                     .fixedSize()
             }
+        }
+    }
+
+    // MARK: - The probe's shapes (T0241)
+    //
+    // Reached only when a launch passes `-a11yProbeLabs <name>`. Each changes
+    // accessibility modifiers, the table's child structure or its font's weight
+    // from V0 (`present`, above); none changes a word, a colour or a space.
+
+    /// What every shape shares, as `present` has it: font, padding, full width
+    /// and the ground.
+    private func dressed<Content: View>(_ content: Content,
+                                        font: Font = WardType.mono(.subheadline, weight: .regular)) -> some View {
+        content
+            .font(font)
+            .padding(WardSpace.m)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            // over a mode's wash, see-through: one tone with the ground
+            .background(modeWash == nil ? Color.wardBackground : Color.clear,
+                        in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
+    }
+
+    private func gridOf<Cell: View>(_ cell: @escaping (PatientChart.Lab) -> Cell) -> some View {
+        Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: WardSpace.m, verticalSpacing: WardSpace.s) {
+            ForEach(labs.indices, id: \.self) { i in cell(labs[i]) }
+        }
+    }
+
+    private func stackOf<Cell: View>(_ cell: @escaping (PatientChart.Lab) -> Cell) -> some View {
+        VStack(alignment: .leading, spacing: WardSpace.s) {
+            ForEach(labs.indices, id: \.self) { i in cell(labs[i]) }
+        }
+    }
+
+    /// Both layouts, each result drawn by `row` and `stacked`, as V0 draws them.
+    private var plainBoth: some View {
+        ViewThatFits(in: .horizontal) {
+            gridOf { row($0) }
+            stackOf { stacked($0) }
+        }
+    }
+
+    /// V0's one label: every result as ChartQuiz.spoken says it.
+    private var spokenAll: String { labs.map { ChartQuiz.spoken($0) }.joined(separator: ". ") }
+
+    /// V1's grid row, as it was before T0223: the name cell carries the
+    /// result's spoken words and the other three cells are hidden.
+    private func rowNamed(_ lab: PatientChart.Lab) -> some View {
+        let value: Color = ChartQuiz.tone(lab.flag) == .danger ? .wardDanger : .wardInk
+        return GridRow {
+            Text(lab.name).foregroundStyle(Color.wardInk).accessibilityLabel(ChartQuiz.spoken(lab))
+            Text(lab.value).fontWeight(.semibold).foregroundStyle(value)
+                .gridColumnAlignment(.trailing).accessibilityHidden(true)
+            Text(lab.unit).foregroundStyle(Color.wardInkSecondary).accessibilityHidden(true)
+            Text(lab.flag?.rawValue ?? "").fontWeight(.bold).foregroundStyle(Color.wardDanger).accessibilityHidden(true)
+        }
+    }
+
+    /// V1's stacked result, as it was before T0223: one `.ignore` element.
+    private func stackedWhole(_ lab: PatientChart.Lab) -> some View {
+        stacked(lab).accessibilityElement(children: .ignore).accessibilityLabel(ChartQuiz.spoken(lab))
+    }
+
+    /// V3's result: its parts combined, with the spoken label. On a GridRow
+    /// SwiftUI may apply the modifiers to the row's cells one by one rather
+    /// than to the row; the probe's `nodes` shows which (one node more per
+    /// cell than V2's).
+    private func combined<Part: View>(_ part: Part, _ lab: PatientChart.Lab) -> some View {
+        part.accessibilityElement(children: .combine).accessibilityLabel(ChartQuiz.spoken(lab))
+    }
+
+    /// V6's words for one result: what the four cells draw, in one string.
+    private func words(_ lab: PatientChart.Lab) -> String {
+        [lab.name, lab.value, lab.unit, lab.flag?.rawValue ?? ""].filter { !$0.isEmpty }.joined(separator: " ")
+    }
+
+    @ViewBuilder
+    private func probe(_ variant: A11yProbeLabs.Variant) -> some View {
+        switch variant {
+        case .nameCell:
+            dressed(ViewThatFits(in: .horizontal) {
+                gridOf { rowNamed($0) }
+                stackOf { stackedWhole($0) }
+            })
+        case .combineTable:
+            dressed(plainBoth)
+                .accessibilityElement(children: .combine)
+        case .combineRows:
+            dressed(ViewThatFits(in: .horizontal) {
+                gridOf { combined(row($0), $0) }
+                stackOf { combined(stacked($0), $0) }
+            })
+        case .gridOnly:
+            dressed(gridOf { row($0) })
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(spokenAll)
+        case .stackOnly:
+            dressed(stackOf { stacked($0) })
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(spokenAll)
+        case .singleText:
+            dressed(VStack(alignment: .leading, spacing: WardSpace.s) {
+                ForEach(labs.indices, id: \.self) { i in
+                    Text(words(labs[i])).foregroundStyle(Color.wardInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            })
+        case .staticTextTrait:
+            present
+                .accessibilityAddTraits(.isStaticText)
+        case .fontNoWeight:
+            dressed(plainBoth, font: Font.system(.subheadline, design: .monospaced))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(spokenAll)
         }
     }
 }
