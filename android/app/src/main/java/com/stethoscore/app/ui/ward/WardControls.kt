@@ -49,6 +49,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -59,6 +60,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.constrainHeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.stethoscore.app.ui.wardColor
@@ -477,6 +479,9 @@ fun wardTimerText(seconds: Int): String {
  * segment pressed into it with its label in the accent and a solid accent
  * edge round it. Held, a segment sinks into the capsule; disabled, its
  * words go Biro Grey, and the chosen one stays pressed in with its edge.
+ * Each segment is a target at least WardControlSize.target tall (T0244): its
+ * node reaches past the segment drawn, the way the capsule's slot already
+ * does, and the capsule, the row and what lies beside it keep their sizes.
  */
 @Composable fun <T> WardSegmented(
     selection: T,
@@ -486,6 +491,8 @@ fun wardTimerText(seconds: Int): String {
     enabled: Boolean = true,
     label: @Composable (T, TextStyle, Color) -> Unit,
 ) {
+    // 36 drawn, 48 hit: 6 each way, 4 of them the capsule's own padding and 2 past its edge into its slot
+    val reach = ((WardControlSize.target - WardControlSize.segment) / 2).wardDp
     Row(
         modifier.minimumInteractiveComponentSize()
             .wardRelief(CircleShape, WardLift.low, control = true).padding(WardControlSize.segmentedPadding.wardDp),
@@ -499,12 +506,14 @@ fun wardTimerText(seconds: Int): String {
             val down = look.stand.isPressedIn
             Box(
                 Modifier.weight(1f)
+                    .segmentReach(reach)
+                    .selectable(chosen, enabled = enabled, role = Role.Tab, interactionSource = source, indication = null) { onSelect(option) }
+                    .padding(vertical = reach)
                     .defaultMinSize(minHeight = WardControlSize.segment.wardDp)
                     .capPop(touch.held)
                     .wardFocusRing(CircleShape, touch.focused, wardColor(WardControlStates.focusInk))
                     .wardChosenEdge(CircleShape, chosen)
                     .then(if (down) Modifier.wardRelief(CircleShape, WardLift.low, wardColor(look.face), inset = true) else Modifier)
-                    .selectable(chosen, enabled = enabled, role = Role.Tab, interactionSource = source, indication = null) { onSelect(option) }
                     .padding(horizontal = WardSpace.m.wardDp),
                 contentAlignment = Alignment.Center,
             ) {
@@ -512,6 +521,23 @@ fun wardTimerText(seconds: Int): String {
             }
         }
     }
+}
+
+/**
+ * A segment's target reaches [reach] above and below the segment drawn (the
+ * padding that follows the selectable), yet the row sees only the segment: the
+ * reach is taken off the height the row is given and put back into the
+ * constraints the target is measured in, so the segment is measured as it was
+ * without it. Put it before the selectable (as HomePlanButton trims its own
+ * padding); the node is then the whole target, not only what is drawn.
+ */
+private fun Modifier.segmentReach(reach: Dp): Modifier = layout { measurable, constraints ->
+    val both = 2 * reach.roundToPx()
+    val placeable = measurable.measure(constraints.copy(
+        minHeight = constraints.minHeight + both,
+        maxHeight = if (constraints.hasBoundedHeight) constraints.maxHeight + both else constraints.maxHeight,
+    ))
+    layout(placeable.width, constraints.constrainHeight(placeable.height - both)) { placeable.place(0, -both / 2) }
 }
 
 // MARK: - Fields
