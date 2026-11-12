@@ -10,13 +10,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.printToString
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.platform.app.InstrumentationRegistry
@@ -100,7 +103,29 @@ class TourCapture(private val compose: ComposeContentTestRule) {
         try {
             compose.waitUntil(timeoutMs, condition)
         } catch (e: ComposeTimeoutException) {
+            logWhatWasShown(what)
             throw AssertionError("Tour: $what did not show within ${timeoutMs / 1000} s", e)
+        }
+    }
+
+    /**
+     * A probe, not a check: what a wait that ran out was looking at, in logcat under "Tour", so a red
+     * explains itself from the run's logcat.txt. The screen's whole tree (the unmerged one: it keeps the
+     * words a merged node hides), the heap, and where the main, library-writer, earth-maps, Default
+     * dispatcher and GL threads are standing (a scene is built on Default and drawn on a GL thread), each as one line a part.
+     */
+    private fun logWhatWasShown(what: String) {
+        runCatching {
+            val tree = compose.onRoot(useUnmergedTree = true).printToString(maxDepth = 40)
+            android.util.Log.e("Tour", "timed out waiting for $what; the tree follows (${tree.length} chars)")
+            tree.chunked(3_000).forEach { android.util.Log.e("Tour", it) }
+        }.onFailure { android.util.Log.e("Tour", "timed out waiting for $what; no tree: $it") }
+        runCatching {
+            val heap = Runtime.getRuntime()
+            android.util.Log.e("Tour", "heap ${(heap.totalMemory() - heap.freeMemory()) shr 20} MB used of ${heap.maxMemory() shr 20} MB, ${heap.availableProcessors()} processors")
+            Thread.getAllStackTraces().filter { (t, _) ->
+                t.name == "main" || t.name == "library-writer" || t.name == "earth-maps" || t.name.startsWith("DefaultDispatcher") || t.name.startsWith("GLThread")
+            }.forEach { (t, frames) -> android.util.Log.e("Tour", "${t.name} is ${t.state} at ${frames.take(8).joinToString(" < ")}") }
         }
     }
 
@@ -133,7 +158,13 @@ class TourCapture(private val compose: ComposeContentTestRule) {
         compose.waitForIdle()
     }
 
-    /** Scrolls the one scrolling list on screen until [matcher] is in it, then waits for it. */
+    /**
+     * Scrolls the one scrolling list on screen until [matcher] is in it, then waits for it.
+     * performScrollToNode stops once the node is composed, and a node is composed while its
+     * top edge is still in the list's last rows: on home that is under the floating bar, where
+     * a tap lands on the dock (T0221). So the node is then lifted to a quarter of the way
+     * down the list, as a reader lifts what they mean to press; a list that ends sooner stops there.
+     */
     fun scrollTo(what: String, matcher: SemanticsMatcher) {
         waitFor("a scrolling list (to find $what)", hasScrollToNodeAction())
         try {
@@ -142,6 +173,12 @@ class TourCapture(private val compose: ComposeContentTestRule) {
             throw AssertionError("Tour: $what is not in the screen's list", e)
         }
         compose.waitForIdle()
+        val list = compose.onAllNodes(hasScrollToNodeAction()).onFirst().fetchSemanticsNode()
+        val rise = compose.onAllNodes(matcher).onFirst().fetchSemanticsNode().boundsInRoot.top - (list.boundsInRoot.top + list.boundsInRoot.height / 4)
+        if (rise > 0f) {
+            compose.runOnUiThread { list.config[SemanticsActions.ScrollBy].action?.invoke(0f, rise) }
+            compose.waitForIdle()
+        }
     }
 
     /** Scrolls [matcher] into view in a plain scrolling page (verticalScroll, not a lazy list: scrollTo is for those), then waits for it. */

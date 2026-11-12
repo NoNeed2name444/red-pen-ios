@@ -527,7 +527,8 @@ class TourTest {
         // every card but the first already learned, and the first rated Easy here
         val stores = Mode.entries.associateWith { tour.store().also { s -> s.first(StudySetKind.ANKI).cards.drop(1).forEach { s.rateCard(it, AnkiRating.EASY) } } }
         tour.inEachMode(content = { m -> val s = stores.getValue(m); tour.Page(m, cards) { AnkiReviewScreen(s.first(StudySetKind.ANKI), s, {}, startRevealed = true) } }) { m ->
-            tour.tap("the Easy rating", hasText(CardReview.title(AnkiRating.EASY), substring = true) and hasClickAction())
+            // a rating is one button with one spoken label, "Easy, back in 4 days. Too easy." (63014514): its words are cleared from the tree, so it is found by that label
+            tour.tap("the Easy rating", hasContentDescription(CardReview.title(AnkiRating.EASY) + ", back in", substring = true) and hasClickAction())
             tour.shot(67, "anki-done", m)
         }
     }
