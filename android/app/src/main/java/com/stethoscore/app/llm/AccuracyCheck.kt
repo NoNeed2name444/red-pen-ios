@@ -1,6 +1,9 @@
 package com.stethoscore.app.llm
 
 import com.stethoscore.app.accuracy.AccuracyItem
+import com.stethoscore.app.accuracy.AccuracyText
+import com.stethoscore.app.accuracy.AccuracyWeights
+import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.network.BackendClient
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -38,12 +41,16 @@ sealed class AccuracySendOutcome {
  * /accuracy/check and saying what came of it. Port of iOS
  * Shared/Accuracy/AccuracyStore.swift send() and checkNow(), same words.
  *
- * Not ported (T0115b): the ledger kept on disk, the trained weights
- * (/accuracy/model), the background loop through the library, reports
- * (/accuracy/report) and the screens that show a grade - Android has none of
- * them yet, so the reply is handed back for the caller to keep.
+ * Not ported (T0115b): the background loop through the library and the
+ * screens that show a grade, so the reply is handed back for the caller to
+ * keep (AccuracyLedger.record, over AccuracyCheckReply.parse). The ledger, the
+ * weights and the two calls that reach /accuracy/model and /accuracy/report
+ * (fetchWeights, report) are here, used only where a model call is allowed
+ * (LLMService.checker: Pro, a session or the owner key, and the $20 cap).
  */
 object AccuracyCheck {
+
+    private const val SIGN_IN = "Sign in to check accuracy."
 
     /** What one send gave: how it ended, and the server's reply when there was one. */
     data class Sent(val outcome: AccuracySendOutcome, val reply: JSONObject?)
@@ -52,6 +59,24 @@ object AccuracyCheck {
     fun json(item: AccuracyItem): JSONObject = JSONObject().put("id", item.id).put("kind", item.kind.rawValue)
         .put("stem", item.stem).put("options", JSONArray(item.options)).put("key", item.key)
         .put("explanation", item.explanation).put("text", item.text).put("source", item.source)
+
+    /**
+     * The item with its lecture excerpt, as iOS builds every item (AccuracyStore.build):
+     * the pages of the set's sources nearest to the item's words, up to
+     * [AccuracyItem.sourceLimit] characters, which [send] then sends as the
+     * item's `source` and the server checks it against. An item that has an
+     * excerpt, or a set with no source or none that shares a word, is returned
+     * as it is.
+     */
+    fun withExcerpt(item: AccuracyItem, set: StudySet): AccuracyItem {
+        if (item.source.isNotBlank()) return item
+        val excerpt = AccuracyText.reference(item.checkedText, set, AccuracyItem.sourceLimit) ?: return item
+        return item.copy(source = excerpt.take(AccuracyItem.sourceLimit))
+    }
+
+    /** Every checkable item of a set with its lecture excerpt (iOS AccuracyItem.items(in:) as AccuracyStore.build calls it). */
+    fun items(set: StudySet): List<AccuracyItem> =
+        AccuracyItem.items(set) { words -> AccuracyText.reference(words, set, AccuracyItem.sourceLimit) }
 
     /**
      * The owner key's spend on a check: the worker asks Claude to vote on the
@@ -87,7 +112,7 @@ object AccuracyCheck {
     /** One item now, for the student who asked: null when it was checked, else why not. */
     suspend fun checkNow(item: AccuracyItem, service: LLMService): Pair<String?, JSONObject?> {
         val (client, blocker) = service.checker()
-        if (client == null) return (blocker ?: "Sign in to check accuracy.") to null
+        if (client == null) return (blocker ?: SIGN_IN) to null
         val sent = try {
             send(client, listOf(item), "foreground", if (service.usesOwnerKey) service.spend else null)
         } catch (e: LLMError.NotReady) {
@@ -101,5 +126,59 @@ object AccuracyCheck {
             AccuracySendOutcome.Busy -> "The checkers are busy. Try again in a few minutes."
         }
         return said to sent.reply
+    }
+
+    /** What asking for the newest trained weights came to. */
+    sealed class WeightsFetch {
+        /** Weights in the model's shape; the caller keeps them if they differ from the ones it scores with. */
+        data class Fresh(val weights: AccuracyWeights) : WeightsFetch()
+        /** The cloud may not be used now (not Pro, no session, the owner's cap reached): nothing was sent. */
+        data class Blocked(val why: String) : WeightsFetch()
+        /** The server answered something that is not usable weights; the old ones stay (iOS refreshWeights). */
+        data object Unusable : WeightsFetch()
+        data object Offline : WeightsFetch()
+    }
+
+    /**
+     * The newest trained weights (iOS AccuracyStore.refreshWeights' request),
+     * asked for only where a model call is allowed. Asking once a day, and
+     * keeping what comes back, is the store's.
+     */
+    suspend fun fetchWeights(service: LLMService): WeightsFetch {
+        val (client, blocker) = service.checker()
+        if (client == null) return WeightsFetch.Blocked(blocker ?: SIGN_IN)
+        val reply = try {
+            withContext(CloudJobs.io) { client.accuracyModel() }
+        } catch (e: BackendClient.BackendException) {
+            return if (e.status == 0) WeightsFetch.Offline else WeightsFetch.Unusable
+        }
+        return AccuracyWeights.fromReply(reply)?.let { WeightsFetch.Fresh(it) } ?: WeightsFetch.Unusable
+    }
+
+    /** How sending a report came out (iOS AccuracyStore.report keeps the report on the device whatever this is). */
+    sealed class ReportOutcome {
+        data object Sent : ReportOutcome()
+        /** The cloud may not be used now: nothing was sent. */
+        data class Blocked(val why: String) : ReportOutcome()
+        data object Offline : ReportOutcome()
+        /** The server did not take it: its status (429 is today's reports used). */
+        data class Refused(val status: Int) : ReportOutcome()
+    }
+
+    /**
+     * "Report an error": sends the item and the note to the worker for the
+     * next training run, only where a model call is allowed. Marking the item
+     * reported on this device (AccuracyLedger.markReported) comes first and
+     * does not wait for this.
+     */
+    suspend fun report(item: AccuracyItem, note: String, service: LLMService): ReportOutcome {
+        val (client, blocker) = service.checker()
+        if (client == null) return ReportOutcome.Blocked(blocker ?: SIGN_IN)
+        try {
+            withContext(CloudJobs.io) { client.accuracyReport(json(item), note) }
+        } catch (e: BackendClient.BackendException) {
+            return if (e.status == 0) ReportOutcome.Offline else ReportOutcome.Refused(e.status)
+        }
+        return ReportOutcome.Sent
     }
 }

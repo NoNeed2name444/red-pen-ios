@@ -64,7 +64,24 @@ class BackendClient(
         return request("POST", "/accuracy/check", body, timeoutMillis = 120_000)
     }
 
+    /**
+     * The weights the accuracy model scores with (iOS AccuracyStore.refreshWeights'
+     * request): server/worker.js answers `{"weights": {...}}` to anyone, signed
+     * in or not, so no bearer is sent (server/accuracy.js modelWeights).
+     */
     fun accuracyModel(): JSONObject = request("POST", "/accuracy/model", JSONObject(), authenticated = false)
+
+    /**
+     * "Report an error" (iOS AccuracyStore.report): the item and the student's
+     * note, kept on the worker by the item's hash for the next training run.
+     * Any signed-in account may send one - it costs nothing - and the worker
+     * answers `{"ok": true, "hash", "reports"}`, or 429 with `limit: "day"`
+     * (server/accuracy.js report). [item] is the same JSON as the checker's.
+     */
+    fun accuracyReport(item: JSONObject, note: String): JSONObject {
+        require(item.optString("kind").isNotEmpty()) { "Report an item with its kind." }
+        return request("POST", "/accuracy/report", JSONObject().put("item", item).put("note", note), timeoutMillis = 60_000)
+    }
 
     /** A job starts generation. Call only from an explicit user action. */
     fun createJob(spec: JSONObject): JSONObject {

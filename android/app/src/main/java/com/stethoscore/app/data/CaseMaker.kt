@@ -191,6 +191,102 @@ object TextSlicing {
     }
 
     /**
+     * The words of [text] longer than three letters, lower-cased (iOS
+     * TextSlicing.words: runs of letters, marks and numbers, as Foundation's
+     * alphanumerics; a word's length counts its characters, not its marks).
+     */
+    fun words(text: String): Set<String> {
+        val out = HashSet<String>()
+        val word = StringBuilder()
+        var length = 0
+        fun end() {
+            if (length > 3) out += word.toString()
+            word.setLength(0)
+            length = 0
+        }
+        val lower = text.lowercase()
+        var i = 0
+        while (i < lower.length) {
+            val cp = lower.codePointAt(i)
+            i += Character.charCount(cp)
+            when (Character.getType(cp).toByte()) {
+                Character.UPPERCASE_LETTER, Character.LOWERCASE_LETTER, Character.TITLECASE_LETTER, Character.MODIFIER_LETTER,
+                Character.OTHER_LETTER, Character.DECIMAL_DIGIT_NUMBER, Character.LETTER_NUMBER, Character.OTHER_NUMBER -> {
+                    word.appendCodePoint(cp); length += 1
+                }
+                Character.NON_SPACING_MARK, Character.ENCLOSING_MARK, Character.COMBINING_SPACING_MARK -> word.appendCodePoint(cp)
+                else -> end()
+            }
+        }
+        end()
+        return out
+    }
+
+    /** The first [limit] characters of [text], never cutting a surrogate pair in two. */
+    private fun head(text: String, limit: Int): String {
+        if (text.length <= limit) return text
+        val cut = if (limit > 0 && Character.isHighSurrogate(text[limit - 1])) limit - 1 else limit
+        return text.substring(0, cut)
+    }
+
+    /**
+     * The paragraphs of a long [source] that share the most words with [text]
+     * (iOS TextSlicing.nearest), back in reading order, up to [limit]
+     * characters; the source whole when it fits, its start when nothing shares
+     * a word.
+     */
+    fun nearest(source: String, text: String, limit: Int): String {
+        if (source.length <= limit) return source
+        val wanted = words(text)
+        // A paragraph too long to fit is taken line by line instead: a Word
+        // file's text is one page with a line per paragraph and no blank
+        // lines, so as one paragraph it could never be chosen at all.
+        val paragraphs = mutableListOf<String>()
+        for (paragraph in source.split("\n\n")) {
+            if (paragraph.length > limit) paragraphs += paragraph.split("\n") else paragraphs += paragraph
+        }
+        val ranked = paragraphs.mapIndexed { i, p -> i to words(p).count { it in wanted } }.sortedByDescending { it.second }
+        val chosen = mutableListOf<Int>()
+        var size = 0
+        for ((index, score) in ranked) {
+            if (score <= 0) continue
+            // the blank line each one is joined with counts too
+            val length = paragraphs[index].length + (if (chosen.isEmpty()) 0 else 2)
+            if (size + length > limit) continue
+            chosen += index
+            size += length
+        }
+        if (chosen.isEmpty()) return head(source, limit)
+        return chosen.sorted().joinToString("\n\n") { paragraphs[it] }
+    }
+
+    /**
+     * The pages (heading, text) that share the most words with [text], best
+     * first, up to [limit] characters; null when no page shares a word with it
+     * (iOS TextSlicing.nearestPages).
+     *
+     * A page bigger than the room left is cut down to its own nearest
+     * paragraphs rather than ending the search: a Word file is kept as ONE
+     * page, so stopping at the first page that does not fit meant a Word
+     * lecture was never used at all, and the check fell back to "no source".
+     */
+    fun nearestPages(pages: List<Pair<String, String>>, text: String, limit: Int): String? {
+        val wanted = words(text)
+        val ranked = pages.map { (heading, body) -> Triple(heading, body, words(body).count { it in wanted }) }.sortedByDescending { it.third }
+        // less than this left is not worth a page
+        val smallest = minOf(200, maxOf(1, limit / 4))
+        val out = StringBuilder()
+        for ((heading, body, score) in ranked) {
+            if (score <= 0) continue
+            val room = limit - out.length - heading.length - 2
+            if (room < smallest) break
+            val chosen = if (body.length <= room) body else nearest(body, text, room)
+            out.append(heading).append(chosen).append("\n\n")
+        }
+        return if (out.isEmpty()) null else out.toString()
+    }
+
+    /**
      * Paragraph-aligned slices of roughly equal length (iOS TextSlicing.slice),
      * for a textbook's pages and a long lecture's card windows. More pieces
      * than [count] are merged with their neighbours rather than the tail
