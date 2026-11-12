@@ -61,6 +61,10 @@ class RotationStateTest {
         store.addSet(StudySet(name = "Renal drill", subject = "Nephrology", kind = StudySetKind.MCQ,
             questions = List(12) { i -> MCQQuestion(stem = "Drill question ${i + 1}?", options = listOf("One", "Two", "Three", "Four"), correctIndex = i % 4) }))
         device.setOrientationNatural()
+        // MainActivity opens ProcessStore's one store, made on the process's first call only: forgotten here,
+        // the activity opens a store loaded from the files just seeded (it waits for their writes), not the one
+        // an earlier test left in this process
+        ProcessStore.forget()
         scenario = ActivityScenario.launch(MainActivity::class.java)
         instrumentation.runOnMainSync { LearnRouter.close() }
         compose.waitForIdle()
@@ -69,7 +73,8 @@ class RotationStateTest {
     @After fun tearDown() {
         runCatching { device.setOrientationNatural(); device.unfreezeRotation() }
         foldStates().firstOrNull()?.let { runCatching { device.executeShellCommand("cmd device_state state reset") } }
-        scenario.close()
+        // forgotten after the activity is gone: its onStop still reaches for the process store
+        try { scenario.close() } finally { ProcessStore.forget() }
     }
 
     /** The device states to pass through after the turns: none unless the script found a foldable's. */
@@ -167,9 +172,15 @@ class RotationStateTest {
         scenario.close()
         store.addSets(List(40) { i -> StudySet(name = "Scroll filler ${i + 1}", subject = "Nephrology", kind = StudySetKind.MCQ,
             questions = listOf(MCQQuestion(stem = "Filler ${i + 1}?", options = listOf("One", "Two"), correctIndex = 0))) })
+        // the process store the first launch made never saw the fillers (they went to this test's own store and the
+        // file): forgotten, the relaunch opens a store loaded from the file that has them
+        ProcessStore.forget()
         scenario = ActivityScenario.launch(MainActivity::class.java)
         instrumentation.runOnMainSync { LearnRouter.close() }
         compose.waitForIdle()
+        // the app's own store holds the row, so a store made before the fillers fails here and not as a scroll-search error
+        assertTrue("the app's own store lacks 'Scroll filler 20': the process store was made before the fillers were saved (a stale ProcessStore), so home's list can never show the row",
+            ProcessStore.get(instrumentation.targetContext).library.any { it.name == "Scroll filler 20" })
         val list = hasScrollToNodeAction()
         // A row from the middle of the list, not its last line (T0245). A turn keeps the list's first visible
         // row, so after a turn to a shorter window the last line ("Study aid", the footer) lies below the
