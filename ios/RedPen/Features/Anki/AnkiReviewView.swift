@@ -181,8 +181,9 @@ struct AnkiReviewView: View {
             .reviewUndoChip(until: $undoUntil, action: undo)
             .studyBar(folds: true, shown: !decksInline) { footer(item) }
             // rated at the accessibility sizes, the page is left at the deck;
-            // the next card opens at its header (a no-op below them)
+            // the next card, or the same card coming back after Again, opens at its header (a no-op below them)
             .onChange(of: item.id) { _, _ in proxy.scrollTo(Self.cardTop, anchor: .top) }
+            .onChange(of: reviewedCount) { _, _ in proxy.scrollTo(Self.cardTop, anchor: .top) }
         }
     }
 

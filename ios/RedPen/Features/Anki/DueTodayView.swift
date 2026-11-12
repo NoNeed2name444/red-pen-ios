@@ -128,8 +128,9 @@ struct DueTodayView: View {
             .studyBar(shown: !decksInline) { footer(due) }
             .saveToIdeasHost()
             // rated at the accessibility sizes, the page is left at the deck;
-            // the next card opens at its header (a no-op below them)
+            // the next card, or the same card coming back after Again, opens at its header (a no-op below them)
             .onChange(of: due.id) { _, _ in proxy.scrollTo(Self.cardTop, anchor: .top) }
+            .onChange(of: reviewedCount) { _, _ in proxy.scrollTo(Self.cardTop, anchor: .top) }
         }
     }
 
