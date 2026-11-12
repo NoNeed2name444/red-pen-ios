@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       only_a11y:
-        description: 'Build and the accessibility step only: skip the sign-in and terms tap-through (about 25 minutes instead of about 2 hours)'
+        description: 'Build and the accessibility step only: skip the sign-in and terms tap-through, which takes most of the run (the accessibility step alone took about 17 minutes warm; the cold compile is not yet measured)'
         type: boolean
         default: false
 permissions:
@@ -134,7 +134,7 @@ jobs:
         run: |
           {
             echo '### Sign-in and terms tap test'
-            echo 'Skipped: this run was started with only_a11y. Only the build and the accessibility step ran, so a green run does not show that the UI tests pass.'
+            echo 'Skipped: this run was started with only_a11y. See the other steps of this run for what ran. A green run does not show that the UI tests pass.'
           } >> "$GITHUB_STEP_SUMMARY"
       # The accessibility walk and audit at the largest text size: an audit
       # finding shows up here, in the summary, and as a red run. It must pass before the App
