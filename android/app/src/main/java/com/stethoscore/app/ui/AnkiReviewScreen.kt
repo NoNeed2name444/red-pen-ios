@@ -105,7 +105,7 @@ import com.stethoscore.app.ui.ward.*
         ProgressHeader(header)
         Box(Modifier.weight(1f).fillMaxWidth()) {
             if (current != null) {
-                Column(Modifier.fillMaxSize().verticalScroll(rememberReviewScroll(reviewedCount)).padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = if (revealed) 8.dp else 24.dp)) {
+                Column(Modifier.fillMaxSize().verticalScroll(rememberReviewScroll(reviewedCount, current.id)).padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = if (revealed) 8.dp else 24.dp)) {
                     ReviewCardActions(::bury, ::suspend, Modifier.fillMaxWidth()) {
                         ContentCard { AnkiCardFace(current.card, set.images, revealed, set.cards) }
                     }
@@ -193,7 +193,7 @@ import com.stethoscore.app.ui.ward.*
         Box(Modifier.weight(1f).fillMaxWidth()) {
             if (due != null) {
                 val set = deckOf(due)
-                Column(Modifier.fillMaxSize().verticalScroll(rememberReviewScroll(reviewedCount)).padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = if (revealed) 8.dp else 24.dp)) {
+                Column(Modifier.fillMaxSize().verticalScroll(rememberReviewScroll(reviewedCount, due.id)).padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = if (revealed) 8.dp else 24.dp)) {
                     ReviewCardActions(::bury, ::suspend, Modifier.fillMaxWidth()) {
                         ContentCard(spacing = 8.dp) {
                             SmallCaps(due.setName)
@@ -221,11 +221,13 @@ import com.stethoscore.app.ui.ward.*
 
 /**
  * A card page's scroll, kept through a turn like rememberScrollState but made again, at the top,
- * whenever [reviewedCount] changes: a rating or an undo. The card alone cannot say so, because
- * the same card comes straight back after Again (iOS T0225 keys on its reviewedCount too).
+ * when the card changes ([cardId]: the next card, a Bury, a Suspend) or the rating count does
+ * ([reviewedCount]: a rating or an undo). Neither key is enough alone: the same card comes
+ * straight back after Again, and a Bury or Suspend changes the card with no rating. iOS resets on
+ * the card id (T0183 repair 2, 3f8f4a64) and on the rating count (T0225).
  */
-@Composable private fun rememberReviewScroll(reviewedCount: Int): ScrollState =
-    rememberSaveable(reviewedCount, saver = ScrollState.Saver) { ScrollState(0) }
+@Composable private fun rememberReviewScroll(reviewedCount: Int, cardId: String): ScrollState =
+    rememberSaveable(reviewedCount, cardId, saver = ScrollState.Saver) { ScrollState(0) }
 
 /**
  * The keys Anki answers to, for a keyboard on a tablet: Space turns the card over, 1 to 4 rate

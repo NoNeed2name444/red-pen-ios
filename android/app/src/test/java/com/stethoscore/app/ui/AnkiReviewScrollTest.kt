@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -35,13 +36,16 @@ class AnkiReviewScrollTest {
     private val dueScreen: @Composable (StudyStore, StudySet) -> Unit = { store, _ -> DueTodayScreen(store, onBack = {}) }
 
     // cards long enough, asked and answered, that the page scrolls on the test's small screen
-    private fun open(name: String, cards: Int, screen: @Composable (StudyStore, StudySet) -> Unit) {
+    private fun open(
+        name: String, cards: Int, screen: @Composable (StudyStore, StudySet) -> Unit,
+        host: (@Composable () -> Unit) -> Unit = { compose.setContent(it) },
+    ) {
         val store = StudyStore(folder.newFolder(name))
         val set = StudySet(name = "Lupus", subject = "Rheumatology", kind = StudySetKind.ANKI, cards = List(cards) { n ->
             AnkiCard(front = "Card ${n + 1}. " + "What is the long question? ".repeat(60), bullets = List(30) { "Answer line $it of the long answer" })
         })
         store.addSet(set)
-        compose.setContent { StethoscoreTheme { screen(store, set) } }
+        host { StethoscoreTheme { screen(store, set) } }
     }
 
     private val pageScroll = SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange)
@@ -89,10 +93,39 @@ class AnkiReviewScrollTest {
         assertEquals("the undone card opens at its top", 0, scrolled())
     }
 
+    // Bury and Suspend (the More menu) change the card without a rating, so the counter alone is not the key
+    private fun nextCardAfterMenu(item: String, screen: @Composable (StudyStore, StudySet) -> Unit) {
+        open("menu", cards = 2, screen)
+        scrollDown()
+        compose.onNodeWithContentDescription("More").performClick()
+        compose.onNodeWithText(item).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Card 2.", substring = true).assertExists()
+        assertEquals("the next card opens at its top", 0, scrolled())
+    }
+
+    // a turn (rotation or fold) keeps the page where it was: same card, same rating count
+    private fun keepsItsPlaceThroughATurn(screen: @Composable (StudyStore, StudySet) -> Unit) {
+        val restoration = StateRestorationTester(compose)
+        open("turn", cards = 2, screen, host = { restoration.setContent(it) })
+        scrollDown()
+        restoration.emulateSavedInstanceStateRestore()
+        compose.waitForIdle()
+        compose.onNodeWithText("Card 1.", substring = true).assertExists()
+        assertTrue("the page keeps its place through a turn: ${scrolled()}", scrolled() > 0)
+    }
+
     @Test fun aDeckAtTheTopWhenTheSameCardComesBackAfterAgain() = sameCardAfterAgain(deckScreen)
     @Test fun aDeckAtTheTopOnTheNextCard() = nextCardAfterRating(deckScreen)
     @Test fun aDeckAtTheTopAfterUndo() = cardAfterUndo(deckScreen)
     @Test fun dueTodayAtTheTopWhenTheSameCardComesBackAfterAgain() = sameCardAfterAgain(dueScreen)
     @Test fun dueTodayAtTheTopOnTheNextCard() = nextCardAfterRating(dueScreen)
     @Test fun dueTodayAtTheTopAfterUndo() = cardAfterUndo(dueScreen)
+
+    @Test fun aDeckAtTheTopAfterBury() = nextCardAfterMenu("Bury until tomorrow", deckScreen)
+    @Test fun aDeckAtTheTopAfterSuspend() = nextCardAfterMenu("Suspend this card", deckScreen)
+    @Test fun dueTodayAtTheTopAfterBury() = nextCardAfterMenu("Bury until tomorrow", dueScreen)
+    @Test fun dueTodayAtTheTopAfterSuspend() = nextCardAfterMenu("Suspend this card", dueScreen)
+    @Test fun aDeckKeepsItsPlaceThroughATurn() = keepsItsPlaceThroughATurn(deckScreen)
+    @Test fun dueTodayKeepsItsPlaceThroughATurn() = keepsItsPlaceThroughATurn(dueScreen)
 }
