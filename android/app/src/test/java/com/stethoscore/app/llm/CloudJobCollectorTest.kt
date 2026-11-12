@@ -481,6 +481,55 @@ class CloudJobCollectorTest {
         assertEquals(1, shelf.sets.size)
     }
 
+    // MARK: the announce guard (T0253)
+
+    /** One job collected with an announcer that throws [thrown]: the made sets, the shelf, the store and the server. */
+    private suspend fun announcedWith(thrown: Throwable): AnnounceRun {
+        val store = CloudJobs.MemoryStore().also { it.save(earlier()) }
+        val shelf = Shelf()
+        val server = worker("done")
+        val made = CloudJobCollector.collect(store, shelf, { if (it == "owner") "bearer" else null }, server::client,
+            announce = { _, _, _ -> throw thrown })
+        return AnnounceRun(made, shelf, store, server)
+    }
+
+    private class AnnounceRun(val made: List<StudySet>, val shelf: Shelf, val store: CloudJobs.PendingStore, val server: FakeServer)
+
+    @Test fun anErrorFromTheAnnouncerDoesNotMakeTheSetTwice() = runBlocking {
+        val first = announcedWith(NoSuchMethodError("NotificationChannel.setBlocked"))
+        assertEquals(1, first.made.size)
+        assertEquals(1, first.shelf.sets.size)
+        assertTrue(first.store.all().isEmpty())
+        assertEquals(1, first.server.requests.count { it.method == "DELETE" && it.path == "/jobs/$id" })
+        // the next collection has nothing left to make
+        val again = CloudJobCollector.collect(first.store, first.shelf, { if (it == "owner") "bearer" else null }, first.server::client,
+            announce = { _, _, _ -> throw NoSuchMethodError("NotificationChannel.setBlocked") })
+        assertTrue(again.isEmpty())
+        assertEquals(1, first.shelf.sets.size)
+    }
+
+    @Test fun aCancellationFromTheAnnouncerIsNotSwallowed() = runBlocking {
+        var thrown: Throwable? = null
+        try {
+            announcedWith(kotlinx.coroutines.CancellationException("the collection was cancelled"))
+        } catch (e: Throwable) {
+            thrown = e
+        }
+        assertTrue("the cancellation must reach the caller, was $thrown", thrown is kotlinx.coroutines.CancellationException)
+    }
+
+    @Test fun aVirtualMachineErrorFromTheAnnouncerIsNotSwallowed() = runBlocking {
+        for (fault in listOf<VirtualMachineError>(OutOfMemoryError("heap"), StackOverflowError())) {
+            var thrown: Throwable? = null
+            try {
+                announcedWith(fault)
+            } catch (e: Throwable) {
+                thrown = e
+            }
+            assertTrue("${fault.javaClass.simpleName} must reach the caller, was $thrown", thrown is VirtualMachineError)
+        }
+    }
+
     // MARK: iOS CloudJobRetryTests, check for check (T0237)
     // A finished job's result that fails to download is asked for again, with
     // waits between, while its screen waits; given up, the job is handed to the

@@ -202,10 +202,14 @@ object CloudJobCollector {
             // only copy; not on disk, the job stays to be collected again
             if (!library.add(set)) return null
             _delivered.value += 1
-            // the set is on disk: a notification that fails must not leave the job to be collected, and made, again
+            // the set is on disk: a notification that fails, by Exception or by Error
+            // (an Android call missing on an older device), must not leave the job to be
+            // collected, and made, again. A cancelled collection and a failing JVM are not
+            // the notification's failure: those are passed on.
             try {
                 announce?.ready("${set.name} is ready", body, set.id)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
+                if (e is kotlinx.coroutines.CancellationException || e is VirtualMachineError) throw e
                 // nothing to do: the set is in the library
             }
         }
