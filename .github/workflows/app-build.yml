@@ -8,6 +8,11 @@ on:
     branches: [personal, 'design/**']
     paths: ['ios/**', '.github/workflows/app-build.yml']
   workflow_dispatch:
+    inputs:
+      only_a11y:
+        description: 'Build and the accessibility step only: skip the sign-in and terms tap-through (about 25 minutes instead of about 2 hours)'
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -62,9 +67,13 @@ jobs:
       #   stopped and named and the suite goes on;
       # - this step's limit is under the job's, so the summary and the
       #   upload after it still run when it is reached.
+      #
+      # A manual run started with only_a11y skips this step: the build and the
+      # accessibility step run, and the two steps after this one skip with it.
+      # A push never sets it.
       - name: Tap through sign-in and the terms on a simulator
         id: ui
-        if: ${{ (!startsWith(github.ref_name, 'design/') || github.ref_name == 'design/integration') }}
+        if: ${{ (!startsWith(github.ref_name, 'design/') || github.ref_name == 'design/integration') && inputs.only_a11y != true }}
         timeout-minutes: 110
         working-directory: ios
         run: |
@@ -116,6 +125,16 @@ jobs:
               echo 'no uitest.log'
             fi
             echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      # With only_a11y the two steps above are skipped and write nothing, so
+      # this one says so: a green run then shows the build and the
+      # accessibility step passed, not that the UI tests did.
+      - name: Note that the tap-through was skipped
+        if: ${{ always() && inputs.only_a11y == true && (!startsWith(github.ref_name, 'design/') || github.ref_name == 'design/integration') }}
+        run: |
+          {
+            echo '### Sign-in and terms tap test'
+            echo 'Skipped: this run was started with only_a11y. Only the build and the accessibility step ran, so a green run does not show that the UI tests pass.'
           } >> "$GITHUB_STEP_SUMMARY"
       # The accessibility walk and audit at the largest text size: an audit
       # finding shows up here, in the summary, and as a red run. It must pass before the App
