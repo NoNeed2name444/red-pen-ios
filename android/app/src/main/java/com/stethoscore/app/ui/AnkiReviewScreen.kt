@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -104,7 +105,7 @@ import com.stethoscore.app.ui.ward.*
         ProgressHeader(header)
         Box(Modifier.weight(1f).fillMaxWidth()) {
             if (current != null) {
-                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = if (revealed) 8.dp else 24.dp)) {
+                Column(Modifier.fillMaxSize().verticalScroll(rememberReviewScroll(reviewedCount)).padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = if (revealed) 8.dp else 24.dp)) {
                     ReviewCardActions(::bury, ::suspend, Modifier.fillMaxWidth()) {
                         ContentCard { AnkiCardFace(current.card, set.images, revealed, set.cards) }
                     }
@@ -192,7 +193,7 @@ import com.stethoscore.app.ui.ward.*
         Box(Modifier.weight(1f).fillMaxWidth()) {
             if (due != null) {
                 val set = deckOf(due)
-                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = if (revealed) 8.dp else 24.dp)) {
+                Column(Modifier.fillMaxSize().verticalScroll(rememberReviewScroll(reviewedCount)).padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = if (revealed) 8.dp else 24.dp)) {
                     ReviewCardActions(::bury, ::suspend, Modifier.fillMaxWidth()) {
                         ContentCard(spacing = 8.dp) {
                             SmallCaps(due.setName)
@@ -217,6 +218,14 @@ import com.stethoscore.app.ui.ward.*
     }
     verifying?.let { AccuracyWhySheet(it, checksWhenUnchecked = true) { verifying = null } }
 }
+
+/**
+ * A card page's scroll, kept through a turn like rememberScrollState but made again, at the top,
+ * whenever [reviewedCount] changes: a rating or an undo. The card alone cannot say so, because
+ * the same card comes straight back after Again (iOS T0225 keys on its reviewedCount too).
+ */
+@Composable private fun rememberReviewScroll(reviewedCount: Int): ScrollState =
+    rememberSaveable(reviewedCount, saver = ScrollState.Saver) { ScrollState(0) }
 
 /**
  * The keys Anki answers to, for a keyboard on a tablet: Space turns the card over, 1 to 4 rate
