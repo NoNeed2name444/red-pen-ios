@@ -4,6 +4,8 @@ import com.stethoscore.app.data.MCQQuestion
 import com.stethoscore.app.data.OsceChecklist
 import com.stethoscore.app.data.OsceGenerator
 import com.stethoscore.app.data.OsceStations
+import com.stethoscore.app.data.SourceDoc
+import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.data.TextSlicing
 import com.stethoscore.app.exam.TargetExam
 import com.stethoscore.app.quiz.ExamTrack
@@ -21,8 +23,11 @@ import kotlin.coroutines.coroutineContext
  *
  * The OSCE half too: osce(), its job, its collector and its parser.
  *
- * Not ported (T0115b): MCQRepair (letter references
- * in an explanation rewritten), ExamExemplars.copies (the bundled exemplar
+ * Every question read from a reply goes through MCQRepair (T0234), as in iOS
+ * parseQuestions: a position in the explanation ("option B") is named by the
+ * option's words instead, since the options are shown shuffled.
+ *
+ * Not ported (T0115b): ExamExemplars.copies (the bundled exemplar
  * bank is not on Android) and CloudChecks.cite (the evidence the server's
  * check read, cited on each question).
  */
@@ -36,6 +41,8 @@ object MedicalGenerate {
         using: LLMBackend, exam: Exam = Exam(),
         store: CloudJobs.PendingStore = CloudJobs.store,
         pause: suspend (Long) -> Unit = { kotlinx.coroutines.delay(it) },
+        name: String = "",
+        source: SourceDoc? = null,
         onProgress: (Int, Int) -> Unit = { _, _ -> },
     ): List<MCQQuestion> {
         val windows = TextSlicing.windows(sourceText, using.promptBudgetChars).take(60)
@@ -57,9 +64,11 @@ object MedicalGenerate {
                 perReply = perCall,
             )
             // the recipe goes with the job, so a run the app is closed on is
-            // collected as these questions (CloudJobCollector), as iOS's screens set it
+            // collected as these questions (CloudJobCollector), as iOS's screens set it:
+            // the set's name and the lecture it was read from (iOS MCQGenerateForm
+            // startGenerating: name: setName, source: cite?.doc())
             val outer = coroutineContext[CloudJobs.Context]
-            val recipe = outer?.recipe ?: CloudRecipe(com.stethoscore.app.data.StudySetKind.MCQ, "", subject, count, exam = exam.target?.id).json()
+            val recipe = outer?.recipe ?: CloudRecipe(StudySetKind.MCQ, name, subject, count, source = source, exam = exam.target?.id).json()
             val replies = kotlinx.coroutines.withContext(CloudJobs.Context(recipe, outer?.delivery)) {
                 CloudJobs.run(spec, cloud, store, pause, onProgress)
             }
@@ -216,7 +225,12 @@ object MedicalGenerate {
         return collected
     }
 
-    /** Every usable question in a reply, each read on its own: a malformed one costs only itself. */
+    /**
+     * Every usable question in a reply, each read on its own: a malformed one costs only itself.
+     * Each is repaired before it is returned (MCQRepair): nothing is dropped by the repair, a
+     * missing explanation stays empty and one that names another answer than the key is left as
+     * written, for the accuracy rules to flag, as in iOS.
+     */
     fun parseQuestions(raw: String): List<MCQQuestion> {
         val out = mutableListOf<MCQQuestion>()
         for (item in LLMText.jsonItems(raw, "questions")) {
@@ -227,9 +241,12 @@ object MedicalGenerate {
             val key = LLMText.keyIndex(item.opt("correctIndex"), options) ?: continue
             if (!MCQPrompt.isValidQuestion(stem, options, key)) continue
             val explanation = item.opt("explanation") as? String ?: ""
+            // a position in the explanation ("option B") named by the option's
+            // words instead, since the options are shown shuffled
+            val repaired = MCQRepair.repaired(MCQQuestion(stem = stem, options = options, correctIndex = key, explanation = explanation))
             val raw = JSONObject()
             differential(item.opt("differential"))?.let { raw.put("differential", it) }
-            out += MCQQuestion(stem = stem, options = options, correctIndex = key, explanation = explanation, rawJson = raw.toString())
+            out += repaired.copy(rawJson = raw.toString())
         }
         return out
     }
