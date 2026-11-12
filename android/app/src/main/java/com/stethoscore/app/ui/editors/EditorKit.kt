@@ -196,12 +196,14 @@ import com.stethoscore.app.ui.wardColor
         Row(Modifier.wardInset(CircleShape, control = true), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             WardCircleButton(Icons.Rounded.Remove, "One fewer", { onValueChange((value - 1).coerceAtLeast(range.first)) }, enabled = enabled && value > range.first)
             BasicTextField(text, { typed -> text = typed.filter { it.isDigit() }.take(6); text.toIntOrNull()?.let { if (it in range) onValueChange(it) } },
-                modifier = Modifier.minimumInteractiveComponentSize().widthIn(min = 44.dp, max = 64.dp).semantics { contentDescription = title },
+                modifier = Modifier.minimumInteractiveComponentSize().widthIn(min = WardControlSize.target.wardDp, max = 64.dp).semantics { contentDescription = title },
                 enabled = enabled, singleLine = true,
                 textStyle = WardTextStyle.body.textStyle(mono = true).copy(color = if (enabled) wardColor(WardToken.ink) else wardDisabledInk(), textAlign = TextAlign.Center, fontFamily = FontFamily.Monospace),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { commit() }),
-                cursorBrush = SolidColor(wardColor(WardToken.primaryInk)))
+                cursorBrush = SolidColor(wardColor(WardToken.primaryInk)),
+                // the field's own box is the whole 48 dp target, the number centred in it as before (WardTextField's well is its own target too)
+                decorationBox = { number -> Box(Modifier.defaultMinSize(minHeight = WardControlSize.target.wardDp), contentAlignment = Alignment.Center) { number() } })
             WardCircleButton(Icons.Rounded.Add, "One more", { onValueChange((value + 1).coerceAtMost(range.last)) }, enabled = enabled && value < range.last)
         }
     }

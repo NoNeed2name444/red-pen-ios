@@ -86,8 +86,9 @@ import com.stethoscore.app.ui.wardColor
                     keyboardActions = KeyboardActions(onDone = { add() }), cursorBrush = SolidColor(wardColor(WardToken.primaryInk)))
             }
             val canAdd = CardTags.parse(typed).isNotEmpty()
+            // the click on the whole 48 dp target, the plus drawn 26 inside it (WardCircleButton, T0217)
             Icon(Icons.Rounded.AddCircle, "Add tag", tint = if (canAdd) wardColor(WardToken.primaryInk) else wardDisabledInk(),
-                modifier = Modifier.minimumInteractiveComponentSize().size(26.dp).clickable(enabled = canAdd, role = Role.Button) { add() })
+                modifier = Modifier.clickable(enabled = canAdd, role = Role.Button) { add() }.minimumInteractiveComponentSize().size(26.dp))
         }
         val offered = CardTags.suggestions(typed, known, tags, limit = 8)
         if (offered.isNotEmpty() && (focused || typed.isNotEmpty())) Row(

@@ -154,8 +154,9 @@ import com.stethoscore.app.ui.wardColor
                 .combinedClickable(role = Role.Button, onClick = onOpen, onLongClick = { menu = true })
                 .padding(horizontal = WardSpace.m.wardDp, vertical = WardSpace.s.wardDp + 2.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
+                // the click on the whole 48 dp target, the minus drawn in the 44 inside it (WardCircleButton, T0217)
                 if (editMode) Icon(Icons.Rounded.RemoveCircle, "Delete", tint = wardColor(WardToken.danger),
-                    modifier = Modifier.minimumInteractiveComponentSize().size(44.dp).combinedClickable(role = Role.Button, onClick = onDelete).padding(10.dp))
+                    modifier = Modifier.combinedClickable(role = Role.Button, onClick = onDelete).minimumInteractiveComponentSize().size(44.dp).padding(10.dp))
                 Box(Modifier.weight(1f)) { content() }
             }
             DropdownMenu(menu, { menu = false }, containerColor = wardColor(WardToken.background)) {
@@ -291,7 +292,7 @@ private fun String.trimSpaces() = trim { it == ' ' || it == '\t' }
         Box {
             Icon(if (correct) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked, null,
                 tint = if (correct) wardColor(WardToken.primaryInk) else wardColor(WardToken.inkSecondary),
-                modifier = Modifier.minimumInteractiveComponentSize().size(44.dp).combinedClickable(role = Role.Button, onClick = onMark, onLongClick = { menu = true })
+                modifier = Modifier.combinedClickable(role = Role.Button, onClick = onMark, onLongClick = { menu = true }).minimumInteractiveComponentSize().size(44.dp)
                     .semantics { contentDescription = "Mark correct"; selected = correct }.padding(10.dp))
             DropdownMenu(menu, { menu = false }, containerColor = wardColor(WardToken.background)) {
                 DropdownMenuItem({ Text("Mark correct") }, { menu = false; onMark() }, leadingIcon = { Icon(Icons.Rounded.CheckCircle, null) })
@@ -304,6 +305,6 @@ private fun String.trimSpaces() = trim { it == ' ' || it == '\t' }
             EditorTextArea(question.options.getOrElse(index) { "" }, onText, minHeight = 44.dp, placeholder = "Option", label = "Option ${index + 1}")
         }
         Icon(Icons.Rounded.RemoveCircle, "Delete option", tint = wardColor(WardToken.danger),
-            modifier = Modifier.minimumInteractiveComponentSize().size(44.dp).combinedClickable(role = Role.Button, onClick = onRemove).padding(10.dp))
+            modifier = Modifier.combinedClickable(role = Role.Button, onClick = onRemove).minimumInteractiveComponentSize().size(44.dp).padding(10.dp))
     }
 }
