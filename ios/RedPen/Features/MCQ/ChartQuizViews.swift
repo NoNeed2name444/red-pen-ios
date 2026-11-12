@@ -135,9 +135,14 @@ struct ChartVitalsGrid: View {
 }
 
 /// The results as a monospaced table - name, value, unit, H or L - with a
-/// flagged value and its letter in Resus Red. Each row is read whole. When
-/// large text leaves the four columns no room, each result is stacked: its
-/// name, then its value, unit and flag, as ChartChipsRow stacks its chips
+/// flagged value and its letter in Resus Red. The table is read whole, one
+/// result after another as ChartQuiz.spoken says it, by one element round the
+/// layout: a cell given the whole result's words as its label was a StaticText
+/// 65 by 18 points holding "Albumin 22 g/L, low", and the default-size audit
+/// flagged it, "Text clipped" and "Dynamic Type font sizes are partially
+/// unsupported", in all 6 probe passes of runs 43134634665 and 43101491081.
+/// When large text leaves the four columns no room, each result is stacked:
+/// its name, then its value, unit and flag, as ChartChipsRow stacks its chips
 /// (the default-size audit, run 42076348385, found "Albumin" cut in its
 /// column at larger sizes).
 struct ChartLabsTable: View {
@@ -159,21 +164,23 @@ struct ChartLabsTable: View {
         // over a mode's wash, see-through: one tone with the ground
         .background(modeWash == nil ? Color.wardBackground : Color.clear,
                     in: RoundedRectangle(cornerRadius: WardRadius.field, style: .continuous))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(labs.map { ChartQuiz.spoken($0) }.joined(separator: ". "))
     }
 
     private func row(_ lab: PatientChart.Lab) -> some View {
         let value: Color = ChartQuiz.tone(lab.flag) == .danger ? .wardDanger : .wardInk
         return GridRow {
-            Text(lab.name).foregroundStyle(Color.wardInk).accessibilityLabel(ChartQuiz.spoken(lab))
+            Text(lab.name).foregroundStyle(Color.wardInk)
             Text(lab.value).fontWeight(.semibold).foregroundStyle(value)
-                .gridColumnAlignment(.trailing).accessibilityHidden(true)
-            Text(lab.unit).foregroundStyle(Color.wardInkSecondary).accessibilityHidden(true)
-            Text(lab.flag?.rawValue ?? "").fontWeight(.bold).foregroundStyle(Color.wardDanger).accessibilityHidden(true)
+                .gridColumnAlignment(.trailing)
+            Text(lab.unit).foregroundStyle(Color.wardInkSecondary)
+            Text(lab.flag?.rawValue ?? "").fontWeight(.bold).foregroundStyle(Color.wardDanger)
         }
     }
 
     /// One result stacked, its words wrapping rather than cut: the name,
-    /// then the value, unit and flag. Read whole, as a grid row is.
+    /// then the value, unit and flag.
     private func stacked(_ lab: PatientChart.Lab) -> some View {
         let value: Color = ChartQuiz.tone(lab.flag) == .danger ? .wardDanger : .wardInk
         return VStack(alignment: .leading, spacing: WardSpace.xs) {
@@ -189,7 +196,5 @@ struct ChartLabsTable: View {
                     .fixedSize()
             }
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(ChartQuiz.spoken(lab))
     }
 }
