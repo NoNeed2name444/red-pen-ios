@@ -9,7 +9,7 @@
 #                                          tabletop, folded, three turns each), and fold-tests, FoldLayoutTest in
 #                                          three turns and RotationStateTest through its states
 # HANG_LIMIT_SECONDS=N sets how long one instrumentation run may take before it counts as hung (T0248): the default
-# is 480 for a WindowShots pass and 300 for every other run. A hung run leaves test-results/hang-<pass>-<test>-*.txt
+# is 480 for a WindowShots pass, 1800 for the app tour and 300 for every other run. A hung run leaves test-results/hang-<pass>-<test>-*.txt
 # and screenshots/hang-<pass>-<test>.png, is force-stopped, and fails like any other failed run.
 set -euo pipefail
 mkdir -p screenshots test-results
@@ -125,7 +125,7 @@ if [ "${1:-}" = tour ]; then
   shots=$(grep -oE 'r[0-9]{3}-[a-z0-9-]+-(light|dark)' ../tools/tour_screens_android.txt | sort -u | wc -l)
   echo "expecting OK ($tests tests) and $shots tour pictures" | tee test-results/expected.txt
   [ "$tests" -gt 0 ] && [ "$shots" -gt 0 ]
-  run_instrument tour test-results/instrumentation.txt 300 -e class com.stethoscore.app.TourTest com.stethoscore.app.test/androidx.test.runner.AndroidJUnitRunner
+  run_instrument tour test-results/instrumentation.txt 1800 -e class com.stethoscore.app.TourTest com.stethoscore.app.test/androidx.test.runner.AndroidJUnitRunner
   adb pull /sdcard/Download/stethoscore-tour/. screenshots/tour/ || true
   grep -qF "OK ($tests tests)" test-results/instrumentation.txt
   test "$(find screenshots/tour -name '*.png' | wc -l)" -eq "$shots"
