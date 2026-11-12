@@ -1,12 +1,8 @@
 package com.stethoscore.app.llm
 
 import android.content.Context
-import com.stethoscore.app.accuracy.AccuracyItem
-import com.stethoscore.app.accuracy.AccuracyRules
-import com.stethoscore.app.data.AnkiCard
+import com.stethoscore.app.accuracy.VerificationScreen
 import com.stethoscore.app.data.CaseChecks
-import com.stethoscore.app.data.MCQQuestion
-import com.stethoscore.app.data.OsceChecklist
 import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.data.StudyStore
@@ -257,92 +253,5 @@ object CloudJobCollector {
         }
         // pages: checked by the layer once saved
         else -> set to " The verification layer checks it once the set is saved."
-    }
-}
-
-/**
- * The verification layer's first stage on newly generated material, before it
- * is saved: the same sensors the Worker runs (AccuracyRules), on the device
- * and instant. Port of iOS Shared/Accuracy/VerificationScreen.swift.
- *
- * An item broken in its structure is removed, since it cannot be learned
- * from: no key, a key its own explanation contradicts or calls wrong, a
- * distractor that copies the key, "all of the above" keyed beside "none of
- * the above". Everything else is kept. A medical red flag (a dose outside any
- * usual range, a retired practice, a look-alike drug, an impossible result)
- * is counted as held, for the checkers to clear. Lives beside the collector
- * until the screens that make sets by hand use it too (T0115b).
- */
-internal object VerificationScreen {
-    /** Hits that make an item unusable as written. */
-    fun breaks(hit: AccuracyRules.Hit): Boolean = when (hit.rule) {
-        "no-key", "key-explanation-conflict", "key-called-wrong", "all-above-contradiction" -> true
-        "duplicate-option" -> hit.isSevere
-        else -> false
-    }
-
-    /** Why an item was removed, in words. */
-    fun reason(rule: String): String = when (rule) {
-        "no-key" -> "no answer key"
-        "key-explanation-conflict", "key-called-wrong" -> "key contradicted by its explanation"
-        "duplicate-option" -> "two identical correct options"
-        "all-above-contradiction" -> "contradictory \u201Cof the above\u201D options"
-        else -> rule
-    }
-
-    class Outcome<Item>(
-        val kept: List<Item>,
-        /** Removed items, counted by reason, in the order first met. */
-        val removed: List<Pair<String, Int>>,
-        /** Kept but held for the checkers: a severe medical red flag. */
-        val held: Int,
-    ) {
-        val removedCount: Int get() = removed.sumOf { it.second }
-    }
-
-    fun questions(questions: List<MCQQuestion>): Outcome<MCQQuestion> = screen(questions) { AccuracyItem.mcq(it) }
-
-    fun stations(stations: List<OsceChecklist>): Outcome<OsceChecklist> = screen(stations) { AccuracyItem.osce(it) }
-
-    fun cards(cards: List<AnkiCard>): Outcome<AnkiCard> = screen(cards) { AccuracyItem.card(it) }
-
-    fun <Item> screen(items: List<Item>, asItem: (Item) -> AccuracyItem?): Outcome<Item> {
-        val kept = mutableListOf<Item>()
-        val removed = mutableListOf<Pair<String, Int>>()
-        var held = 0
-        for (thing in items) {
-            val checked = asItem(thing)
-            if (checked == null) {
-                kept += thing
-                continue
-            }
-            val hits = AccuracyRules.hits(checked)
-            val broken = hits.firstOrNull { breaks(it) }
-            if (broken != null) {
-                val why = reason(broken.rule)
-                val at = removed.indexOfFirst { it.first == why }
-                if (at >= 0) removed[at] = why to removed[at].second + 1 else removed += why to 1
-                continue
-            }
-            if (hits.any { it.isSevere }) held += 1
-            kept += thing
-        }
-        return Outcome(kept, removed, held)
-    }
-
-    /**
-     * The status line's sentence: what the on-device checks did, and that the
-     * independent checkers are on the rest. Empty when nothing was made.
-     */
-    fun note(outcome: Outcome<*>): String {
-        if (outcome.kept.isEmpty() && outcome.removedCount == 0) return ""
-        val parts = mutableListOf<String>()
-        if (outcome.removedCount > 0) {
-            val reasons = outcome.removed.joinToString(", ") { "${it.second} ${it.first}" }
-            parts += "${outcome.removedCount} removed ($reasons)"
-        }
-        if (outcome.held > 0) parts += "${outcome.held} held for a red flag"
-        val device = if (parts.isEmpty()) " On-device checks passed." else " On-device checks: " + parts.joinToString("; ") + "."
-        return device + " The independent checkers are verifying the rest now."
     }
 }

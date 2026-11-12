@@ -173,6 +173,27 @@ class GenerationCenterTest {
         assertEquals(1, stopped)
     }
 
+    // the work reads who stopped it as it ends, so the delivery has to be told before the work is: here the work
+    // itself reads it, on the thread that stops it, so nothing about the order depends on a dispatcher
+
+    @Test fun theDeliveryIsToldWhoStoppedTheRunBeforeTheWorkIsStopped() {
+        val delivery = CloudJobs.Delivery()
+        val seenByTheWork = mutableListOf<CloudJobRules.Stop>()
+        GenerationCenter.begin("Writing 8 cards", 8, keeping = delivery) { seenByTheWork += delivery.stoppedBy }
+        GenerationCenter.stopAtExpiry(appActive = true)
+        assertEquals("the work ran once, and found the system already named", listOf(CloudJobRules.Stop.system), seenByTheWork)
+        assertEquals(CloudJobRules.Stop.system, delivery.stoppedBy)
+    }
+
+    @Test fun theStudentsOwnCancelNamesNobodyElseToTheWork() {
+        val delivery = CloudJobs.Delivery()
+        val seenByTheWork = mutableListOf<CloudJobRules.Stop>()
+        GenerationCenter.begin("Writing 8 cards", 8, keeping = delivery) { seenByTheWork += delivery.stoppedBy }
+        GenerationCenter.cancel()
+        assertEquals(listOf(CloudJobRules.Stop.student), seenByTheWork)
+        assertEquals(CloudJobRules.Stop.student, delivery.stoppedBy)
+    }
+
     @Test fun aRunWithNoDeliveryStillStopsAtExpiry() {
         var stopped = 0
         GenerationCenter.begin("Writing 8 questions", 8) { stopped++ }

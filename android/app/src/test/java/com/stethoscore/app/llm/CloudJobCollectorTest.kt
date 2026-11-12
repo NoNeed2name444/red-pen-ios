@@ -2,9 +2,7 @@ package com.stethoscore.app.llm
 
 import com.stethoscore.app.data.AnkiCard
 import com.stethoscore.app.data.AnkiCardType
-import com.stethoscore.app.data.MCQQuestion
 import com.stethoscore.app.data.OcclusionBox
-import com.stethoscore.app.data.OsceChecklist
 import com.stethoscore.app.data.StudySet
 import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.network.BackendClient
@@ -422,47 +420,18 @@ class CloudJobCollectorTest {
             "On-device checks: 1 removed (1 key contradicted by its explanation). The independent checkers are verifying the rest now.", said)
     }
 
-    @Test fun theScreenRemovesWhatCannotBeLearnedFromAndCountsByReason() {
-        val options = listOf("Atenolol tablets", "Amlodipine tablets", "Ramipril tablets", "Indapamide tablets")
-        val fine = MCQQuestion(stem = "First line for a 50-year-old?", options = options, correctIndex = 2, explanation = "Key point: ACE inhibitors first.")
-        val noKey = fine.copy(stem = "Which drug is kept for angina?", correctIndex = -1)
-        val calledWrong = fine.copy(stem = "Which drug for diabetic kidney disease?", explanation = "Ramipril tablets is not the correct answer.")
-        val keyless = fine.copy(stem = "Which drug lowers potassium?", correctIndex = 7)
-        val screened = VerificationScreen.questions(listOf(fine, noKey, calledWrong, keyless))
-        assertEquals(listOf(fine), screened.kept)
-        assertEquals(listOf("no answer key" to 2, "key contradicted by its explanation" to 1), screened.removed)
-        assertEquals(3, screened.removedCount)
-        assertEquals(0, screened.held)
-        assertEquals(" On-device checks: 3 removed (2 no answer key, 1 key contradicted by its explanation). The independent checkers are verifying the rest now.",
-            VerificationScreen.note(screened))
-    }
+    // the screen's own rules are pinned in accuracy.VerificationScreenTest; this is that the collector applies it and says so
 
-    @Test fun aRedFlagIsHeldForTheCheckersNotRemoved() {
-        val calm = OsceChecklist(title = "Hand washing", steps = listOf("Wet your hands", "Apply soap", "Rub for twenty seconds", "Rinse", "Dry"))
-        val dose = OsceChecklist(title = "Pain relief", steps = listOf("Check for allergies", "Give paracetamol 20 g every four hours", "Record the dose"))
-        val screened = VerificationScreen.stations(listOf(calm, dose))
-        assertEquals(listOf(calm, dose), screened.kept)
-        assertEquals(0, screened.removedCount)
-        assertEquals(1, screened.held)
-        assertEquals(" On-device checks: 1 held for a red flag. The independent checkers are verifying the rest now.", VerificationScreen.note(screened))
-    }
-
-    @Test fun anImageCardWithNoWordsHasNothingToCheckAndIsKept() {
-        val picture = AnkiCard(type = AnkiCardType.OCCLUSION, front = "", imageIndex = 0, occlusion = OcclusionBox(0.1, 0.1, 0.2, 0.2))
-        val screened = VerificationScreen.cards(listOf(picture))
-        assertEquals(listOf(picture), screened.kept)
-        assertEquals(" On-device checks passed. The independent checkers are verifying the rest now.", VerificationScreen.note(screened))
-    }
-
-    @Test fun theNoteSaysWhatTheChecksDidAndNothingWhenNothingWasMade() {
-        assertEquals("", VerificationScreen.note(VerificationScreen.Outcome(emptyList<String>(), emptyList(), 0)))
-        val both = VerificationScreen.Outcome(listOf("kept"), listOf("no answer key" to 1), 2)
-        assertEquals(" On-device checks: 1 removed (1 no answer key); 2 held for a red flag. The independent checkers are verifying the rest now.", VerificationScreen.note(both))
-        // everything removed is still said
-        assertTrue(VerificationScreen.note(VerificationScreen.Outcome(emptyList<String>(), listOf("no answer key" to 3), 0)).startsWith(" On-device checks: 3 removed (3 no answer key)."))
-        assertEquals("two identical correct options", VerificationScreen.reason("duplicate-option"))
-        assertEquals("contradictory \u201Cof the above\u201D options", VerificationScreen.reason("all-above-contradiction"))
-        assertEquals("some-other-rule", VerificationScreen.reason("some-other-rule"))
+    @Test fun aStationWithARedFlagIsKeptAndSaidToBeHeld() = runBlocking {
+        val dose = JSONObject().put("title", "Pain relief").put("steps", JSONArray(listOf(
+            "Introduce yourself and confirm the patient's name", "Check for allergies", "Give paracetamol 20 g every four hours",
+            "Record the dose", "Thank the patient")))
+        val job = earlier().copy(title = "Writing 2 stations", recipe = CloudRecipe(StudySetKind.OSCE, "", "Orthopaedics", 2).json())
+        val written = JSONObject().put("stations", JSONArray(listOf(station("Knee examination"), dose))).toString()
+        val (set, said) = collected(job, listOf(written))
+        assertEquals(listOf("Knee examination", "Pain relief"), set.osceChecklists.map { it.title })
+        assertEquals("Orthopaedics – OSCE stations is ready|Written in the cloud while the app was closed. " +
+            "On-device checks: 1 held for a red flag. The independent checkers are verifying the rest now.", said)
     }
 
     // MARK: announcing (T0237)

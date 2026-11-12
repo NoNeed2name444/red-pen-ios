@@ -9,10 +9,12 @@ import com.stethoscore.app.data.osceStyle
 import com.stethoscore.app.quiz.ExamTrack
 import com.stethoscore.app.reading.BookFigure
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
@@ -193,6 +195,72 @@ class LectureWriterTest {
         assertEquals("", step.getString("system"))
         assertTrue(step.getString("user").endsWith("SOURCE:\n{{SOURCE}}"))
         assertEquals(3000, step.getInt("maxTokens"))
+    }
+
+    // a cloud job keeps what the app needs to finish the set if it is closed first (T0237)
+
+    /** The jobs on [store] as they stand each time the run reports progress: the first report comes once the record is saved. */
+    private class Seen(private val store: CloudJobs.MemoryStore) {
+        val jobs = mutableListOf<CloudJobs.Pending>()
+        val onProgress: (Int, Int) -> Unit = { _, _ -> if (jobs.isEmpty()) store.all().firstOrNull()?.let { jobs += it } }
+    }
+
+    @Test fun cardsKeepTheirJobAndAFallbackRecipeOnTheStoreTheyAreGiven() = runBlocking {
+        val jobs = FakeJobs(listOf("A? | one\nB? | two"))
+        val llm = owner(FakeServer { jobs.answer(it) })
+        val store = CloudJobs.MemoryStore()
+        val seen = Seen(store)
+        LectureWriter.draft(StudySetKind.ANKI, "Lupus lecture.", 10, "Rheumatology", llm.backend()!!, store = store, pause = noPause, onProgress = seen.onProgress)
+        val kept = seen.jobs.singleOrNull()
+        assertNotNull("the job is kept on the store the writer was given, while it runs", kept)
+        assertEquals("Writing 10 cards", kept!!.title)
+        assertEquals("with the recipe made from what the writer was given",
+            CloudRecipe(StudySetKind.ANKI, "", "Rheumatology", 10), CloudRecipe.of(kept.recipe))
+        assertNull("cards have no figure placement", kept.extra)
+        // no screen gave it a delivery: its replies are read and it is let go at once
+        assertTrue(store.all().isEmpty())
+        assertEquals(1, jobs.deleted)
+    }
+
+    @Test fun aTextbookKeepsItsFiguresAndTheirPlacementOnTheStoreItIsGiven() = runBlocking {
+        val jobs = FakeJobs(listOf("## Aorta\n\n### Definition\n\nThe main artery."))
+        val llm = owner(FakeServer { jobs.answer(it) })
+        val store = CloudJobs.MemoryStore()
+        val seen = Seen(store)
+        val figures = listOf(BookFigure("figure-zero", 1, listOf("aorta", "left ventricle")), BookFigure("figure-one", 2, listOf("tibia", "fibula")))
+        LectureWriter.draft(StudySetKind.BOOK, "The aorta leaves the left ventricle and carries blood to the body.", 1, "Cardiology", llm.backend()!!,
+            figures = figures, store = store, pause = noPause, onProgress = seen.onProgress)
+        val kept = seen.jobs.singleOrNull()
+        assertNotNull("the job is kept on the store the writer was given, while it runs", kept)
+        assertEquals("Writing 1 textbook pages", kept!!.title)
+        // every figure rides with the job, in the order the placement counts them
+        assertEquals(CloudRecipe(StudySetKind.BOOK, "", "Cardiology", 1, figures = listOf("figure-zero", "figure-one")), CloudRecipe.of(kept.recipe))
+        assertEquals("the first figure goes to the page, the second shares nothing with it", "[[0]]", kept.extra)
+        assertTrue(store.all().isEmpty())
+        assertEquals(1, jobs.deleted)
+    }
+
+    @Test fun aScreensOwnRecipeAndDeliveryWinOverTheFallbackAndTheDeliveryIsHeld() = runBlocking {
+        val jobs = FakeJobs(listOf("A? | one\nB? | two"))
+        val llm = owner(FakeServer { jobs.answer(it) })
+        val store = CloudJobs.MemoryStore()
+        val screens = CloudRecipe(StudySetKind.ANKI, "Lupus cards", "Rheumatology", 10, exam = "usmle1")
+        val delivery = CloudJobs.Delivery()
+        val draft = withContext(CloudJobs.Context(screens.json(), delivery)) {
+            LectureWriter.draft(StudySetKind.ANKI, "Lupus lecture.", 10, "Rheumatology", llm.backend()!!, store = store, pause = noPause)
+        }
+        assertEquals("A? | one\nB? | two", draft.text)
+        // the job is kept, whole, for the screen to finish with: on the device and on the server
+        val kept = store.all().singleOrNull()
+        assertNotNull("a job under a delivery is kept once its replies are read", kept)
+        assertEquals("the screen's recipe, not the one the writer would have made", screens.json(), kept!!.recipe)
+        assertEquals(true, kept.delivered)
+        assertEquals(listOf("A? | one\nB? | two"), kept.outputs)
+        assertEquals(0, jobs.deleted)
+        // and the screen's delivery is the one that holds it: finishing it lets the job go
+        CloudJobs.finish(delivery)
+        assertTrue(store.all().isEmpty())
+        assertEquals(1, jobs.deleted)
     }
 
     // stations: MedicalGenerate.osce
