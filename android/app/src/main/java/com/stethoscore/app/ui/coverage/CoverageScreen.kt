@@ -152,8 +152,9 @@ object CoverageWords {
     fun checkedBy(who: String, whenText: String): String = "Checked by $who \u00B7 $whenText"
 
     /**
-     * When a check was made: "now" under a minute, as iOS's relative date says it
-     * (CoverageView.swift:285), then the platform's own relative time.
+     * When a check was made: "now" under a minute, then the platform's own relative time. iOS's
+     * relative date (CoverageView.swift:285) says "now" only under a second and counts seconds
+     * after that; here "now" holds for the whole minute, so a fresh check never reads "0 seconds ago".
      */
     fun checkedWhen(date: Long, now: Long): String =
         if (kotlin.math.abs(now - date) < 60_000) "now"
