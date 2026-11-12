@@ -530,6 +530,35 @@ class CloudJobCollectorTest {
         }
     }
 
+    /**
+     * One job collected with an announcer that throws [thrown] (whatever reaches the caller is
+     * ignored here), then collected again as the next app start would, with nothing to announce.
+     * Returns the jobs left after the first collection and the sets in the library after the second.
+     */
+    private suspend fun afterAnnouncerThrows(thrown: Throwable): Pair<Int, Int> {
+        val store = CloudJobs.MemoryStore().also { it.save(earlier()) }
+        val shelf = Shelf()
+        val server = worker("done")
+        val bearer: (String?) -> String? = { if (it == "owner") "bearer" else null }
+        try {
+            CloudJobCollector.collect(store, shelf, bearer, server::client, announce = { _, _, _ -> throw thrown })
+        } catch (e: Throwable) {
+            // what reaches the caller is pinned by the tests above
+        }
+        val jobsLeft = store.all().size
+        CloudJobCollector.collect(store, shelf, bearer, server::client, announce = null)
+        return jobsLeft to shelf.sets.size
+    }
+
+    @Test fun aCancellationFromTheAnnouncerLeavesNoJobAndOneSet() = runBlocking {
+        assertEquals(0 to 1, afterAnnouncerThrows(kotlinx.coroutines.CancellationException("the collection was cancelled")))
+    }
+
+    @Test fun aVirtualMachineErrorFromTheAnnouncerLeavesNoJobAndOneSet() = runBlocking {
+        assertEquals(0 to 1, afterAnnouncerThrows(OutOfMemoryError("heap")))
+        assertEquals(0 to 1, afterAnnouncerThrows(StackOverflowError()))
+    }
+
     // MARK: iOS CloudJobRetryTests, check for check (T0237)
     // A finished job's result that fails to download is asked for again, with
     // waits between, while its screen waits; given up, the job is handed to the

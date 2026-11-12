@@ -205,12 +205,16 @@ object CloudJobCollector {
             // the set is on disk: a notification that fails, by Exception or by Error
             // (an Android call missing on an older device), must not leave the job to be
             // collected, and made, again. A cancelled collection and a failing JVM are not
-            // the notification's failure: those are passed on.
+            // the notification's failure: those are passed on, after the job is removed.
             try {
                 announce?.ready("${set.name} is ready", body, set.id)
             } catch (e: Throwable) {
                 if (e is kotlinx.coroutines.CancellationException || e is VirtualMachineError) throw e
                 // nothing to do: the set is in the library
+            } finally {
+                // on every way out, a cancelled collection and a failing JVM included:
+                // the set is on disk, and a job left here would make it again
+                store.remove(pending.id)
             }
         }
         store.remove(pending.id)
