@@ -390,6 +390,7 @@ class WindowShots {
             compose.runOnIdle { dark.value=m=="dark"; size.value=z }
             compose.waitForIdle()
             InstrumentationRegistry.getInstrumentation().runOnMainSync { com.stethoscore.app.ui.learn.LearnRouter.close() }
+            RotDiag.snapshot("$screen $m size ${z?.let { "${it.width.value.toInt()}x${it.height.value.toInt()}" } ?: orient} start")
             steps(stores.getValue((m=="dark") to z))
             // a still of a screen with no compose root on it (no activity up, the device asleep) is a still of nothing:
             // every step above that reads the tree fails then, but "settings" has none, so this does for it (throws "No compose hierarchies found")

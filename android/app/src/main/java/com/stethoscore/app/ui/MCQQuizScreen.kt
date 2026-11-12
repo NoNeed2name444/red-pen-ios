@@ -650,7 +650,8 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
         val p = pendingResume
         // with Back and the main action on it (T0211 A2: How sure? covered option D, Check answer was under the
         // fold), the deck shows all the time below the accessibility sizes, as every other study deck does
-        StudyActionBar(folds = true, shown = p != null || !actionsInline || (!a.checked && asksConfidence)) {
+        // what the deck holds; asksConfidence is its own here, false in the compact deck below
+        @Composable fun deckBody(asksConfidence: Boolean) {
             if (p != null) {
                 val done = p.answers.count { it.checked }
                 val total = set.questions.size
@@ -688,6 +689,12 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
                 if (!actionsInline) answerRow()
             }
         }
+        // in a window so short that the title bar, the header and this deck would leave the page above it less than a
+        // touch target (T0247: 412 x 302 dp, 0 px, so no option could be scrolled into view), the deck without How sure?
+        // (optional) and its fold band; Back and the main action stay
+        FirstThatLeavesRoom(48.dp,
+            { StudyActionBar(folds = true, shown = p != null || !actionsInline || (!a.checked && asksConfidence)) { deckBody(asksConfidence) } },
+            { StudyActionBar(shown = p != null || !actionsInline) { deckBody(false) } })
     }
     ExamToolSheets(toolSheet, track) { toolSheet = null }
     if (pocketOpen) com.stethoscore.app.ui.exam.ExamSheet({ pocketOpen = false }) {
@@ -713,6 +720,27 @@ private fun QuizBody(set: StudySet, store: StudyStore, onBack: () -> Unit, onOpe
             }.all { it.measure(wide).width <= constraints.maxWidth }
         } ?: return@SubcomposeLayout layout(constraints.minWidth, constraints.minHeight) {}
         val parts = subcompose("shown" to chosen, choices[chosen]).map { it.measure(if (chosen == choices.lastIndex) loose else wide) }
+        val width = (parts.maxOfOrNull { it.width } ?: 0).coerceIn(constraints.minWidth, constraints.maxWidth)
+        val height = (parts.maxOfOrNull { it.height } ?: 0).coerceIn(constraints.minHeight, constraints.maxHeight)
+        layout(width, height) { parts.forEach { it.placeRelative(0, 0) } }
+    }
+}
+
+/**
+ * The first of [choices] that leaves at least [room] of the height given, below what the parent has already
+ * placed (FirstThatFits, by height); the last, whatever it leaves, when none does. A choice is tried in a probe
+ * kept out of TalkBack and never placed; only the one chosen is composed where it is shown.
+ */
+@Composable internal fun FirstThatLeavesRoom(room: androidx.compose.ui.unit.Dp, vararg choices: @Composable () -> Unit, modifier: Modifier = Modifier) {
+    androidx.compose.ui.layout.SubcomposeLayout(modifier) { constraints ->
+        val tall = constraints.copy(minHeight = 0, maxHeight = androidx.compose.ui.unit.Constraints.Infinity)
+        val leave = room.roundToPx()
+        val chosen = choices.indices.firstOrNull { i ->
+            i == choices.lastIndex || subcompose("probe" to i) {
+                Box(Modifier.clearAndSetSemantics {}) { choices[i]() }
+            }.all { it.measure(tall).height <= constraints.maxHeight - leave }
+        } ?: return@SubcomposeLayout layout(constraints.minWidth, constraints.minHeight) {}
+        val parts = subcompose("shown" to chosen, choices[chosen]).map { it.measure(constraints.copy(minHeight = 0)) }
         val width = (parts.maxOfOrNull { it.width } ?: 0).coerceIn(constraints.minWidth, constraints.maxWidth)
         val height = (parts.maxOfOrNull { it.height } ?: 0).coerceIn(constraints.minHeight, constraints.maxHeight)
         layout(width, height) { parts.forEach { it.placeRelative(0, 0) } }
