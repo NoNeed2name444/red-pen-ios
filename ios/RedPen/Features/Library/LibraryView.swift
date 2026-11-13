@@ -184,6 +184,9 @@ struct LibraryView: View {
     /// Where the set rows stand in the list, so a turn keeps the first one
     /// in view (HomeRowKeep); followed without redrawing the list.
     @State var rowTrack = HomeRowTrack()
+    /// The list took a new width while a page was pushed over home, so the
+    /// row is kept once home is back instead (keepRow, T0257).
+    @State private var turnedUnderPage = false
 
     // The spacer marks the end of the library list for preview scrolling.
     private static let listEndID = "library-list-end"
@@ -642,9 +645,13 @@ struct LibraryView: View {
     /// clear. At the standard sizes the card already ends above the line;
     /// the tiles under it get the same room (T0211 A3): while the line
     /// slices them and fewer beds would lift them clear, a bed comes off.
-    /// A page being scrolled is left alone.
+    /// A page being scrolled is left alone, and so is home while a page is
+    /// pushed over it (homeShowing): a bed taken off changes the round card
+    /// (WardHome.swift, shownBeds), so no bed comes off under a pushed page.
+    /// Once home is back it is run again (the onChange of homeShowing in
+    /// `content`). T0257.
     private func trimSlicedStart() {
-        guard bedsTrimmed < 8, bandTrack.isAtRest, let barTop else { return }
+        guard homeShowing, bedsTrimmed < 8, bandTrack.isAtRest, let barTop else { return }
         let cut: Double = HomeFit.barLine(barTop: Double(barTop))
         if typeSize > .large {
             guard startFrame.height > 0 else { return }
@@ -883,6 +890,8 @@ struct LibraryView: View {
                 [geometry.containerSize.width, geometry.containerSize.height,
                  geometry.contentSize.width, geometry.contentSize.height]
             } action: { _, _ in
+                // not while a page is pushed over home (T0257)
+                guard homeShowing else { return }
                 guard let place = rowTrack.relaid() else { return }
                 proxy.scrollTo(place.id, anchor: UnitPoint(x: 0.5, y: HomeRowKeep.anchor(place.fraction)))
             }
@@ -892,6 +901,20 @@ struct LibraryView: View {
                 guard back, let id = arrived else { return }
                 arrived = nil
                 withAnimation(Motion.gentle(.snappy(duration: 0.25))) { proxy.scrollTo(id, anchor: .center) }
+            }
+            // Home back from a pushed page: what was left alone under it is
+            // done now (T0257). The trim, then the row if a new width came
+            // meanwhile. On the next pass, so that the order of this and
+            // the onChange of homeShowing that ends a hold (layout) does not
+            // matter.
+            .onChange(of: homeShowing) { _, showing in
+                guard showing else { return }
+                Task { @MainActor in
+                    trimSlicedStart()
+                    guard turnedUnderPage else { return }
+                    turnedUnderPage = false
+                    if !searching { keepRow(proxy) }
+                }
             }
             .task(id: dockHeight) {
                 guard PreviewLaunch.screen == "library-end", dockHeight > 0 else { return }
@@ -913,7 +936,13 @@ struct LibraryView: View {
     /// lays out while the turn settles (HomeRowKeep.Hold): until the list
     /// rests, the student moves it, a second of a free app passes with no
     /// new layout, or 8 seconds after the turn. Nothing kept, nothing moves.
+    /// While a page is pushed over home nothing moves either: the turn is
+    /// noted, and the row is kept once home is back (T0257).
     private func keepRow(_ proxy: ScrollViewProxy) {
+        guard homeShowing else {
+            turnedUnderPage = true
+            return
+        }
         guard let held = rowTrack.turned() else { return }
         let anchor = UnitPoint(x: 0.5, y: HomeRowKeep.anchor(held.place.fraction))
         proxy.scrollTo(held.place.id, anchor: anchor)
