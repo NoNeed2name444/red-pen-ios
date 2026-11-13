@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Diagnostic only (T0224, T0260): hides or omits ONE named region of a
+/// Diagnostic only (T0224, T0260, T0261): hides or omits ONE named region of a
 /// screen, so a launch can show which region holds an accessibility audit
 /// issue that names no element. `-a11yProbeHide <region>` hides a region and
 /// `-a11yProbeOmit <region>[,<region>...]` takes one or more out of the view
@@ -27,27 +27,57 @@ import SwiftUI
 ///
 /// Each omit value is a region name, or one of two words: `all` is every
 /// region the first bisect named (T0224, the names below that carry no
-/// `-rest-`), and `everything` is those and the rest regions (T0260, named
-/// `<screen>-rest-<what>`, for what each screen draws outside the first
-/// regions). A piece of a list that is several Sections cannot take a
-/// modifier (it would stack them into one row, LaunchOpeningTests); there the
-/// call site asks `A11yProbeHide.omits(_:)` in an `if` instead.
+/// `-rest-`), and `everything` is those and the rest regions (T0260 and
+/// T0261, named `<screen>-rest-<what>`, for what each screen draws outside
+/// the first regions, and for the pieces inside the library's search row and
+/// the quiz's bottom bar). A piece of a list that is several Sections cannot
+/// take a modifier (it would stack them into one row, LaunchOpeningTests);
+/// there the call site asks `A11yProbeHide.omits(_:)` in an `if` instead.
 ///
-/// The regions, by the view each one hides (the names are the tests' too):
-/// - library: `library-header` (the date, the name and the greeting),
-///   `library-plan-card` (the exam countdown pill, or the button that sets it
-///   up), `library-revision-card` (Today's revision), `library-search`,
-///   `library-set-rows`, `library-tab-bar` (the dock), `library-tiles`
-///   (Progress and Brain map); rest: `library-rest-account-menu`,
-///   `library-rest-new-set`, `library-rest-sets-header` (Your sets, See all,
-///   Select), `library-rest-build-session`, `library-rest-feature-tiles` (the
-///   ways to practise and the tools), `library-rest-across-the-app`,
-///   `library-rest-examples` (Try every feature, personal build only);
+/// The regions, by the view each one hides (the names are the tests'
+/// too). After each, whether a test still launches it alone ("in the test")
+/// and what a run already answered. The run is 43401453464 (f3f2e5d6), whose
+/// baselines each had one "Text clipped" with no element: the library's with
+/// 152 nodes, the quiz's with 105.
+/// - library: `library-header` (the date, the name and the greeting;
+///   answered, 2 issues, the flag stays), `library-plan-card` (the exam
+///   countdown pill, or the button that sets it up; answered, left the flag),
+///   `library-revision-card` (Today's revision; answered, 2 issues, the flag
+///   stays), `library-search` (the search row; in the test as a control;
+///   answered, its omit took the flag to 0), `library-set-rows` (answered,
+///   left the flag; not in the tree on this screen), `library-tab-bar` (the
+///   dock; answered, left the flag), `library-tiles` (Progress and Brain map;
+///   answered, left the flag);
+/// - library, rest: `library-rest-account-menu` (in the test as a control;
+///   answered, its omit took the flag to 0), `library-rest-new-set` (answered,
+///   left the flag), `library-rest-sets-header` (Your sets, See all, Select),
+///   `library-rest-build-session`, `library-rest-feature-tiles` (the ways to
+///   practise and the tools), `library-rest-across-the-app`,
+///   `library-rest-examples` (Try every feature, personal build only): the
+///   last five were not in the tree (their omits left the node count at the
+///   baseline's), and no test launches any of the six now;
+/// - library, inside the search row (T0261, in the test; all three are in
+///   `library-search`, which is in the test): `library-rest-search-glyph` (the
+///   magnifier Image), `library-rest-search-prompt` (SearchPrompt: the prompt
+///   drawn over the field, accessibility-hidden, one line), and
+///   `library-rest-search-field` (the TextField, "librarySearch");
 /// - quiz: `quiz-stem` (the patient chips, vitals, story and question),
 ///   `quiz-lab-table`, `quiz-options`, `quiz-top-bar` (the navigation bar),
-///   `quiz-progress` (Question 1 of 3), `quiz-bottom-bar` (How sure? and the
-///   buttons under it); rest: `quiz-rest-chart-title` (Single best answer,
-///   Hint, Flag);
+///   `quiz-progress` (Question 1 of 3), all answered, left the flag, and not
+///   launched by a test now; `quiz-bottom-bar` (How sure? and the buttons
+///   under it; in the test as a control; answered, its omit took the flag to
+///   0, its hide left it); `quiz-rest-chart-title` (Single best answer, Hint,
+///   Flag; answered, left the flag);
+/// - quiz, inside the bottom bar (T0261, in the test; all are in
+///   `quiz-bottom-bar`): `quiz-rest-confidence` (the whole How sure? picker
+///   where `footer` uses it), `quiz-rest-sure-label` (the Text "How sure?"),
+///   `quiz-rest-sure-tag` (the "optional" chip in that picker only, not the
+///   one on "Why did you miss it?"), `quiz-rest-sure-chips` (Sure, Maybe,
+///   Guess; an `if`, so it can be omitted but not hidden),
+///   `quiz-rest-back-button`, `quiz-rest-check-button` (the Check answer or
+///   Next button), `quiz-rest-answer-buttons` (the whole row of Back, Explain
+///   and the main button, where `deck` calls it; the accessibility-size page
+///   calls the row itself, without this region). T0261's are for omit;
 /// - revealed card: `card-top-bar` (the navigation bar), `card-progress-row`
 ///   (cards left, done), `card-face`, `card-bottom-bar` (Accuracy and Save
 ///   to Ideas), `card-rating-row` (Again to Easy).

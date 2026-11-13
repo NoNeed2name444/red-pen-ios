@@ -1322,11 +1322,13 @@ struct LibraryView: View {
                 // its width
                 .dynamicTypeSize(...DynamicTypeSize.accessibility1)
                 .accessibilityHidden(true)
+                .a11yProbeHide("library-rest-search-glyph")
             ZStack(alignment: .leading) {
                 // kept in the layout while typing, so the field keeps its
                 // height and the page does not jump
                 SearchPrompt(text: searchPrompt)
                     .opacity(searchText.wrappedValue.isEmpty ? 1 : 0)
+                    .a11yProbeHide("library-rest-search-prompt")
                 TextField(searchPrompt, text: searchText, prompt: Text(verbatim: ""))
                     .focused($searchFocused)
                     .submitLabel(.search)
@@ -1336,6 +1338,7 @@ struct LibraryView: View {
                     // for SearchPrompt, UIKit's field had no description
                     .accessibilityLabel(Text(searchPrompt))
                     .accessibilityIdentifier("librarySearch")
+                    .a11yProbeHide("library-rest-search-field")
             }
             if !searchText.wrappedValue.isEmpty {
                 Button {

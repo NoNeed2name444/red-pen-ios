@@ -735,45 +735,61 @@ final class AccessibilityUITests: XCTestCase {
         if more > 0 { print("\(head) \(more) more not printed") }
     }
 
-    // MARK: - The bisect of the probe's issues with no element (T0224, T0260)
+    // MARK: - The bisect of the probe's issues with no element (T0224, T0260, T0261)
 
-    /// The regions of each screen, as Shared/A11yProbeHide.swift names them: 7,
-    /// 6 and 5, 18 in all. The ones that no run had shown when the bisect was
-    /// written come first, in the order in which one is thought most likely
-    /// to hold its issue (the two text screens, "Text clipped", the text-heavy
-    /// regions first; the card, "Hit area is too small", the controls first, its
-    /// bottom bar's two buttons both set a 44 point minimum height); the ones
-    /// that run 43183776170 (be893b6a) already showed come last, so a screen
-    /// cut short loses repeats and not new evidence. Its results: card
-    /// `card-rating-row` hidden left the 2 "Hit area is too small"; library
-    /// `library-revision-card` and `library-set-rows` hidden left the "Text
-    /// clipped"; quiz `quiz-lab-table` hidden took 6 issues to 1 (a "Text
-    /// clipped" with no element), `quiz-stem` hidden took the 6 to 6. Run
-    /// 43355485941 (74fd1462) hid every library and quiz region and the 1
-    /// "Text clipped" with no element stayed in all 13.
-    private static let libraryRegions: [String] = [
-        "library-header", "library-tiles", "library-plan-card", "library-search", "library-tab-bar",
-        "library-revision-card", "library-set-rows",
+    /// The regions each screen's bisect launches, one at a time, as
+    /// Shared/A11yProbeHide.swift names them (it says what each holds). What
+    /// the runs have answered so far (run 43401453464, f3f2e5d6; the library's
+    /// baseline had one "Text clipped" with no element and 152 nodes, the
+    /// quiz's one and 105):
+    ///
+    /// - library: omitting `library-search` alone, or `library-rest-account-menu`
+    ///   alone, took the issue to 0 (148 nodes); the search field and the
+    ///   account menu are the two halves of one row (`searchField` and
+    ///   `topControls`). Each stays in the test, as a control. T0261 adds the
+    ///   three pieces of the search row, which are in `library-search`:
+    ///   `library-rest-search-glyph` (the magnifier), `library-rest-search-prompt`
+    ///   (SearchPrompt, the prompt drawn over the field) and
+    ///   `library-rest-search-field` (the TextField). Left out, answered:
+    ///   `library-header` and `library-revision-card` (2 issues each, the flag
+    ///   stays), `library-tiles`, `library-plan-card`, `library-tab-bar`,
+    ///   `library-set-rows` and `library-rest-new-set` left the 1 in place; `library-rest-sets-header`, `-build-session`,
+    ///   `-feature-tiles`, `-across-the-app` and `-examples` are not in the tree
+    ///   of this screen (their omits left the node count at the baseline's).
+    /// - quiz: omitting `quiz-bottom-bar` alone took the issue to 0 (86 nodes);
+    ///   hiding it had left it. It stays, as the control. T0261 adds the seven
+    ///   pieces of the bar, which are in it: `quiz-rest-confidence` (the whole
+    ///   How sure? picker), then the picker's own pieces, `quiz-rest-sure-label`
+    ///   (the text "How sure?"), `quiz-rest-sure-tag` (its "optional" chip) and
+    ///   `quiz-rest-sure-chips` (Sure, Maybe, Guess); then the buttons,
+    ///   `quiz-rest-back-button`, `quiz-rest-check-button` and
+    ///   `quiz-rest-answer-buttons` (the row of them all). Left out, answered:
+    ///   `quiz-stem`, `quiz-lab-table`, `quiz-options`, `quiz-top-bar`,
+    ///   `quiz-progress` and `quiz-rest-chart-title` each left the 1.
+    /// - The first omit of each screen is not a region but a word: `all` (every
+    ///   region without `-rest-`) and `everything` (those and the rest ones, and
+    ///   so the pieces T0261 names). Run 43401453464 had both on the quiz at 0
+    ///   issues (42 and 35 nodes); on the library `everything` left 2 "Element
+    ///   has no description" and no clipped text (68 nodes), and `all` 7 issues
+    ///   that were not the nil one. They are kept, as the other bisect
+    ///   variants are read against them.
+    private static let libraryNewRegions: [String] = [
+        "library-rest-search-glyph", "library-rest-search-prompt", "library-rest-search-field",
     ]
-    private static let quizRegions: [String] = [
-        "quiz-options", "quiz-top-bar", "quiz-progress", "quiz-bottom-bar", "quiz-lab-table", "quiz-stem",
+    private static let libraryControlRegions: [String] = ["library-rest-account-menu", "library-search"]
+    private static let quizControlRegions: [String] = ["quiz-bottom-bar"]
+    private static let quizNewRegions: [String] = [
+        "quiz-rest-confidence", "quiz-rest-sure-label", "quiz-rest-sure-tag", "quiz-rest-sure-chips",
+        "quiz-rest-back-button", "quiz-rest-check-button", "quiz-rest-answer-buttons",
     ]
+
+    /// The revealed card's regions, each hidden (the card is not extended with
+    /// the omit variants). Run 43183776170 (be893b6a) hid `card-rating-row`
+    /// and the 2 "Hit area is too small" stayed. The card's bottom bar's two
+    /// buttons both set a 44 point minimum height, so the controls come first.
     private static let cardRegions: [String] = [
         "card-top-bar", "card-bottom-bar", "card-face", "card-progress-row", "card-rating-row",
     ]
-
-    /// The rest regions (T0260): what each screen draws outside the regions
-    /// above, named where it is drawn (Shared/A11yProbeHide.swift lists what
-    /// each holds). The library's first two are on screen at the default size
-    /// (the account menu over the page, New set over the dock); the others
-    /// are rows of the list under the tiles, which the list may not build
-    /// until they are scrolled to.
-    private static let libraryRestRegions: [String] = [
-        "library-rest-account-menu", "library-rest-new-set", "library-rest-sets-header",
-        "library-rest-build-session", "library-rest-feature-tiles", "library-rest-across-the-app",
-        "library-rest-examples",
-    ]
-    private static let quizRestRegions: [String] = ["quiz-rest-chart-title"]
 
     /// One launch of a bisect: a region hidden, regions omitted, or neither.
     private struct BisectVariant {
@@ -802,31 +818,33 @@ final class AccessibilityUITests: XCTestCase {
         }
     }
 
-    /// The variants of the library and the quiz, most informative first: the
-    /// baseline, `omit=all` (every region above), `omit=everything` (those and
-    /// the rest regions), each rest region alone, each region above alone; and
-    /// last, the repeats: each region above hidden, as run 43355485941 did.
-    private static func omitVariants(regions: [String], rest: [String]) -> [BisectVariant] {
+    /// The variants of the library and the quiz (T0261), in the order they
+    /// run: the baseline, `omit=all`, `omit=everything`, each of `regions`
+    /// omitted alone, and a second baseline, to show the screen came out of
+    /// the run as it went in. The count is 4 more than `regions` has.
+    private static func omitVariants(regions: [String]) -> [BisectVariant] {
         var variants: [BisectVariant] = [BisectVariant.baseline, BisectVariant.omit("all"),
                                          BisectVariant.omit("everything")]
-        variants += rest.map { BisectVariant.omit($0) }
         variants += regions.map { BisectVariant.omit($0) }
-        variants += regions.map { BisectVariant.hide($0) }
+        variants.append(BisectVariant.baseline)
         return variants
     }
 
-    /// The library, opened as the "library" preview (the bisect, below).
+    /// The library, opened as the "library" preview (the bisect, below): the
+    /// search row's three pieces first, then the two controls. 9 launches,
+    /// 3 + 3 + 2 + 1.
     func testProbeBisectLibraryDiagnostic() {
         bisect("library", opening: "library", ready: ["libraryMenu", "librarySearch", "dockCategory-questions"],
-               variants: Self.omitVariants(regions: Self.libraryRegions, rest: Self.libraryRestRegions),
-               budget: 390)
+               variants: Self.omitVariants(regions: Self.libraryNewRegions + Self.libraryControlRegions),
+               budget: 184)
     }
 
-    /// The example quiz, opened as the "quiz" preview.
+    /// The example quiz, opened as the "quiz" preview: the control, then the
+    /// bottom bar's seven pieces. 12 launches, 3 + 1 + 7 + 1.
     func testProbeBisectQuizDiagnostic() {
         bisect("quiz", opening: "quiz", ready: ["studyMore", "studyBarFold"],
-               variants: Self.omitVariants(regions: Self.quizRegions, rest: Self.quizRestRegions),
-               budget: 230)
+               variants: Self.omitVariants(regions: Self.quizControlRegions + Self.quizNewRegions),
+               budget: 203)
     }
 
     /// The example card revealed, opened as the "anki-revealed" preview. Not
@@ -870,16 +888,21 @@ final class AccessibilityUITests: XCTestCase {
     /// it took nothing out of the tree (a region that was not on screen, a
     /// name the app does not know, or a hide that did not take effect).
     ///
-    /// The variants of the library and the quiz, in the order they run (so a
-    /// screen cut short by its budget loses repeats and not new evidence):
-    /// `hide=none`, the baseline, launched the same way as the others;
-    /// `omit=all`, every region the first bisect named; `omit=everything`,
-    /// those and the rest regions, which is everything the screen's own views
-    /// draw, so an issue that stays is outside them (a window or a system
-    /// layer); each rest region alone (A11yProbeHide lists them); each first
-    /// region omitted alone; and the first regions hidden one at a time, which
-    /// run 43355485941 already did. The card is not extended: each region
-    /// hidden, then its baseline. Read: `grep -E "PROBE-BISECT" a11y.log`.
+    /// The variants of the library and the quiz (T0261), in the order they run
+    /// (so a screen cut short by its budget loses the later regions and not
+    /// the first evidence): `hide=none`, the baseline, launched the same way
+    /// as the others; `omit=all`, every region the first bisect named;
+    /// `omit=everything`, those and the rest regions, which is everything the
+    /// screen's own views draw, so an issue that stays is outside them (a
+    /// window or a system layer); then the screen's regions omitted one at a
+    /// time (the constants above: the pieces T0261 names inside the library's
+    /// search row and the quiz's bottom bar, the controls that took the issue
+    /// out whole); and a closing
+    /// `hide=none`, a second baseline, which shows the screen came out of the
+    /// run as it went in. The hide variants of T0224, and the regions that
+    /// runs have answered, are no longer launched. The card is not extended:
+    /// each region hidden, then its baseline. Read:
+    /// `grep -E "PROBE-BISECT" a11y.log`.
     ///
     /// The other lines: `PROBE-BISECT-ERROR <screen> <variant> <why>` for a
     /// variant whose screen did not open, whose audit threw, during which the
@@ -903,24 +926,34 @@ final class AccessibilityUITests: XCTestCase {
     ///
     /// Time: each screen has a budget in seconds. A variant is started only
     /// if it, and any baseline still to come, would fit in what is left, each
-    /// costed as the variant before it; the first variant and the baseline
+    /// costed as the variant before it; the first variant and each baseline
     /// always run, and one that does not fit prints a PROBE-BISECT-ERROR line
     /// and is left out. Run 43355485941 measured 15.9 s a launch for the
     /// library (127.3 s for 8) and 11.5 s for the quiz (80.8 s for 7), the
-    /// card 13.1 s (78.6 s for 6). The library now has 24 variants (the
-    /// baseline, omit all and everything, 7 rest regions, 7 omitted, 7 hidden:
-    /// 24 x 16 = 384 s) in a budget of 390 s, the quiz 16 (1 + 2 + 1 + 6 + 6:
-    /// 16 x 11.5 = 184 s) in 230 s: about 360 s more than before, 6.0 minutes,
-    /// and at most 413 s, 6.9 minutes, when both budgets are used up. The
-    /// step's cap is 49 minutes (app-build.yml): the run of 41.6 minutes, with
-    /// app crashes and relaunches, plus 6.9 is 48.5; a run of 25 minutes
-    /// (run 43355485941) plus 6.0 is 31. Each test also has the step's 480 s
-    /// allowance per test (`-maximum-test-execution-time-allowance`), which
-    /// the budgets stay under with a launch to spare. These tests are named to
-    /// run after the others of the class (XCTest runs a class alphabetically),
-    /// so a step cut at its cap would lose only them. They never fail on what
-    /// the audit finds; a launch that cannot be made, or an app that stops
-    /// running, are the only ways they fail.
+    /// card 13.1 s (78.6 s for 6); run 43401453464, with the omit variants,
+    /// 17.8 s for the library (374 s for 21) and 14.7 s for the quiz (220 s
+    /// for 15). Each budget is its launches at the measured time of run
+    /// 43401453464 and 15 percent over. The library has 9 variants (the
+    /// baseline, omit all and everything, 3 pieces of the search row, 2
+    /// controls, the closing baseline: 9 x 17.8 = 160 s) in a budget of 184 s,
+    /// the quiz 12 (1 + 2 + 1 control + 7 pieces + 1: 12 x 14.7 = 176 s) in
+    /// 203 s: 337 s of launches against the 208 s of the bisect before T0260
+    /// (8 and 7 launches), 129 s more, 2.2 minutes, and 387 s of budget in all,
+    /// 6.5 minutes, when both are used up (the budgets were 390 s and 230 s,
+    /// 620 s, in T0260, and are 387 s now). The step's cap is 49 minutes
+    /// (app-build.yml), and this is tight: the run of 41.6 minutes, with app
+    /// crashes and relaunches, plus the 6.5 minutes is 48.1. That counts both
+    /// budgets whole, as an upper bound, since the 41.6 minutes already held the
+    /// earlier bisect's 208 s (the extra over it is 179 s, 3.0 minutes, 44.6 in
+    /// all), but a run with many crash relaunches could still hit the cap; a
+    /// run of 25 minutes (run 43355485941) plus 3.0 is 28. Each test also has
+    /// the step's 480 s allowance per test
+    /// (`-maximum-test-execution-time-allowance`), which the budgets stay well
+    /// under. These tests are named to run after the others of the class
+    /// (XCTest runs a class alphabetically), so a step cut at its cap would
+    /// lose only them. They never fail on what the audit finds; a launch that
+    /// cannot be made, or an app that stops running, are the only ways they
+    /// fail.
     ///
     /// `bisect` runs one screen: a launch for each of `variants`. `opening` is
     /// the `-uiPreviewScreen` that opens it, and `ready` the identifiers of

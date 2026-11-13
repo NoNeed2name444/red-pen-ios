@@ -800,7 +800,7 @@ struct MCQQuizView: View {
             // ("Sur e", "Ma ybe" before), and the tag on its own line
             VStack(alignment: .leading, spacing: WardSpace.s) {
                 sureLabel(tagged: false)
-                optionalTag.accessibilityHidden(true)
+                optionalTag.accessibilityHidden(true).a11yProbeHide("quiz-rest-sure-tag")
                 sureChips
             }
         }
@@ -812,17 +812,22 @@ struct MCQQuizView: View {
             Text("How sure?")
                 .font(WardType.face(.subheadline, weight: .semibold))
                 .foregroundStyle(Color.wardInkSecondary)
-            if tagged { optionalTag }
+                .a11yProbeHide("quiz-rest-sure-label")
+            if tagged { optionalTag.a11yProbeHide("quiz-rest-sure-tag") }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("How sure are you? Optional")
     }
 
+    @ViewBuilder
     private var sureChips: some View {
         let chosen: AnswerConfidence? = confidences[q.id]
-        return ForEach(AnswerConfidence.allCases) { level in
-            chip(level.title, symbol: nil, on: chosen == level) {
-                confidences[q.id] = chosen == level ? nil : level
+        // a ForEach, so omitted by an `if`, not a modifier (A11yProbeHide)
+        if !A11yProbeHide.omits("quiz-rest-sure-chips") {
+            ForEach(AnswerConfidence.allCases) { level in
+                chip(level.title, symbol: nil, on: chosen == level) {
+                    confidences[q.id] = chosen == level ? nil : level
+                }
             }
         }
     }
@@ -1123,7 +1128,7 @@ struct MCQQuizView: View {
     private func deck(_ proxy: ScrollViewProxy) -> some View {
         VStack(spacing: 12) {
             if deckShown { footer }
-            if pendingResume == nil { answerButtons(proxy) }
+            if pendingResume == nil { answerButtons(proxy).a11yProbeHide("quiz-rest-answer-buttons") }
         }
         .a11yProbeHide("quiz-bottom-bar")
     }
@@ -1138,6 +1143,7 @@ struct MCQQuizView: View {
                     .transition(.identity)
             } else if !a.checked && shuffle && asksConfidence {
                 confidencePicker
+                    .a11yProbeHide("quiz-rest-confidence")
                     .transition(.identity)
             }
         }
@@ -1159,6 +1165,7 @@ struct MCQQuizView: View {
             : AnyLayout(HStackLayout(spacing: WardSpace.m))
         return layout {
             backButton(short: explains)
+                .a11yProbeHide("quiz-rest-back-button")
 
             if span == .broad && !decksInline { Spacer(minLength: 16) }
 
@@ -1181,6 +1188,7 @@ struct MCQQuizView: View {
             .buttonStyle(.bigPrimary)
             .keyboardShortcut(.return, modifiers: [])
             .disabled(waiting)
+            .a11yProbeHide("quiz-rest-check-button")
         }
     }
 
