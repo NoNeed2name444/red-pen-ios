@@ -341,4 +341,15 @@ class BackendClientTest {
         assertNotNull("$relative is found from the test's working directory", dir)
         return File(dir, relative).readText(Charsets.UTF_8)
     }
+
+    // the edges of the cut-offs' range, as they arrive on the wire: one and nought are kept, equal cut-offs are not
+    @Test fun cutOffsAtTheEdgesOfTheirRangeAreKeptOffTheWireAndEqualOnesAreNot() {
+        fun fromWire(verified: Double, flagged: Double): AccuracyWeights? {
+            val w = JSONObject(AccuracyModel.bundled.toJson().toString()).put("thresholds", JSONObject().put("verified", verified).put("flagged", flagged))
+            return AccuracyWeights.fromReply(JSONObject().put("weights", w))
+        }
+        assertNotNull("a Verified cut-off of one", fromWire(1.0, 0.4))
+        assertNotNull("a Flagged cut-off of nought", fromWire(0.5, 0.0))
+        assertNull("equal cut-offs", fromWire(0.5, 0.5))
+    }
 }

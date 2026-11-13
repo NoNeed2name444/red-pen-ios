@@ -100,4 +100,47 @@ class TextSlicingTest {
         assertEquals("ab", out)
         assertFalse(Character.isHighSurrogate(out.last()))
     }
+
+    // MARK: nearestPages as the app has it (T0252): ties, the room a page needs and the limit. iOS's own tests leave these open
+    // (its sort is not promised to be stable); these pin what Android does.
+
+    // pages that share the same number of words come in their reading order, so with room for one the first is kept
+    @Test fun pagesThatShareTheSameNumberOfWordsKeepTheirReadingOrder() {
+        val pages = listOf("L, 1:\n" to "Furosemide dosing.", "L, 2:\n" to "Dosing furosemide.", "L, 3:\n" to "Furosemide dosing again.")
+        assertEquals("L, 1:\nFurosemide dosing.\n\nL, 2:\nDosing furosemide.\n\nL, 3:\nFurosemide dosing again.\n\n",
+            TextSlicing.nearestPages(pages, "furosemide dosing", 1_000))
+        assertEquals("L, 1:\nFurosemide dosing.\n\n", TextSlicing.nearestPages(pages, "furosemide dosing", 40))
+    }
+
+    // a page is taken with exactly a quarter of the limit left for it
+    @Test fun aPageIsTakenWhenExactlyAQuarterOfTheLimitIsLeftForIt() {
+        // limit 100: a page needs 25 characters of room after its heading and its two line breaks; the best page leaves exactly 25
+        val best = "furosemide heart " + "x".repeat(42)
+        val out = TextSlicing.nearestPages(listOf("L, 1:\n" to "furosemide", "L, 2:\n" to best), "furosemide heart", 100)
+        assertEquals("L, 2:\n$best\n\nL, 1:\nfurosemide\n\n", out)
+    }
+
+    private fun bestPage(length: Int) = "furosemide heart " + "x".repeat(length - 17)
+
+    // a page never needs more than 200 characters of room, however large the limit
+    @Test fun aPageNeedsAtMostTwoHundredCharactersOfRoomHoweverLargeTheLimit() {
+        // limit 4,000, where a quarter would be 1,000: the best page leaves the second 200 characters of room, or 199
+        fun excerpt(bestLength: Int) = TextSlicing.nearestPages(listOf("A, 1:\n" to bestPage(bestLength), "B, 1:\n" to "furosemide"), "furosemide heart", 4_000)
+        assertEquals("A, 1:\n" + bestPage(3_784) + "\n\nB, 1:\nfurosemide\n\n", excerpt(3_784))
+        assertEquals("A, 1:\n" + bestPage(3_785) + "\n\n", excerpt(3_785))
+    }
+
+    // the excerpt is cut to the limit exactly: heading, text and the two line breaks together are the limit
+    @Test fun anExcerptCutToTheLimitFillsItExactly() {
+        val page = "furosemide ".repeat(50).trim()
+        val out = TextSlicing.nearestPages(listOf("L, 1:\n" to page), "furosemide", 100)!!
+        assertEquals(100, out.length)
+        assertEquals("L, 1:\n" + page.take(92) + "\n\n", out)
+    }
+
+    // a limit of three leaves one character, which is worth taking; a limit of two leaves none, which is not
+    @Test fun aPageWithNoRoomAtAllIsNotWorthAReferenceButOneCharacterOfRoomIs() {
+        assertNull(TextSlicing.nearestPages(listOf("" to "furosemide"), "furosemide", 2))
+        assertEquals("f\n\n", TextSlicing.nearestPages(listOf("" to "furosemide"), "furosemide", 3))
+    }
 }

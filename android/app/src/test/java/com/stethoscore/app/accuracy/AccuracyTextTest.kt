@@ -204,4 +204,12 @@ class AccuracyTextTest {
         assertNotNull("$relative is found from the test's working directory", dir)
         return java.io.File(dir, relative).readText(Charsets.UTF_8)
     }
+
+    // pages that share as many words come in the set's own order: its documents as listed, a document's pages by number (T0252)
+    @Test fun pagesThatShareAsManyWordsAreReadInTheSetsOwnOrder() {
+        val a = SourceDoc(name = "Resp", pages = listOf(SourcePage(1, "Furosemide dosing."), SourcePage(2, "Dosing furosemide.")))
+        val b = SourceDoc(name = "Cardio", pages = listOf(SourcePage(1, "Furosemide dosing.")))
+        assertEquals("Resp, 1:\nFurosemide dosing.\n\nResp, 2:\nDosing furosemide.\n\nCardio, 1:\nFurosemide dosing.\n\n",
+            AccuracyText.reference("furosemide dosing", set(a, b), 1_000))
+    }
 }

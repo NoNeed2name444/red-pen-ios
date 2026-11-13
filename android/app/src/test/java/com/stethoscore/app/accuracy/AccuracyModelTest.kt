@@ -451,4 +451,159 @@ class AccuracyModelTest {
         val server = Regex("""\['(\w+)', /(.+?)/\]""").findAll(table).map { it.groupValues[1] to it.groupValues[2] }.toList()
         assertEquals(AccuracyModel.families, server.take(AccuracyModel.families.size))
     }
+
+    // MARK: rules a mutation check of the model found unpinned (T0252). Each test states the rule as the app has it, which is iOS's too.
+
+    private val mistralModel = "mistral-large-3"
+
+    // the flag rule needs every voter against the item: one who passed it keeps it at Check this, however low the score
+    @Test fun aCardThreeOfFourFamiliesJudgeWrongIsCheckThisWhenTheFourthPassedIt() {
+        val votes = listOf(gModel, oModel, nModel).map { AccuracyVote(model = it, risk = 4, evidence = "contradicts") } +
+            AccuracyVote(model = mistralModel, risk = 1, evidence = "supports")
+        val f = AccuracyModel.featureValues(AccuracyKind.card, emptyList(), votes, 0, 0.7, null)
+        assertEquals(3.0, f["flag_families"]!!, 0.0)
+        assertEquals(0.75, f["flag_frac"]!!, 0.0)
+        val p = AccuracyModel.probability(f)
+        assertTrue("under the Flagged cut-off, so only the flag rule decides: $p", p < AccuracyModel.bundled.thresholds.flagged)
+        assertEquals(AccuracyGrade.check, AccuracyModel.grade(p, f))
+    }
+
+    // keyIndex counts options from zero: with four options the letter after D is no option
+    @Test fun theLetterAfterTheLastOptionIsNoKeyForThatManyOptions() {
+        assertEquals(0, AccuracyFix.keyIndex("A", 4))
+        assertEquals(3, AccuracyFix.keyIndex("D", 4))
+        assertNull(AccuracyFix.keyIndex("E", 4))
+        assertNull("the character before A", AccuracyFix.keyIndex("@", 4))
+        assertNull(AccuracyFix.keyIndex("A", 0))
+        val four = AccuracyItem("q", AccuracyKind.mcq, stem = "S", options = listOf("a", "b", "c", "d"), key = 0, explanation = "x")
+        assertTrue(AccuracyFix.canApply(AccuracySuggestion("key", "D"), four))
+        assertFalse(AccuracyFix.canApply(AccuracySuggestion("key", "E"), four))
+    }
+
+    // Verified is reached AT the cut-off, not only above it
+    @Test fun aScoreExactlyAtTheVerifiedCutOffIsVerifiedAndOneJustBelowIsNot() {
+        val cut = AccuracyModel.bundled.thresholds.verified
+        assertEquals(0.85, cut, 0.0)
+        assertEquals(AccuracyGrade.verified, AccuracyModel.grade(cut, pass))
+        assertEquals(AccuracyGrade.check, AccuracyModel.grade(Math.nextDown(cut), pass))
+    }
+
+    // and Checked, on the vignette route, the same way
+    @Test fun aScoreExactlyAtTheVerifiedCutOffIsCheckedOnTheVignetteRouteAndOneJustBelowIsNot() {
+        val unsigned = vf + ("vignette_proof" to 0.0)
+        val cut = AccuracyModel.bundled.thresholds.verified
+        assertEquals(AccuracyGrade.checked, AccuracyModel.grade(cut, unsigned, vignetteRoute = true))
+        assertEquals(AccuracyGrade.check, AccuracyModel.grade(Math.nextDown(cut), unsigned, vignetteRoute = true))
+    }
+
+    private fun withCutOffs(verified: Double, flagged: Double) = AccuracyModel.bundled.copy(thresholds = AccuracyWeights.Thresholds(verified, flagged))
+
+    // cut-offs must be apart: equal ones leave no room for Check this
+    @Test fun cutOffsThatAreEqualAreInvalidAndOnesAHairApartAreValid() {
+        assertFalse("equal cut-offs", withCutOffs(0.5, 0.5).isValid)
+        assertTrue("cut-offs a hair apart", withCutOffs(Math.nextUp(0.5), 0.5).isValid)
+    }
+
+    // a Verified cut-off may be one (nothing but a certainty), not more
+    @Test fun aVerifiedCutOffOfOneIsValidButAboveOneIsNot() {
+        assertTrue("a Verified cut-off of one", withCutOffs(1.0, 0.4).isValid)
+        assertFalse("a Verified cut-off above one", withCutOffs(Math.nextUp(1.0), 0.4).isValid)
+    }
+
+    // a Flagged cut-off may be nought (never flag on the score), not below
+    @Test fun aFlaggedCutOffOfNoughtIsValidButBelowNoughtIsNot() {
+        assertTrue("a Flagged cut-off of nought", withCutOffs(0.5, 0.0).isValid)
+        assertFalse("a Flagged cut-off below nought", withCutOffs(0.5, -Math.ulp(0.0)).isValid)
+    }
+
+    // the phones group eleven makers, as iOS does; the server also groups ibm and zhipu (13 there) and the phones do not yet
+    @Test fun thePhonesGroupElevenMakersInTheServersOrder() {
+        assertEquals(11, AccuracyModel.families.size)
+        assertEquals(listOf("google", "openai", "nvidia", "meta", "alibaba", "mistral", "deepseek", "anthropic", "baichuan", "microsoft", "apple"),
+            AccuracyModel.families.map { it.first })
+        val samples = listOf(
+            "gemini-3.5-flash-lite" to "google", "gemma-4-31b-it" to "google", "@cf/openai/gpt-oss-120b" to "openai",
+            "@cf/nvidia/nemotron-3-120b-a12b" to "nvidia", "@cf/meta/llama-4-scout-17b-16e-instruct" to "meta", "qwen3-235b" to "alibaba",
+            "mistral-large-3" to "mistral", "mixtral-8x22b-instruct" to "mistral", "deepseek-v3.2" to "deepseek",
+            "claude-haiku-4.5" to "anthropic", "baichuan4-turbo" to "baichuan", "phi-4-mini-instruct" to "microsoft",
+            "microsoft/mai-1" to "microsoft", "apple/foundation-3b" to "apple",
+        )
+        for ((model, family) in samples) assertEquals(model, family, AccuracyModel.familyOf(model))
+        // the server calls these two ibm and zhipu; here each is a family of its own model id
+        assertEquals("@cf/ibm-granite/granite-4.0-h-micro", AccuracyModel.familyOf("@cf/ibm-granite/granite-4.0-h-micro"))
+        assertEquals("@cf/zai-org/glm-4.7-flash", AccuracyModel.familyOf("@cf/zai-org/glm-4.7-flash"))
+    }
+
+    // MARK: each condition of Verified and of Checked holds an item back on its own (T0252): start from features that earn the grade, change one thing
+
+    // a question every family solved blind to its key, an official source states it, and nothing is against it
+    private val earnsVerified = mapOf(
+        "no_models" to 0.0, "kind_mcq" to 1.0, "voters" to 1.0, "families" to 3.0, "source_proof" to 1.0, "blind_agree" to 3.0, "blind_dissent" to 0.0,
+        "flag_frac" to 0.0, "ev_contradict" to 0.0, "rule_severe" to 0.0, "rule_minor" to 0.0,
+    )
+
+    @Test fun eachConditionOfVerifiedHoldsAnItemBackOnItsOwn() {
+        assertEquals(AccuracyGrade.verified, AccuracyModel.grade(0.99, earnsVerified))
+        val oneThingWrong = mapOf(
+            "a minor rule fired" to ("rule_minor" to 1.0),
+            "a severe rule fired" to ("rule_severe" to 1.0),
+            "only two voters" to ("voters" to 2.0 / 3),
+            "only two families passed it" to ("families" to 2.0),
+            "one checker raised a concern" to ("flag_frac" to 0.25),
+            "the literature was read against it" to ("ev_contradict" to 0.25),
+            "a family solving it blind went elsewhere" to ("blind_dissent" to 1.0),
+            "only two blind solves reached the key" to ("blind_agree" to 2.0),
+            "no official source states it" to ("source_proof" to 0.0),
+        )
+        val notHeld = oneThingWrong.filter { (_, change) -> AccuracyModel.grade(0.99, earnsVerified + change) != AccuracyGrade.check }.keys
+        assertTrue("not held at Check this: $notHeld", notHeld.isEmpty())
+    }
+
+    // the same on the vignette route, where an owner-signed proof is not there yet
+    private val earnsChecked = vf + mapOf("vignette_proof" to 0.0, "blind_dissent" to 0.0, "flag_frac" to 0.0, "ev_contradict" to 0.0, "rule_severe" to 0.0, "rule_minor" to 0.0)
+
+    @Test fun eachConditionOfCheckedHoldsAnItemBackOnItsOwn() {
+        assertEquals(AccuracyGrade.checked, AccuracyModel.grade(0.95, earnsChecked, vignetteRoute = true))
+        val oneThingWrong = mapOf(
+            "a minor rule fired" to ("rule_minor" to 1.0),
+            "a severe rule fired" to ("rule_severe" to 1.0),
+            "only two voters" to ("voters" to 2.0 / 3),
+            "only two families passed it" to ("families" to 2.0),
+            "one checker raised a concern" to ("flag_frac" to 0.25),
+            "the literature was read against it" to ("ev_contradict" to 0.25),
+            "a family solving it blind went elsewhere" to ("blind_dissent" to 1.0),
+            "only two blind solves reached the key" to ("blind_agree" to 2.0),
+            "the vignette was not even checked" to ("vignette_checked" to 0.0),
+        )
+        val notHeld = oneThingWrong.filter { (_, change) -> AccuracyModel.grade(0.95, earnsChecked + change, vignetteRoute = true) != AccuracyGrade.check }.keys
+        assertTrue("not held at Check this: $notHeld", notHeld.isEmpty())
+    }
+
+    // the flag rules fire under the Flagged cut-off, not at it
+    @Test fun aSevereRuleFlagsAnItemOnlyWhenTheScoreIsUnderTheFlaggedCutOff() {
+        val cut = AccuracyModel.bundled.thresholds.flagged
+        val f = mapOf("no_models" to 0.0, "rule_severe" to 1.0, "voters" to 1.0)
+        assertEquals(AccuracyGrade.check, AccuracyModel.grade(cut, f))
+        assertEquals(AccuracyGrade.flagged, AccuracyModel.grade(Math.nextDown(cut), f))
+    }
+
+    @Test fun everyVoterFromThreeFamiliesFlagsACardOnlyWhenTheScoreIsUnderTheFlaggedCutOff() {
+        val cut = AccuracyModel.bundled.thresholds.flagged
+        val f = mapOf("no_models" to 0.0, "kind_mcq" to 0.0, "flag_families" to 3.0, "flag_frac" to 1.0, "voters" to 1.0)
+        assertEquals(AccuracyGrade.check, AccuracyModel.grade(cut, f))
+        assertEquals(AccuracyGrade.flagged, AccuracyModel.grade(Math.nextDown(cut), f))
+    }
+
+    // three families on another answer flag a question only while none of them reached the key
+    @Test fun aQuestionIsNotFlaggedWhileABlindSolveStillReachedItsKey() {
+        val f = mapOf("no_models" to 0.0, "kind_mcq" to 1.0, "blind_against" to 3.0, "blind_agree" to 1.0, "voters" to 1.0)
+        assertEquals(AccuracyGrade.check, AccuracyModel.grade(0.5, f))
+        assertEquals(AccuracyGrade.flagged, AccuracyModel.grade(0.5, f + ("blind_agree" to 0.0)))
+    }
+
+    // features that do not say whether any model looked are read as "none did"
+    @Test fun featuresWithNoModelsEntryAreReadAsNoModelsYet() {
+        assertEquals(AccuracyGrade.unchecked, AccuracyModel.grade(0.99, emptyMap()))
+        assertEquals(AccuracyGrade.flagged, AccuracyModel.grade(0.99, mapOf("rule_severe" to 1.0)))
+    }
 }

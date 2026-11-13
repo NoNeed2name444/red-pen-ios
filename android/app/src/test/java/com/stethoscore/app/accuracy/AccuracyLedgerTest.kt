@@ -647,4 +647,81 @@ class AccuracyLedgerTest {
             AccuracySeen.records.clear()
         }
     }
+
+    // MARK: rules a mutation check of the ledger found unpinned (T0252). Each test states the rule as the app has it, which is iOS's too.
+
+    private val hour = 3_600_000L
+    private val day = 24 * hour
+
+    // a question needs two blind solves among its votes before it counts as checked
+    @Test fun aQuestionNeedsTwoBlindSolvesBeforeItCountsAsChecked() {
+        val t0 = secs(5_000_000)
+        val ledger = AccuracyLedger()
+        ledger.add(listOf(vote("a"), vote("b", blind = null), vote("c", blind = null)), hash0, sourceMatch = 0.8, proof = fullProof, now = t0)
+        assertFalse("one blind solve among three votes", ledger.isChecked(hash0, question = true, now = t0))
+        assertTrue("the same votes for an item that is not a question", ledger.isChecked(hash0, now = t0))
+        ledger.add(listOf(vote("b")), hash0, now = t0)
+        assertTrue("two blind solves", ledger.isChecked(hash0, question = true, now = t0))
+    }
+
+    // a reply whose features leave no_source out is read as "no source", as iOS reads it
+    @Test fun aReplyWhoseFeaturesDoNotSayWhetherThereWasASourceMeansThereWasNone() {
+        val ledger = AccuracyLedger()
+        val json = """{"items":[{"votes":[{"model":"a","risk":1}],"features":{"source_match":0.9}}]}"""
+        ledger.record(AccuracyCheckReply.parse(JSONObject(json)), listOf(hash0), gateTime)
+        assertNotNull(ledger.records[hash0])
+        assertNull(ledger.records[hash0]?.sourceMatch)
+    }
+
+    // the reasons name a checker who rated it 3 of 4 or worse, and not one who rated it 2
+    @Test fun aCheckerWhoRatedItThreeOfFourIsNamedAsAConcernAndOneWhoRatedItTwoIsNot() {
+        val ledger = AccuracyLedger()
+        ledger.add(listOf(vote("a", risk = 3, issues = listOf("Dose looks high")), vote("b", risk = 2, issues = listOf("Wording is loose")), vote("c", risk = 3)),
+            hash0, sourceMatch = 0.8)
+        val reasons = ledger.assess(item0).reasons
+        assertTrue(reasons.toString(), reasons.contains("a: Dose looks high"))
+        assertTrue(reasons.toString(), reasons.contains("c: Judged it likely to mislead (risk 3 of 4)."))
+        assertTrue(reasons.toString(), reasons.none { it.startsWith("b:") })
+    }
+
+    // the retry clocks, at their edges: a failed check after more than six hours, a cut-short proof after more than six hours, a thin check after more than a day
+    @Test fun aFailedCheckIsTriedAgainOnlyOnceMoreThanSixHoursHavePassed() {
+        val t0 = secs(1_000_000)
+        val ledger = AccuracyLedger()
+        ledger.failed["h"] = t0
+        assertFalse("at exactly six hours", ledger.mayRetry("h", now = t0 + 6 * hour))
+        assertTrue("a millisecond past six hours", ledger.mayRetry("h", now = t0 + 6 * hour + 1))
+        assertTrue("never failed", ledger.mayRetry("other", now = t0))
+    }
+
+    @Test fun aCutShortProofIsAskedForAgainOnlyOnceMoreThanSixHoursHavePassedSinceTheCheck() {
+        val t0 = secs(5_000_000)
+        val ledger = AccuracyLedger()
+        ledger.add(threeBlind(), hash0, sourceMatch = 0.8, proof = AccuracyProof(v = 2, claims = 1, proven = 0, why = "lookup"), now = t0)
+        assertTrue("at exactly six hours", ledger.isChecked(hash0, question = true, now = t0 + 6 * hour))
+        assertFalse("a millisecond past six hours", ledger.isChecked(hash0, question = true, now = t0 + 6 * hour + 1))
+    }
+
+    @Test fun aCheckThatReachedTwoFamiliesIsAskedForAgainOnlyOnceMoreThanADayHasPassed() {
+        val t0 = secs(5_000_000)
+        val ledger = AccuracyLedger()
+        ledger.add(listOf(vote("a"), vote("b")), hash0, sourceMatch = 0.8, proof = fullProof, now = t0)
+        assertTrue("at exactly a day", ledger.isChecked(hash0, question = true, now = t0 + day))
+        assertFalse("a millisecond past a day", ledger.isChecked(hash0, question = true, now = t0 + day + 1))
+        val three = AccuracyLedger()
+        three.add(threeBlind(), hash0, sourceMatch = 0.8, proof = fullProof, now = t0)
+        assertTrue("three families are never asked for again because of age", three.isChecked(hash0, question = true, now = t0 + 30 * day))
+    }
+
+    // pruning forgets a vanished item's failure as well as its record
+    @Test fun pruningAlsoForgetsTheFailuresOfItemsThatAreGone() {
+        val ledger = AccuracyLedger()
+        for (hash in listOf("gone", "kept")) {
+            ledger.records[hash] = AccuracyRecord(hash = hash, checkedAt = 1L)
+            ledger.failed[hash] = 2L
+        }
+        ledger.prune(setOf("kept"))
+        assertEquals(setOf("kept"), ledger.records.keys)
+        assertEquals(setOf("kept"), ledger.failed.keys)
+    }
 }
