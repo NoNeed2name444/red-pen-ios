@@ -351,6 +351,7 @@ final class AccessibilityUITests: XCTestCase {
         XCTFail("the app stopped running during the \(screen) audit (pass \(pass)); a crash report is in the run's artifacts")
         // the last snapshot the stopped app wrote, before the relaunch clears it (T0263)
         printProbeLists(screen, "after-stop-\(relaunches + 1)")
+        printProbeLayout(screen, "after-stop-\(relaunches + 1)")
         guard more else { return .relaunched }
         guard relaunches < Self.maxRelaunches else {
             print("PROBE-CRASH-STOP \(screen) pass=\(pass) the app stopped again; this test has used its \(Self.maxRelaunches) relaunches")
@@ -631,6 +632,14 @@ final class AccessibilityUITests: XCTestCase {
     ///    <when> `before-pass-<n>`, `after-pass-<n>`, `after-stop-<k>` (the
     ///    last snapshot of the k-th app that stopped, printed before its
     ///    relaunch) or `end`; PROBE-LISTS-MISSING when there is no file.
+    ///  - PROBE-LAYOUT, for the library and card-revealed screens, at the
+    ///    same points (T0267): the app, launched with the same argument, also
+    ///    wraps every UICollectionView layoutSubviews and writes the last 16
+    ///    lines of an ENTER <n> / EXIT <n> record to a second file
+    ///    (A11yProbeLists.layoutPath). Each line of it is printed as
+    ///    `PROBE-LAYOUT <screen> <when> <line>`, in order; PROBE-LAYOUT-MISSING
+    ///    when there is no file. At `after-stop-<k>` an ENTER with no EXIT at
+    ///    the end names the layout that was running when the app stopped.
     /// It runs in the accessibility step with the rest of this class
     /// (app-build.yml), because it needs this class's private way around.
     func testDefaultSizeAuditProbeDiagnostic() {
@@ -732,6 +741,28 @@ final class AccessibilityUITests: XCTestCase {
         for line in lines { print("PROBE-LISTS \(screen) \(when) \(line)") }
     }
 
+    /// The file the app writes its layout record to (A11yProbeLists.layoutPath).
+    private static let layoutFile = "/tmp/redpen-probe-layout.txt"
+
+    /// `PROBE-LAYOUT <screen> <when> <line>` for every line of the layout
+    /// record the app wrote last (at most 16, in order), or
+    /// `PROBE-LAYOUT-MISSING <screen> <when>` when the file is not there or
+    /// empty. Only for the library and the revealed card, and only in a launch
+    /// that passes `-a11yProbeLists` (T0267).
+    private func printProbeLayout(_ screen: String, _ when: String) {
+        guard listsProbe, ["library", "card-revealed"].contains(screen) else { return }
+        var lines: [Substring] = []
+        if let data = FileManager.default.contents(atPath: Self.layoutFile),
+           let text = String(data: data, encoding: .utf8) {
+            lines = text.split(separator: "\n")
+        }
+        if lines.isEmpty {
+            print("PROBE-LAYOUT-MISSING \(screen) \(when)")
+            return
+        }
+        for line in lines.suffix(16) { print("PROBE-LAYOUT \(screen) \(when) \(line)") }
+    }
+
     /// One screen already open: its tree, then three audits, then PROBE-DONE.
     ///
     /// After each pass the app is looked at (recoverFromCrash, T0242): if it
@@ -752,6 +783,7 @@ final class AccessibilityUITests: XCTestCase {
             probeNils = 0
             probeSnapshot = nil
             printProbeLists(screen, "before-pass-\(pass)")
+            printProbeLayout(screen, "before-pass-\(pass)")
             var thrown: Error?
             XCTContext.runActivity(named: "Probe audit: \(screen) pass \(pass)") { _ in
                 do {
@@ -765,16 +797,19 @@ final class AccessibilityUITests: XCTestCase {
             }
             print("PROBE-PASS \(screen) pass=\(pass) issues=\(probeIssues)")
             printProbeLists(screen, "after-pass-\(pass)")
+            printProbeLayout(screen, "after-pass-\(pass)")
             let step = recoverFromCrash(screen, pass: pass, after: thrown, more: more)
             if step != .running {
                 // after a relaunch this is the new app's latest snapshot, to
                 // set beside the last one the stopped app wrote (after-stop)
                 printProbeLists(screen, "end")
+                printProbeLayout(screen, "end")
                 print("PROBE-DONE \(screen)")
                 return step
             }
         }
         printProbeLists(screen, "end")
+        printProbeLayout(screen, "end")
         print("PROBE-DONE \(screen)")
         return .running
     }
@@ -1296,6 +1331,7 @@ final class AccessibilityUITests: XCTestCase {
             // the app writes its collection views to a file (T0263): none left
             // from an earlier launch, so a stale one is never read
             try? FileManager.default.removeItem(atPath: Self.listsFile)
+            try? FileManager.default.removeItem(atPath: Self.layoutFile)
             app.launchArguments += ["-a11yProbeLists"]
         }
         app.launch()

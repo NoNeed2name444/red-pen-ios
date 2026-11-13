@@ -1,6 +1,7 @@
 import Foundation
 #if canImport(UIKit)
 import UIKit
+import ObjectiveC
 #endif
 
 /// Diagnostic only (T0263): names the collection views the app has while it is
@@ -38,8 +39,32 @@ import UIKit
 /// view and no accessibility element, and keeps no reference to a view or a
 /// window between ticks: each tick walks the live hierarchy and lets go.
 ///
-/// The formatting is Foundation-only; the walk and the timer are fenced to
-/// UIKit.
+/// The snapshot could not name the list (T0267): in Mac run 43505486192 its
+/// last write before the app stopped read `lists=0`, so the List that was
+/// being laid out was in no window at that moment. So with the same argument
+/// `start()` also wraps `-[UICollectionView layoutSubviews]` once. The wrapper
+/// keeps the last 16 lines of a ring in memory, a line `ENTER <n> ...` before
+/// it calls the original and `EXIT <n>` after, and writes the ring to
+/// `layoutPath` each time (written under a temporary name, then renamed, as
+/// the snapshot is). An `ENTER`
+/// with no `EXIT` at the end of the file is the call that was running when the
+/// app stopped; `ENTER`s above it with no `EXIT` are the layouts it was nested
+/// in. `n` counts the calls from 1, so `ENTER 7` pairs with `EXIT 7`. An ENTER
+/// line is
+///   `ENTER <n> t=<seconds since start, 2 decimals> <ClassName> id=<last 6 hex
+///   digits of the address> vc=<nearest view controller class up the responder
+///   chain, or none> win=<0 when the view has a window, none when not>
+///   hidden=<0|1> alpha=<0.00> frame=<x,y,w,h in its superview> size=<contentSize
+///   w,h> offset=<contentOffset x,y> up=<nearest four superview classes,
+///   joined with ">">`
+/// All the numbers but t and alpha are whole. It reads no data source (no
+/// sections, items, visible cells or index paths), holds no view between
+/// calls (the ring is strings), runs only on the main thread (a call from
+/// another thread is passed straight to the original), and always calls the
+/// original exactly once.
+///
+/// The formatting is Foundation-only; the walk, the timer and the wrapper are
+/// fenced to UIKit.
 enum A11yProbeLists {
     /// Whether the launch asked for it. Read once, into a static let, as
     /// A11yProbeHide reads its arguments.
@@ -55,6 +80,12 @@ enum A11yProbeLists {
     static let maxLists = 40
     static let maxViews = 4000
 
+    /// Where the layout record goes (T0267). AccessibilityUITests reads the
+    /// same path.
+    static let layoutPath = "/tmp/redpen-probe-layout.txt"
+    /// The most lines the layout record keeps: the last ones.
+    static let layoutRingSize = 16
+
     /// Starts the snapshots, when the launch asked for them. Called once, from
     /// the app's init.
     static func start() {
@@ -66,6 +97,9 @@ enum A11yProbeLists {
         }
         // common modes: it keeps ticking while a list is being scrolled
         RunLoop.main.add(timer, forMode: .common)
+        // T0267: the only place the wrapper is installed, after the `isOn`
+        // guard above, so a launch without the argument never reaches it
+        installLayoutRecorder(since: begun)
         #endif
     }
 
@@ -103,6 +137,39 @@ enum A11yProbeLists {
     static func whole(_ value: Double) -> Int {
         guard value.isFinite else { return -999_999_999 }
         return Int(max(-999_999_999, min(999_999_999, value.rounded())))
+    }
+
+    // MARK: - The layout record's text (Foundation only, T0267)
+
+    /// One `ENTER` line (see the type's comment for what is in it).
+    static func enterLine(number: Int, seconds: Double, className: String, address: UInt,
+                          controller: String, hasWindow: Bool, hidden: Bool, alpha: Double,
+                          frame: (x: Double, y: Double, w: Double, h: Double),
+                          size: (w: Double, h: Double), offset: (x: Double, y: Double),
+                          above: String) -> String {
+        var text = "ENTER \(number) t=\(String(format: "%.2f", seconds)) \(className)"
+        text += " id=\(shortID(address)) vc=\(controller) win=\(hasWindow ? "0" : "none")"
+        text += " hidden=\(hidden ? 1 : 0) alpha=\(String(format: "%.2f", alpha))"
+        text += " frame=\(whole(frame.x)),\(whole(frame.y)),\(whole(frame.w)),\(whole(frame.h))"
+        text += " size=\(whole(size.w)),\(whole(size.h))"
+        text += " offset=\(whole(offset.x)),\(whole(offset.y))"
+        text += " up=\(above)"
+        return text
+    }
+
+    /// The `EXIT` line that pairs with `ENTER <number>`.
+    static func exitLine(number: Int) -> String { "EXIT \(number)" }
+
+    /// `line` added to the end of `ring`, which keeps only its last `limit`
+    /// lines.
+    static func append(_ line: String, to ring: inout [String], limit: Int = layoutRingSize) {
+        ring.append(line)
+        if ring.count > limit { ring.removeFirst(ring.count - limit) }
+    }
+
+    /// The ring as the file holds it: one line each, a newline after the last.
+    static func layoutText(_ ring: [String]) -> String {
+        ring.joined(separator: "\n") + "\n"
     }
 
     // MARK: - The walk (UIKit)
@@ -187,16 +254,96 @@ enum A11yProbeLists {
         return "none"
     }
 
-    /// The classes of the nearest three superviews, nearest first.
+    /// The classes of the nearest `count` superviews (three unless asked),
+    /// nearest first.
     @MainActor
-    private static func superviews(of view: UIView) -> String {
+    private static func superviews(of view: UIView, nearest count: Int = 3) -> String {
         var names: [String] = []
         var up = view.superview
-        while let above = up, names.count < 3 {
+        while let above = up, names.count < count {
             names.append(String(describing: type(of: above)))
             up = above.superview
         }
         return names.isEmpty ? "none" : names.joined(separator: ">")
+    }
+
+    // MARK: - The layout record (UIKit, T0267)
+
+    /// The ring and the call counter. Strings and a number only, and only the
+    /// main thread touches them (the wrapper checks, before it does anything).
+    @MainActor private static var layoutRing: [String] = []
+    @MainActor private static var layoutCalls = 0
+
+    /// Wraps `-[UICollectionView layoutSubviews]`, once. Called only from
+    /// `start()`, after its `isOn` guard.
+    ///
+    /// The wrapper is put on UICollectionView's own method. If UICollectionView
+    /// has none of its own (the lookup then finds a superclass's), it is added
+    /// to UICollectionView alone, so no other class changes. A subclass that
+    /// calls super (SwiftUI's UpdateCoalescingCollectionView) reaches it
+    /// through that call, and the class name on the line is the object's own.
+    ///
+    /// Nothing here can stop the layout it wraps: a missing method ends the
+    /// installation with nothing changed, and the wrapper calls the original
+    /// exactly once on every path.
+    private static func installLayoutRecorder(since begun: TimeInterval) {
+        let selector = NSSelectorFromString("layoutSubviews")
+        guard let method = class_getInstanceMethod(UICollectionView.self, selector) else { return }
+        typealias Layout = @convention(c) (AnyObject, Selector) -> Void
+        let original = unsafeBitCast(method_getImplementation(method), to: Layout.self)
+        let wrapper: @convention(block) (UICollectionView) -> Void = { list in
+            // UIKit lays views out on the main thread; if it ever did not, the
+            // record (main thread only) is skipped and the original still runs
+            guard Thread.isMainThread else {
+                original(list, selector)
+                return
+            }
+            let number = MainActor.assumeIsolated { A11yProbeLists.recordEnter(list, since: begun) }
+            original(list, selector)
+            MainActor.assumeIsolated { A11yProbeLists.recordExit(number) }
+        }
+        let replacement = imp_implementationWithBlock(unsafeBitCast(wrapper, to: AnyObject.self))
+        if !class_addMethod(UICollectionView.self, selector, replacement, method_getTypeEncoding(method)) {
+            _ = method_setImplementation(method, replacement)
+        }
+    }
+
+    /// Adds `ENTER <n> ...` and writes the ring; answers `n`. It reads the
+    /// view's own properties only: no data source, no cells, no index paths.
+    @MainActor
+    private static func recordEnter(_ list: UICollectionView, since begun: TimeInterval) -> Int {
+        layoutCalls += 1
+        let number = layoutCalls
+        let frame = list.frame
+        append(enterLine(number: number,
+                         seconds: ProcessInfo.processInfo.systemUptime - begun,
+                         className: String(describing: type(of: list)),
+                         address: UInt(bitPattern: ObjectIdentifier(list)),
+                         controller: controllerName(of: list),
+                         hasWindow: list.window != nil,
+                         hidden: list.isHidden,
+                         alpha: Double(list.alpha),
+                         frame: (Double(frame.origin.x), Double(frame.origin.y),
+                                 Double(frame.size.width), Double(frame.size.height)),
+                         size: (Double(list.contentSize.width), Double(list.contentSize.height)),
+                         offset: (Double(list.contentOffset.x), Double(list.contentOffset.y)),
+                         above: superviews(of: list, nearest: 4)),
+               to: &layoutRing)
+        writeLayout()
+        return number
+    }
+
+    /// Adds `EXIT <n>` and writes the ring.
+    @MainActor
+    private static func recordExit(_ number: Int) {
+        append(exitLine(number: number), to: &layoutRing)
+        writeLayout()
+    }
+
+    /// The ring, written over the last file. Anything that fails is ignored.
+    @MainActor
+    private static func writeLayout() {
+        try? layoutText(layoutRing).write(toFile: layoutPath, atomically: true, encoding: .utf8)
     }
     #endif
 }
