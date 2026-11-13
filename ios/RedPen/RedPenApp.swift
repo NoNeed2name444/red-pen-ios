@@ -37,6 +37,7 @@ struct RedPenApp: App {
         // the background check for cloud jobs has to be registered before
         // launch finishes
         CloudJobCollector.registerRefresh()
+        A11yProbeLists.start() // diagnostic (T0263): does nothing without -a11yProbeLists
         // A CI screenshot launch (see PreviewLaunch) runs on a throwaway,
         // pre-seeded store; a normal launch opens the user's own library.
         let seeded = PreviewLaunch.screen != nil

@@ -349,6 +349,8 @@ final class AccessibilityUITests: XCTestCase {
         guard appIsGone(error) else { return .running }
         print("PROBE-CRASH \(screen) pass=\(pass)")
         XCTFail("the app stopped running during the \(screen) audit (pass \(pass)); a crash report is in the run's artifacts")
+        // the last snapshot the stopped app wrote, before the relaunch clears it (T0263)
+        printProbeLists(screen, "after-stop-\(relaunches + 1)")
         guard more else { return .relaunched }
         guard relaunches < Self.maxRelaunches else {
             print("PROBE-CRASH-STOP \(screen) pass=\(pass) the app stopped again; this test has used its \(Self.maxRelaunches) relaunches")
@@ -518,9 +520,18 @@ final class AccessibilityUITests: XCTestCase {
     ///    of 2 and the walk goes on from the library (recoverFromCrash). The
     ///    test fails: a crash is a red. At most two relaunches a test; the
     ///    third crash prints PROBE-CRASH-STOP and ends the walk.
+    ///  - PROBE-LISTS, for the card-revealed screen only (T0263): the app is
+    ///    launched with `-a11yProbeLists` (every launch of this test, the
+    ///    relaunches too), and writes one line per collection view it has to
+    ///    a file every quarter second (A11yProbeLists). Each line of that
+    ///    file is printed as `PROBE-LISTS card-revealed <when> <line>`, with
+    ///    <when> `before-pass-<n>`, `after-pass-<n>`, `after-stop-<k>` (the
+    ///    last snapshot of the k-th app that stopped, printed before its
+    ///    relaunch) or `end`; PROBE-LISTS-MISSING when there is no file.
     /// It runs in the accessibility step with the rest of this class
     /// (app-build.yml), because it needs this class's private way around.
     func testDefaultSizeAuditProbeDiagnostic() {
+        listsProbe = true
         launch(.standard)
         guard LibraryDock(app: app).waitForLibrary(timeout: 20) else {
             XCTFail("probe: the library did not open")
@@ -590,6 +601,33 @@ final class AccessibilityUITests: XCTestCase {
     /// element.
     private var probeSnapshot: (any XCUIElementSnapshot)?
 
+    /// Whether this test's launches pass `-a11yProbeLists` (T0263): only
+    /// testDefaultSizeAuditProbeDiagnostic sets it. XCTest makes a new
+    /// instance of the class for each test, so no other test sees it.
+    private var listsProbe = false
+
+    /// The file the app writes its collection views to (A11yProbeLists.path).
+    /// The simulator's processes share the host's /tmp.
+    private static let listsFile = "/tmp/redpen-probe-lists.txt"
+
+    /// `PROBE-LISTS <screen> <when> <line>` for every line of the file the app
+    /// wrote last, or `PROBE-LISTS-MISSING <screen> <when>` when the file is
+    /// not there or empty, so a dead channel shows. Only for the revealed
+    /// card, and only in a launch that passes `-a11yProbeLists`.
+    private func printProbeLists(_ screen: String, _ when: String) {
+        guard listsProbe, screen == "card-revealed" else { return }
+        var lines: [Substring] = []
+        if let data = FileManager.default.contents(atPath: Self.listsFile),
+           let text = String(data: data, encoding: .utf8) {
+            lines = text.split(separator: "\n")
+        }
+        if lines.isEmpty {
+            print("PROBE-LISTS-MISSING \(screen) \(when)")
+            return
+        }
+        for line in lines { print("PROBE-LISTS \(screen) \(when) \(line)") }
+    }
+
     /// One screen already open: its tree, then three audits, then PROBE-DONE.
     ///
     /// After each pass the app is looked at (recoverFromCrash, T0242): if it
@@ -609,6 +647,7 @@ final class AccessibilityUITests: XCTestCase {
             probeIssues = 0
             probeNils = 0
             probeSnapshot = nil
+            printProbeLists(screen, "before-pass-\(pass)")
             var thrown: Error?
             XCTContext.runActivity(named: "Probe audit: \(screen) pass \(pass)") { _ in
                 do {
@@ -621,12 +660,17 @@ final class AccessibilityUITests: XCTestCase {
                 }
             }
             print("PROBE-PASS \(screen) pass=\(pass) issues=\(probeIssues)")
+            printProbeLists(screen, "after-pass-\(pass)")
             let step = recoverFromCrash(screen, pass: pass, after: thrown, more: more)
             if step != .running {
+                // after a relaunch this is the new app's latest snapshot, to
+                // set beside the last one the stopped app wrote (after-stop)
+                printProbeLists(screen, "end")
                 print("PROBE-DONE \(screen)")
                 return step
             }
         }
+        printProbeLists(screen, "end")
         print("PROBE-DONE \(screen)")
         return .running
     }
@@ -1109,6 +1153,12 @@ final class AccessibilityUITests: XCTestCase {
         // drop taps, and AX5's text size (none at the standard size: the
         // simulator's own)
         app.launchArguments += ["-personalBuild", "-stillSky"] + (size == .largest ? Self.largestText : [])
+        if listsProbe {
+            // the app writes its collection views to a file (T0263): none left
+            // from an earlier launch, so a stale one is never read
+            try? FileManager.default.removeItem(atPath: Self.listsFile)
+            app.launchArguments += ["-a11yProbeLists"]
+        }
         app.launch()
         signIn()
     }
