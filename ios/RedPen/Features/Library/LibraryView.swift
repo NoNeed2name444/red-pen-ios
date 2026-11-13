@@ -654,9 +654,13 @@ struct LibraryView: View {
     /// (WardHome.swift, shownBeds), so no bed comes off under a pushed page.
     /// Once home is back it is run again (the onChange of homeShowing in
     /// `content`), after the measurements it reads have been written
-    /// (writeWaiting). T0257, T0258.
+    /// (writeWaiting). That run notes its inputs (homeWaiting.trimRecord),
+    /// and a trim on the same inputs is refused: the written values each
+    /// call this on the next pass, and a bed should come off once for the
+    /// frames the return trimmed on, not once per call. T0257, T0258.
     private func trimSlicedStart() {
         guard homeShowing, bedsTrimmed < 8, bandTrack.isAtRest, let barTop else { return }
+        guard homeWaiting.trimRecord.allows(trimInputs) else { return }
         let cut: Double = HomeFit.barLine(barTop: Double(barTop))
         if typeSize > .large {
             guard startFrame.height > 0 else { return }
@@ -680,13 +684,22 @@ struct LibraryView: View {
     // one writes at once, as before.
 
     /// A new text size or window width gives the round's trimmed beds back,
-    /// to be trimmed afresh.
+    /// to be trimmed afresh. A reset made now is newer than one that waited,
+    /// so the waiting one is dropped: a late return must not take back a bed
+    /// trimmed since. It also ends the return's record of its trim.
     private func untrimBeds() {
         guard homeShowing else {
             homeWaiting.untrim = true
             return
         }
+        homeWaiting.untrim = false
+        homeWaiting.trimRecord.clear()
         bedsTrimmed = 0
+    }
+
+    /// What the trim reads: the frames, the spare and where the bar begins.
+    private var trimInputs: HomeTrimInputs {
+        HomeTrimInputs(startFrame: startFrame, tilesFrame: tilesFrame, bedsSpare: bedsSpare, barTop: barTop)
     }
 
     /// The window's height class (HomeFit.isShort).
@@ -994,17 +1007,24 @@ struct LibraryView: View {
             }
             // Home back from a pushed page: what was left alone under it is
             // done now (T0257, T0258). What waited is written, then the
-            // trim, then the row if a new width came meanwhile. On the next
-            // pass, so that the order of this and the onChange of
-            // homeShowing that ends a hold (layout) does not matter. If a
-            // page covers home again before that pass, what waits stays
-            // kept for the next return.
+            // trim, whose inputs are noted so that the trims the written
+            // values call for on the next pass take no more beds, then the
+            // row if a new width came meanwhile. On the next pass, so that
+            // the order of this and the onChange of homeShowing that ends a
+            // hold (layout) does not matter. If a page covers home again
+            // before that pass, what waits stays kept for the next return,
+            // and the note of the trim ends.
             .onChange(of: homeShowing) { _, showing in
-                guard showing else { return }
+                guard showing else {
+                    homeWaiting.trimRecord.clear()
+                    return
+                }
                 Task { @MainActor in
                     guard homeShowing else { return }
+                    homeWaiting.trimRecord.clear()
                     writeWaiting()
                     trimSlicedStart()
+                    homeWaiting.trimRecord.note(trimInputs)
                     guard homeWaiting.turned else { return }
                     homeWaiting.turned = false
                     if !searching { keepRow(proxy) }

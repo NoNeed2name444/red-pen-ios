@@ -564,6 +564,20 @@ final class HomeWaiting {
     var startFrame = HomeFit.Waiting<CGRect>()
     var tilesFrame = HomeFit.Waiting<CGRect>()
     var bedsSpare = HomeFit.Waiting<Double>()
+    /// What the trim ran on when home came back, so the trims that the
+    /// written values call for on the next pass do not take a bed each
+    /// (LibraryView.trimSlicedStart).
+    var trimRecord = HomeFit.TrimRecord<HomeTrimInputs>()
+}
+
+/// What the trim reads besides the text size and the bar's line: where Start
+/// ward round and the tiles are, how far the tiles would rise with one bed
+/// left, and where the bottom bar begins.
+struct HomeTrimInputs: Equatable {
+    var startFrame: CGRect
+    var tilesFrame: CGRect
+    var bedsSpare: Double
+    var barTop: CGFloat?
 }
 
 /// The band behind the page, from the window's top to just under the

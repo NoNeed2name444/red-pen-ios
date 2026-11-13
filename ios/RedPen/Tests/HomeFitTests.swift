@@ -818,7 +818,102 @@ check("the noted turn is kept in the holder that redraws nothing",
       !library.contains("turnedUnderPage") && library.contains("homeWaiting.turned = true")
         && homeSource.contains("final class HomeWaiting {") && !homeSource.contains("@Observable\nfinal class HomeWaiting"))
 check("home back: what waited is written, then the trim, then the row",
-      library.contains("writeWaiting()\n                    trimSlicedStart()\n                    guard homeWaiting.turned else { return }"))
+      library.contains("writeWaiting()\n                    trimSlicedStart()\n                    homeWaiting.trimRecord.note(trimInputs)\n                    guard homeWaiting.turned else { return }"))
+
+// What the return writes (writeWaiting), line by line: each value that waited
+// is written once home is back, and the reset of the trimmed beds comes
+// before the measurements. A frame that changed under the page is not left
+// stale, so a missing line is a failure of its own.
+func bodyOf(_ text: String, from start: String, to end: String) -> String {
+    guard let a = text.range(of: start), let b = text.range(of: end, range: a.upperBound..<text.endIndex) else { return "" }
+    return String(text[a.lowerBound..<b.lowerBound])
+}
+let writer: String = bodyOf(library, from: "private func writeWaiting() {", to: "\n    }\n")
+check("found writeWaiting", !writer.isEmpty)
+let writes: [(name: String, line: String)] = [
+    ("the reset of the trimmed beds",
+     "        if homeWaiting.untrim {\n            homeWaiting.untrim = false\n            bedsTrimmed = 0\n        }"),
+    ("the window's height class",
+     "        if let now = homeWaiting.shortWindow.take(), now != shortWindow { shortWindow = now }"),
+    ("the bar's height",
+     "        if let now = homeWaiting.dockHeight.take(), now != dockHeight { dockHeight = now }"),
+    ("the bar's top",
+     "        if let now = homeWaiting.barTop.take(), now != barTop { barTop = now }"),
+    ("the keyboard",
+     "        if let now = homeWaiting.keyboardUp.take(), now != keyboardUp {\n            withAnimation(Motion.gentle(.snappy(duration: 0.25))) { keyboardUp = now }\n        }"),
+    ("the tiles' spare",
+     "        if let now = homeWaiting.bedsSpare.take(), now != bedsSpare { bedsSpare = now }"),
+    ("Start ward round's frame",
+     "        if let now = homeWaiting.startFrame.take(), now != startFrame { startFrame = now }"),
+    ("the tiles' frame",
+     "        if let now = homeWaiting.tilesFrame.take(), now != tilesFrame { tilesFrame = now }"),
+]
+for write in writes {
+    check("the return writes \(write.name)", writer.contains(write.line))
+}
+let resetAt: String.Index? = writer.range(of: "bedsTrimmed = 0")?.lowerBound
+for write in writes.dropFirst() {
+    let at: String.Index? = writer.range(of: write.line)?.lowerBound
+    check("the reset of the trimmed beds comes before \(write.name)",
+          resetAt != nil && at != nil && resetAt! < at!)
+}
+
+// The return trims once: the values it writes each call the trim again on the
+// next pass, and the trim is refused on the inputs the return's trim ran on
+// (T0257's return trimmed once, on frames that already matched the card).
+do {
+    typealias Inputs = [Double]
+    let frames: Inputs = [100, 200, 300, 40, 700]
+    let fresh: Inputs = [100, 180, 300, 40, 700]
+    var record = HomeFit.TrimRecord<Inputs>()
+    var beds = 0
+    func trim(_ inputs: Inputs) { if record.allows(inputs) { beds += 1 } }
+
+    // a home that was never covered: nothing noted, every trim is allowed
+    for _ in 1...5 { trim(frames) }
+    check("nothing noted: every trim is allowed, as it always was", beds == 5 && record.inputs == nil)
+
+    // the return: the record is cleared, the trim runs and notes its inputs,
+    // then the four written values call the trim again on the same frames
+    beds = 0
+    record.clear()
+    trim(frames)
+    record.note(frames)
+    for _ in 1...4 { trim(frames) }
+    check("the return takes one bed, not one for each value it wrote", beds == 1)
+    check("a repeated trim on the same inputs is refused, and the note stays",
+          !record.allows(frames) && record.inputs == frames)
+    // the card lays out again with a bed fewer: new frames end the record
+    trim(fresh)
+    check("a changed input is allowed and ends the record", beds == 2 && record.inputs == nil)
+    check("after it, the old inputs are a new set again", record.allows(frames))
+
+    // covered again, or the beds reset: the record ends
+    record.note(frames)
+    record.clear()
+    check("a cleared record allows the same inputs", record.allows(frames) && record.inputs == nil)
+    var one = HomeFit.TrimRecord<Inputs>()
+    one.note(frames)
+    check("each changed value alone ends it",
+          (0..<frames.count).allSatisfy { (i: Int) -> Bool in
+              var changed: Inputs = frames
+              changed[i] += 1
+              var copy = one
+              return copy.allows(changed) && copy.inputs == nil
+          })
+}
+check("the trim is refused on the inputs the return trimmed on",
+      library.contains("guard homeShowing, bedsTrimmed < 8, bandTrack.isAtRest, let barTop else { return }\n        guard homeWaiting.trimRecord.allows(trimInputs) else { return }"))
+check("the record is noted only by the return, after its trim",
+      library.components(separatedBy: "trimRecord.note(").count - 1 == 1
+        && library.contains("trimSlicedStart()\n                    homeWaiting.trimRecord.note(trimInputs)"))
+check("the record ends when home is covered again, when the return begins and when the beds are reset",
+      library.contains("guard showing else {\n                    homeWaiting.trimRecord.clear()\n                    return\n                }")
+        && library.contains("guard homeShowing else { return }\n                    homeWaiting.trimRecord.clear()\n                    writeWaiting()")
+        && library.contains("        homeWaiting.untrim = false\n        homeWaiting.trimRecord.clear()\n        bedsTrimmed = 0"))
+check("the record holds the four inputs the trim reads",
+      homeSource.contains("struct HomeTrimInputs: Equatable {\n    var startFrame: CGRect\n    var tilesFrame: CGRect\n    var bedsSpare: Double\n    var barTop: CGFloat?\n}")
+        && library.contains("HomeTrimInputs(startFrame: startFrame, tilesFrame: tilesFrame, bedsSpare: bedsSpare, barTop: barTop)"))
 
 if failures.isEmpty {
     print("all HomeFit checks passed")

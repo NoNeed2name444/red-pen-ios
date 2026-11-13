@@ -223,6 +223,35 @@ enum HomeFit {
             return waiting
         }
     }
+
+    /// The inputs the trim ran on when home came back from a pushed page
+    /// (T0258). Coming back writes up to four measurements at once, and each
+    /// of them calls the trim again on the next pass, on the very frames the
+    /// first trim has just read: a bed would come off for each call where one
+    /// would do. So the return notes its inputs once its trim has run, and a
+    /// trim on those same inputs is refused. A trim on different inputs ends
+    /// the record and is allowed, as is any trim while nothing is noted, so
+    /// a home that was never covered trims as it always did.
+    struct TrimRecord<Inputs: Equatable> {
+        private(set) var inputs: Inputs?
+
+        init() {}
+
+        /// Notes the inputs a trim has just run on.
+        mutating func note(_ now: Inputs) { inputs = now }
+
+        /// Whether a trim may run on `now`: not on the inputs noted, and
+        /// different inputs end the record.
+        mutating func allows(_ now: Inputs) -> Bool {
+            guard let last = inputs else { return true }
+            if last == now { return false }
+            inputs = nil
+            return true
+        }
+
+        /// Ends the record: home is covered again, or the beds were reset.
+        mutating func clear() { inputs = nil }
+    }
 }
 
 // MARK: - The row a turn keeps
