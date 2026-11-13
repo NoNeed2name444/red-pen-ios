@@ -47,6 +47,7 @@ extension LibraryView {
                 .buttonStyle(.borderless)
                 .accessibilityIdentifier("examplesBanner")
                 .launchEntrance(inOpening: true)
+                .a11yProbeHide("library-rest-examples")
                 .wardPart("the examples row", reach: WardSpace.s)
                 .frostedListRow()
             }

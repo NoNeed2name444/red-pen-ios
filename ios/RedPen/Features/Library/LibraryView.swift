@@ -901,7 +901,7 @@ struct LibraryView: View {
         let below: CGFloat = broad ? 16 : 0
         return HStack {
             Spacer(minLength: 0)
-            newSetButton
+            newSetButton.a11yProbeHide("library-rest-new-set")
         }
         .frame(maxWidth: cap)
         .padding(.horizontal, side)
@@ -1085,12 +1085,13 @@ struct LibraryView: View {
         if !searching {
             if category == .questions || category == .cards {
                 Section {
-                    buildSessionButton(from: "")
+                    buildSessionButton(from: "").a11yProbeHide("library-rest-build-session")
                 }
                 .wardButtonRow()
             }
-            featureSection
-            moreSection
+            // Sections: omitted by an `if`, not a modifier (A11yProbeHide)
+            if !A11yProbeHide.omits("library-rest-feature-tiles") { featureSection }
+            if !A11yProbeHide.omits("library-rest-across-the-app") { moreSection }
             examplesSection
         }
         // A row of empty space as tall as the bottom bar - the dock, or
@@ -1185,6 +1186,7 @@ struct LibraryView: View {
         }
         .launchEntrance(inOpening: true)
         .textCase(nil)
+        .a11yProbeHide("library-rest-sets-header")
     }
 
     /// The mode's own page of sets, for a category with only one kind.
@@ -1366,8 +1368,8 @@ struct LibraryView: View {
             .hoverEffect(.highlight)
             .foregroundStyle(Color.wardPrimaryInk)
         } else {
-            if shortWindow && newSetShown { newSetCircle }
-            accountMenu
+            if shortWindow && newSetShown { newSetCircle.a11yProbeHide("library-rest-new-set") }
+            accountMenu.a11yProbeHide("library-rest-account-menu")
         }
     }
 

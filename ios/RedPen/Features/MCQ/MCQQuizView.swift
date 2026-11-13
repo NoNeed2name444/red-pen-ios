@@ -541,7 +541,7 @@ struct MCQQuizView: View {
     private var questionCard: some View {
         let layout: ChartQuiz.Layout = ChartQuiz.layout(q.stem)
         return VStack(alignment: .leading, spacing: 12) {
-            chartTitle
+            chartTitle.a11yProbeHide("quiz-rest-chart-title")
             // once answered: Verified / Check this / Flagged, and why
             if a.checked && !examMode {
                 AccuracyBadge(set: studySet, itemID: q.id.uuidString)

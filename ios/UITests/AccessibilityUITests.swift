@@ -735,11 +735,11 @@ final class AccessibilityUITests: XCTestCase {
         if more > 0 { print("\(head) \(more) more not printed") }
     }
 
-    // MARK: - The bisect of the probe's issues with no element (T0224)
+    // MARK: - The bisect of the probe's issues with no element (T0224, T0260)
 
     /// The regions of each screen, as Shared/A11yProbeHide.swift names them: 7,
-    /// 6 and 5, 18 in all, each run with a baseline. The ones that no run has
-    /// shown yet come first, in the order in which one is thought most likely
+    /// 6 and 5, 18 in all. The ones that no run had shown when the bisect was
+    /// written come first, in the order in which one is thought most likely
     /// to hold its issue (the two text screens, "Text clipped", the text-heavy
     /// regions first; the card, "Hit area is too small", the controls first, its
     /// bottom bar's two buttons both set a 44 point minimum height); the ones
@@ -748,7 +748,9 @@ final class AccessibilityUITests: XCTestCase {
     /// `card-rating-row` hidden left the 2 "Hit area is too small"; library
     /// `library-revision-card` and `library-set-rows` hidden left the "Text
     /// clipped"; quiz `quiz-lab-table` hidden took 6 issues to 1 (a "Text
-    /// clipped" with no element), `quiz-stem` hidden took the 6 to 6.
+    /// clipped" with no element), `quiz-stem` hidden took the 6 to 6. Run
+    /// 43355485941 (74fd1462) hid every library and quiz region and the 1
+    /// "Text clipped" with no element stayed in all 13.
     private static let libraryRegions: [String] = [
         "library-header", "library-tiles", "library-plan-card", "library-search", "library-tab-bar",
         "library-revision-card", "library-set-rows",
@@ -760,51 +762,126 @@ final class AccessibilityUITests: XCTestCase {
         "card-top-bar", "card-bottom-bar", "card-face", "card-progress-row", "card-rating-row",
     ]
 
+    /// The rest regions (T0260): what each screen draws outside the regions
+    /// above, named where it is drawn (Shared/A11yProbeHide.swift lists what
+    /// each holds). The library's first two are on screen at the default size
+    /// (the account menu over the page, New set over the dock); the others
+    /// are rows of the list under the tiles, which the list may not build
+    /// until they are scrolled to.
+    private static let libraryRestRegions: [String] = [
+        "library-rest-account-menu", "library-rest-new-set", "library-rest-sets-header",
+        "library-rest-build-session", "library-rest-feature-tiles", "library-rest-across-the-app",
+        "library-rest-examples",
+    ]
+    private static let quizRestRegions: [String] = ["quiz-rest-chart-title"]
+
+    /// One launch of a bisect: a region hidden, regions omitted, or neither.
+    private struct BisectVariant {
+        /// How the variant reads in its PROBE-BISECT line: `hide=<region>` or
+        /// `omit=<region,...>`.
+        let label: String
+        /// The launch arguments that name it.
+        let arguments: [String]
+        /// The launch that hides and omits nothing: what the others are read against.
+        var isBaseline = false
+        /// Every named region is omitted, so no element of the screen can be
+        /// waited for.
+        var emptiesScreen = false
+
+        static let baseline = BisectVariant(label: "hide=none", arguments: ["-a11yProbeHide", "none"],
+                                            isBaseline: true)
+
+        static func hide(_ region: String) -> BisectVariant {
+            BisectVariant(label: "hide=\(region)", arguments: ["-a11yProbeHide", region])
+        }
+
+        /// `regions` is one name, a comma list, `all` or `everything`.
+        static func omit(_ regions: String) -> BisectVariant {
+            BisectVariant(label: "omit=\(regions)", arguments: ["-a11yProbeOmit", regions],
+                          emptiesScreen: regions == "everything")
+        }
+    }
+
+    /// The variants of the library and the quiz, most informative first: the
+    /// baseline, `omit=all` (every region above), `omit=everything` (those and
+    /// the rest regions), each rest region alone, each region above alone; and
+    /// last, the repeats: each region above hidden, as run 43355485941 did.
+    private static func omitVariants(regions: [String], rest: [String]) -> [BisectVariant] {
+        var variants: [BisectVariant] = [BisectVariant.baseline, BisectVariant.omit("all"),
+                                         BisectVariant.omit("everything")]
+        variants += rest.map { BisectVariant.omit($0) }
+        variants += regions.map { BisectVariant.omit($0) }
+        variants += regions.map { BisectVariant.hide($0) }
+        return variants
+    }
+
     /// The library, opened as the "library" preview (the bisect, below).
     func testProbeBisectLibraryDiagnostic() {
         bisect("library", opening: "library", ready: ["libraryMenu", "librarySearch", "dockCategory-questions"],
-               regions: Self.libraryRegions, budget: 225)
+               variants: Self.omitVariants(regions: Self.libraryRegions, rest: Self.libraryRestRegions),
+               budget: 390)
     }
 
     /// The example quiz, opened as the "quiz" preview.
     func testProbeBisectQuizDiagnostic() {
         bisect("quiz", opening: "quiz", ready: ["studyMore", "studyBarFold"],
-               regions: Self.quizRegions, budget: 175)
+               variants: Self.omitVariants(regions: Self.quizRegions, rest: Self.quizRestRegions),
+               budget: 230)
     }
 
-    /// The example card revealed, opened as the "anki-revealed" preview.
+    /// The example card revealed, opened as the "anki-revealed" preview. Not
+    /// extended with the omit variants: each region hidden, then the baseline.
     func testProbeBisectCardDiagnostic() {
+        var variants: [BisectVariant] = Self.cardRegions.map { BisectVariant.hide($0) }
+        variants.append(BisectVariant.baseline)
         bisect("card-revealed", opening: "anki-revealed", ready: ["studyMore", "studyBarFold"],
-               regions: Self.cardRegions, budget: 150)
+               variants: variants, budget: 150)
     }
 
     /// What the audit found in the variant being run: the issue's text and its
     /// element, and how many times.
     private var bisectTally: [String: Int] = [:]
 
+    /// How many nodes the screen's baseline launch had, or -1 before it has
+    /// run (or when it could not be read).
+    private var bisectBaselineNodes: Int = -1
+
     /// Diagnostic, not a check (as the probe above): the audit names no element
     /// for four issues at the default size, which repeat on every pass of
     /// every run: the library's one "Text clipped", the quiz's one "Text
     /// clipped", and the revealed card's two "Hit area is too small". Each of
     /// these tests takes one of those screens and launches the app once per
-    /// region of it, with `-a11yProbeHide <region>` (Shared/A11yProbeHide.swift),
-    /// which hides that region from the view tree and does not draw it. One
-    /// audit pass is run per launch, with the real audit's types, and one line
-    /// is printed:
+    /// variant, with `-a11yProbeHide <region>` (Shared/A11yProbeHide.swift),
+    /// which hides that region (not drawn, out of the accessibility tree, its
+    /// views still built), or `-a11yProbeOmit <regions>`, which does not build
+    /// it at all, so nothing of it is in the view hierarchy. One audit pass is
+    /// run per launch, with the real audit's types, and one line is printed:
     ///
     ///     PROBE-BISECT <screen> hide=<region> issues=<n> <issue>[<element>]=<count>; ... nodes=<n>
+    ///     PROBE-BISECT <screen> omit=<region,...> issues=<n> <issue>[<element>]=<count>; ... nodes=<n>
     ///
     /// `<issue>` is the audit's own short text ("Text clipped", "Hit area is
     /// too small", "Dynamic Type font sizes are partially unsupported") and
     /// `<element>` the element's identifier, else label (40 characters), else
     /// nil where the audit names none. An issue count that drops when region R
-    /// is hidden puts the issue inside R; `nodes` is the size of the screen's
-    /// accessibility tree, so a hide that took nothing with it shows at once
-    /// (a region name the app does not know, or a view that was not on screen).
-    /// The last variant of a screen, `hide=none`, hides nothing: the baseline,
-    /// launched the same way. Read: `grep -E "PROBE-BISECT" a11y.log`.
+    /// is hidden or omitted puts the issue inside R; `nodes` is the size of
+    /// the screen's accessibility tree. A variant whose `nodes` is the
+    /// baseline's also prints `PROBE-BISECT-NOTE <screen> <variant> nodes=<n>`:
+    /// it took nothing out of the tree (a region that was not on screen, a
+    /// name the app does not know, or a hide that did not take effect).
     ///
-    /// The other lines: `PROBE-BISECT-ERROR <screen> hide=<region> <why>` for a
+    /// The variants of the library and the quiz, in the order they run (so a
+    /// screen cut short by its budget loses repeats and not new evidence):
+    /// `hide=none`, the baseline, launched the same way as the others;
+    /// `omit=all`, every region the first bisect named; `omit=everything`,
+    /// those and the rest regions, which is everything the screen's own views
+    /// draw, so an issue that stays is outside them (a window or a system
+    /// layer); each rest region alone (A11yProbeHide lists them); each first
+    /// region omitted alone; and the first regions hidden one at a time, which
+    /// run 43355485941 already did. The card is not extended: each region
+    /// hidden, then its baseline. Read: `grep -E "PROBE-BISECT" a11y.log`.
+    ///
+    /// The other lines: `PROBE-BISECT-ERROR <screen> <variant> <why>` for a
     /// variant whose screen did not open, whose audit threw, during which the
     /// app stopped running, or that was not run because the screen's time was
     /// used up; `PROBE-BISECT-DONE <screen> launches=<n> of <m> seconds=<s>`,
@@ -816,107 +893,106 @@ final class AccessibilityUITests: XCTestCase {
     ///
     /// The screens are opened with `-uiPreviewScreen` (library, quiz,
     /// anki-revealed: the screenshot route, on the same sample sets the probe
-    /// opens), not by the probe's own walk through sign-in and the dock. In
-    /// run 43134634665's `t =` stamps a launch and sign-in took 19 to 23 s at
-    /// the default size (each of the class's tests signed in again, so a
-    /// relaunch would), getting to the quiz or the card 16 to 20 s more, and
-    /// an audit about 8 s: 28 to 50 s a variant, about 13 minutes for the 19
-    /// variants, against a step with 283 s to its then cap of 1800 s (1517 s
-    /// cold; the cap is 2700 s since T0242).
-    /// The preview route costs a launch and an audit, about 15 s a variant
-    /// (assumed: launch 3 to 5 s, audit 8 s, waits 2 s). What it cannot show
-    /// is whether the preview screen has the issue the walk's screen has: the
-    /// `hide=none` line against the probe's own PROBE-PASS lines of the same
-    /// run says so (library 1, quiz 3 to 5 with the Dynamic Type flags that
-    /// come and go, card-revealed 2).
+    /// opens), not by the probe's own walk through sign-in and the dock. What
+    /// it cannot show is whether the preview screen has the issue the walk's
+    /// screen has: the baseline line against the probe's own PROBE-PASS lines
+    /// of the same run says so (library 1, quiz 3 to 5 with the Dynamic Type
+    /// flags that come and go, card-revealed 2). A screen is ready when one of
+    /// the `ready` identifiers is on it; with `omit=everything` the library
+    /// has none left, so the test waits for the window and 3 s.
     ///
-    /// Time: each screen has a budget in seconds, sized for all of its
-    /// variants. A region is started only if it and the baseline after it
-    /// would still fit in what is left, each costed as the variant before it
-    /// (the first region always runs); one that does not fit prints a
-    /// PROBE-BISECT-ERROR line and is left out. The baseline (`hide=none`) of a
-    /// screen always runs, last. So the last of n regions needs the time of n +
-    /// 1 variants. Run 43183776170 measured 23.4 s a launch for the library
-    /// (70.2 s for 3), 19.3 s for the quiz (57.8 s for 3) and 21.2 s for the
-    /// card (42.3 s for 2): at 28, 25 and 25 s a variant, the library's 8
-    /// launches need 8 x 28 = 224 s (budget 225), the quiz's 7 need 7 x 25 =
-    /// 175 s, the card's 6 need 6 x 25 = 150 s: 550 s for the 21 launches, the
-    /// 18 regions and 3 baselines. The step's cap is 2700 s (45 min). That run
-    /// took 1813 s, 170 of them these tests (42 + 70 + 58), so with the
-    /// budgets used up in full the step takes 1813 - 170 + 550 = 2193 s. A
-    /// stopped app adds at most two relaunches in each of the two walk tests,
-    /// about 60 s each (a launch and sign-in of about 23 s, then the screen
-    /// that the stop used to skip: an estimate): 2193 + 4 x 60 = 2433 s, 267 s
-    /// under the cap. These tests are named to run after the others of the
-    /// class (XCTest runs a class alphabetically), so a step cut at its cap
-    /// would lose only them. They never fail on what the audit finds; a
-    /// launch that cannot be made, or an app that stops running, are the only
-    /// ways they fail.
+    /// Time: each screen has a budget in seconds. A variant is started only
+    /// if it, and any baseline still to come, would fit in what is left, each
+    /// costed as the variant before it; the first variant and the baseline
+    /// always run, and one that does not fit prints a PROBE-BISECT-ERROR line
+    /// and is left out. Run 43355485941 measured 15.9 s a launch for the
+    /// library (127.3 s for 8) and 11.5 s for the quiz (80.8 s for 7), the
+    /// card 13.1 s (78.6 s for 6). The library now has 24 variants (the
+    /// baseline, omit all and everything, 7 rest regions, 7 omitted, 7 hidden:
+    /// 24 x 16 = 384 s) in a budget of 390 s, the quiz 16 (1 + 2 + 1 + 6 + 6:
+    /// 16 x 11.5 = 184 s) in 230 s: about 360 s more than before, 6.0 minutes,
+    /// and at most 413 s, 6.9 minutes, when both budgets are used up. The
+    /// step's cap is 49 minutes (app-build.yml): the run of 41.6 minutes, with
+    /// app crashes and relaunches, plus 6.9 is 48.5; a run of 25 minutes
+    /// (run 43355485941) plus 6.0 is 31. Each test also has the step's 480 s
+    /// allowance per test (`-maximum-test-execution-time-allowance`), which
+    /// the budgets stay under with a launch to spare. These tests are named to
+    /// run after the others of the class (XCTest runs a class alphabetically),
+    /// so a step cut at its cap would lose only them. They never fail on what
+    /// the audit finds; a launch that cannot be made, or an app that stops
+    /// running, are the only ways they fail.
     ///
-    /// `bisect` runs one screen: a launch for each of `regions`, then the
-    /// baseline. `opening` is the `-uiPreviewScreen` that opens it, and
-    /// `ready` the identifiers of which at least one is on the screen in
-    /// every variant (the hidden region's own are gone from it, so the list
-    /// spans the regions).
+    /// `bisect` runs one screen: a launch for each of `variants`. `opening` is
+    /// the `-uiPreviewScreen` that opens it, and `ready` the identifiers of
+    /// which at least one is on the screen in every variant (an omitted
+    /// region's own are gone from it, so the list spans the regions).
     private func bisect(_ screen: String, opening route: String, ready: [String],
-                        regions: [String], budget: TimeInterval) {
+                        variants: [BisectVariant], budget: TimeInterval) {
         let started = Date()
         var cost: TimeInterval = 0
         var launches = 0
         var crashes = 0
-        for region in regions + ["none"] {
+        for (index, variant) in variants.enumerated() {
             // a third stop ends the test's launches (maxRelaunches), the
             // baseline too
             if crashes > Self.maxRelaunches {
-                print("PROBE-BISECT-ERROR \(screen) hide=\(region) not run: the app stopped \(crashes) times in this test, one more than its \(Self.maxRelaunches) relaunches")
+                print("PROBE-BISECT-ERROR \(screen) \(variant.label) not run: the app stopped \(crashes) times in this test, one more than its \(Self.maxRelaunches) relaunches")
                 continue
             }
-            // the screen's time is not run over: a region leaves room for the
-            // baseline after it, and the first variant always runs; the
+            // the screen's time is not run over: a variant leaves room for
+            // each baseline after it, and the first variant always runs; a
             // baseline itself is never left out
-            if region != "none", Date().timeIntervalSince(started) + cost + cost > budget {
-                print("PROBE-BISECT-ERROR \(screen) hide=\(region) not run: the \(Int(budget)) s for this screen's variants is used up")
+            let owed: Int = variants[(index + 1)...].filter { $0.isBaseline }.count
+            if !variant.isBaseline,
+               Date().timeIntervalSince(started) + cost * TimeInterval(1 + owed) > budget {
+                print("PROBE-BISECT-ERROR \(screen) \(variant.label) not run: the \(Int(budget)) s for this screen's variants is used up")
                 continue
             }
             let began = Date()
-            if bisectVariant(screen, opening: route, ready: ready, hide: region) { crashes += 1 }
+            if bisectVariant(screen, opening: route, ready: ready, variant: variant) { crashes += 1 }
             cost = Date().timeIntervalSince(began)
             launches += 1
         }
-        print("PROBE-BISECT-DONE \(screen) launches=\(launches) of \(regions.count + 1) seconds=\(Int(Date().timeIntervalSince(started)))")
+        print("PROBE-BISECT-DONE \(screen) launches=\(launches) of \(variants.count) seconds=\(Int(Date().timeIntervalSince(started)))")
     }
 
-    /// One launch with one region hidden, one audit, one PROBE-BISECT line.
+    /// One launch of one variant, one audit, one PROBE-BISECT line.
     /// True when the app stopped running during it (bisectCrash).
     @discardableResult
     private func bisectVariant(_ screen: String, opening route: String, ready: [String],
-                               hide region: String) -> Bool {
-        let head = "PROBE-BISECT \(screen) hide=\(region)"
+                               variant: BisectVariant) -> Bool {
+        let head = "PROBE-BISECT \(screen) \(variant.label)"
         app = XCUIApplication()
         app.keepTraceOffConsole()
         // as A11yProbeUITests: the personal build and a still sky, the screen
-        // opened straight away, and the region to hide
-        app.launchArguments += ["-personalBuild", "-stillSky", "-uiPreviewScreen", route,
-                                "-a11yProbeHide", region]
+        // opened straight away, and the region to hide or omit
+        app.launchArguments += ["-personalBuild", "-stillSky", "-uiPreviewScreen", route]
+        app.launchArguments += variant.arguments
         app.launch()
-        let marks: [NSPredicate] = ready.map { NSPredicate(format: "identifier == %@", $0) }
-        let marker = app.descendants(matching: .any)
-            .matching(NSCompoundPredicate(orPredicateWithSubpredicates: marks)).firstMatch
+        let marker: XCUIElement
+        if variant.emptiesScreen {
+            marker = app.windows.firstMatch
+        } else {
+            let marks: [NSPredicate] = ready.map { NSPredicate(format: "identifier == %@", $0) }
+            marker = app.descendants(matching: .any)
+                .matching(NSCompoundPredicate(orPredicateWithSubpredicates: marks)).firstMatch
+        }
         guard marker.waitForExistence(timeout: 20) else {
             if appIsGone() {
-                bisectCrash(screen, hide: region, pass: 0)
+                bisectCrash(screen, variant: variant, pass: 0)
                 return true
             }
-            print("PROBE-BISECT-ERROR \(screen) hide=\(region) the screen did not open within 20 s")
+            print("PROBE-BISECT-ERROR \(screen) \(variant.label) the screen did not open within 20 s")
             app.terminate()
             return false
         }
-        // the screen a moment to settle before it is read
-        usleep(500_000)
+        // the screen a moment to settle before it is read; longer with
+        // nothing on it to wait for
+        usleep(variant.emptiesScreen ? 3_000_000 : 500_000)
         let nodes: Int = bisectNodes()
         bisectTally = [:]
         var thrown: Error?
-        XCTContext.runActivity(named: "Bisect: \(screen) hide=\(region)") { _ in
+        XCTContext.runActivity(named: "Bisect: \(screen) \(variant.label)") { _ in
             do {
                 try app.performAccessibilityAudit(for: Self.audited) { [unowned self] issue in
                     self.bisectIssue(issue)
@@ -926,16 +1002,21 @@ final class AccessibilityUITests: XCTestCase {
             }
         }
         if appIsGone(thrown) {
-            bisectCrash(screen, hide: region, pass: 1)
+            bisectCrash(screen, variant: variant, pass: 1)
             return true
         }
         if let thrown {
             let threw: String = "\(thrown)"
-            print("PROBE-BISECT-ERROR \(screen) hide=\(region) the audit threw \(threw.replacingOccurrences(of: "\n", with: " "))")
+            print("PROBE-BISECT-ERROR \(screen) \(variant.label) the audit threw \(threw.replacingOccurrences(of: "\n", with: " "))")
         } else {
             let total: Int = bisectTally.values.reduce(0, +)
             let kinds: String = bisectTally.keys.sorted().map { "\($0)=\(bisectTally[$0] ?? 0)" }.joined(separator: "; ")
             print("\(head) issues=\(total) \(kinds.isEmpty ? "no issue" : kinds) nodes=\(nodes)")
+            if variant.isBaseline {
+                bisectBaselineNodes = nodes
+            } else if nodes >= 0, nodes == bisectBaselineNodes {
+                print("PROBE-BISECT-NOTE \(screen) \(variant.label) nodes=\(nodes), the baseline's: nothing left the accessibility tree")
+            }
         }
         app.terminate()
         return false
@@ -944,10 +1025,10 @@ final class AccessibilityUITests: XCTestCase {
     /// The app stopped running in this variant: PROBE-CRASH, the variant's
     /// own PROBE-BISECT-ERROR line, and a failure (a crash stays a red). The
     /// next variant launches the app anew.
-    private func bisectCrash(_ screen: String, hide region: String, pass: Int) {
+    private func bisectCrash(_ screen: String, variant: BisectVariant, pass: Int) {
         print("PROBE-CRASH \(screen) pass=\(pass)")
-        print("PROBE-BISECT-ERROR \(screen) hide=\(region) the app stopped running (pass \(pass); 0 is before the audit began)")
-        XCTFail("the app stopped running in the \(screen) bisect with \(region) hidden (pass \(pass))")
+        print("PROBE-BISECT-ERROR \(screen) \(variant.label) the app stopped running (pass \(pass); 0 is before the audit began)")
+        XCTFail("the app stopped running in the \(screen) bisect with \(variant.label) (pass \(pass))")
         app.terminate()
     }
 

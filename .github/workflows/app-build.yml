@@ -145,8 +145,10 @@ jobs:
       - name: Accessibility at the largest text size
         id: a11y
         if: ${{ !cancelled() && steps.build.outcome == 'success' && (!startsWith(github.ref_name, 'design/') || github.ref_name == 'design/integration') }}
-        # 45, not 30 (T0242): run 43183776170 took 30m13s against the 30-minute cap
-        timeout-minutes: 45
+        # 49, not 30 (T0242, T0260): run 43183776170 took 30m13s against the 30-minute cap;
+        # the run of 41.6 minutes (app crashes and relaunches) plus at most 6.9 minutes for
+        # the omit variants of the bisect (AccessibilityUITests) is 48.5
+        timeout-minutes: 49
         working-directory: ios
         run: |
           set -o pipefail
