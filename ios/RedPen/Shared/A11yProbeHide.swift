@@ -76,8 +76,9 @@ import SwiftUI
 ///   Guess; an `if`, so it can be omitted but not hidden),
 ///   `quiz-rest-back-button`, `quiz-rest-check-button` (the Check answer or
 ///   Next button), `quiz-rest-answer-buttons` (the whole row of Back, Explain
-///   and the main button, where `deck` calls it; the accessibility-size page
-///   calls the row itself, without this region). T0261's are for omit;
+///   and the main button, set where `answerButtons` builds the row, so both
+///   the deck's call and the accessibility-size page's own call are in it).
+///   T0261's are for omit;
 /// - revealed card: `card-top-bar` (the navigation bar), `card-progress-row`
 ///   (cards left, done), `card-face`, `card-bottom-bar` (Accuracy and Save
 ///   to Ideas), `card-rating-row` (Again to Easy).

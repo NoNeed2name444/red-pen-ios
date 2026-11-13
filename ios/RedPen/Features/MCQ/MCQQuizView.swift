@@ -1128,7 +1128,7 @@ struct MCQQuizView: View {
     private func deck(_ proxy: ScrollViewProxy) -> some View {
         VStack(spacing: 12) {
             if deckShown { footer }
-            if pendingResume == nil { answerButtons(proxy).a11yProbeHide("quiz-rest-answer-buttons") }
+            if pendingResume == nil { answerButtons(proxy) }
         }
         .a11yProbeHide("quiz-bottom-bar")
     }
@@ -1181,15 +1181,18 @@ struct MCQQuizView: View {
             Button {
                 withAnimation(Motion.gentle(.snappy(duration: 0.25))) { onCheckOrNext() }
             } label: {
-                Label(title, systemImage: symbol)
-                    .labelStyle(.titleAndIcon)
-                    .contentTransition(.identity)
+                FullSizeLabel {
+                    Label(title, systemImage: symbol)
+                        .labelStyle(.titleAndIcon)
+                        .contentTransition(.identity)
+                }
             }
             .buttonStyle(.bigPrimary)
             .keyboardShortcut(.return, modifiers: [])
             .disabled(waiting)
             .a11yProbeHide("quiz-rest-check-button")
         }
+        .a11yProbeHide("quiz-rest-answer-buttons")
     }
 
     /// Back: with its word before checking, the chevron alone once Explain
@@ -1200,14 +1203,43 @@ struct MCQQuizView: View {
                 Image(systemName: "chevron.backward")
                     .transition(.identity)
             } else {
-                Label("Back", systemImage: "chevron.backward")
-                    .transition(.identity)
+                FullSizeLabel {
+                    Label("Back", systemImage: "chevron.backward")
+                        .transition(.identity)
+                }
+                .transition(.identity)
             }
         }
         .buttonStyle(.bigCompanion)
         .keyboardShortcut(.leftArrow, modifiers: [])
         .disabled(current == 0)
         .accessibilityLabel("Previous question")
+    }
+
+    /// A big button's label at its full size, with no line limit, where it
+    /// fits; where it does not, the label as it was drawn before this
+    /// existed. The second candidate sets no line limit or scale of its own,
+    /// so it takes them from the button style (OneLineLabel: one line down to
+    /// 85 percent, or wrapping at the accessibility sizes), as before. Both
+    /// candidates are `.transition(.identity)`, so a switch between them
+    /// does not fade, as the label's own words change without a fade.
+    private struct FullSizeLabel<Content: View>: View {
+        private let content: Content
+
+        init(@ViewBuilder _ content: () -> Content) {
+            self.content = content()
+        }
+
+        var body: some View {
+            ViewThatFits(in: .horizontal) {
+                content
+                    .lineLimit(nil)
+                    .minimumScaleFactor(1)
+                    .transition(.identity)
+                content
+                    .transition(.identity)
+            }
+        }
     }
 
     private func onCheckOrNext() {

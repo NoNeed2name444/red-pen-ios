@@ -1510,15 +1510,19 @@ private struct KeyboardWatch: ViewModifier {
 /// lines, never cut and never broken inside a word. Past AX1 it grows no
 /// further, so its longest word ("questions,") still fits the field; the
 /// words typed grow on. VoiceOver reads the field's name instead.
+///
+/// The four one-line candidates take their own one-line width
+/// (`fixedSize`) in place of a line limit, so none can be cut short with an
+/// ellipsis; ViewThatFits judges each by that same width.
 private struct SearchPrompt: View {
     let text: String
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
-            Text(text).lineLimit(1)
-            Text(text).font(WardType.face(.callout, weight: .regular)).lineLimit(1)
-            Text(text).font(WardType.face(.subheadline, weight: .regular)).lineLimit(1)
-            Text(text).font(WardType.face(.footnote, weight: .regular)).lineLimit(1)
+            Text(text).fixedSize(horizontal: true, vertical: false)
+            Text(text).font(WardType.face(.callout, weight: .regular)).fixedSize(horizontal: true, vertical: false)
+            Text(text).font(WardType.face(.subheadline, weight: .regular)).fixedSize(horizontal: true, vertical: false)
+            Text(text).font(WardType.face(.footnote, weight: .regular)).fixedSize(horizontal: true, vertical: false)
             Text(text).fixedSize(horizontal: false, vertical: true)
         }
         .foregroundStyle(Color.wardInkSecondary)
