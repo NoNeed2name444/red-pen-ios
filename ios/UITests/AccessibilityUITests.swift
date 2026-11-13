@@ -389,37 +389,135 @@ final class AccessibilityUITests: XCTestCase {
 
     /// The screen being audited, for the AUDIT-NIL lines.
     private var auditing = ""
-    /// That screen's tree, read once, at its first issue with no element.
+    /// That screen's tree, read once, when the first failing issue with no
+    /// element is named.
     private var auditTree: (any XCUIElementSnapshot)?
 
-    /// One audit pass of `screen`. Its error is thrown, as it was, unless the
-    /// app is gone: then recoverFromCrash answers instead (pass 1, the walk
-    /// runs one pass a screen). `more` is false for the walk's last screen.
+    /// An issue that was not benign, as one pass found it: its fingerprint
+    /// (what tells the same issue in the next pass), and the issue itself.
+    private struct AuditFound {
+        let fingerprint: String
+        let issue: XCUIAccessibilityAuditIssue
+    }
+
+    /// What the pass running now has found. auditPass fills it in.
+    private var auditFound: [AuditFound] = []
+
+    /// One screen's audit (T0264): a pass that fails nothing itself, and, only
+    /// when it found something that is not benign, one more pass of the same
+    /// screen. An issue in both passes fails the test, as an issue in the one
+    /// pass did before; one in a single pass is AUDIT-FLICKER and does not
+    /// (the revealed card's and the quiz stem's Dynamic Type flags came and
+    /// went between passes on unchanged code, and the quiz's "Text clipped"
+    /// with no element is in every pass, so it still fails). At most one
+    /// retry, and none after a pass that threw or found the app gone.
+    ///
+    /// Each pass goes through recoverFromCrash. The error of a pass is thrown,
+    /// as it was, unless the app is gone: then recoverFromCrash answers
+    /// instead (pass 1 or 2). A pass that did not finish settles nothing, so
+    /// everything it and the pass before it found fails at once. `more` is
+    /// false for the walk's last screen.
     @discardableResult
     private func audit(_ screen: String, _ types: XCUIAccessibilityAuditType,
                        more: Bool = true) throws -> CrashStep {
         auditing = screen
         auditTree = nil
+        let first = auditPass(types, named: "Audit: \(screen)", shot: "audit-\(screen)")
+        let firstStep = recoverFromCrash(screen, pass: 1, after: first.thrown, more: more)
+        if firstStep != .running || first.thrown != nil {
+            // no second look: what this pass found fails, as it did
+            failAudit(first.found, screen: screen, note: " (not repeated: the pass did not finish)",
+                      shown: firstStep == .running)
+            if firstStep == .running, let thrown = first.thrown { throw thrown }
+            return firstStep
+        }
+        if first.found.isEmpty { return .running }
+
+        print("AUDIT-RETRY \(screen) first=\(first.found.count) issue(s)")
+        let second = auditPass(types, named: "Audit retry: \(screen)", shot: "audit-\(screen)-retry")
+        let secondStep = recoverFromCrash(screen, pass: 2, after: second.thrown, more: more)
+        if secondStep != .running || second.thrown != nil {
+            // the second look was cut short, so no issue of the first is shown to have gone
+            failAudit(first.found + second.found, screen: screen, note: " (the second pass did not finish)",
+                      shown: secondStep == .running)
+            if secondStep == .running, let thrown = second.thrown { throw thrown }
+            return secondStep
+        }
+        let before: Set<String> = Set(first.found.map { $0.fingerprint })
+        let after: Set<String> = Set(second.found.map { $0.fingerprint })
+        for gone in first.found where !after.contains(gone.fingerprint) {
+            print("AUDIT-FLICKER \(screen) \(gone.fingerprint)")
+        }
+        for flicker in second.found where !before.contains(flicker.fingerprint) {
+            print("AUDIT-FLICKER \(screen) \(flicker.fingerprint)")
+        }
+        failAudit(second.found.filter { before.contains($0.fingerprint) }, screen: screen, note: " (in both passes)",
+                  shown: true)
+        return .running
+    }
+
+    /// One pass of the audit of `screen`, with nothing failed by it: each
+    /// issue is printed (AUDIT-ISSUE) and judged by isBenign, and each that is
+    /// not benign is kept with its fingerprint. The audit's error, if it
+    /// throws one, is returned with what was found before it.
+    private func auditPass(_ types: XCUIAccessibilityAuditType,
+                           named name: String, shot: String) -> (found: [AuditFound], thrown: Error?) {
+        auditFound = []
         var thrown: Error?
-        XCTContext.runActivity(named: "Audit: \(screen)") { _ in
-            snap("audit-\(screen)")
+        XCTContext.runActivity(named: name) { _ in
+            snap(shot)
             do {
                 try app.performAccessibilityAudit(for: types) { [unowned self] issue in
-                    self.isBenign(issue)
+                    self.printAuditIssue(issue)
+                    if !self.isBenign(issue) {
+                        self.auditFound.append(AuditFound(fingerprint: self.fingerprint(issue), issue: issue))
+                    }
+                    return true
                 }
             } catch {
                 thrown = error
             }
         }
-        let step = recoverFromCrash(screen, pass: 1, after: thrown, more: more)
-        if step == .running, let thrown { throw thrown }
-        return step
+        return (auditFound, thrown)
     }
 
-    /// An issue the audit could not tie to an element still fails (isBenign);
-    /// this names its likely elements, at most 20 lines: for a small hit area,
-    /// each control on the screen under 44 by 44 points; for clipped text,
-    /// each text whose frame runs past its parent's; for any other type, both.
+    /// What identifies an issue from one pass to the next: its audit type, its
+    /// compact description and its element's identifier and label (`nil`
+    /// when it has no element).
+    private func fingerprint(_ issue: XCUIAccessibilityAuditIssue) -> String {
+        var who = "nil"
+        if let element = issue.element {
+            let label: String = element.label.replacingOccurrences(of: "\n", with: " ")
+            who = "id=\(element.identifier) label=\(label.prefix(80))"
+        }
+        return "type=\(issue.auditType) compact=\(issue.compactDescription) element=\(who)"
+    }
+
+    /// Fails the test for each of `found`, naming the screen, the type, the
+    /// compact description and the element. An issue with no element first
+    /// gets its AUDIT-NIL lines, from the screen as it is now (read afresh,
+    /// once); `shown` is false when the app stopped and was started again, so
+    /// that tree would be the library's, and only says there is none.
+    private func failAudit(_ found: [AuditFound], screen: String, note: String, shown: Bool) {
+        guard !found.isEmpty else { return }
+        auditTree = nil
+        for item in found {
+            if item.issue.element == nil {
+                if shown {
+                    nameNilElements(for: item.issue)
+                } else {
+                    print("AUDIT-NIL \(size == .largest ? "AX5" : "default") \(screen) no snapshot of the screen")
+                }
+            }
+            XCTFail("accessibility audit of \(screen)\(note): \(item.fingerprint)")
+        }
+    }
+
+    /// An issue the audit could not tie to an element still fails (isBenign,
+    /// failAudit); this names its likely elements, at most 20 lines: for a
+    /// small hit area, each control on the screen under 44 by 44 points; for
+    /// clipped text, each text whose frame runs past its parent's; for any
+    /// other type, both.
     /// `AUDIT-NIL <size> <screen> <what> id=<identifier> label=<label> frame=<frame>`.
     /// The two "Hit area is too small" and the "Text clipped" of run
     /// 42076348385 (library, revealed card) came with no element.
@@ -465,15 +563,18 @@ final class AccessibilityUITests: XCTestCase {
         .incrementArrow, .decrementArrow,
     ]
 
-    /// The issues left to the system, each for a reason. Everything else
-    /// fails the test.
-    private func isBenign(_ issue: XCUIAccessibilityAuditIssue) -> Bool {
-        // every issue named with its element, before it is judged
+    /// Every issue named with its element, before it is judged: once for each
+    /// pass that sees it.
+    private func printAuditIssue(_ issue: XCUIAccessibilityAuditIssue) {
         let line: String = "AUDIT-ISSUE compact=\(issue.compactDescription) detailed=\(issue.detailedDescription) type=\(issue.auditType) element=\(issue.element?.debugDescription ?? "nil")"
         print(line.replacingOccurrences(of: "\n", with: " | "))
+    }
+
+    /// The issues left to the system, each for a reason. Everything else is
+    /// kept by the pass, and fails the test when the next pass finds it too.
+    private func isBenign(_ issue: XCUIAccessibilityAuditIssue) -> Bool {
         guard let element = issue.element else {
-            // named in AUDIT-NIL lines, and still a failure
-            nameNilElements(for: issue)
+            // named in AUDIT-NIL lines (failAudit), and not benign
             return false
         }
         // UIKit draws the navigation bar and truncates its inline title at
@@ -520,11 +621,13 @@ final class AccessibilityUITests: XCTestCase {
     ///    of 2 and the walk goes on from the library (recoverFromCrash). The
     ///    test fails: a crash is a red. At most two relaunches a test; the
     ///    third crash prints PROBE-CRASH-STOP and ends the walk.
-    ///  - PROBE-LISTS, for the card-revealed screen only (T0263): the app is
+    ///  - PROBE-LISTS, for the library, card-revealed and settings screens
+    ///    (T0263; the library and Settings, a List and a Form, so the walker
+    ///    is shown against a screen that has a list): the app is
     ///    launched with `-a11yProbeLists` (every launch of this test, the
     ///    relaunches too), and writes one line per collection view it has to
     ///    a file every quarter second (A11yProbeLists). Each line of that
-    ///    file is printed as `PROBE-LISTS card-revealed <when> <line>`, with
+    ///    file is printed as `PROBE-LISTS <screen> <when> <line>`, with
     ///    <when> `before-pass-<n>`, `after-pass-<n>`, `after-stop-<k>` (the
     ///    last snapshot of the k-th app that stopped, printed before its
     ///    relaunch) or `end`; PROBE-LISTS-MISSING when there is no file.
@@ -612,10 +715,11 @@ final class AccessibilityUITests: XCTestCase {
 
     /// `PROBE-LISTS <screen> <when> <line>` for every line of the file the app
     /// wrote last, or `PROBE-LISTS-MISSING <screen> <when>` when the file is
-    /// not there or empty, so a dead channel shows. Only for the revealed
-    /// card, and only in a launch that passes `-a11yProbeLists`.
+    /// not there or empty, so a dead channel shows. Only for the library, the
+    /// revealed card and Settings, and only in a launch that passes
+    /// `-a11yProbeLists`.
     private func printProbeLists(_ screen: String, _ when: String) {
-        guard listsProbe, screen == "card-revealed" else { return }
+        guard listsProbe, ["library", "card-revealed", "settings"].contains(screen) else { return }
         var lines: [Substring] = []
         if let data = FileManager.default.contents(atPath: Self.listsFile),
            let text = String(data: data, encoding: .utf8) {

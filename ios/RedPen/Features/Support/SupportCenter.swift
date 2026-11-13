@@ -248,12 +248,7 @@ struct SettingsPage: View {
                     .accessibilityIdentifier("soundsToggle")
                 Toggle("Heartbeat when the app opens", isOn: $launchHeartbeat)
                     .accessibilityIdentifier("launchHeartbeatToggle")
-                Picker("Graphics", selection: $graphicsRaw) {
-                    ForEach(GraphicsChoice.allCases, id: \.rawValue) { choice in
-                        Text(choice.title).tag(choice.rawValue)
-                    }
-                }
-                .accessibilityIdentifier("graphicsPicker")
+                graphicsRow
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Text("Link length")
@@ -292,6 +287,56 @@ struct SettingsPage: View {
             .wardCard(lift: .low)
             .wardCardRow()
         }
+    }
+
+    /// "Graphics": the word leading, the chosen level trailing as a menu.
+    /// The level is drawn here, in the app's font, rather than by the native
+    /// menu picker's own label, which the accessibility audit read as a UIKit
+    /// label and flagged for Dynamic Type on some passes and not others
+    /// (T0264). One line while it fits whole; at the accessibility sizes the
+    /// level stands under the word, so neither clips or overlaps the other.
+    private var graphicsRow: some View {
+        let chosen: GraphicsChoice = GraphicsChoice.stored(graphicsRaw)
+        let word = Text("Graphics")
+        return ViewThatFits(in: .horizontal) {
+            HStack(spacing: WardSpace.m) {
+                word
+                Spacer(minLength: WardSpace.m)
+                graphicsMenu(chosen)
+            }
+            VStack(alignment: .leading, spacing: WardSpace.xs) {
+                word
+                graphicsMenu(chosen)
+            }
+        }
+    }
+
+    /// The same three choices the native picker held, in the same order, in a
+    /// menu whose label is the chosen one (CoverageView.examMenu's pattern).
+    private func graphicsMenu(_ chosen: GraphicsChoice) -> some View {
+        Menu {
+            Picker("Graphics", selection: $graphicsRaw) {
+                ForEach(GraphicsChoice.allCases, id: \.rawValue) { choice in
+                    Text(choice.title).tag(choice.rawValue)
+                }
+            }
+        } label: {
+            HStack(spacing: WardSpace.xs) {
+                Text(chosen.title)
+                    .font(WardType.body)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(WardType.face(.footnote, weight: .semibold))
+                    .accessibilityHidden(true)
+            }
+            .foregroundStyle(Color.wardInkSecondary)
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .accessibilityLabel("Graphics")
+        .accessibilityValue(chosen.title)
+        .accessibilityIdentifier("graphicsPicker")
     }
 
     /// Only what this device is doing differently right now, and why a
