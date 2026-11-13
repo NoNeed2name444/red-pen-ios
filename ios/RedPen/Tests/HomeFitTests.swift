@@ -712,6 +712,114 @@ do {
           library.contains("if old.size.width != now.size.width, old.size.width > 0, !searching { keepRow(proxy) }"))
 }
 
+// MARK: - Home under a pushed page (T0258)
+
+// While a page is pushed over home, home writes none of its own layout state:
+// the value waits, and the last one is written once home is back. A child
+// reports a frame only when it changes, so a value skipped and not kept would
+// stay wrong after the return.
+do {
+    let first: HomeFit.Box = box(100, 200)
+    let second: HomeFit.Box = box(120, 220)
+    let third: HomeFit.Box = box(140, 240)
+
+    var shown = HomeFit.Waiting<HomeFit.Box>()
+    check("under nothing: the value is written at once and nothing waits",
+          shown.offer(first, covered: false) == first && !shown.isWaiting && shown.take() == nil)
+
+    var covered = HomeFit.Waiting<HomeFit.Box>()
+    check("under a page: nothing is written and the value waits",
+          covered.offer(first, covered: true) == nil && covered.isWaiting)
+    _ = covered.offer(second, covered: true)
+    _ = covered.offer(third, covered: true)
+    check("under a page: the last value offered is the one that waits", covered.kept == third)
+    check("on the return: the last value is taken, once", covered.take() == third && covered.take() == nil
+          && !covered.isWaiting)
+
+    var none = HomeFit.Waiting<HomeFit.Box>()
+    check("nothing offered under the page: nothing to take", none.take() == nil)
+
+    var newer = HomeFit.Waiting<HomeFit.Box>()
+    _ = newer.offer(first, covered: true)
+    check("a value written once home shows is newer than one that waited",
+          newer.offer(second, covered: false) == second && !newer.isWaiting && newer.take() == nil)
+
+    // a nil is a value too (the bar's top is nil while there is no bar)
+    var bar = HomeFit.Waiting<Double?>()
+    check("a nil offered under a page is kept, not lost", bar.offer(nil, covered: true) == nil && bar.isWaiting)
+    var tookNil = false
+    if let kept = bar.take(), kept == nil { tookNil = true }
+    check("a nil that waited is taken as a nil", tookNil && !bar.isWaiting)
+    var wroteNil = false
+    if let now = bar.offer(nil, covered: false), now == nil { wroteNil = true }
+    check("a nil offered while home shows is written at once", wroteNil && !bar.isWaiting)
+
+    // The final state after the return equals the state had every write run
+    // at the time, for every run of up to four values offered in any mix of
+    // covered and shown. (The return takes what waits, as writeWaiting does.)
+    var runs = 0
+    var same = true
+    var detail = ""
+    func walk(_ offered: [(value: Int, covered: Bool)]) {
+        var live: Int? = nil
+        var state: Int? = nil
+        var wait = HomeFit.Waiting<Int>()
+        for step in offered {
+            live = step.value
+            if let now = wait.offer(step.value, covered: step.covered) { state = now }
+        }
+        if let now = wait.take() { state = now }
+        runs += 1
+        if state != live {
+            same = false
+            detail = "\(offered) gave \(String(describing: state)), not \(String(describing: live))"
+        }
+        if offered.count < 4 {
+            for value in 1...3 {
+                for covered in [false, true] { walk(offered + [(value: value, covered: covered)]) }
+            }
+        }
+    }
+    for value in 1...3 {
+        for covered in [false, true] { walk([(value: value, covered: covered)]) }
+    }
+    check("after the return the state is what live writes would have left (\(runs) runs)", same && runs > 1000, detail)
+}
+
+// The app's wiring, read from the source: home's layout state is written in
+// one place each, behind the held path, and the return writes it, then trims,
+// then keeps the row
+let homeSource = (try? String(contentsOfFile: "ios/RedPen/Features/Library/WardHome.swift", encoding: .utf8)) ?? ""
+check("found WardHome's source", !homeSource.isEmpty)
+// the declaration, the guarded reset (untrimBeds) and the return's (writeWaiting)
+check("the trimmed beds are reset in two places only: the guarded reset and the return",
+      library.components(separatedBy: "bedsTrimmed = 0").count - 1 == 3
+        && library.contains(".onChange(of: typeSize) { untrimBeds() }")
+        && library.contains(".onChange(of: span) { untrimBeds() }"))
+check("the bar's height and top are written only through the held path",
+      !library.contains("dockHeight = $0") && !library.contains("barTop = $0")
+        && library.contains("homeWaiting.dockHeight.offer(height, covered: !homeShowing)")
+        && library.contains("homeWaiting.barTop.offer(top, covered: !homeShowing)"))
+check("the round's and the tiles' frames and the spare are written only through the held path",
+      !homeSource.contains("startFrame = $0") && !homeSource.contains("tilesFrame = $0")
+        && !homeSource.contains("bedsSpare = $0")
+        && homeSource.contains("onStartFrame: { noteStartFrame($0) }")
+        && homeSource.contains("onSpare: { noteBedsSpare($0) }")
+        && homeSource.contains("onFrame: { noteTilesFrame($0) }")
+        && library.contains("homeWaiting.startFrame.offer(frame, covered: !homeShowing)")
+        && library.contains("homeWaiting.tilesFrame.offer(frame, covered: !homeShowing)")
+        && library.contains("homeWaiting.bedsSpare.offer(spare, covered: !homeShowing)"))
+check("the window's height class and the keyboard wait under a page",
+      library.contains("homeWaiting.shortWindow.offer(short, covered: !homeShowing)")
+        && library.contains("homeWaiting.keyboardUp.offer(new, covered: !homeShowing)")
+        && library.contains("KeyboardWatch(up: keyboardUpBinding)"))
+check("the window's span is still written at once: a pushed page reads it", library.contains("span = now"))
+check("the noted turn is kept in the holder that redraws nothing",
+      !library.contains("turnedUnderPage") && library.contains("homeWaiting.turned = true")
+        && homeSource.contains("final class HomeWaiting {") && !homeSource.contains("@Observable\nfinal class HomeWaiting"))
+check("home back: what waited is written, then the trim, then the row",
+      library.contains("writeWaiting()\n                    trimSlicedStart()\n                    guard homeWaiting.turned else { return }"))
+
 if failures.isEmpty {
     print("all HomeFit checks passed")
 } else {

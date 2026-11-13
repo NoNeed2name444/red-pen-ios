@@ -121,9 +121,10 @@ extension LibraryView {
         return HomeRoundCard(beds: beds, note: note,
                              onOpen: { bed in openBed(bed) },
                              // at rest only: Start's global frame moves with every scroll
-                             // step, and each write would re-run this whole view
-                             onStartFrame: { if bandTrack.isAtRest { startFrame = $0 } },
-                             onSpare: { if $0 != bedsSpare { bedsSpare = $0 } },
+                             // step, and each write would re-run this whole view; and
+                             // not while a page covers home (noteStartFrame, T0258)
+                             onStartFrame: { noteStartFrame($0) },
+                             onSpare: { noteBedsSpare($0) },
                              onPlan: { LearnRouter.shared.open(.examPlan) })
     }
 
@@ -145,7 +146,7 @@ extension LibraryView {
                          onVitals: { support = .analytics },
                          onIdeas: { goToIdeas() },
                          // at rest only, as Start's: the frame moves with every scroll step
-                         onFrame: { if bandTrack.isAtRest { tilesFrame = $0 } })
+                         onFrame: { noteTilesFrame($0) })
     }
 
     // MARK: what the round is made from
@@ -531,6 +532,38 @@ struct HomeRowReport: ViewModifier {
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { track.report(id, $0) }
             .onDisappear { track.gone(id) }
     }
+}
+
+/// What home was handed to write while a page is pushed over it, kept until
+/// home is back (LibraryView.writeWaiting, T0258).
+///
+/// A page over home leaves home's own layout state alone: a new text size or
+/// window under the page must not make the hidden list lay out again, so
+/// the resets and the measurements home would write wait here instead. Each
+/// child reports a frame or a height only when it changes, so a value that
+/// was skipped and not kept would stay wrong after the return: the last one
+/// handed over is kept, and written once.
+///
+/// A plain class, not Observable and read by no body, so keeping a value
+/// invalidates nothing.
+@MainActor
+final class HomeWaiting {
+    /// A new text size or window width came while a page covered home: the
+    /// trimmed beds start again once it is back.
+    var untrim = false
+    /// The list took a new width while a page covered home: the row is kept
+    /// once it is back (LibraryView.keepRow).
+    var turned = false
+    /// The last of each: the window's height class, the bottom bar's height
+    /// and top, the keyboard, Start ward round's frame, the tiles' frame and
+    /// how far the tiles would rise with one bed left.
+    var shortWindow = HomeFit.Waiting<Bool>()
+    var dockHeight = HomeFit.Waiting<CGFloat>()
+    var barTop = HomeFit.Waiting<CGFloat?>()
+    var keyboardUp = HomeFit.Waiting<Bool>()
+    var startFrame = HomeFit.Waiting<CGRect>()
+    var tilesFrame = HomeFit.Waiting<CGRect>()
+    var bedsSpare = HomeFit.Waiting<Double>()
 }
 
 /// The band behind the page, from the window's top to just under the

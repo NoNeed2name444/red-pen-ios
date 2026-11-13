@@ -184,9 +184,12 @@ struct LibraryView: View {
     /// Where the set rows stand in the list, so a turn keeps the first one
     /// in view (HomeRowKeep); followed without redrawing the list.
     @State var rowTrack = HomeRowTrack()
-    /// The list took a new width while a page was pushed over home, so the
-    /// row is kept once home is back instead (keepRow, T0257).
-    @State private var turnedUnderPage = false
+    /// What home was handed to write while a page is pushed over it: the
+    /// text-size reset, its measured frames and heights, the window's height
+    /// class, the keyboard and a new width. Kept here and written once home
+    /// is back (writeWaiting). A plain object, so keeping a value redraws
+    /// nothing (HomeWaiting, T0258).
+    @State var homeWaiting = HomeWaiting()
 
     // The spacer marks the end of the library list for preview scrolling.
     private static let listEndID = "library-list-end"
@@ -241,7 +244,7 @@ struct LibraryView: View {
                     .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
                         let now = WindowSpan(width: size.width)
                         let short: Bool = HomeFit.isShort(height: Double(size.height), broad: now == .broad)
-                        if short != shortWindow { shortWindow = short }
+                        noteShortWindow(short)
                         // In iPadOS 26 this changes while the student drags
                         // the window's edge. Not animated: animating it would
                         // cross-fade one column into two, and nothing in the
@@ -249,7 +252,8 @@ struct LibraryView: View {
                         guard now != span else { return }
                         // The open set and any pushed page live on the one
                         // stack, so widening or narrowing the window loses
-                        // neither.
+                        // neither. Written at once even under a pushed page:
+                        // the page reads it too (windowSpan, above).
                         span = now
                     }
             }
@@ -522,10 +526,10 @@ struct LibraryView: View {
             // the wide iPad's rail, under the left hand
             .safeAreaInset(edge: .leading, spacing: 0) { rail }
             .safeAreaInset(edge: .bottom) { bottomBar }
-            .modifier(KeyboardWatch(up: $keyboardUp))
+            .modifier(KeyboardWatch(up: keyboardUpBinding))
             // the dock steps aside while typing, and the page runs to the
             // keyboard
-            .onChange(of: keyboardUp) { _, up in if up { barTop = nil } }
+            .onChange(of: keyboardUp) { _, up in if up { noteBarTop(nil) } }
             // Start ward round is whole above the bar's line or wholly past
             // it, never sliced by it, at any text size
             .onChange(of: startFrame) { trimSlicedStart() }
@@ -534,8 +538,8 @@ struct LibraryView: View {
             // while a bed can make room for them (T0211 A3)
             .onChange(of: tilesFrame) { trimSlicedStart() }
             .onChange(of: bedsSpare) { trimSlicedStart() }
-            .onChange(of: typeSize) { bedsTrimmed = 0 }
-            .onChange(of: span) { bedsTrimmed = 0 }
+            .onChange(of: typeSize) { untrimBeds() }
+            .onChange(of: span) { untrimBeds() }
             // the category's hue (or Ideas') on the paper's grid and the
             // controls' edges, shifting with the dock
             .wardSection(inIdeas ? .ideas : WardSection(rawValue: category.rawValue) ?? .questions)
@@ -649,7 +653,8 @@ struct LibraryView: View {
     /// pushed over it (homeShowing): a bed taken off changes the round card
     /// (WardHome.swift, shownBeds), so no bed comes off under a pushed page.
     /// Once home is back it is run again (the onChange of homeShowing in
-    /// `content`). T0257.
+    /// `content`), after the measurements it reads have been written
+    /// (writeWaiting). T0257, T0258.
     private func trimSlicedStart() {
         guard homeShowing, bedsTrimmed < 8, bandTrack.isAtRest, let barTop else { return }
         let cut: Double = HomeFit.barLine(barTop: Double(barTop))
@@ -661,6 +666,91 @@ struct LibraryView: View {
         } else if HomeFit.tilesTrim(tiles: Self.box(tilesFrame), spare: bedsSpare, cut: cut) {
             bedsTrimmed += 1
         }
+    }
+
+    // MARK: home's own layout state under a pushed page (T0258)
+    //
+    // While a page is pushed over home (homeShowing is false) home writes
+    // none of its own layout state: a new text size or window under the page
+    // must not make the hidden list lay out again. The resets and the
+    // measurements below are kept in homeWaiting instead, the last of each,
+    // and written once when home is back (writeWaiting). Each child reports
+    // a frame or a height only when it changes, so a value skipped and not
+    // kept would leave home wrong after the return. With nothing pushed each
+    // one writes at once, as before.
+
+    /// A new text size or window width gives the round's trimmed beds back,
+    /// to be trimmed afresh.
+    private func untrimBeds() {
+        guard homeShowing else {
+            homeWaiting.untrim = true
+            return
+        }
+        bedsTrimmed = 0
+    }
+
+    /// The window's height class (HomeFit.isShort).
+    private func noteShortWindow(_ short: Bool) {
+        guard let now = homeWaiting.shortWindow.offer(short, covered: !homeShowing),
+              now != shortWindow else { return }
+        shortWindow = now
+    }
+
+    /// The bottom bar's height (the end row of the list is as tall).
+    private func noteDockHeight(_ height: CGFloat) {
+        if let now = homeWaiting.dockHeight.offer(height, covered: !homeShowing) { dockHeight = now }
+    }
+
+    /// Where the bottom bar begins; nil while there is none.
+    private func noteBarTop(_ top: CGFloat?) {
+        if let now = homeWaiting.barTop.offer(top, covered: !homeShowing) { barTop = now }
+    }
+
+    /// The keyboard, as the dock steps aside for it. The keyboard of a page
+    /// pushed over home changes nothing under it.
+    private var keyboardUpBinding: Binding<Bool> {
+        Binding(get: { keyboardUp }, set: { new in
+            if let now = homeWaiting.keyboardUp.offer(new, covered: !homeShowing) { keyboardUp = now }
+        })
+    }
+
+    /// Start ward round's frame, at rest only (the round's report, WardHome).
+    func noteStartFrame(_ frame: CGRect) {
+        guard bandTrack.isAtRest else { return }
+        if let now = homeWaiting.startFrame.offer(frame, covered: !homeShowing) { startFrame = now }
+    }
+
+    /// The tiles' frame, at rest only (the tiles' report, WardHome).
+    func noteTilesFrame(_ frame: CGRect) {
+        guard bandTrack.isAtRest else { return }
+        if let now = homeWaiting.tilesFrame.offer(frame, covered: !homeShowing) { tilesFrame = now }
+    }
+
+    /// How far the tiles would rise with one bed left (the round's report,
+    /// WardHome).
+    func noteBedsSpare(_ spare: Double) {
+        guard let now = homeWaiting.bedsSpare.offer(spare, covered: !homeShowing),
+              now != bedsSpare else { return }
+        bedsSpare = now
+    }
+
+    /// Home is back: what waited is written, once, the last value of each.
+    /// The trim reads these, so it runs after them (the onChange of
+    /// homeShowing in `content`).
+    private func writeWaiting() {
+        if homeWaiting.untrim {
+            homeWaiting.untrim = false
+            bedsTrimmed = 0
+        }
+        if let now = homeWaiting.shortWindow.take(), now != shortWindow { shortWindow = now }
+        if let now = homeWaiting.dockHeight.take(), now != dockHeight { dockHeight = now }
+        if let now = homeWaiting.barTop.take(), now != barTop { barTop = now }
+        if let now = homeWaiting.keyboardUp.take(), now != keyboardUp {
+            withAnimation(Motion.gentle(.snappy(duration: 0.25))) { keyboardUp = now }
+        }
+        if let now = homeWaiting.bedsSpare.take(), now != bedsSpare { bedsSpare = now }
+        if let now = homeWaiting.startFrame.take(), now != startFrame { startFrame = now }
+        if let now = homeWaiting.tilesFrame.take(), now != tilesFrame { tilesFrame = now }
     }
 
     private static func box(_ rect: CGRect) -> HomeFit.Box? {
@@ -735,11 +825,11 @@ struct LibraryView: View {
                 // under it, so no glow round it either (the owner, 9 Oct)
                 .wardUnlit()
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
-                    dockHeight = $0
+                    noteDockHeight($0)
                 }
                 // where it begins (Start ward round keeps clear of its line)
                 .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: {
-                    barTop = $0
+                    noteBarTop($0)
                 }
                 .frame(maxWidth: .infinity)
                 .transition(.slideIn(.bottom))
@@ -770,14 +860,14 @@ struct LibraryView: View {
             // edges.
             .wardUnlit()
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
-                dockHeight = $0
+                noteDockHeight($0)
             }
             // where the bar begins: Start ward round's line, and the
             // preview's fit check. Beside the rail with no New set (Ideas)
             // the bar holds nothing, and the page runs on to the bottom.
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
                 HomeFitProbe.shared.bar = $0
-                barTop = $0.height > 0 ? $0.minY : nil
+                noteBarTop($0.height > 0 ? $0.minY : nil)
             }
             .frame(maxWidth: .infinity)
             .transition(.slideIn(.bottom))
@@ -903,16 +993,20 @@ struct LibraryView: View {
                 withAnimation(Motion.gentle(.snappy(duration: 0.25))) { proxy.scrollTo(id, anchor: .center) }
             }
             // Home back from a pushed page: what was left alone under it is
-            // done now (T0257). The trim, then the row if a new width came
-            // meanwhile. On the next pass, so that the order of this and
-            // the onChange of homeShowing that ends a hold (layout) does not
-            // matter.
+            // done now (T0257, T0258). What waited is written, then the
+            // trim, then the row if a new width came meanwhile. On the next
+            // pass, so that the order of this and the onChange of
+            // homeShowing that ends a hold (layout) does not matter. If a
+            // page covers home again before that pass, what waits stays
+            // kept for the next return.
             .onChange(of: homeShowing) { _, showing in
                 guard showing else { return }
                 Task { @MainActor in
+                    guard homeShowing else { return }
+                    writeWaiting()
                     trimSlicedStart()
-                    guard turnedUnderPage else { return }
-                    turnedUnderPage = false
+                    guard homeWaiting.turned else { return }
+                    homeWaiting.turned = false
                     if !searching { keepRow(proxy) }
                 }
             }
@@ -937,10 +1031,11 @@ struct LibraryView: View {
     /// rests, the student moves it, a second of a free app passes with no
     /// new layout, or 8 seconds after the turn. Nothing kept, nothing moves.
     /// While a page is pushed over home nothing moves either: the turn is
-    /// noted, and the row is kept once home is back (T0257).
+    /// noted (in homeWaiting, which redraws nothing), and the row is kept
+    /// once home is back (T0257, T0258).
     private func keepRow(_ proxy: ScrollViewProxy) {
         guard homeShowing else {
-            turnedUnderPage = true
+            homeWaiting.turned = true
             return
         }
         guard let held = rowTrack.turned() else { return }

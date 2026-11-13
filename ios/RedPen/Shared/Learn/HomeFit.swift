@@ -188,6 +188,41 @@ enum HomeFit {
         }
         return out
     }
+
+    /// A value home is handed to write, kept while a page is pushed over
+    /// home (T0258). While home shows, `offer` gives the value straight back
+    /// to be written now. While a page covers home it keeps the value
+    /// instead and gives back nothing, so the hidden list is left alone; the
+    /// last value offered waits for `take`, which the caller makes once home
+    /// is back. A child reports a frame or a height only when it changes, so
+    /// a value that was skipped and not kept would stay wrong after the
+    /// return.
+    struct Waiting<Value> {
+        private(set) var kept: Value?
+
+        init() {}
+
+        /// Whether a value waits.
+        var isWaiting: Bool { kept != nil }
+
+        /// The value to write now; nil when it had to wait. A value written
+        /// now is newer than one that waits, which is dropped.
+        mutating func offer(_ value: Value, covered: Bool) -> Value? {
+            if covered {
+                kept = value
+                return nil
+            }
+            kept = nil
+            return value
+        }
+
+        /// The last value kept, once; nil when none waits.
+        mutating func take() -> Value? {
+            let waiting: Value? = kept
+            kept = nil
+            return waiting
+        }
+    }
 }
 
 // MARK: - The row a turn keeps
