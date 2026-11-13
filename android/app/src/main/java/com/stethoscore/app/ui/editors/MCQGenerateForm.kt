@@ -269,8 +269,9 @@ val LocalFloatingAction = staticCompositionLocalOf<FloatingAction?> { null }
 /**
  * The set a generation makes (iOS MCQGenerateForm's onGenerated): named for
  * the subject when no name is given, badged with the exam it was written to,
- * and carrying the lecture so its pages can be cited. Provenance (each
- * question matched back to its page) is not on Android yet.
+ * and carrying the lecture so its pages can be cited. Provenance.attribute
+ * (each question matched back to its page) exists, but nothing calls it yet,
+ * so a generated question is not given its page.
  */
 internal fun generatedSet(name: String, subject: String, questions: List<MCQQuestion>, exam: String?, cite: ReadSource?): StudySet {
     val plainSubject = subject.isEmpty() || subject == "General"

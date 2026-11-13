@@ -27,10 +27,13 @@ import java.util.concurrent.atomic.AtomicBoolean
  * checks; a textbook is checked by the layer once saved), and "[name] is
  * ready" goes to [Announce] once the set is on disk.
  *
- * Not ported yet (T0115b): the notification channel itself ([announcer] is
- * what the app sets once it has one), the background check while the app is
- * away, the collection every minute while the app is open, and the evidence
- * the server's check cites (CloudChecks).
+ * Not ported yet (T0115b): the notification channel itself (nothing outside
+ * tests sets [announcer], so no screen shows "[name] is ready"), the
+ * background check while the app is away, the collection every minute while
+ * the app is open (it runs once, at start), and the evidence the server's
+ * check cites (CloudChecks). Questions, cards and a textbook are kept on disk
+ * with a recipe; a station or case job is kept in memory only, so a closed
+ * app leaves nothing of it to collect.
  */
 object CloudJobCollector {
 

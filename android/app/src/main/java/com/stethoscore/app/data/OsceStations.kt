@@ -241,7 +241,9 @@ object OsceText {
  *
  * With Stethoscore Cloud the server writes the whole set as one job, as iOS's
  * does (MedicalGenerate.osce). Not ported: collecting a job the app was closed
- * on as an OSCE set (CloudRecipe has none for stations yet).
+ * on as an OSCE set. CloudRecipe builds stations and the collector screens
+ * them, but this writer's job is kept in memory with no recipe, so a closed
+ * app leaves nothing to collect.
  */
 object OsceGenerator {
     const val maxStationsPerCall = 2

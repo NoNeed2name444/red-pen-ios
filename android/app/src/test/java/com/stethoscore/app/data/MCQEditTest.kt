@@ -4,9 +4,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 // A port of the "editing without moving the answer" part of
-// ios/RedPen/Tests/SlideTests.swift (fed0105), case for case. The rest
-// of SlideTests (slide reading, Provenance) is the lecture importers' and
-// comes with them.
+// ios/RedPen/Tests/SlideTests.swift (fed0105), case for case. Its Provenance
+// part is reading/ProvenanceTest.kt; slide reading is OfficeText, with cases
+// of its own (not these) in LibraryEditorsTest.
 class MCQEditTest {
     private fun check(label: String, ok: Boolean, detail: Any? = null) = assertTrue(if (detail == null) label else "$label  | $detail", ok)
 
