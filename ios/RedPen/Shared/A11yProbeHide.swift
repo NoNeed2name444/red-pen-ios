@@ -79,6 +79,14 @@ import SwiftUI
 ///   and the main button, set where `answerButtons` builds the row, so both
 ///   the deck's call and the accessibility-size page's own call are in it).
 ///   T0261's are for omit;
+/// - quiz, inside the two buttons (T0265, in the test; the buttons are in
+///   `quiz-bottom-bar`): these are not wrapper views but one
+///   `A11yProbeHide.omits(_:)` test at one site each, so they can be omitted
+///   and not hidden. `quiz-rest-back-title` (Back's label is the bare chevron:
+///   the word is not built), `quiz-rest-check-title` (Check's label is the bare
+///   symbol image), `quiz-rest-back-disabled` and `quiz-rest-check-disabled`
+///   (the button is enabled where the audit's quiz state has it disabled: Back
+///   on question 0, Check with nothing picked);
 /// - revealed card: `card-top-bar` (the navigation bar), `card-progress-row`
 ///   (cards left, done), `card-face`, `card-bottom-bar` (Accuracy and Save
 ///   to Ideas), `card-rating-row` (Again to Easy).
