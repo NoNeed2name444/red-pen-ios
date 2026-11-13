@@ -135,14 +135,13 @@ struct ChartVitalsGrid: View {
 }
 
 /// The results as a monospaced table - name, value, unit, H or L - with a
-/// flagged value and its letter in Resus Red. Each result is one combined
-/// element (`.combine` and a label), read as ChartQuiz.spoken says it: the
-/// GridRow in the wide layout, the stacked VStack in the narrow one. This is
-/// the shape the T0241 probe calls "V3". The name cell draws only the name and
-/// has no label of its own. Whether the modifier on a GridRow gives one
-/// element per result or one per cell is open until a Mac run settles it: the
-/// run's PROBE-NODE quiz lines show it, and one node per lab labelled
-/// "Albumin 22 g/L, low" means one element.
+/// flagged value and its letter in Resus Red. Each result is built as one
+/// accessibility element (`.combine` and a label), read as ChartQuiz.spoken
+/// says it: in the wide layout the first cell carries them and the other three
+/// cells are hidden (`spokenRow`); in the narrow one the stacked VStack carries
+/// them (`combined`). The same two modifiers on the GridRow itself, which the
+/// T0241 probe calls "V3", gave four nodes on a Mac, one per cell (see
+/// `present`).
 /// Until T0249 one `.ignore` element round the whole table read it all, the
 /// name cell drew only "Albumin" and the default-size audit flagged that cell,
 /// "Text clipped" and "Dynamic Type font sizes are partially unsupported", in
@@ -167,15 +166,44 @@ struct ChartLabsTable: View {
         }
     }
 
-    /// The shape the T0241 probe (Shared/A11yProbeLabs.swift) called V3: one
-    /// combined spoken line per result (`ChartQuiz.spoken`), on the GridRow in
-    /// the wide layout and on the stack in the narrow one. Its probe run still
-    /// showed one "Text clipped" with no element.
+    /// What a normal launch draws: one spoken line per result
+    /// (`ChartQuiz.spoken`), as one accessibility element. In the wide layout
+    /// that is `spokenRow`, which labels the first cell and hides the other
+    /// three; in the narrow one it is `combined` on the stacked result.
+    /// Until T0256 the wide layout put `combined` on the GridRow, the shape the
+    /// T0241 probe (Shared/A11yProbeLabs.swift) calls V3. Its Mac run (App
+    /// build only_a11y, run 43330961262 on a361a2a5, one lab in the quiz)
+    /// showed four staticText nodes, one per cell, each labelled "Albumin 22
+    /// g/L, low", and 108 nodes against 105 for V6, which draws one Text per
+    /// result; it also flagged one "Text clipped, no element" (issues=1). That
+    /// run measured the wide layout only (the four frames share one y); the
+    /// narrow layout was not measured.
+    /// The `spokenRow` shape has not run on a Mac yet. The same run's V1 (name
+    /// cell labelled, the other three hidden, no `.combine`) gave 105 nodes and
+    /// 3 issues.
     private var present: some View {
         dressed(ViewThatFits(in: .horizontal) {
-            gridOf { combined(row($0), $0) }
+            gridOf { spokenRow($0) }
             stackOf { combined(stacked($0), $0) }
         })
+    }
+
+    /// One result in the wide layout, as `row` draws it (the same four cells,
+    /// fonts, colours and column alignment) with one accessibility element:
+    /// the first cell is `combined`, so it carries the spoken label, and the
+    /// other three are hidden so they add no node of their own. The modifiers
+    /// sit on the cells, not on the GridRow (see `combined`). The value cell
+    /// keeps `.gridColumnAlignment` as its last modifier, as `row` has it.
+    private func spokenRow(_ lab: PatientChart.Lab) -> some View {
+        let value: Color = ChartQuiz.tone(lab.flag) == .danger ? .wardDanger : .wardInk
+        return GridRow {
+            combined(Text(lab.name).foregroundStyle(Color.wardInk), lab)
+            Text(lab.value).fontWeight(.semibold).foregroundStyle(value)
+                .accessibilityHidden(true)
+                .gridColumnAlignment(.trailing)
+            Text(lab.unit).foregroundStyle(Color.wardInkSecondary).accessibilityHidden(true)
+            Text(lab.flag?.rawValue ?? "").fontWeight(.bold).foregroundStyle(Color.wardDanger).accessibilityHidden(true)
+        }
     }
 
     private func row(_ lab: PatientChart.Lab) -> some View {
@@ -268,10 +296,13 @@ struct ChartLabsTable: View {
         stacked(lab).accessibilityElement(children: .ignore).accessibilityLabel(ChartQuiz.spoken(lab))
     }
 
-    /// V3's result: its parts combined, with the spoken label. On a GridRow
-    /// SwiftUI may apply the modifiers to the row's cells one by one rather
-    /// than to the row; the probe's `nodes` shows which (one node more per
-    /// cell than V2's).
+    /// A result's part as one element: `.combine` and the spoken label. On a
+    /// GridRow, the Mac run described at `present` showed four nodes, one per
+    /// cell, each labelled with the whole result. So `present` no longer calls
+    /// this on a GridRow: `spokenRow` calls it on the first cell only, and
+    /// `present` calls it on the stacked result in the narrow layout. V3 (the
+    /// probe's `.combineRows`) still calls it on the GridRow, as that run
+    /// measured it.
     private func combined<Part: View>(_ part: Part, _ lab: PatientChart.Lab) -> some View {
         part.accessibilityElement(children: .combine).accessibilityLabel(ChartQuiz.spoken(lab))
     }
