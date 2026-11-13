@@ -847,6 +847,10 @@ struct WardSegmented<Value: Hashable, Label: View>: View {
                 }
                 .buttonStyle(WardSegmentStyle(chosen: chosen))
                 .accessibilityAddTraits(chosen ? .isSelected : [])
+                // outside the button, so it keeps its 44 points (the audit's
+                // hit area) while the row sees the face's 36: the capsule
+                // stays 44 high, as it was
+                .padding(.vertical, -WardSegmentFace.outset)
             }
         }
         .padding(4)
@@ -872,6 +876,12 @@ private struct WardSegmentFace: View {
     let chosen: Bool
     @Environment(\.isEnabled) private var enabled
     @Environment(\.wardShowsPressed) private var showsPressed
+
+    /// The points above and below the 36-point face that make its target 44.
+    /// They are the capsule's own padding in WardSegmented, so the target ends
+    /// where the capsule does; WardSegmented trims them back outside the
+    /// button, as it trims StudyMoreCircleStyle.outset, so nothing moves.
+    static let outset: CGFloat = 4
 
     /// Chosen and enabled: the accent fills it (the owner, 30 Oct, D8).
     private var filled: Bool { chosen && enabled }
@@ -903,6 +913,9 @@ private struct WardSegmentFace: View {
                         .transition(.identity)
                 }
             }
+            // the face above is drawn 36 high; this makes the button, and so
+            // its taps, 44 high
+            .padding(.vertical, Self.outset)
             .contentShape(Capsule())
             .capPop(held)
     }
