@@ -3607,6 +3607,21 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
   sphenofrontal line is kept out to the pillar's edge for the split while
   its groove stops in the fossa (drawn on to the edge it cut a pit in the
   pillar). 0 problems, 21 skull bones, 54 parts with the jaw and teeth.
+- [x] F7c. The face's openings as natural shapes (14 Nov, after the owner's
+  "the foramina look too ai generated and too rounded and too regular"). The
+  infraorbital foramen was a round hole drilled square to the face. It is now
+  the end of one curved path (Gray pp. 159, 188): a soft gutter on the
+  orbit's floor from the lower fissure forward and inward, sinking into a
+  canal that runs down and forward and meets the face 25 degrees off square,
+  leaning down along it, so the opening is the oval under an overhanging
+  upper lip that Fig. 190 draws, its floor running out below (run straight
+  forward to the face it opened as a slanted slit). The mental foramen opens
+  backward and upward under a front and lower lip (p. 173: the canal "turns
+  back" to it). The zygomaticofacial hole is the end of a fine canal from
+  the cheek bone's orbital surface, and the second canal Gray names (p. 165)
+  runs from that surface into the temporal fossa. A lip that sharp is
+  thinner than a cell of the grid and meshed as a row of teeth: the field is
+  eased there (sdf.Field.ease). Ledger: 92 built, 19 plain, 33 missing.
 - [ ] F8. Mesh checks, the neck and down, the muscles, the woman, and where
   the from-scratch model goes in the app.
 

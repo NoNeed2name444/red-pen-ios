@@ -21,6 +21,10 @@ down, the muscles, the woman, the place in the app.
   and a toothed one (the sagittal, the lambdoid, the coronal's upper part) gets uneven teeth from `surface.teeth`.
 - The vault's sutures are traced on Fig. 188 (`plates.SUTURES_SIDE`) and meet at bregma and lambda; where Gray calls
   one serrated (pp. 177, 184) it is toothed, and elsewhere it only wanders.
+- An opening on a surface is the end of a curved canal that meets it off square (the infraorbital, mental and
+  zygomaticofacial foramina), so it has a lip on one side and a floor running out on the other, as the plates draw them.
+  A lip that sharp is thinner than a cell of the grid and meshes as a row of teeth: the field is eased there
+  (`sdf.Field.ease`).
 - `bones.py` tells the skull's bones apart (each its own part, the face's bones marked off by their sutures).
 
 | Module | What it holds | Plates (Gray 1918) |
@@ -44,7 +48,8 @@ heads in `sb/`, pictures in `look/`. Gray's pages for the side-by-side pictures 
 
 ```
 python3 dev/try_skull.py 0.5 skull30 --teeth --jaw    # the whole head at 0.5 mm: about 5 minutes, 13 GB of memory
-python3 dev/close.py skull30 palate                   # close pictures: face, jaw, base, ear, nose, ptery, palate, palcorner, maxilla, openings, sutures, brow, vault, pterion, pillar
+python3 dev/try_jaw.py 0.5 jaw6 --skull skull30         # the lower jaw alone against a built head, a minute (dev/close.py jaw6 mental)
+python3 dev/close.py skull30 palate                   # close pictures: face, jaw, base, ear, nose, ptery, palate, palcorner, maxilla, openings, sutures, brow, vault, pterion, pillar, infraorb, cheekhole, templehole, mental
 python3 dev/look_face.py skull30                      # the lower face beside Gray's front view
 python3 dev/save_field.py 0.5 f05d                    # the skull's field alone (for sections and the bone split): 80 seconds
 python3 dev/plate_side.py f05d 560 1250 1160 1900 out.jpg   # the field's outline and surface drawn over Fig. 188 (page pixels: left, top, right, bottom)

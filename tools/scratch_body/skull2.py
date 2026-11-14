@@ -631,12 +631,44 @@ def build(h=1.0, log=print, box=None):
     # the openings of the base, each with the outline the plate draws for it (foramina.py)
     foramina.press(F, B, foramina.cut(F, B, log), log)
     # small openings
-    F.cut(Tube(np.array([(30.6, -9.8, 92.0), (29.5, -5.5, 74)]), 1.9), 0.8)          # infraorbital foramen
+    # infraorbital groove, canal and foramen. Gray (pages 159, 188): "Running forward near the middle of the floor is the
+    # infraorbital groove, ending in front in the infraorbital canal"; the canal "opens just below the margin of the orbit".
+    # The groove: a shallow gutter with soft edges from the middle of the lower fissure's front edge forward and inward along
+    # the orbit's floor, 4 mm wide and under 1 deep behind, narrower and deeper in front, where it sinks under the floor 10 mm
+    # behind the rim.
+    F.cut(Tube(spline([(34.2, 1.9, 60.6), (33.4, 1.3, 63.0), (32.3, 0.4, 65.8), (31.4, -1.3, 68.4), (30.8, -2.1, 70.3), (30.6, -2.3, 71.0)], 1.0),
+               [(0, 0.9), (0.6, 1.1), (1, 1.2)], [(0, 2.1), (0.5, 1.7), (1, 1.4)]), 1.2)
+    # The canal: down and forward through the bone. The face there looks outward as well as forward; the canal meets it 25
+    # degrees off square, leaning down and inward along it, so the opening is what Fig. 190 draws (page 1254, 2060): some
+    # 4 mm across, a lip overhanging it above and outside, its floor running out downward and inward toward the canine fossa.
+    # (It was a round hole drilled square to the face. Run straight forward to the face, the canal opened as a slanted slit.)
+    # The lip is a wedge of 65 degrees, too sharp for the grid to hold: left as cut it meshed as a row of teeth, so the field
+    # is eased there.
+    io = spline([(30.9, -1.9, 69.3), (30.6, -3.0, 71.4), (30.25, -4.4, 73.8), (29.85, -5.7, 76.4), (29.52, -7.23, 79.28), (30.6, -9.4, 81.8),
+                 (31.41, -11.01, 83.67)], 1.0)
+    F.cut(Tube(io, [(0, 1.25), (0.5, 1.25), (0.83, 1.5), (1, 1.55)], [(0, 1.45), (0.5, 1.5), (0.83, 1.9), (1, 2.0)], taper=0.2), 0.7)
+    io_n = np.array([0.60, -0.30, 0.75])                                             # the face's outward direction at the opening
+    io_run = np.array([(29.94, -10.40, 81.78), (29.07, -11.74, 81.84), (28.14, -13.17, 81.81)])   # on the face, below and inward of the opening
+    F.cut(Tube(io_run + np.array([0.35, 0.75, 1.25])[:, None] * io_n, 1.1, [(0, 1.5), (0.5, 2.0), (1, 2.4)], up=io_n), 1.2)   # the floor's run-out: a fan fading over 4 mm
+    F.ease((30.8, -8.4, 80.8), 4.5, 0.6)
     # two more that the front view (Fig. 190) draws: the notch in the orbit's upper rim, 23.7 mm from the middle plane (page
     # 757, 1648), a groove across the rim's edge from the orbit's roof up on to the forehead; and the small hole on the cheek
     # bone's face, 51 mm out and 1 mm below the Frankfurt plane (page 505, 1983), running in toward the orbit
     F.cut(Ellipsoid((23.7, 30.2, 97.0), (2.6, 2.1, 3.6), rot((1, 0, 0), -30)), 1.2)   # supraorbital notch: a shallow rounded bite out of the rim's edge, 5 mm wide and under 2 deep
-    F.cut(Tube(np.array([(51.6, -0.8, 72.5), (49.4, 2.0, 66.5)]), 0.85), 0.4)        # zygomaticofacial foramen
+    # zygomaticofacial foramen and its canal. Gray (pages 164, 165): the malar surface is "perforated near its center by a small
+    # aperture, the zygomaticofacial foramen", and on the orbital surface "are seen the orifices of two canals, the
+    # zygomaticoorbital foramina; one of these canals opens into the temporal fossa, the other on the malar surface of the bone".
+    # This is the second: a fine curved canal from the cheek bone's orbital surface, 4 mm inside the rim, outward, down and
+    # forward through the bone to the cheek, where it opens 30 degrees off square with a short run-out below it. (It was a
+    # straight blind hole, round on the face.) The first, the zygomaticotemporal canal, is cut after it: 5 mm higher on the
+    # orbital surface, outward, upward and backward through the 3 mm of bone there into the temporal fossa.
+    zf = spline([(44.4, 5.4, 66.6), (45.6, 4.6, 64.8), (47.6, 3.2, 65.0), (49.3, 1.5, 66.9), (50.5, 0.1, 69.2), (51.0, -0.9, 70.7), (51.5, -2.0, 72.0)], 0.8)
+    F.cut(Tube(zf, [(0, 0.8), (0.15, 0.75), (0.75, 0.75), (0.9, 0.95), (1, 1.0)], [(0, 0.9), (0.15, 0.8), (0.75, 0.8), (0.9, 1.15), (1, 1.2)]), 0.5)
+    zf_n = np.array([0.54, -0.08, 0.83])                                             # the cheek's outward direction at the opening
+    zf_run = np.array([(51.2, -1.9, 70.43), (51.5, -3.0, 69.98), (51.8, -4.0, 69.4)])           # on the cheek, below the opening
+    F.cut(Tube(zf_run + np.array([0.3, 0.6, 0.95])[:, None] * zf_n, 0.8, [(0, 0.9), (1, 1.4)], up=zf_n), 0.8)
+    F.ease((51.0, -0.9, 70.6), 2.4, 0.4)
+    F.cut(Tube(spline([(46.1, 8.4, 64.3), (47.2, 9.0, 63.3), (48.5, 9.8, 62.3), (49.6, 10.3, 61.2), (50.6, 10.6, 59.9)], 0.8), 0.7, 0.8), 0.4)   # zygomaticotemporal canal
     F.cut(Tube(np.array([(15, 21, 44.0), (9.5, 22.5, 30)]), 2.4), 1.0)               # optic canal
     # the two fissures at the back of the orbit: slits, the upper one between the sphenoid's wings, the lower one in the floor
     F.cut(Tube(np.array([(21.3, 20.6, 47.5), (19.5, 20.0, 30.0)]), 5.6, 1.5, up=(0.55, 0.83, 0), taper=0.55), 0.6)

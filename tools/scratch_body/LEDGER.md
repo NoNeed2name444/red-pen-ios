@@ -7,7 +7,7 @@ public domain), and the page beside each is where a search of the book's text fi
 - **plain**: there, but only as part of a larger traced form
 - **missing**: not there
 
-Of 144 details: 89 built, 19 plain, 36 missing.
+Of 144 details: 92 built, 19 plain, 33 missing.
 
 
 ## Frontal (4 of 13 built)
@@ -127,12 +127,12 @@ Of 144 details: 89 built, 19 plain, 36 missing.
 | the bone | plain | a plate of the orbit's inner wall; marked off in the split | 163 |
 | posterior lacrimal crest, lacrimal sulcus, hamulus | missing |  | 164 |
 
-## Maxilla (11 of 16 built)
+## Maxilla (12 of 16 built)
 
 | Detail | State | Where, or what is lacking | Gray, page |
 | --- | --- | --- | --- |
-| infraorbital foramen | built | skull2.build | 157 |
-| infraorbital groove and canal | missing | the foramen is a short tube; no groove on the orbit's floor | 159 |
+| infraorbital foramen | built | an oblique oval under an overhanging upper lip, its floor running out below (skull2.build) | 157 |
+| infraorbital groove and canal | built | a gutter on the orbit's floor sinking into a curved canal to the foramen (skull2.build) | 159 |
 | canine fossa | built | skull2 (face relief) | 158 |
 | canine eminence and the swellings over the roots | built | skull2: the tooth-bearing process | 158 |
 | incisive fossa (above the incisors) | plain |  | 158 |
@@ -148,16 +148,16 @@ Of 144 details: 89 built, 19 plain, 36 missing.
 | incisive foramen and canals | built | palate.py | 162 |
 | maxillary sinus | missing | the bone is solid | 158 |
 
-## Zygomatic (4 of 6 built)
+## Zygomatic (6 of 6 built)
 
 | Detail | State | Where, or what is lacking | Gray, page |
 | --- | --- | --- | --- |
 | malar surface | built | skull2.cheek | 164 |
-| zygomaticofacial foramen | built | a small oblique hole on the cheek surface (skull2.build) | 164 |
+| zygomaticofacial foramen | built | the end of a fine canal from the orbital surface, opening obliquely on the cheek (skull2.build) | 164 |
 | frontosphenoidal process | built | skull2.cheek: a plate 5 to 6 mm thick, its hind border traced on Fig. 188 (ZYG_SIDE), hollowed behind along the orbit's outer wall | 164 |
 | temporal process and the arch | built | skull2.cheek, at the usual breadth of 133 mm | 166 |
-| orbital surface and its foramina | missing | the surface is there; the foramina are not | 165 |
-| zygomaticotemporal foramen | missing |  | 164 |
+| orbital surface and its foramina | built | the orifices of the two canals (skull2.build) | 165 |
+| zygomaticotemporal foramen | built | the second canal, through to the temporal fossa (skull2.build) | 164 |
 
 ## Palatine (6 of 8 built)
 
@@ -194,7 +194,7 @@ Of 144 details: 89 built, 19 plain, 36 missing.
 | symphysis and mental protuberance | built | mandible4.py | 172 |
 | mental tubercle | built | mandible4.py | 172 |
 | incisive fossa | built | mandible4.py | 172 |
-| mental foramen | built | mandible4.py | 172 |
+| mental foramen | built | opens backward and upward under a front and lower lip (mandible4.py) | 172 |
 | oblique line | built | mandible4.py | 172 |
 | mental spines | built | mandible4.py | 172 |
 | digastric fossa | built | mandible4.py | 173 |

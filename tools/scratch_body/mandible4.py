@@ -298,7 +298,17 @@ def build(h=0.5, log=print, seat=True):
     ym = 0.5 * (float(W["yt"](sm)) + float(W["yb"](sm)))
     mf, w = face(0, ym, True, s=sm)
     back = sdf.unit(S.at(sm + 2.0, 0.0) - S.at(sm, 0.0)); up1 = np.array([0.0, 1.0, 0.0])
-    F.cut(sdf.Tube(np.array([mf + 2.4 * w + 0.9 * up1 + 0.9 * back, mf - 2.0 * w - 0.7 * up1 - 0.7 * back]), [(0, 1.45), (1, 1.1)]), k=0.6)
+    # Gray (page 173): the canal in the body, "on arriving at the incisor teeth, ... turns back to communicate with the mental
+    # foramen". So the canal comes up from in front and below and opens backward, upward and outward, 45 degrees off square to
+    # the face: an oval under a front and lower lip, its hind and upper edge running out into a shallow groove. (It was a short
+    # straight hole, round on the face.) The lip is too sharp for the grid to hold, so the field is eased there (as at the
+    # infraorbital foramen).
+    e = sdf.unit(0.72 * w + 0.5 * back + 0.48 * up1); deep = sdf.unit(0.45 * w + 0.75 * back + 0.48 * up1)
+    P = sdf.spline(np.array([mf - 2.5 * e - 2.6 * deep, mf - 2.5 * e, mf, mf + 2.3 * e]), 0.8)
+    F.cut(sdf.Tube(P, [(0, 1.0), (0.7, 1.15), (1, 1.25)], [(0, 1.2), (0.7, 1.4), (1, 1.55)], up=w, taper=0.15), k=0.7)
+    run = np.array([face(0, ym + dy, True, lift=l, s=sm + ds)[0] for ds, dy, l in ((0.9, 0.85, 0.3), (2.0, 1.9, 0.65), (3.3, 3.1, 1.1))])
+    F.cut(sdf.Tube(run, 1.0, [(0, 1.3), (1, 2.0)], up=w), k=1.0)
+    F.ease(mf, 4.0, 0.6)
     log("jaw: mental foramen at %s, %.1f mm below the margin and %.1f above the lower border; joint head %.0f by %.0f mm at %s"
         % (np.round(mf, 1).tolist(), float(W["yt"](sm)) - ym, ym - float(W["yb"](sm)), 2 * c["half"][0], 2 * c["half"][2], list(c["centre"])))
     return F, {"mental foramen": np.round(mf, 1).tolist(), "sockets": frames, "sheet": S, "maps": W}

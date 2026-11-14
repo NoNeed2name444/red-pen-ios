@@ -208,6 +208,21 @@ class Field:
             self.D[sl] = smax(self.D[sl], -d, k)
         return self
 
+    def ease(self, centre, radius, sigma=0.6):
+        """Round what is too sharp for the grid to hold (a lip thinner than a cell meshes as a row of teeth): the field smoothed
+        over `sigma` mm inside a ball, in full out to 0.6 of its radius and fading to nothing at its edge."""
+        from scipy import ndimage
+        c = np.asarray(centre, float); m = radius + 3 * sigma
+        sl = self.window(c - m, c + m)
+        if sl is None:
+            return self
+        A = self.D[sl].astype(np.float32)
+        G = ndimage.gaussian_filter(np.clip(A, -20, 20), sigma / self.h, mode="nearest")
+        X, Y, Z = self.coords(sl)
+        w = np.clip((radius - np.sqrt((X - c[0]) ** 2 + (Y - c[1]) ** 2 + (Z - c[2]) ** 2)) / (0.4 * radius), 0, 1); w = w * w * (3 - 2 * w)
+        self.D[sl] = np.where(np.abs(A) < 15, A * (1 - w) + G * w, A)
+        return self
+
     def keep_inside(self, prim, k=0.0):
         """Keep only what lies inside the solid (intersection), in the solid's own neighbourhood."""
         sl, d = self.dist(prim, k + 2.0)

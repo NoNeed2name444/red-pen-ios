@@ -7,7 +7,7 @@ from PIL import Image
 S = os.environ.get("SCRATCH_OUT", "/tmp/scratch_body_out")       # working folder: sb/ (fields, built heads), look/ (pictures), gray1918/ (the plates)
 name = sys.argv[1]; which = sys.argv[2] if len(sys.argv) > 2 else "face"
 Z = np.load(S + "/sb/%s.npz" % name)
-meshes = [(Z["v"], Z["f"], view.BONE)]
+meshes = [(Z["v"], Z["f"], view.BONE)] if "v" in Z else []            # (a jaw built alone, dev/try_jaw.py, has no skull)
 if "tv" in Z:
     meshes.append((Z["tv"], Z["tf"], (240, 236, 222)))
 if "mv" in Z:
@@ -45,6 +45,14 @@ SETS = {
                 ("lambda, from behind and above", (0, 0.55, -0.83), (0, 60, -75), 96), ("from above and the side", (0.6, 0.75, 0.2), (20, 70, 0), 150)],
     "brow": [("left orbit and cheek, front", (0, 0, 1), (32, 12, 80), 76), ("left orbit's upper rim, from below and in front", (0, -0.45, 0.89), (26, 28, 90), 48),
              ("left cheek bone", (0.55, 0, 0.83), (48, -2, 70), 48), ("left temple", (0.92, 0.15, 0.36), (60, 50, 40), 120)],
+    "infraorb": [("left infraorbital foramen, front", (0, 0, 1), (30, -9, 82), 30), ("along the canal, from below and in front", (-0.14, -0.6, 0.78), (30.6, -9.8, 82), 24),
+                 ("from the side and in front", (0.8, -0.1, 0.6), (30, -9, 82), 30), ("floor of the left orbit, from above and in front", (0.05, 0.8, 0.6), (32, -1, 70), 44)],
+    "cheekhole": [("left cheek bone, front", (0, 0, 1), (50, -1, 71), 30), ("along the canal, from below and in front", (0.27, -0.53, 0.8), (51, -0.9, 70.7), 20),
+                  ("from the side and in front", (0.85, 0, 0.53), (50, -1, 71), 30), ("into the left orbit: the two canals' other ends", (-0.6, 0.1, 0.8), (46, 7, 64.5), 26)],
+    "templehole": [("behind the left cheek bone's upright, from behind and the side", (0.75, 0.1, -0.65), (49.5, 10.2, 61.2), 26), ("the same, wider", (0.6, 0.2, -0.77), (50, 10, 60), 60),
+                   ("from the side", (1, 0, 0), (50, 10, 60), 36), ("from behind", (0.25, 0.05, -0.97), (49.5, 10, 61), 30)],
+    "mental": [("left mental foramen, from the side", (1, 0, 0), (21, -77, 78), 30), ("from the side and in front", (0.6, 0, 0.8), (21, -77, 78), 30),
+               ("from behind and above, along the canal", (0.75, 0.45, -0.5), (21, -77, 78), 24), ("left half of the jaw's body", (0.7, 0.05, 0.7), (24, -72, 70), 70)],
     "pillar": [("pillar beside the left orbit, side", (1, 0, 0), (56, 18, 62), 40), ("from the side and behind", (0.6, 0.1, -0.8), (54, 18, 60), 40),
                ("from the side and in front", (0.7, 0, 0.7), (54, 18, 66), 40), ("from behind and above", (0.45, 0.7, -0.55), (52, 22, 62), 40)],
     "pterion": [("left temple, side", (1, 0, 0), (60, 44, 48), 76), ("from the side and in front", (0.85, 0.1, 0.52), (60, 44, 52), 76),
