@@ -3574,7 +3574,7 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
   Left for F8: writing the parts out for the app.
 - [ ] F7. The side of the head (the arch's root, the crest above the mastoid,
   the mastoid from below; the ear opening is done, F7d), the orbit's
-  fissures, the molars' crowns, the cranial floor, the air sinuses (F7e).
+  fissures, the molars' crowns, the cranial floor.
 - [x] F7a. The feature ledger (14 Nov): tools/scratch_body/LEDGER.md, written
   by dev/ledger.py. Every named detail of the skull's bones and the jaw in
   Gray's account (pp. 129 to 198), 144 of them, each with the page a search of
@@ -3648,10 +3648,32 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
   head: teeth 0.06 mm clear with no point inside bone, jaw 1.73 mm from the
   skull, split 0 problems and 54 parts. Before-and-now pictures sent for
   each.
-- [ ] F7e. The air sinuses (14 Nov, "make sure to do the air sinuses in the
-  skull too"): maxillary, frontal, sphenoidal, ethmoidal cells, mastoid
-  cells, each opening where Gray has it (pp. 998 to 1000). The bones are
-  solid now. In progress.
+- [x] F7e. The air sinuses (14 Nov, "make sure to do the air sinuses in the
+  skull too"), tools/scratch_body/sinus.py, each opening where Gray has it
+  (pp. 998 to 1000): maxillary 15.8 and 14.9 cm3 (Gray's average 14.75),
+  frontal 3.7 and 2.2, sphenoidal 2.4 and 4.3, ethmoidal cells 11 and 12 in
+  three groups; no hollow is shut off. For them the orbit's inner wall
+  became the ethmoid's flat plate, the nose got its narrow upper cleft and
+  the sphenoid's body its saddle. A sinus is whatever lies deeper than a
+  wall's thickness under the bone's own surfaces, so its walls are the
+  bone's surfaces seen from inside. Whole head: teeth 0.06 mm clear with no
+  point inside bone, jaw 1.73 mm, split 0 problems and 54 parts (each upper
+  jaw 26 cm3, was 41). Sawn-open pictures: dev/cut_open.py. Left: the drum's
+  cavity and the antrum's way into it (the mastoid's cells are in F7f).
+- [ ] F7f. Compact, cancellous and air-celled bone where each belongs (14
+  Nov, "make bones compact - cancellous - spongy in each place each one
+  should be and in each part of each bone. some bones also combine multiple
+  types."). tools/scratch_body/structure.py and STRUCTURE.md: every bone's
+  parts with Gray's own words on what each is made of (44 rows, the whole
+  skeleton). Built in the skull and the lower jaw: a compact shell and the
+  two tables with diploe between, thin plates compact all through, the
+  petrous part dense, the mastoid's air cells (large high and forward, small
+  at the tip, the antrum the largest), the jaw's thick lower border. It is
+  the bone's inside, seen when a bone is sawn (dev/cut_open.py --inside,
+  dev/try_structure.py); the outside is unchanged. Left: the jaw's canal,
+  the inner ear, bars that follow the lines of load, the bars' true fineness
+  (they are half a millimetre here, a fifth of that in life), carrying it
+  into the app's parts, and every bone below the head (their rows say "no").
 - [ ] F8. Mesh checks, the neck and down, the muscles, the woman, and where
   the from-scratch model goes in the app.
 

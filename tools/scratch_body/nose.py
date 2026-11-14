@@ -26,7 +26,7 @@ SEPTUM = [   # the bony partition seen from the side: (z, y), closed, starting u
     (98.0, -30.5), (84.0, -30.5), (77.0, -29.4), (71.0, -27.0), (60.0, -26.0), (50.0, -25.9), (43.6, -26.5),   # its foot, sunk in the crest along the floor: never below the palate's own middle
     (42.6, -24.4), (40.9, -21.4), (39.0, -17.6), (36.9, -14.2),  # the vomer's free hind edge: hollowed ("free, concave"), up and back
     (34.5, -11.3), (32.4, -9.3), (30.8, -8.0),                                  # under the sphenoid's body (Fig. 187: the wings end at z 28)
-    (29.5, -5.0), (45.0, -2.0), (47.0, 15.0), (90.0, 15.0), (100.0, 12.0),      # sunk under the sphenoid's body, the roof and the nasal bones
+    (29.5, -5.0), (45.0, -2.0), (47.0, 16.0), (49.0, 18.6), (82.0, 18.6), (91.0, 15.0), (100.0, 12.0),      # sunk under the sphenoid's body, the roof (the plate over the olfactory cleft, sinus.cleft) and the nasal bones
 ]
 BOW = 1.3            # mm to the left at the middle of the sheet
 
@@ -47,7 +47,7 @@ def smoothstep(t):
 
 def septum(h=0.5, log=print):
     """The partition as one thin sheet about the middle plane, bowed a little to the left. For the whole head's field."""
-    M = Map(25.0, 108.0, -34.0, 18.0, 0.5)                   # u = z, v = y
+    M = Map(25.0, 108.0, -34.0, 21.0, 0.5)                   # u = z, v = y
     reg = M.region(spline(np.array(SEPTUM, float), 0.5, closed=True))
     sheet = max(1.5, 3.0 * h)
     bow = BOW * np.exp(-((M.U - 68.0) / 17.0) ** 2 - ((M.V + 13.0) / 9.5) ** 2)

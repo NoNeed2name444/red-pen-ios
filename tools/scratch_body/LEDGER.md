@@ -7,10 +7,10 @@ public domain), and the page beside each is where a search of the book's text fi
 - **plain**: there, but only as part of a larger traced form
 - **missing**: not there
 
-Of 144 details: 92 built, 19 plain, 33 missing.
+Of 144 details: 98 built, 19 plain, 27 missing.
 
 
-## Frontal (4 of 13 built)
+## Frontal (5 of 13 built)
 
 | Detail | State | Where, or what is lacking | Gray, page |
 | --- | --- | --- | --- |
@@ -25,7 +25,7 @@ Of 144 details: 92 built, 19 plain, 33 missing.
 | orbital plate (roof of the orbit) | plain | the orbit's funnel (skull2.build) | 137 |
 | fossa for the lacrimal gland | missing |  | 137 |
 | trochlear fovea | missing |  | 137 |
-| frontal sinus | missing | the bone is solid | 135 |
+| frontal sinus | built | sinus.frontal: two unequal sinuses, a leaning partition, each with its duct to the middle meatus | 135 |
 | inside: frontal crest, foramen cecum, sagittal sulcus | missing | the cranial cavity is one smooth hollow | 136 |
 
 ## Parietal (1 of 4 built)
@@ -80,12 +80,12 @@ Of 144 details: 92 built, 19 plain, 33 missing.
 | petrous part, under surface | built | base.py | 141 |
 | inside: internal acoustic meatus, arcuate eminence, tegmen, sigmoid sulcus | missing | the cranial cavity is one smooth hollow | 140 |
 
-## Sphenoid (5 of 16 built)
+## Sphenoid (6 of 16 built)
 
 | Detail | State | Where, or what is lacking | Gray, page |
 | --- | --- | --- | --- |
-| body: sella turcica, dorsum sellae, clinoid processes | missing | the cranial cavity is one smooth hollow | 147 |
-| sphenoidal sinuses | missing | the body is solid | 147 |
+| body: sella turcica, dorsum sellae, clinoid processes | plain | sinus.body: the saddle, the tuberculum and the dorsum with its hind knobs; no front or middle clinoid processes | 147 |
+| sphenoidal sinuses | built | sinus.sphenoidal: two unequal sinuses under the saddle, a bent partition, each opening forward | 147 |
 | rostrum | missing | the vomer's wings are there; the beak they clasp is not | 149 |
 | small wings | plain | the orbit's roof behind; not shaped | 147 |
 | optic foramen | plain | a round tube (skull2.build) | 147 |
@@ -101,14 +101,14 @@ Of 144 details: 92 built, 19 plain, 33 missing.
 | pterygoid canal | missing |  | 150 |
 | vaginal process | missing |  | 149 |
 
-## Ethmoid (2 of 8 built)
+## Ethmoid (4 of 8 built)
 
 | Detail | State | Where, or what is lacking | Gray, page |
 | --- | --- | --- | --- |
-| cribriform plate and crista galli | missing | the roof of the nose is solid; the cranial cavity smooth | 153 |
+| cribriform plate and crista galli | plain | sinus.cleft: a 3 mm roof over the olfactory cleft; no holes in it and no crista galli | 153 |
 | perpendicular plate | built | nose.septum | 153 |
-| labyrinth and its cells | plain | a solid block between the orbits | 153 |
-| lamina papyracea | plain | the orbit's inner wall; marked off in the split | 155 |
+| labyrinth and its cells | built | sinus.ethmoidal: front, middle and hind cells of unequal size, each opening into the nose | 153 |
+| lamina papyracea | built | sinus.Orbit: the orbit's flat inner wall, the cells behind it; marked off in the split | 155 |
 | superior nasal concha | missing |  | 153 |
 | middle nasal concha | built | nose.conchae | 154 |
 | uncinate process and bulla | missing |  | 154 |
@@ -127,7 +127,7 @@ Of 144 details: 92 built, 19 plain, 33 missing.
 | the bone | plain | a plate of the orbit's inner wall; marked off in the split | 163 |
 | posterior lacrimal crest, lacrimal sulcus, hamulus | missing |  | 164 |
 
-## Maxilla (12 of 16 built)
+## Maxilla (13 of 16 built)
 
 | Detail | State | Where, or what is lacking | Gray, page |
 | --- | --- | --- | --- |
@@ -146,7 +146,7 @@ Of 144 details: 92 built, 19 plain, 33 missing.
 | alveolar process and the sockets | built | teeth.py: every tooth's own socket | 161 |
 | palatine process | built | palate.py | 162 |
 | incisive foramen and canals | built | palate.py | 162 |
-| maxillary sinus | missing | the bone is solid | 158 |
+| maxillary sinus | built | sinus.maxillary: walls that follow the bone's own surfaces, the opening into the middle meatus | 158 |
 
 ## Zygomatic (6 of 6 built)
 
@@ -209,7 +209,7 @@ Of 144 details: 92 built, 19 plain, 33 missing.
 | angle | built | mandible4.py: a round turn, about 118 degrees | 174 |
 | mandibular canal | missing | inside the bone | 173 |
 
-## Whole skull (10 of 15 built)
+## Whole skull (11 of 15 built)
 
 | Detail | State | Where, or what is lacking | Gray, page |
 | --- | --- | --- | --- |
@@ -227,4 +227,4 @@ Of 144 details: 92 built, 19 plain, 33 missing.
 | foramen lacerum | built | foramina.py | 181 |
 | jugular foramen | built | foramina.py | 181 |
 | inside of the skull: the three fossae and their markings | missing | the cranial cavity is one smooth hollow | 190 |
-| diploe and the bone's inner structure | missing |  | 132 |
+| diploe and the bone's inner structure | built | structure.py: two tables with diploe between, thin plates compact, the petrous part dense, the mastoid's cells; seen when the bone is sawn (dev/cut_open.py --inside) | 132 |

@@ -12,7 +12,7 @@ from scipy.sparse.linalg import spsolve
 
 import sdf, plates, relief
 import landmarks as L
-import teeth, base, occiput, foramina, palate, surface, nose, temporal, pterygoid
+import teeth, base, occiput, foramina, palate, surface, nose, temporal, pterygoid, sinus
 from skull import arch, sockets, cut_sockets, groove
 from relief import Map, Slab, Prism, Funnel
 from sdf import Ellipsoid, Box, Tube, Field, spline, rot, unit, smin, smax
@@ -600,8 +600,9 @@ def build(h=1.0, log=print, box=None):
     F.D = np.maximum(F.D, -(F0 + Tw))
     del Tw
     base.floor_cut(F, B)
+    sinus.body(F, log)                         # the sphenoid's body under the saddle (sella turcica), dorsum and clivus: the cranial floor ran level there
     # the orbit: a funnel from the traced margin to the optic canal
-    orbit = Funnel(om, (13.5, 18.0, 37.0))
+    orbit = sinus.Orbit(Funnel(om, (13.5, 18.0, 37.0)))       # (less what lies inward of the ethmoid's orbital plate: the funnel alone left 8 mm of bone between the orbits)
     F.cut(orbit, 1.6)
     sl, d = F.dist(orbit, 6.0)                       # the orbit keeps a wall of its own wherever it lies inside the braincase (its roof above all)
     if sl is not None:
@@ -611,6 +612,7 @@ def build(h=1.0, log=print, box=None):
     F.cut(Prism(M, (0, 1, 2), M.region(rim[:, :2]), 112.0, 78.0, taper=-1.0), 1.8)      # (the rim is rounded as far as the grid needs: a knife edge comes out saw-toothed)
     F.cut(Tube(np.array([(0, -13.6, 92.0), (0, -10.5, 84), (0, -9.5, 66), (0, -14.5, 50), (0, -18.3, 41)]), [(0, 15.4), (0.25, 18.5), (0.6, 19.5), (0.85, 14.0), (1, 9.6)],
                [(0, 10.6), (0.25, 12.4), (0.7, 12.2), (1, 11.0)], up=up, n=2.3, taper=[(0, 0.42), (0.6, 0.42), (1, 0.0)]), 2.0)
+    sinus.cleft(F, log)                        # the nose's narrow upper part, up to the plate that roofs it
     # the choanae (the nose's two hind openings): no frame is built for them. Each is what is left between the inner pterygoid plate
     # (pterygoid.py), the vomer's free hind border (nose.py), the sphenoid's body above and the palate's hind edge below; this clears
     # the way through, an arch about 12 mm wide and 24 high
@@ -703,7 +705,7 @@ def build(h=1.0, log=print, box=None):
     return F, V
 
 
-def whole(F, log=print, rough=True):
+def whole(F, log=print, rough=True, sinuses=True):
     """The whole head's field from the built left half: mirrored; then what must not be the same on both sides: the
     midline's sutures, each with a wander of its own, and the bone's grain and pits (surface.py). Returns (D, lo)."""
     D = sdf.mirror_field(F.D); lo = np.array([-float(F.ax[0][-1]), float(F.lo[1]), float(F.lo[2])])
@@ -720,6 +722,8 @@ def whole(F, log=print, rough=True):
                                                          (1 - np.clip((u - 0.6) / 0.14, 0, 1))) if sg else {}))
             whole.midlines[name] = Q
             G.cut(Tube(Q, r), 0.4)
+    if sinuses:
+        whole.sinuses = sinus.air(G, log)                    # the air sinuses: hollowed in the whole head, the two sides not alike
     temporal.relief(G, log)                                   # the temporal bone's small relief, each side with its own unevenness
     if rough:
         D0 = G.D.copy()

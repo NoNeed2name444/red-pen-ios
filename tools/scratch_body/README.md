@@ -26,6 +26,12 @@ down, the muscles, the woman, the place in the app.
   A lip that sharp is thinner than a cell of the grid and meshes as a row of teeth: the field is eased there
   (`sdf.Field.ease`).
 - `bones.py` tells the skull's bones apart (each its own part, the face's bones marked off by their sutures).
+- An air sinus (`sinus.py`) is whatever lies inside a roomy envelope and deeper than a wall's thickness under every surface
+  the bone already has, so its walls are the bone's own surfaces seen from inside; each is then opened into the nose where
+  Gray has it, and a hollow that ends up shut off is filled again.
+- What a bone is made of inside (`structure.py`, `STRUCTURE.md`) is kept apart from its outside: within the shell's
+  thickness of any surface it is compact, deeper it is cancellous (a lattice of bars with marrow spaces), in the mastoid
+  part it is air cells, and the petrous part is left dense. It shows when a bone is sawn (`dev/cut_open.py --inside`).
 
 | Module | What it holds | Plates (Gray 1918) |
 | --- | --- | --- |
@@ -34,6 +40,8 @@ down, the muscles, the woman, the place in the app.
 | `temporal.py` | the side of the head: ear hole, arch, mastoid, styloid; the temporal lines and the front of the temporal fossa | Fig. 137, 188; p. 139 |
 | `palate.py` | the roof of the mouth and the floor of the nose | Fig. 187 |
 | `nose.py` | the septum and the scrolls | Fig. 187, 190, 195, 196; p. 194 |
+| `sinus.py` | the air sinuses (maxillary, frontal, sphenoidal, ethmoidal cells), the orbit's inner wall, the sphenoid's saddle | pp. 998 to 1000, 147, 153, 155, 160 |
+| `structure.py` | compact, cancellous and air-celled bone, part by part (the table for the whole skeleton) | pp. 79, 80, 86, 132, 138, 142, 145 |
 | `pterygoid.py` | the two pterygoid plates, the hook, the pyramidal process | Fig. 189, 187, 147; pp. 151, 168 |
 | `teeth.py`, `teeth2.py` | every tooth, kind by kind, crowns and roots | Fig. 1002 |
 | `mandible4.py` (on `mandible.py`, `2`, `3`) | the lower jaw as one bone | Fig. 188, 176, 177, 190; pp. 172 to 174, 177 |
@@ -61,6 +69,12 @@ python3 dev/try_bones.py f05d --mesh --head skull30   # the bones told apart, wi
 python3 dev/bones_close.py f05d face                  # the coloured parts close up: face, side, base, in
 SCRATCH_SUPER=2 python3 dev/close.py skull30 face     # any picture drawn at twice the size and brought down
 python3 dev/ledger.py --book all.txt                  # write LEDGER.md again (the book's text, one page a form feed, for the page numbers)
+python3 dev/try_sinus.py f05d 2:66:-45,45,-40,40:z66  # the sinuses cut into a kept field built with --nosinus, in 3 seconds, with flat sections
+python3 dev/cut_open.py f05d --set sinus              # the head sawn open four ways (sets: sinus, sinus2, inside)
+python3 dev/save_field.py 0.5 jawf --jaw              # the lower jaw's field kept, as the skull's is
+python3 dev/cut_open.py f05d --jaw jawf --set inside --inside   # sawn open with the bone's make-up on the sawn face, at 0.25 mm: 3 minutes
+python3 dev/try_structure.py f05d --jaw jawf 2:62:-72,72,-102,56:face   # flat sections coloured by the kind of bone
+python3 dev/structure_doc.py                          # write STRUCTURE.md again from structure.TABLE
 ```
 
 `LEDGER.md` lists every named detail of the skull's bones and the jaw (Gray's names, with his page) and says of each
@@ -76,7 +90,8 @@ whether the model has it as a shape of its own, only as part of a larger form, o
 - the lower jaw against the skull: least clearance 1.24 mm, at the joint (the aim is about 2);
 - every opening of the base with its place and size, every relief with how far it lies from the points it was read from;
 - the split into bones (`bones.py`): every leak between two bones with the way it runs, and bone no bone's point reaches
-  (none at 0.5 mm in the build of 14 November: 21 skull bones, each one piece; with the jaw and the 32 teeth, 54 parts).
+  (none at 0.5 mm in the build of 14 November: 21 skull bones, each one piece; with the jaw and the 32 teeth, 54 parts);
+- every sinus with its size and where it opens, and that no hollow is shut off from the outside air.
 
 ## What is known to be wrong or missing (14 November)
 
@@ -99,7 +114,12 @@ whether the model has it as a shape of its own, only as part of a larger form, o
   The owner marked the step on 14 November ("fix those curves that i don't think should exist"); the border is one
   sweep now and stands up to 2.7 mm off the plate's line. A faint soft oval still shows on the pillar's back.
 - The ramus's front border above the sweep behind the last molar is nearly a straight line.
-- The orbit's fissures, the molars' crowns, the cranial floor and the temporal lines are plain or absent; the upper jaw
-  is solid (no sinus).
-- The upper jaws' bones come out solid in the split too (41 cm3 each): the sinus again.
+- The orbit's fissures, the molars' crowns, the cranial floor and the temporal lines are plain or absent.
+- The sinuses: their walls and the cells' partitions are 1.5 to 2 mm thick where real ones are a third of that; the plate
+  over the nose's cleft is 3 mm thick without its holes and without the crista galli; there is no upper scroll; the cells
+  of one group open into each other by plain round passages; the drum's cavity behind the ear canal is not built.
+- The bone's inside (`structure.py`): the lattice's bars are about half a millimetre thick, in life a fifth of that, and
+  run every way alike, where real ones follow the lines of load; the petrous part is simply dense, with no inner ear in
+  it; the mastoid's cells do not open into one another or into a drum's cavity; the jaw has no canal; the teeth are left
+  out of the sawn pictures. The app's parts do not carry any of it yet, and no bone below the head is built.
 - Mesh checks (`check_mesh.py`, `check_parts.py`) have not been run on the current build.

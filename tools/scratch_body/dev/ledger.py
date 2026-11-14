@@ -30,7 +30,7 @@ ROWS = [
     ("Frontal", "orbital plate (roof of the orbit)", r"orbital (plates|part)", "plain", "the orbit's funnel (skull2.build)"),
     ("Frontal", "fossa for the lacrimal gland", r"lacrimal fossa", "missing", ""),
     ("Frontal", "trochlear fovea", r"fovea trochlearis|trochlear fovea", "missing", ""),
-    ("Frontal", "frontal sinus", r"frontal (air )?sinus", "missing", "the bone is solid"),
+    ("Frontal", "frontal sinus", r"frontal (air )?sinus", "built", "sinus.frontal: two unequal sinuses, a leaning partition, each with its duct to the middle meatus"),
     ("Frontal", "inside: frontal crest, foramen cecum, sagittal sulcus", r"frontal crest", "missing", "the cranial cavity is one smooth hollow"),
     # ---------------- parietal ----------------
     ("Parietal", "parietal eminence", r"parietal eminence", "plain", "the braincase's traced outline"),
@@ -73,8 +73,8 @@ ROWS = [
     ("Temporal", "petrous part, under surface", r"petrous portion|petrous part", "built", "base.py"),
     ("Temporal", "inside: internal acoustic meatus, arcuate eminence, tegmen, sigmoid sulcus", r"internal acoustic meatus", "missing", "the cranial cavity is one smooth hollow"),
     # ---------------- sphenoid ----------------
-    ("Sphenoid", "body: sella turcica, dorsum sellae, clinoid processes", r"sella turcica", "missing", "the cranial cavity is one smooth hollow"),
-    ("Sphenoid", "sphenoidal sinuses", r"sphenoidal (air )?sinus", "missing", "the body is solid"),
+    ("Sphenoid", "body: sella turcica, dorsum sellae, clinoid processes", r"sella turcica", "plain", "sinus.body: the saddle, the tuberculum and the dorsum with its hind knobs; no front or middle clinoid processes"),
+    ("Sphenoid", "sphenoidal sinuses", r"sphenoidal (air )?sinus", "built", "sinus.sphenoidal: two unequal sinuses under the saddle, a bent partition, each opening forward"),
     ("Sphenoid", "rostrum", r"rostrum", "missing", "the vomer's wings are there; the beak they clasp is not"),
     ("Sphenoid", "small wings", r"small wings", "plain", "the orbit's roof behind; not shaped"),
     ("Sphenoid", "optic foramen", r"optic foramen", "plain", "a round tube (skull2.build)"),
@@ -90,10 +90,10 @@ ROWS = [
     ("Sphenoid", "pterygoid canal", r"pterygoid canal", "missing", ""),
     ("Sphenoid", "vaginal process", r"vaginal process", "missing", ""),
     # ---------------- ethmoid ----------------
-    ("Ethmoid", "cribriform plate and crista galli", r"crista galli", "missing", "the roof of the nose is solid; the cranial cavity smooth"),
+    ("Ethmoid", "cribriform plate and crista galli", r"crista galli", "plain", "sinus.cleft: a 3 mm roof over the olfactory cleft; no holes in it and no crista galli"),
     ("Ethmoid", "perpendicular plate", r"perpendicular plate", "built", "nose.septum"),
-    ("Ethmoid", "labyrinth and its cells", r"labyrinth", "plain", "a solid block between the orbits"),
-    ("Ethmoid", "lamina papyracea", r"lamina papyracea", "plain", "the orbit's inner wall; marked off in the split"),
+    ("Ethmoid", "labyrinth and its cells", r"labyrinth", "built", "sinus.ethmoidal: front, middle and hind cells of unequal size, each opening into the nose"),
+    ("Ethmoid", "lamina papyracea", r"lamina papyracea", "built", "sinus.Orbit: the orbit's flat inner wall, the cells behind it; marked off in the split"),
     ("Ethmoid", "superior nasal concha", r"superior nasal concha", "missing", ""),
     ("Ethmoid", "middle nasal concha", r"middle nasal concha", "built", "nose.conchae"),
     ("Ethmoid", "uncinate process and bulla", r"uncinate process", "missing", ""),
@@ -118,7 +118,7 @@ ROWS = [
     ("Maxilla", "alveolar process and the sockets", r"alveolar process", "built", "teeth.py: every tooth's own socket"),
     ("Maxilla", "palatine process", r"palatine process", "built", "palate.py"),
     ("Maxilla", "incisive foramen and canals", r"incisive (foramen|canals?)", "built", "palate.py"),
-    ("Maxilla", "maxillary sinus", r"maxillary sinus", "missing", "the bone is solid"),
+    ("Maxilla", "maxillary sinus", r"maxillary sinus", "built", "sinus.maxillary: walls that follow the bone's own surfaces, the opening into the middle meatus"),
     # ---------------- zygomatic ----------------
     ("Zygomatic", "malar surface", r"malar surface", "built", "skull2.cheek"),
     ("Zygomatic", "zygomaticofacial foramen", r"zygomaticofacial foramen", "built", "the end of a fine canal from the orbital surface, opening obliquely on the cheek (skull2.build)"),
@@ -174,7 +174,7 @@ ROWS = [
     ("Whole skull", "foramen lacerum", r"foramen lacerum", "built", "foramina.py"),
     ("Whole skull", "jugular foramen", r"jugular foramen", "built", "foramina.py"),
     ("Whole skull", "inside of the skull: the three fossae and their markings", r"anterior fossa", "missing", "the cranial cavity is one smooth hollow"),
-    ("Whole skull", "diploe and the bone's inner structure", r"diploe", "missing", ""),
+    ("Whole skull", "diploe and the bone's inner structure", r"diploe", "built", "structure.py: two tables with diploe between, thin plates compact, the petrous part dense, the mastoid's cells; seen when the bone is sawn (dev/cut_open.py --inside)"),
 ]
 
 
