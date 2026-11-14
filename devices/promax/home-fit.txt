@@ -1,0 +1,40 @@
+== promax library-light
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 8, kept 0 (cut none), book 8 parts before the push, 0 at its last look
+card 350-706, start 634-690, new set 776-832, tiles 738-919 (spare 152), bar 776-922, bar's line 764, not cut, large text false
+8 parts measured: the round card 350-706, bed 1 396-470, the Due chip 422-445, bed 2 472-546, the New chip 498-521, bed 3 548-622, the tiles 738-920, the Your sets heading 968-983
+words: the Vitals tile's streak 72/33, the brain map's line 132/33
+== promax library-dark
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 8, kept 0 (cut none), book 8 parts before the push, 0 at its last look
+card 350-706, start 634-690, new set 776-832, tiles 738-919 (spare 152), bar 776-922, bar's line 764, not cut, large text false
+8 parts measured: the round card 350-706, bed 1 396-470, the Due chip 422-445, bed 2 472-546, the New chip 498-521, bed 3 548-622, the tiles 738-920, the Your sets heading 968-983
+words: the Vitals tile's streak 72/33, the brain map's line 132/33
+== promax xxl-library-light
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 7, kept 0 (cut none), book 7 parts before the push, 0 at its last look
+card 375-854, start 782-838, new set 767-823, tiles 886-1088 (spare 230), bar 767-922, bar's line 755, not cut, large text true
+7 parts measured: the round card 375-854, bed 1 450-540, the Due chip 479-510, bed 2 542-678, the New chip 594-626, bed 3 680-770, the tiles 886-1089
+words: the Vitals tile's streak 97/45, the brain map's line 154/44
+== promax xxl-library-dark
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 7, kept 0 (cut none), book 7 parts before the push, 0 at its last look
+card 375-854, start 782-838, new set 767-823, tiles 886-1088 (spare 230), bar 767-922, bar's line 755, not cut, large text true
+7 parts measured: the round card 375-854, bed 1 450-540, the Due chip 479-510, bed 2 542-678, the New chip 594-626, bed 3 680-770, the tiles 886-1089
+words: the Vitals tile's streak 97/45, the brain map's line 154/44
+== promax ax1-library-light
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 6, kept 0 (cut none), book 6 parts before the push, 0 at its last look
+card 461-1255, start 1183-1239, new set 780-840, tiles none (spare 362), bar 780-922, bar's line 768, not cut, large text true
+6 parts measured: the round card 461-1256, bed 1 607-809, the Due chip 764-801, bed 2 811-1013, the New chip 968-1005, bed 3 1015-1172
+words: 

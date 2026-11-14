@@ -1,0 +1,18 @@
+== library-light
+FAULT Start ward round (666-722) runs past the bar's line at 682, above the bar
+FAULT the round card (350-738) runs past the bar's line at 682
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 7, kept 0 (cut none), book 7 parts before the push, 0 at its last look
+card 350-738, start 666-722, new set 694-750, tiles 770-951 (spare 169), bar 694-840, bar's line 682, not cut, large text false
+7 parts measured: the round card 350-738, bed 1 411-485, the Due chip 436-459, bed 2 487-578, the New chip 521-544, bed 3 580-654, the tiles 770-952
+words: the Vitals tile's streak 72/33, the brain map's line 132/33
+== library-dark
+FAULT Start ward round (666-722) runs past the bar's line at 682, above the bar
+FAULT the round card (350-738) runs past the bar's line at 682
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 7, kept 0 (cut none), book 7 parts before the push, 0 at its last look
+card 350-738, start 666-722, new set 694-750, tiles 770-951 (spare 169), bar 694-840, bar's line 682, not cut, large text false
+7 parts measured: the round card 350-738, bed 1 411-485, the Due chip 436-459, bed 2 487-578, the New chip 521-544, bed 3 580-654, the tiles 770-952
+words: the Vitals tile's streak 72/33, the brain map's line 132/33

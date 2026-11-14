@@ -1,0 +1,74 @@
+== library-se-light
+FAULT Start ward round (656-712) runs past the bar's line at 683, above the bar
+FAULT the round card (416-728) runs past the bar's line at 683
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 6, kept 0 (cut none), book 6 parts before the push, 0 at its last look
+card 416-727, start 655-711, new set 131-175, tiles 760-941 (spare 93), bar 695-774, bar's line 683, not cut, large text false
+6 parts measured: the round card 416-728, bed 1 476-550, the Due chip 502-525, bed 2 552-644, the New chip 587-610, the tiles 760-941
+words: the Vitals tile's streak 72/33, the brain map's line 132/33
+== library-se-dark
+FAULT Start ward round (656-712) runs past the bar's line at 683, above the bar
+FAULT the round card (416-728) runs past the bar's line at 683
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 6, kept 0 (cut none), book 6 parts before the push, 0 at its last look
+card 416-727, start 655-711, new set 131-175, tiles 760-941 (spare 93), bar 695-774, bar's line 683, not cut, large text false
+6 parts measured: the round card 416-728, bed 1 476-550, the Due chip 502-525, bed 2 552-644, the New chip 587-610, the tiles 760-941
+words: the Vitals tile's streak 72/33, the brain map's line 132/33
+== xxl-library-light
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 6, kept 0 (cut none), book 6 parts before the push, 0 at its last look
+card 375-877, start 805-861, new set 688-744, tiles none (spare 253), bar 688-840, bar's line 676, not cut, large text true
+6 parts measured: the round card 375-877, bed 1 450-540, the Due chip 479-510, bed 2 542-701, the New chip 606-637, bed 3 703-793
+words: 
+== xxl-library-dark
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 6, kept 0 (cut none), book 6 parts before the push, 0 at its last look
+card 375-877, start 805-861, new set 688-744, tiles none (spare 253), bar 688-840, bar's line 676, not cut, large text true
+6 parts measured: the round card 375-877, bed 1 450-540, the Due chip 479-510, bed 2 542-701, the New chip 606-637, bed 3 703-793
+words: 
+== xxl-library-se-light
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 5, kept 0 (cut none), book 5 parts before the push, 0 at its last look
+card 467-877, start 805-861, new set 147-191, tiles none (spare 161), bar 689-774, bar's line 677, not cut, large text true
+5 parts measured: the round card 467-878, bed 1 542-632, the Due chip 571-603, bed 2 634-794, the New chip 698-729
+words: 
+== ax1-library-light
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 6, kept 0 (cut none), book 6 parts before the push, 0 at its last look
+card 496-1290, start 1218-1274, new set 698-758, tiles none (spare 362), bar 698-840, bar's line 686, not cut, large text true
+6 parts measured: the round card 496-1291, bed 1 642-844, the Due chip 799-836, bed 2 846-1048, the New chip 1003-1040, bed 3 1050-1207
+words: 
+== ax1-library-dark
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 6, kept 0 (cut none), book 6 parts before the push, 0 at its last look
+card 496-1290, start 1218-1274, new set 698-758, tiles none (spare 362), bar 698-840, bar's line 686, not cut, large text true
+6 parts measured: the round card 496-1291, bed 1 642-844, the Due chip 799-836, bed 2 846-1048, the New chip 1003-1040, bed 3 1050-1207
+words: 
+== ax5-library-light
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 6, kept 0 (cut none), book 6 parts before the push, 0 at its last look
+card 697-2287, start 2125-2271, new set 640-730, tiles none (spare 828), bar 640-840, bar's line 628, not cut, large text true
+6 parts measured: the round card 697-2288, bed 1 977-1285, the Due chip 1213-1277, bed 2 1287-1819, the New chip 1747-1811, bed 3 1821-2114
+words: 
+== ax5-library-se-light
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 5, kept 0 (cut none), book 5 parts before the push, 0 at its last look
+card 764-2060, start 1898-2044, new set 136-184, tiles none (spare 534), bar 675-774, bar's line 663, not cut, large text true
+5 parts measured: the round card 764-2061, bed 1 1044-1353, the Due chip 1281-1345, bed 2 1355-1887, the New chip 1815-1879
+words: 
