@@ -190,6 +190,12 @@ struct LibraryView: View {
     /// is back (writeWaiting). A plain object, so keeping a value redraws
     /// nothing (HomeWaiting, T0258).
     @State var homeWaiting = HomeWaiting()
+    /// The text size home had when a page was pushed over it, and nil while
+    /// no page is. The home list sees this size while it is covered, so a
+    /// text size that changes under the page does not reach it until the page
+    /// is popped (T0269, a hypothesis for the T0242 crash). Written twice
+    /// only: when home is covered and when it is back (`content`).
+    @State private var coveredTypeSize: DynamicTypeSize?
 
     // The spacer marks the end of the library list for preview scrolling.
     private static let listEndID = "library-list-end"
@@ -946,6 +952,17 @@ struct LibraryView: View {
             // it as an animated update. This acts only when typeSize
             // changes; with the size as it is, nothing about the list does.
             .transaction(value: typeSize) { $0.animation = nil }
+            // While a page is pushed over home the list keeps the text size
+            // it had at the push (T0269, a hypothesis for the T0242 crash).
+            // The layout recorder (T0267) showed this list, out of every
+            // window under the pushed card, laid out larger each time the
+            // audit stepped the system text size; with the size held, a
+            // step under the page never reaches it, and once the page is
+            // popped it takes the live size, in a window (coveredTypeSize,
+            // set by the onChange of homeShowing below). On the list itself,
+            // so every row, header and footer sees it and nothing outside the
+            // list does. With nothing pushed it passes the live size.
+            .dynamicTypeSize(coveredTypeSize ?? typeSize)
             // the scale's 16, not a page's 24: Start ward round has to end
             // above New set, which floats over the list
             .listSectionSpacing(WardSpace.l)
@@ -1036,6 +1053,17 @@ struct LibraryView: View {
                     guard homeWaiting.turned else { return }
                     homeWaiting.turned = false
                     if !searching { keepRow(proxy) }
+                }
+            }
+            // The list's text size is held while a page covers home (T0269):
+            // taken at the push, given up at the pop. These are the only two
+            // writes of coveredTypeSize, made while the list is in a window
+            // and the transition runs; none is made while it is covered.
+            .onChange(of: homeShowing) { _, showing in
+                if showing {
+                    coveredTypeSize = nil
+                } else {
+                    coveredTypeSize = typeSize
                 }
             }
             .task(id: dockHeight) {

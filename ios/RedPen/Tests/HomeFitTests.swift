@@ -969,6 +969,68 @@ check("no other List was given the modifier",
       occurrences(typeStep, in: shelves) == 2 && occurrences(typeStep, in: pages) == 1
         && occurrences(typeStep, in: stats) == 1)
 
+// MARK: - The library's List keeps the text size it had at the push (T0269)
+
+// A hypothesis for the T0242 crash, not a shown cause: T0268's lines stay, and
+// the library's own List, the one the recorder named under the pushed card, also
+// sees the text size it had when it was covered, so a size stepped under the
+// page does not reach it until the page is popped. One piece of state holds the
+// size (nil while no page is pushed), written twice only, at the push and at
+// the pop; the List's modifier reads it, or the live size when it is nil.
+let coverDeclaration: String = "@State private var coveredTypeSize: DynamicTypeSize?"
+let coverHold: String = ".dynamicTypeSize(coveredTypeSize ?? typeSize)"
+let coverWrites: String = ".onChange(of: homeShowing) { _, showing in\n                if showing {\n                    coveredTypeSize = nil\n                } else {\n                    coveredTypeSize = typeSize\n                }\n            }"
+check("the held size is one optional piece of state, declared once",
+      occurrences(coverDeclaration, in: library) == 1
+        && occurrences("coveredTypeSize: DynamicTypeSize?", in: library) == 1)
+check("the held size is written twice only: nil at the pop, the live size at the push",
+      occurrences("coveredTypeSize =", in: library) == 2
+        && occurrences("coveredTypeSize = nil", in: library) == 1
+        && occurrences("coveredTypeSize = typeSize", in: library) == 1)
+check("both writes are in one onChange of homeShowing, which sets nil when home shows and the live size when it does not",
+      occurrences(coverWrites, in: library) == 1)
+check("the onChange that holds the size comes after the one that writes what waited, in the List's chain",
+      inOrder(homeList, ["writeWaiting()", "keepRow(proxy)", coverWrites, ".task(id: dockHeight)"]))
+check("the List sees the held size, or the live one when nothing is held",
+      occurrences(coverHold, in: library) == 1 && occurrences(".dynamicTypeSize(", in: homeList) == 1)
+check("the modifier is on the List itself (its own level in the chain), after T0268's line and before the list's spacing",
+      occurrences("\n            " + coverHold + "\n", in: library) == 1
+        && inOrder(homeList, ["List {", typeStep, coverHold, ".listSectionSpacing(WardSpace.l)", ".scrollContentBackground(.hidden)"]))
+check("no other file reads the held size", !homeSource.contains("coveredTypeSize") && !shelves.contains("coveredTypeSize")
+        && !pages.contains("coveredTypeSize") && !stats.contains("coveredTypeSize"))
+
+// What the List sees, as the two writes and the modifier give it: the live
+// size when nothing is pushed, the size of the push while one is, the live
+// size again at the pop (a size stepped under the page is read once, then).
+// Sizes are plain numbers here: DynamicTypeSize is SwiftUI's, not on Linux.
+do {
+    var covered: Int? = nil
+    var live: Int = 3
+    var showing = true
+    func seen() -> Int { covered ?? live }
+    func setShowing(_ now: Bool) {
+        guard now != showing else { return }
+        showing = now
+        if now { covered = nil } else { covered = live }
+    }
+    check("nothing pushed: the List sees the live size", seen() == 3)
+    live = 9
+    check("nothing pushed: a new size reaches the List at once", seen() == 9)
+    setShowing(false)
+    check("pushed: the List keeps the size of the push", seen() == 9)
+    for step in [4, 5, 10, 12, 1] {
+        live = step
+        check("pushed: a size stepped under the page (\(step)) does not reach the List",
+              seen() == 9)
+    }
+    setShowing(false)
+    check("a second page over the first changes nothing", seen() == 9 && covered == 9)
+    setShowing(true)
+    check("popped: the List takes the live size", seen() == 1 && covered == nil)
+    setShowing(true)
+    check("home showing again writes nothing", covered == nil && seen() == 1)
+}
+
 if failures.isEmpty {
     print("all HomeFit checks passed")
 } else {
