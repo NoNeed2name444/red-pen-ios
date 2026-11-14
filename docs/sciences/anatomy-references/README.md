@@ -4,7 +4,7 @@ Pictures of every structure in the 3D anatomy atlas, free to use commercially (p
 
 | System | Structures | Pictures | Without a picture |
 |---|---|---|---|
-| [Cardiovascular](cardiovascular.md) | 98 | 990 | 6 |
+| [Cardiovascular](cardiovascular.md) | 97 | 976 | 6 |
 | [Digestive](digestive.md) | 73 | 865 | 18 |
 | [Endocrine](endocrine.md) | 2 | 72 | 0 |
 | [Integumentary](integumentary.md) | 1 | 36 | 0 |

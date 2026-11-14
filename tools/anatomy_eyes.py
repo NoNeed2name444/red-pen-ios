@@ -12,8 +12,10 @@ by the radius over 12:
 
 1. The coats. The sclera a sphere up to the limbus, 5.85 mm off the axis, its rim bevelled inward there. The cornea
    a shell from the organ set's apex (about 13.1 mm before the centre) to the limbus, its front the sphere through
-   both (radius about 7.8 mm), 0.55 mm thick in the middle and 0.7 mm at the limbus, clear. In the angle the
-   trabecular meshwork, a ring of triangle section from Schwalbe's line to the scleral spur, Schlemm's canal (the
+   both (radius about 7.8 mm), 0.55 mm thick in the middle and 0.7 mm at the limbus, clear, a dome whose apex
+   is about 2.6 mm before the limbus's plane (1.1 mm before the sclera's sphere); two thin leaves within its stroma
+   give the app's clear glass more to reflect, so the dome shows from the side. In the angle the trabecular
+   meshwork, a ring of triangle section from Schwalbe's line to the scleral spur, Schlemm's canal (the
    scleral venous sinus) an oval ring outside it, and the corneoscleral junction a ring within the limbus. The
    choroid and the retina shells inside the sclera from the ora serrata (62 degrees from the front, about 7.5 mm
    behind the limbus) to the back, the ora a band of teeth; the optic disc (1.75 by 1.9 mm, cupped) where the optic
@@ -37,11 +39,15 @@ by the radius over 12:
    maxilla) back under the inferior rectus and around the eyeball to its insertion below the lateral rectus, near
    the macula, by a short tendon. Where one crosses another the outer gives way, a section at a time, so that it
    bends over the other rather than folding; none enters the eyeball, the optic nerve or another muscle (but where
-   they gather at the ring, as they do). Each is nudged off the bone where the bone is on one side of it, by 1 mm
-   at most: the scanned skull's orbit is a little tighter than the textbook's cone, and where a muscle is caught
-   between two walls it is left touching them rather than crushed. The woman's muscles in "right eye muscles" and
-   "left eye muscles", as the man's.
-5. Each structure's own colour, how see-through and how glossy, in the manifest ("colour", "opacity",
+   they gather at the ring, as they do). A tendon is thin (about 0.3 mm) and rises from the sclera gently, across
+   and along, so that it blends into the white rather than standing on it as a slab. Each muscle is kept in the
+   orbit's room (the space seen from the eye, the scanned skull's walls around it): its origin seated on the bone
+   there, its belly eased off a wall a section at a time; the scanned orbit is a little tighter than the textbook's
+   cone, and where a muscle is caught between two walls at the apex it is left touching them rather than crushed.
+   The woman's muscles in "right eye muscles" and "left eye muscles", as the man's.
+5. The central retinal artery and vein (the organ set's, in the vessels) end at the optic disc: where the organ
+   set's run on into the vitreous they are drawn back to the retina's face.
+6. Each structure's own colour, how see-through and how glossy, in the manifest ("colour", "opacity",
    "roughness"), which the app draws over its tissue's: the sclera white, the cornea, humours and bulbar
    conjunctiva clear, the lids' linings half so, the iris brown, the pupil black, the choroid dark, the retina
    orange, the disc pale.
@@ -65,7 +71,7 @@ if HERE not in sys.path:
 # how each structure looks: sRGB colour, opacity, roughness
 LOOK = {
     "sclera": ("#F2EEE6", 1.0, 0.22),
-    "cornea": ("#F4F8FA", 0.28, 0.03),
+    "cornea": ("#F4F8FA", 0.28, 0.16),
     "corneo_scleral_junction": ("#EFEBE3", 1.0, 0.2),
     "trabecular_meshwork": ("#5C4A3F", 1.0, 0.5),
     "schlemms_canal": ("#6F86B8", 1.0, 0.3),
@@ -224,7 +230,20 @@ def eyeball(R, apex, disc):
     rb = (back_rim[0] ** 2 + hb * hb) / (2 * hb)
     back = [(rb * np.sin(t), back_apex - rb + rb * np.cos(t)) for t in np.linspace(np.arcsin(back_rim[0] / rb), 0, 7)]
     v, f = revolve(front + back[::2] + back[-1:], 72)
-    out["cornea"] = (v, outward(v, f))
+    # its front twice more within it (thin shells 0.06 and 0.12 mm under the front, to 5.2 mm off the axis): the
+    # app draws a clear structure as its reflections alone, at its opacity (0.28: a third of a glass's), and one
+    # front so faint left the cornea unseen, the iris a window sunk in the white; three together reflect about as
+    # a wet cornea does, so the dome shows by its bright rim and its glint (the key light's, a soft spot a
+    # millimetre or two across at the cornea's roughness, 0.16: at 0.03 it was a point too small to draw), from
+    # the side too, and nothing is laid over the iris seen through it
+    shells = [(v, outward(v, f))]
+    for under in (0.06 * s, 0.12 * s):
+        ts = np.linspace(0, np.arcsin(5.2 * s / rc), 5)
+        prof = [((rc - under - e) * np.sin(t), apex - rc + (rc - under - e) * np.cos(t))
+                for e, tt in ((0.0, ts), (0.01 * s, ts[::-1])) for t in tt]
+        lv, lf = revolve(prof, 32)
+        shells.append((lv, outward(lv, lf)))
+    out["cornea"] = merge(shells)
     cornea_back = lambda rho: back_apex - rb + np.sqrt(np.maximum(rb * rb - rho * rho, 0))
     # the angle: the trabecular meshwork lining the limbus's inside from Schwalbe's line (the cornea's back rim) to
     # the recess before the iris's root and back to the ciliary body, as gonioscopy shows it (a pigmented band,
@@ -441,25 +460,320 @@ def eyeball(R, apex, disc):
 # MARK: the muscles
 
 SECTION = 16           # points around a muscle's section
-BED = -0.06            # a muscle lying on the sclera has its underside this far off it (mm): under its face, so
-                       # that a tendon's thin edge is in the sclera and its face comes out of the sclera's at an
-                       # angle (no face of the edge, nor the sclera's, then flickers through the other)
+UNDER = 0.05           # a muscle lying on the sclera has its underside this far under the sclera's face (mm)
+DIP = 0.03             # and a tendon's top this far under the face at its edges and at its insertion, so that it
+                       # comes out of the face just inside them, along one clean line (the face as drawn: Bed)
 FLOOR = -0.09          # and none of it deeper (the suite's bound is 0.15)
-EDGE = 0.5             # a tendon lying on the sclera rises to its full thickness within this of its edge (mm)
+EDGE = 3.2             # a tendon lying on the sclera rises from its edge to its full thickness over this (mm) or
+                       # three quarters of its half width, level at its edge and at its full height (a smooth step):
+                       # its top nowhere steeper than 8 degrees, so it is lit as the sclera is where it comes out of
+                       # it and blends into it (rising at 20 degrees from its very edge it was lit as a slab)
+FEATHER = 2.5          # and from its insertion over this (mm), nearly as gently, so its end does too
+# where the points across a tendon's top lie, as shares of its half width from its middle: at its edge, then evenly
+# (its top is flat between them while the sclera's face bulges 0.03 mm into each span, so it comes out of the face
+# along a line scalloped by a quarter of a millimetre; uneven spans, wide over its middle, scalloped it by twice
+# that); the same under it
+TOP = (0.997, 5 / 7, 3 / 7, 1 / 7)
 
 
-def sweep(path, width, thick, up, n=SECTION, p=2.3, hug=None, back=None, seat=None):
+def ease(x):
+    """0 to 1 over x from 0 to 1, level at both ends (the smooth step)."""
+    x = np.clip(np.asarray(x, float), 0, 1)
+    return x * x * (3 - 2 * x)
+
+
+class Bed:
+    """The sclera's face as drawn (its triangles, in the eye's frame) as a bed for what lies on it: how far it is from
+    the eyeball's centre along any direction. Its corners are on the sphere, its faces sag up to 0.026 mm between
+    them: a tendon laid on the sphere itself came out of those faces along a line that wandered with them."""
+
+    def __init__(self, v, f):
+        self.a, self.e1, self.e2 = v[f[:, 0]], v[f[:, 1]] - v[f[:, 0]], v[f[:, 2]] - v[f[:, 0]]
+        self.tree = cKDTree(unit(v[f].mean(1)))
+        self.R = float(np.linalg.norm(v, axis=1).mean())
+
+    def radius(self, d):
+        """Where the rays from the centre along d ((m, 3)) meet the face; the sphere's radius where none does (the
+        cornea's, within the limbus)."""
+        d = unit(np.atleast_2d(np.asarray(d, float)))
+        _, near = self.tree.query(d, k=8)
+        out = np.full(len(d), np.nan)
+        for i in near.T:
+            pv = np.cross(d, self.e2[i])
+            det = np.einsum("ij,ij->i", self.e1[i], pv)
+            det = np.where(np.abs(det) < 1e-12, np.nan, det)
+            tv = -self.a[i]
+            b1 = np.einsum("ij,ij->i", tv, pv) / det
+            qv = np.cross(tv, self.e1[i])
+            b2 = np.einsum("ij,ij->i", d, qv) / det
+            r = np.einsum("ij,ij->i", self.e2[i], qv) / det
+            hit = (b1 >= -1e-7) & (b2 >= -1e-7) & (b1 + b2 <= 1 + 1e-7) & (r > 0)
+            out = np.where(np.isnan(out) & hit, r, out)
+        return np.where(np.isnan(out), self.R, out)
+
+
+class Orbit:
+    """The room round an eye as a field over a box in the eye's frame (mm): how far any point lies inside the orbit's
+    room (negative out of it: in the bone, or beyond it) and the way back into it. The skull's bones tile one
+    surface, each cut from the others along open seams, so what is bone is read from all of them together: a cell
+    is bone where the surface crosses the column through it an odd number of times below it, along two of the three
+    axes (a column through a seam or a hole misreads; the other two outvote it), or where the surface itself passes
+    through it (so a wall thinner than a cell, the orbit's medial wall, is still a wall). The orbit's room is what
+    can be seen from `eye` (a point in its middle, behind the eyeball) past the bone: so the air cells and the
+    cranial cavity beyond a wall are not room, and a muscle that began through a wall is brought back to the
+    orbit's side of it, never on to the far side (the plain distance from the bone took the superior oblique into
+    the ethmoid's cells). The distances are each cell's to the nearest across (scipy's exact Euclidean transform),
+    blurred a little, and read between the cells."""
+
+    def __init__(self, v, f, lo, hi, eye, cell=0.4):
+        from scipy.ndimage import distance_transform_edt, gaussian_filter, binary_dilation
+        self.lo, self.cell = np.asarray(lo, float), float(cell)
+        self.n = (np.ceil((np.asarray(hi, float) - self.lo) / cell) + 1).astype(int)
+        v, f = np.asarray(v, float), np.asarray(f, np.int64)
+        bone = sum(self._odd(v, f, ax).astype(np.int8) for ax in range(3)) >= 2
+        bone |= self._touched(v, f)
+        room = self._seen(binary_dilation(bone), eye)
+        room = (binary_dilation(room) & ~bone) if room.any() else ~bone
+        sd = (distance_transform_edt(room) - distance_transform_edt(~room)) * cell
+        self.sd = gaussian_filter(sd, 0.7).astype(np.float32)
+        self.way = [g.astype(np.float32) for g in np.gradient(self.sd, cell)]
+
+    def _touched(self, v, f):
+        """The cells the surface passes through: its triangles sampled every half cell or closer."""
+        g = (v - self.lo) / self.cell
+        A, B, C = g[f[:, 0]], g[f[:, 1]], g[f[:, 2]]
+        near = ((np.maximum(np.maximum(A, B), C) > -1) & (np.minimum(np.minimum(A, B), C) < self.n)).all(1)
+        A, B, C = A[near], B[near], C[near]
+        longest = np.maximum(np.maximum(np.linalg.norm(B - A, axis=1), np.linalg.norm(C - B, axis=1)), np.linalg.norm(A - C, axis=1))
+        k = np.clip(np.ceil(longest / 0.5).astype(int), 1, 40)
+        out = np.zeros(self.n, bool)
+        for m in np.unique(k):
+            sel = k == m
+            i, j = np.meshgrid(np.arange(m + 1), np.arange(m + 1), indexing="ij")
+            keep = i + j <= m
+            b1, b2 = i[keep] / m, j[keep] / m
+            pts = A[sel][:, None] + b1[None, :, None] * (B[sel] - A[sel])[:, None] + b2[None, :, None] * (C[sel] - A[sel])[:, None]
+            q = np.rint(pts.reshape(-1, 3)).astype(np.int64)
+            q = q[((q >= 0) & (q < self.n)).all(1)]
+            out[q[:, 0], q[:, 1], q[:, 2]] = True
+        return out
+
+    def _seen(self, wall, eye):
+        """The cells seen from `eye` past `wall` (bools over the grid): nearest first, a cell is seen if it is not
+        wall and the cell a step and a half toward the eye is seen (the wall is at least three cells thick, the
+        bone grown by one, so no step crosses it)."""
+        c = (np.asarray(eye, float) - self.lo) / self.cell
+        idx = np.indices(self.n).reshape(3, -1).T
+        off = idx - c
+        r = np.linalg.norm(off, axis=1)
+        order = np.argsort(r, kind="stable")
+        shell = np.floor(r[order] / 0.5).astype(np.int64)
+        starts = np.searchsorted(shell, np.arange(shell[-1] + 2))
+        flat, seen = wall.ravel(), np.zeros(len(r), bool)
+        for k in range(len(starts) - 1):
+            i = order[starts[k]:starts[k + 1]]
+            if not len(i):
+                continue
+            if k < 5:
+                seen[i] = ~flat[i]
+                continue
+            parent = np.rint(idx[i] - off[i] / r[i, None] * 1.5).astype(np.int64)
+            np.clip(parent, 0, self.n - 1, out=parent)
+            seen[i] = ~flat[i] & seen[np.ravel_multi_index(parent.T, self.n)]
+        return seen.reshape(self.n)
+
+    def _odd(self, v, f, ax):
+        """Each cell's centre (lo + cell (i, j, k)) with an odd number of the surface's crossings of its column along
+        axis `ax` below it: (nx, ny, nz) bools."""
+        u, w = (ax + 1) % 3, (ax + 2) % 3
+        g = (v - self.lo) / self.cell
+        P = g[:, [u, w]] - 0.0123457                     # the columns a hair off the corners, so none runs through one
+        A, B, C = P[f[:, 0]], P[f[:, 1]], P[f[:, 2]]
+        d = (B[:, 0] - A[:, 0]) * (C[:, 1] - A[:, 1]) - (B[:, 1] - A[:, 1]) * (C[:, 0] - A[:, 0])
+        mn = np.maximum(np.ceil(np.minimum(np.minimum(A, B), C)).astype(np.int64), 0)
+        mx = np.minimum(np.floor(np.maximum(np.maximum(A, B), C)).astype(np.int64), [self.n[u] - 1, self.n[w] - 1])
+        nu, nw = mx[:, 0] - mn[:, 0] + 1, mx[:, 1] - mn[:, 1] + 1
+        ok = np.flatnonzero((nu > 0) & (nw > 0) & (np.abs(d) > 1e-12))
+        count = np.zeros((self.n[u], self.n[w], self.n[ax] + 1), np.int32)
+        for chunk in np.array_split(ok, max(1, len(ok) // 20000)):
+            c = nu[chunk] * nw[chunk]
+            t = np.repeat(chunk, c)
+            k = np.arange(int(c.sum())) - np.repeat(np.cumsum(c) - c, c)
+            iu, iw = mn[t, 0] + k // nw[t], mn[t, 1] + k % nw[t]
+            pu, pw = iu - A[t, 0], iw - A[t, 1]
+            b1 = (pu * (C[t, 1] - A[t, 1]) - pw * (C[t, 0] - A[t, 0])) / d[t]
+            b2 = ((B[t, 0] - A[t, 0]) * pw - (B[t, 1] - A[t, 1]) * pu) / d[t]
+            hit = (b1 >= 0) & (b2 >= 0) & (b1 + b2 <= 1)
+            t, b1, b2, iu, iw = t[hit], b1[hit], b2[hit], iu[hit], iw[hit]
+            h = g[f[t, 0], ax] + b1 * (g[f[t, 1], ax] - g[f[t, 0], ax]) + b2 * (g[f[t, 2], ax] - g[f[t, 0], ax])
+            # each crossing lies below the cells from the first above it on
+            np.add.at(count, (iu, iw, np.clip(np.floor(h).astype(np.int64) + 1, 0, self.n[ax])), 1)
+        odd = (np.cumsum(count, axis=2)[:, :, :-1] % 2).astype(bool)
+        return odd.transpose(np.argsort([u, w, ax]))
+
+    def at(self, q):
+        """How far each point ((m, 3)) lies inside the orbit's room (negative out of it), and the way into it (unit);
+        beyond the box, well inside."""
+        from scipy.ndimage import map_coordinates
+        q = np.atleast_2d(np.asarray(q, float))
+        c = ((q - self.lo) / self.cell).T
+        sd = map_coordinates(self.sd, c, order=1, mode="nearest")
+        way = unit(np.stack([map_coordinates(g, c, order=1, mode="nearest") for g in self.way], -1))
+        out = ((c < 0) | (c > (self.n - 1)[:, None])).any(0)
+        return np.where(out, 99.0, sd), np.where(out[:, None], 0.0, way)
+
+
+def nerve_gap(p, line, radius):
+    """How far each point lies outside the optic nerve's sheath (its middle line and radius at each of its points)."""
+    line, radius = np.asarray(line, float), np.asarray(radius, float)
+    if len(line) < 2:
+        return np.full(len(p), np.inf)
+    best = np.full(len(p), np.inf)
+    for k in range(len(line) - 1):
+        seg = line[k + 1] - line[k]
+        t = np.clip(((p - line[k]) @ seg) / max(seg @ seg, 1e-12), 0, 1)
+        d = np.linalg.norm(p - (line[k] + t[:, None] * seg), axis=1) - (radius[k] + t * (radius[k + 1] - radius[k]))
+        best = np.minimum(best, d)
+    return best
+
+
+def seat(O0, I, orbit, gap, line, radius, clear, sc, reach=6.0, apart=(), about=None):
+    """Where a muscle arising at the apex of the orbit begins: the point nearest O0 (its place on the common ring
+    as the textbook draws it) that lies `gap` off the bone, so its end is on the bone and not in it, `clear` out of
+    the optic nerve's sheath, on its own side of the ring (seen from `about`, the ring's middle, within 60 degrees
+    of where it is drawn: the superior rectus stays above the nerve, the medial rectus medial to it), no nearer
+    each origin already seated than `apart` says (pairs of a point and a distance: the muscles' ends side by side
+    on the ring, as drawn, not in one another), and preferring a place its line (toward I, its insertion) leaves
+    through the orbit's room rather than along the wall. Where there is none within `reach` mm (the scanned apex
+    narrower there than the textbook's ring), where its own line from O0 comes out of the bone, if it does within
+    12 mm; O0 itself if not."""
+    s = np.arange(-reach, reach + 1e-9, 0.3) * sc
+    grid = O0 + np.stack(np.meshgrid(s, s, s, indexing="ij"), -1).reshape(-1, 3)
+    grid = grid[np.linalg.norm(grid - O0, axis=1) <= reach * sc]
+    sd, _ = orbit.at(grid)
+    grid = grid[np.abs(sd - gap) <= 0.15 * sc]
+    for other, least in apart:
+        grid = grid[np.linalg.norm(grid - other, axis=1) >= least]
+    if len(line) > 1 and len(grid):
+        grid = grid[nerve_gap(grid, line, radius) >= clear]
+    if about is not None and len(grid):
+        axis = unit(about)
+        flat = lambda q: q - np.outer(q @ axis, axis) if q.ndim > 1 else q - (q @ axis) * axis
+        mine = unit(flat(O0 - about))
+        grid = grid[unit(flat(grid - about)) @ mine >= 0.5]
+    if len(grid):
+        way = unit(I - grid)
+        ahead = np.stack([orbit.at(grid + way * j * sc)[0] for j in (1, 2, 3, 4, 5, 6)], 1).min(1)
+        return grid[np.argmin(np.linalg.norm(grid - O0, axis=1) + 2.0 * np.clip(gap - ahead, 0, None))]
+    along = O0 + unit(I - O0) * (np.arange(0.3, 12.01, 0.3) * sc)[:, None]
+    out = orbit.at(along)[0] >= gap
+    for other, least in apart:
+        out &= np.linalg.norm(along - other, axis=1) >= least
+    return along[np.argmax(out)] if out.any() else O0
+
+
+def thread(path, orbit, free, clear, sc, rounds=80):
+    """A muscle's middle line threaded through the orbit's room before the muscle is drawn along it: its points
+    marked `free` (those off the eyeball, short of its ends) moved off any wall nearer than `clear` (mm, a number
+    for each point: little at its origin, which is on the bone, more along its belly) and the line kept smooth, so
+    the muscle bends round a wall as one curve. (Pushed off it a section at a time afterwards, the sections next
+    to its origin stayed and the rest moved: a kink.)"""
+    p = np.array(path, float)
+    free = np.asarray(free, bool).copy()
+    free[[0, -1]] = False
+    clear = np.broadcast_to(np.asarray(clear, float), (len(p),))
+    for _ in range(rounds):
+        sd, way = orbit.at(p)
+        need = np.where(free, np.clip(clear - sd, 0, None), 0.0)
+        p += way * (0.6 * need)[:, None]
+        q = p.copy()
+        q[1:-1] = 0.25 * p[:-2] + 0.5 * p[1:-1] + 0.25 * p[2:]
+        p[free] = q[free]
+        if need.max() < 0.03 * sc:
+            break
+    return p
+
+
+def off_bone(v, orbit, clearance, sc, n=SECTION, rounds=10, hold=(2.0, 5.0), anchor=None, globe=None, line=None,
+             radius=None, dense=3):
+    """A muscle (a sweep from its insertion to its origin: an end point first and last, rings of n points between)
+    moved out of the bone round the orbit (orbit: Orbit): each ring as a whole, along the way out of the bone where
+    it lies in it or nearer than `clearance`, by as much as its deepest point needs (checked at `dense` points along
+    each edge and toward the next ring), the moves eased along the muscle so it bends away from the wall rather than
+    stepping, held at its origin (`hold`: mm from it where the moves start and are whole) and with `anchor` at its
+    insertion; never into the eyeball (`globe`) nor the optic nerve's sheath (line, radius): a ring caught between
+    the bone and those goes as far as it may. Then each point still in the bone (that ring's, or one at the origin,
+    where the muscle is seated on the bone) moved out along the way out, so the muscle lies flattened on the bone
+    there, as a muscle pressed to a wall does. How many rings moved."""
+    rings = v[1:-1].reshape(-1, n, 3)
+    k = len(rings)
+    t = np.arange(dense) / dense
+    owner = np.minimum(np.floor(np.arange(k)[:, None] + t[None, :] + 0.5), k - 1).astype(int).ravel()
+    centres = rings.mean(1)
+    from_origin = np.r_[np.cumsum(np.linalg.norm(np.diff(centres[::-1], axis=0), axis=1))[::-1], 0.0]
+    weight = smooth(hold[0] * sc, hold[1] * sc, from_origin)
+    if anchor is not None:
+        weight = weight * smooth(0, anchor, from_origin[0] - from_origin)
+    moved = np.zeros(k, bool)
+    for _ in range(rounds):
+        nxt = np.vstack([rings[1:], rings[-1:]])
+        between = rings[:, None] + (nxt - rings)[:, None] * t[None, :, None, None]
+        around = between[:, :, :, None] + (np.roll(between, -1, axis=2) - between)[:, :, :, None] * t[None, None, None, :, None]
+        flat = around.reshape(-1, 3)
+        sd, way = orbit.at(flat)
+        need = (clearance - sd).reshape(k * dense, -1)
+        worst = np.zeros(k)
+        np.maximum.at(worst, owner, need.max(1))
+        out = np.zeros((k, 3))
+        np.add.at(out, owner, (np.clip(need, 0, None)[..., None] * way.reshape(k * dense, -1, 3)).sum(1))
+        worst = np.clip(worst, 0, None) * weight
+        if worst.max() <= 1e-3:
+            break
+        push = unit(out) * worst[:, None]
+        for _ in range(4):
+            eased = push.copy()
+            eased[1:-1] = 0.25 * push[:-2] + 0.5 * push[1:-1] + 0.25 * push[2:]
+            push = np.where((np.linalg.norm(eased, axis=1) > np.linalg.norm(push, axis=1))[:, None], eased, push)
+        push *= weight[:, None]
+        for i in np.flatnonzero(np.linalg.norm(push, axis=1) > 1e-9):
+            # as far as it may go: not into the eyeball, nor the optic nerve's sheath
+            for share in (1.0, 0.7, 0.45, 0.25, 0.1, 0.0):
+                moved_ring = rings[i] + share * push[i]
+                ok = globe is None or np.linalg.norm(moved_ring, axis=1).min() >= min(globe, np.linalg.norm(rings[i], axis=1).min()) - 1e-6
+                if ok and line is not None and len(line) > 1:
+                    ok = nerve_gap(moved_ring, line, radius).min() >= min(0.0, nerve_gap(rings[i], line, radius).min())
+                if ok:
+                    break
+            push[i] *= share
+        rings += push[:, None, :]
+        v[0] += push[0]
+        v[-1] += push[-1]
+        moved |= np.linalg.norm(push, axis=1) > 1e-9
+    # what is still in the bone, point by point, out of it (the end points with their rings)
+    sd, way = orbit.at(v)
+    deep = sd < 0.5 * clearance
+    v[deep] += way[deep] * (0.5 * clearance - sd[deep])[:, None]
+    return int(moved.sum())
+
+
+def ramp(x):
+    """0 to 1 over x from 0 to 1, steepest at 0 and level at 1 (x (2 - x))."""
+    x = np.clip(np.asarray(x, float), 0, 1)
+    return x * (2 - x)
+
+
+def sweep(path, width, thick, up, n=SECTION, p=2.3, hug=None, back=None, bed=None, sc=1.0):
     """A closed tube along `path` ((k, 3)), `width` and `thick` its full sizes at each point, its thickness lying
     along `up` (made perpendicular to the path) and its width across, each end closed by its middle point. Its
     sections are superellipses of exponent p (one number, or one a point): 2 an ellipse, under 2 a lens whose edges
     thin to nothing, as a tendon's do, over 2 a fuller belly. back ((k,), mm) carries each section's edges that far
     on along the path (away from its first point) and its middle not, so that the insertion's line is curved, its
     middle foremost. Where hug ((k,), 0 to 1) is above 0, a section lies on the eyeball (centred at the origin) as
-    on a bed: its underside on the sphere of radius `seat` across its whole width, its thickness all above it, its
-    edges meeting the sphere in a fine edge, so that a tendon lies flat on the sclera and blends into it rather than
-    standing on it (a tendon's top rising from the sphere within EDGE of its edge and flat across, so its edge
-    comes out of the sclera along a clean line); an end lying on the eyeball is closed by rings drawn in to its
-    middle along the sphere, so its end lies on the sclera too."""
+    on a bed (`bed`, the sclera's face: Bed): its underside UNDER under the face across its whole width, `thick` its
+    height over the face. A tendon's (p under 2) is a band whose top rises from its edges over EDGE in a smooth step,
+    level at the edge and over its middle: it comes out of the face (from DIP under it) at a few degrees and blends
+    into it, as a tendon's edge does, rather than standing on it as a slab; a belly's top is its section's own. An end lying on
+    the eyeball is closed by rings drawn in to its middle along the face, under it."""
     t = unit(np.gradient(path, axis=0))
     u = unit(up - np.einsum("ij,ij->i", up, t)[:, None] * t)
     w = np.cross(t, u)
@@ -470,34 +784,43 @@ def sweep(path, width, thick, up, n=SECTION, p=2.3, hug=None, back=None, seat=No
     q = 4 * (np.arange(n) + 0.5) / n
     k, f = np.floor(q), q - np.floor(q)
     a = (k + np.where(k % 2 == 0, f ** 1.6, 1 - (1 - f) ** 1.6)) * np.pi / 2
+    above = np.sin(a) > 0
     p = np.broadcast_to(np.asarray(p, float), (len(path),))
     rows = []
     for k in range(len(path)):
         cx = np.sign(np.cos(a)) * np.abs(np.cos(a)) ** (2 / p[k])
         cy = np.sign(np.sin(a)) * np.abs(np.sin(a)) ** (2 / p[k])
-        across = path[k] + (width[k] / 2 * cx)[:, None] * w[k]
+        wt = float(np.clip((2.0 - p[k]) / 0.3, 0, 1)) if hug is not None and hug[k] > 0 else 0.0
+        # a tendon's top comes out of the face a fifth of the way up its rise: it is laid that much wider than
+        # asked (0.6 mm a side), so the band that shows is as wide as asked
+        half = width[k] / 2 + wt * 0.6 * sc
+        rise = min(EDGE * sc, 0.75 * half)
+        if wt > 0:
+            side = np.array(TOP)                                   # cx of a quadrant's points, edge first
+            assert n == 4 * len(side)
+            cx = wt * np.r_[side, -side[::-1], -side, side[::-1]] + (1 - wt) * cx
+        across = path[k] + (half * cx)[:, None] * w[k]
         if back is not None and back[k] > 0:
             across = across + (back[k] * cx * cx)[:, None] * t[k]
         ring = across + (thick[k] / 2 * cy)[:, None] * u[k]
         if hug is not None and hug[k] > 0:
-            # its thickness all above the bed: a tendon's (p under 2) a band whose top rises from the bed within
-            # EDGE of its edge, steeply (at 30 degrees or so), and is flat across, so that it comes out of the
-            # sclera along one clean line: a top rising at a few degrees across its whole width (a lens) met the
-            # sclera along a line that wandered a third of a millimetre with the sclera's facets, and read as a
-            # sticker's torn edge; a belly's its section's own top
-            edge = (1 - np.abs(cx)) * width[k] / 2
-            lens = np.where(cy > 0, np.sin(np.pi / 2 * np.clip(edge / EDGE, 0, 1)) ** 0.7, 0.0)
-            wt = float(np.clip((2.0 - p[k]) / 0.3, 0, 1))
-            top = wt * lens + (1 - wt) * np.clip(cy, 0, None)
-            bed = unit(across) * (seat + thick[k] * top)[:, None]
-            ring = ring + hug[k] * (bed - ring)
+            d = unit(across)
+            face = bed.radius(d) if bed is not None else np.linalg.norm(across, axis=1)
+            top = wt * ease((1 - np.abs(cx)) * half / rise) + (1 - wt) * np.clip(cy, 0, None)
+            r = np.where(above, face - DIP * sc + thick[k] * top, face - UNDER * sc)
+            ring = ring + hug[k] * (d * r[:, None] - ring)
         rows.append(ring)
     first = [path[0]]
     if hug is not None and hug[0] >= 0.5:
-        # the end on the eyeball: its middle on the bed, two rings between drawn in to it along the sphere
-        middle = unit(path[0]) * seat
-        lift = np.linalg.norm(rows[0], axis=1) - seat
-        first = [middle] + [unit(middle + f * (rows[0] - middle)) * (seat + f * lift)[:, None] for f in (1 / 3, 2 / 3)]
+        # the end on the eyeball: its middle under the face, two rings between drawn in to it along the face, as
+        # far under it as their ring and the middle are
+        face = (lambda d: bed.radius(d)) if bed is not None else (lambda d: np.full(len(d), np.linalg.norm(path[0])))
+        middle = unit(path[0]) * (face(unit(path[0]))[0] - UNDER * sc)
+        depth = face(unit(rows[0])) - np.linalg.norm(rows[0], axis=1)
+        first = [middle]
+        for g in (1 / 3, 2 / 3):
+            d = unit(middle + g * (rows[0] - middle))
+            first.append(d * (face(d) - (1 - g) * UNDER * sc - g * depth)[:, None])
     v, f = lattice(first + rows + [path[-1]])
     return v, outward(v - v.mean(0), f)
 
@@ -513,14 +836,6 @@ def insertion_curve(s, sc, deep=1.0, over=3.0):
     """How far a section's edges lie behind its middle (sweep's back): `deep` mm at the insertion, none `over` mm
     along, so the insertion's line is bowed forward at its middle, as a rectus's is."""
     return deep * sc * np.clip(1 - np.asarray(s, float) / (over * sc), 0, 1)
-
-
-def stepped(dense, fine_until, sc, fine=0.5, coarse=1.3, end=0.3, end_span=2.0):
-    """The polyline `dense` at even steps along it: `fine` mm up to `fine_until` (the tendon and the belly's rise),
-    `coarse` along the belly, `end` within `end_span` mm of its far end (its rounded end)."""
-    total = float(np.linalg.norm(np.diff(dense, axis=0), axis=1).sum())
-    return resample(dense, lambda at: fine * sc if at < fine_until else (end * sc if at > total - end_span * sc
-                                                                           else coarse * sc))
 
 
 def hugging(path, R, sc):
@@ -596,34 +911,53 @@ def profile(s, at, values):
     return PchipInterpolator(at, values)(np.clip(s, at[0], at[-1]))
 
 
-def rectus(R, sc, key, O, A):
+def insertion(R, sc, key):
+    """The middle of a rectus's insertion, on its meridian, on the spiral of Tillaux (just over the sclera)."""
+    meridian, behind = RECTI[key][:2]
+    th_i = np.arcsin(LIMBUS * sc / R) + behind * sc / R
+    return (R + 0.2 * sc) * (np.sin(th_i) * np.array([meridian[0], meridian[1], 0.0]) + np.array([0, 0, np.cos(th_i)]))
+
+
+def rectus(R, sc, key, O, A, bed=None, room=None):
     """A rectus from its origin O on the common ring (A its middle) to its insertion: (vertices, triangles). A flat
-    band: its tendon thin, its edges thinning to nothing, and thinner still where it meets the sclera, along a line
-    bowed forward at its middle; the belly swelling from it over a few millimetres (the fibres' step reads tendon
-    where a muscle is under half its thickest, so the white ends about where the textbook's tendon does) and
-    narrowing to a rounded end at the ring."""
+    band: its tendon thin (0.3 mm over the sclera), fanning out to its insertion, its edges blending into the
+    sclera over EDGE and its end over FEATHER, along a line bowed forward at its middle; the belly swelling from it
+    over a few millimetres (the fibres' step reads tendon where a muscle is under half its thickest, so the white
+    ends about where the textbook's tendon does) and narrowing to a rounded end at the ring."""
     meridian, behind, tendon, wide, belly = RECTI[key]
-    m3 = np.array([meridian[0], meridian[1], 0.0])
-    thl = np.arcsin(LIMBUS * sc / R)
-    th_i = thl + behind * sc / R
     rt = R + 0.2 * sc
-    I = rt * (np.sin(th_i) * m3 + np.array([0, 0, np.cos(th_i)]))
+    I = insertion(R, sc, key)
     dense = wrap_path(I, O, rt)
-    path, s = stepped(dense, (tendon + 6) * sc, sc)
+    if room is not None:
+        # through the orbit's room: off its walls by about half the belly's thickness, less toward the origin
+        from_o = np.linalg.norm(dense - O, axis=1)
+        dense = thread(dense, room, np.linalg.norm(dense, axis=1) > rt + 0.5 * sc,
+                       np.minimum(0.5 * belly * sc + 0.3 * sc, 0.25 * sc + 0.3 * from_o), sc)
+    whole = float(np.linalg.norm(np.diff(dense, axis=0), axis=1).sum())
+    lt = tendon * sc
+    # its sections close together where its end feathers into the sclera, sparser along the flat tendon, close
+    # again where the belly rises from it, coarse along the belly, close at its rounded end
+    feather = min(FEATHER * sc, 0.75 * lt)
+    path, s = resample(dense, lambda at: 0.5 * sc if at < feather + 0.5 * sc else 0.8 * sc if at < lt - 2 * sc
+                       else 0.5 * sc if at < lt + 4 * sc else 0.3 * sc if at > whole - 2 * sc else 1.3 * sc)
     total = s[-1]
-    lt, lb = tendon * sc, total - (tendon + 5) * sc - 5 * sc
-    at = [0, 0.4 * sc, lt - 0.5 * sc, lt + 1.0 * sc, lt + 3.5 * sc, lt + 5 * sc + 0.4 * lb, total - 5 * sc, total]
-    width = profile(s, at, [wide, wide, 0.95 * wide, 0.91 * wide, 0.88 * wide, 0.9 * wide, 0.42 * wide, 3.2]) * sc
-    thick = profile(s, at, [0.03, 0.24, 0.4, 0.42 * belly, 0.8 * belly, belly, 0.55 * belly, 1.5]) * sc
+    lb = total - (tendon + 5) * sc - 5 * sc
+    # the tendon fanning out to its insertion (from 0.87 of its width where the belly begins), level by the belly
+    fan = wide * (1 - 0.13 * ramp(s / (lt - 0.5 * sc)))
+    at = [lt - 0.5 * sc, lt + 3.5 * sc, lt + 5 * sc + 0.4 * lb, total - 5 * sc, total]
+    width = np.where(s < lt - 0.5 * sc, fan, profile(s, at, [0.87 * wide, 0.88 * wide, 0.9 * wide, 0.42 * wide, 3.2])) * sc
+    at = [0, 0.5 * lt, lt - 1.0 * sc, lt + 1.0 * sc, lt + 3.5 * sc, lt + 5 * sc + 0.4 * lb, total - 5 * sc, total]
+    thick = profile(s, at, [0.28, 0.28, 0.34, 0.42 * belly, 0.8 * belly, belly, 0.55 * belly, 1.5]) * sc
+    thick = thick * ease(s / feather)
     p = profile(s, at, [1.7, 1.7, 1.7, 2.0, 2.3, 2.3, 2.3, 2.2])
     end = dome(s, total, 1.8 * sc)
     width, thick = width * end, thick * end
     path = clear_of_globe(path, thick, R, 0.04 * sc)
     return sweep(path, width, thick, thickness_way(path, A, R), p=p, hug=hugging(path, R, sc),
-                 back=insertion_curve(s, sc), seat=R + BED * sc)
+                 back=insertion_curve(s, sc), bed=bed, sc=sc)
 
 
-def superior_oblique(R, sc, O, trochlea, A):
+def superior_oblique(R, sc, O, trochlea, A, bed=None, room=None):
     """From above the common ring along the roof to the trochlea, its tendon through it and back under the
     superior rectus to a fan behind the equator, superotemporally: the fan thin, its edges thinning to nothing and
     its insertion's line bowed; the tendon round in the trochlea and a flat band under the rectus; the belly
@@ -645,6 +979,11 @@ def superior_oblique(R, sc, O, trochlea, A):
     bend = np.array([(1 - q) ** 2 * front + 2 * q * (1 - q) * trochlea + q * q * back for q in np.linspace(0, 1, 9)])
     keep = np.linalg.norm(reflected - trochlea, axis=1) > 2.5 * sc
     dense = np.vstack([reflected[keep], bend, [back + (O - back) * q for q in np.linspace(0, 1, 30)[1:]]])
+    if room is not None:
+        # its belly through the orbit's room, from the trochlea (held) back along the roof's medial corner
+        from_o = np.linalg.norm(dense - O, axis=1)
+        dense = thread(dense, room, np.arange(len(dense)) >= len(dense) - 29,
+                       np.minimum(1.3 * sc, 0.25 * sc + 0.3 * from_o), sc)
     along = np.r_[0, np.cumsum(np.linalg.norm(np.diff(dense, axis=0), axis=1))]
     there, whole = along[np.argmin(np.linalg.norm(dense - trochlea, axis=1))], along[-1]
     # finely along the fan and round the trochlea, coarser along the belly, finely again at its rounded end
@@ -656,34 +995,38 @@ def superior_oblique(R, sc, O, trochlea, A):
     # the reflected tendon a flat band where it passes under the superior rectus (3.5 to 13 mm from its insertion)
     # and on to within a few millimetres of the trochlea, round only in it
     flat = min(14 * sc, to_trochlea - 4 * sc)
-    at = [0, 0.4 * sc, 3 * sc, 7 * sc, flat, to_trochlea - 2.5 * sc, to_trochlea, belly_start, belly_start + 4 * sc,
+    at = [0, 3 * sc, 7 * sc, flat, to_trochlea - 2.5 * sc, to_trochlea, belly_start, belly_start + 4 * sc,
           0.5 * (belly_start + total), total - 3 * sc, total]
-    width = profile(s, at, [10.0, 9.4, 6.5, 3.6, 3.2, 2.6, 1.8, 1.8, 3.6, 4.6, 3.4, 2.4]) * sc
-    thick = profile(s, at, [0.03, 0.2, 0.35, 0.45, 0.5, 0.7, 1.4, 1.6, 3.0, 3.9, 2.8, 1.8]) * sc
-    p = profile(s, at, [1.6, 1.6, 1.7, 1.8, 1.8, 1.9, 2.1, 2.2, 2.3, 2.3, 2.3, 2.2])
+    width = profile(s, at, [10.0, 6.5, 3.6, 3.2, 2.6, 1.8, 1.8, 3.6, 4.6, 3.4, 2.4]) * sc
+    # the fan thin (a quarter of a millimetre), feathered into the sclera at its insertion
+    thick = profile(s, at, [0.25, 0.35, 0.45, 0.5, 0.7, 1.4, 1.6, 3.0, 3.9, 2.8, 1.8]) * sc * ease(s / (FEATHER * sc))
+    p = profile(s, at, [1.6, 1.7, 1.8, 1.8, 1.9, 2.1, 2.2, 2.3, 2.3, 2.3, 2.2])
     end = dome(s, total, 1.8 * sc)
     width, thick = width * end, thick * end
     path = clear_of_globe(path, thick, R, 0.04 * sc)
     return sweep(path, width, thick, thickness_way(path, A, R), p=p, hug=hugging(path, R, sc),
-                 back=insertion_curve(s, sc), seat=R + BED * sc)
+                 back=insertion_curve(s, sc), bed=bed, sc=sc)
 
 
-def inferior_oblique(R, sc, O, I, A):
+def inferior_oblique(R, sc, O, I, A, bed=None):
     """From the orbit's floor behind its rim, under the inferior rectus and around the eyeball to its insertion
-    below the lateral rectus, by a short tendon thinning to its insertion, its edges thinning to nothing; its belly
-    ending rounded at its origin."""
+    below the lateral rectus, by a short tendon feathered into the sclera at its insertion, its edges blending into
+    it; its belly ending rounded at its origin."""
     I = unit(I) * (R + 0.3 * sc)
-    path, s = stepped(wrap_path(I, O, R + 0.3 * sc), 6 * sc, sc, coarse=1.0)
+    dense = wrap_path(I, O, R + 0.3 * sc)
+    whole = float(np.linalg.norm(np.diff(dense, axis=0), axis=1).sum())
+    path, s = resample(dense, lambda at: 0.5 * sc if at < 6 * sc
+                       else 0.3 * sc if at > whole - 2 * sc else 1.0 * sc)
     total = s[-1]
-    at = [0, 0.4 * sc, 2.5 * sc, 5 * sc, 0.45 * total, total - 3 * sc, total]
-    width = profile(s, at, [9.0, 8.6, 7.6, 6.6, 6.0, 4.4, 2.8]) * sc
-    thick = profile(s, at, [0.03, 0.26, 0.8, 1.6, 2.0, 1.6, 1.0]) * sc
-    p = profile(s, at, [1.7, 1.7, 1.9, 2.2, 2.3, 2.3, 2.2])
+    at = [0, 2.5 * sc, 5 * sc, 0.45 * total, total - 3 * sc, total]
+    width = profile(s, at, [9.0, 7.6, 6.6, 6.0, 4.4, 2.8]) * sc
+    thick = profile(s, at, [0.3, 0.8, 1.6, 2.0, 1.6, 1.0]) * sc * ease(s / (FEATHER * sc))
+    p = profile(s, at, [1.7, 1.9, 2.2, 2.3, 2.3, 2.2])
     end = dome(s, total, 1.8 * sc)
     width, thick = width * end, thick * end
     path = clear_of_globe(path, thick, R, 0.04 * sc)
     return sweep(path, width, thick, thickness_way(path, A, R), p=p, hug=hugging(path, R, sc),
-                 back=insertion_curve(s, sc, deep=0.7), seat=R + BED * sc)
+                 back=insertion_curve(s, sc, deep=0.7), bed=bed, sc=sc)
 
 
 def even_out(v, v0, sc, n=SECTION, reach=2.0, anchor=None):
@@ -859,6 +1202,114 @@ def lift_off(v, pts, nrm, clearance, reach=3.0, n=SECTION, rounds=12, dense=4, r
     return int(moved.sum())
 
 
+def within(q, v, f):
+    """Which of the points q lie inside the closed surface (v, f): where the solid angle its triangles subtend
+    there adds up to the whole sphere (the generalised winding number, past a half)."""
+    a, b, c = v[f[:, 0]], v[f[:, 1]], v[f[:, 2]]
+    out = np.zeros(len(q), bool)
+    for i in range(0, len(q), 64):
+        p = q[i:i + 64]
+        A, B, C = a[None] - p[:, None], b[None] - p[:, None], c[None] - p[:, None]
+        la, lb, lc = (np.linalg.norm(X, axis=2) for X in (A, B, C))
+        det = np.einsum("pij,pij->pi", A, np.cross(B, C))
+        den = (la * lb * lc + np.einsum("pij,pij->pi", A, B) * lc + np.einsum("pij,pij->pi", B, C) * la
+               + np.einsum("pij,pij->pi", C, A) * lb)
+        out[i:i + 64] = np.abs(np.arctan2(det, den).sum(1)) > np.pi
+    return out
+
+
+def slim(built, margin, n=SECTION, rounds=14, by=0.86):
+    """Last of all, where two muscles still share room (their ends side by side at the ring, or both caught between
+    the orbit's walls, where neither can give way): both made slimmer there. Each ring with a point in another
+    muscle (checked a little outside itself, by `margin`, and midway to the next ring and round it, so what the
+    bundles' step adds on its edges is clear too) is drawn toward its side away from the other, by a seventh a
+    round (and moved off it, where more than half of it lies in the other), its neighbours along the muscle eased
+    with it, until none is in another: muscles are slender where they crowd together at the apex. How many rings were made slimmer, by muscle."""
+    names = list(built)
+    done = {k: set() for k in names}
+    for _ in range(rounds):
+        any_in = False
+        for k in names:
+            v = built[k][0]
+            rings = v[1:-1].reshape(-1, n, 3)
+            centres = rings.mean(1, keepdims=True)
+            grown = rings + unit(rings - centres) * margin
+            nxt = np.vstack([grown[1:], grown[-1:]])
+            # each ring's own points, those midway round it, and those midway to the next ring
+            pts = np.stack([grown, (grown + np.roll(grown, -1, axis=1)) / 2, (grown + nxt) / 2,
+                            (grown + np.roll(nxt, -1, axis=1)) / 2], 1).reshape(len(rings), -1, 3)
+            inside = np.zeros(pts.shape[:2], bool)
+            flat = pts.reshape(-1, 3)
+            away = np.zeros((len(rings), 3))
+            most = np.zeros(len(rings))
+            for j in names:
+                if j == k:
+                    continue
+                ov, of = built[j]
+                near = np.where(((flat > ov.min(0) - margin) & (flat < ov.max(0) + margin)).all(1))[0]
+                if len(near):
+                    # (a point in it is no farther from its points than it is thick)
+                    near = near[cKDTree(ov).query(flat[near], distance_upper_bound=3.0 * margin / 0.06)[0] < np.inf]
+                if not len(near):
+                    continue
+                got = np.zeros(len(flat), bool)
+                got[near[within(flat[near], ov, of)]] = True
+                got = got.reshape(inside.shape)
+                inside |= got
+                # the way from the other's middle line to this ring's, for a ring sunk deep in it
+                lines = ov[1:-1].reshape(-1, n, 3).mean(1)
+                for i in np.where(got.sum(1) > most)[0]:
+                    most[i] = got[i].sum()
+                    c = rings[i].mean(0)
+                    away[i] = unit(c - lines[np.argmin(np.linalg.norm(lines - c, axis=1))])
+            hit = np.where(inside.any(1))[0]
+            if not len(hit):
+                continue
+            any_in = True
+            share = np.zeros(len(rings))
+            pivot = np.zeros((len(rings), 3))
+            shift = np.zeros((len(rings), 3))
+            for i in hit:
+                # drawn toward its point farthest from what is in the other; one more than half in it moved off
+                # it too, a seventh of a millimetre a round
+                middle = pts[i][inside[i]].mean(0)
+                far = rings[i][np.argmax(np.linalg.norm(rings[i] - middle, axis=1))]
+                deep = inside[i].mean() > 0.5
+                for d, w in ((0, 1.0), (-1, 0.6), (1, 0.6), (-2, 0.25), (2, 0.25)):
+                    if 0 <= i + d < len(rings) and w > share[i + d]:
+                        share[i + d] = w
+                        pivot[i + d] = far + (rings[i + d].mean(0) - rings[i].mean(0))
+                        shift[i + d] = away[i] * (2.5 * w * margin) if deep else 0.0
+                done[k].add(int(i))
+            scale = (1 - (1 - by) * share)[:, None, None]
+            rings[:] = pivot[:, None] + (rings - pivot[:, None]) * scale + shift[:, None]
+            v[0] = pivot[0] + (v[0] - pivot[0]) * scale[0, 0] + shift[0] if share[0] else v[0]
+            v[-1] = pivot[-1] + (v[-1] - pivot[-1]) * scale[-1, 0] + shift[-1] if share[-1] else v[-1]
+        if not any_in:
+            break
+    return {k: len(r) for k, r in done.items() if r}
+
+
+def clear_edges(v, f, floor, rounds=4):
+    """A muscle lying on the eyeball kept out of it between its points too: where the middle of one of its edges
+    lies under `floor` (a distance from the eyeball's centre, the origin: a chord across the curve sags under it),
+    both its ends are raised by as much; the bundles' step puts points on those middles. How many points moved."""
+    e = np.unique(np.sort(np.vstack([f[:, [0, 1]], f[:, [1, 2]], f[:, [2, 0]]]), axis=1), axis=0)
+    r = np.linalg.norm(v, axis=1)
+    e = e[(r[e] < floor + 1.0).all(1)]
+    moved = np.zeros(len(v), bool)
+    for _ in range(rounds):
+        need = floor - np.linalg.norm((v[e[:, 0]] + v[e[:, 1]]) / 2, axis=1)
+        low = need > 1e-4
+        if not low.any():
+            break
+        up = np.zeros(len(v))
+        np.maximum.at(up, e[low].ravel(), np.repeat(need[low], 2))
+        v += unit(v) * (1.1 * up)[:, None]
+        moved |= up > 0
+    return int(moved.sum())
+
+
 def tube_way(v, centre, radius, clearance):
     """v's points within a tube (centre (k, 3) its middle line, radius (k,) its radius) moved out of it."""
     seg = centre[1:] - centre[:-1]
@@ -930,7 +1381,7 @@ def remake(folder, quiet=False):
 
     path = os.path.join(folder, "anatomy.json")
     manifest = json.load(open(path))
-    said = []
+    said, notes = [], []
 
     def rewrite(part, meshes):
         lo, hi = write_part(os.path.join(folder, part["file"]), [(np.asarray(v, np.float32), np.asarray(f, np.int64)) for v, f in meshes])
@@ -952,14 +1403,18 @@ def remake(folder, quiet=False):
         if "optic-nerves" in parts:
             for st, m in zip(parts["optic-nerves"]["structures"], read_part(os.path.join(folder, parts["optic-nerves"]["file"]))):
                 nerves[st["node"]] = m
-        bone_v, bone_n = [], []
+        bone_v, bone_n, bones = [], [], []
         if "skull" in parts:
             for st, (v, f) in zip(parts["skull"]["structures"], read_part(os.path.join(folder, parts["skull"]["file"]))):
                 if st.get("tissue") == "bone":
                     bone_v.append(v)
                     bone_n.append(vertex_normals(v, f))
+                    bones.append((v, f))
         bone_v = np.vstack(bone_v) if bone_v else np.zeros((0, 3))
         bone_n = np.vstack(bone_n) if bone_n else np.zeros((0, 3))
+        vessels = parts.get("vessels")
+        ves = [[v, f] for v, f in read_part(os.path.join(folder, vessels["file"]))] if vessels else []
+        drawn_in = []
         frames = {}
         for side in "RL":
             sv = next(m[0] for n, m in meshes.items() if side_of(n) == side and key_of(n) == "sclera")
@@ -997,6 +1452,22 @@ def remake(folder, quiet=False):
                     raise ValueError(f"{n}: no eye structure made for it")
                 bv, bf = ball[k]
                 made_eyes[n] = (world(bv), bf[:, ::-1] if flip else bf)
+            # the central retinal artery and vein end at the optic disc, just behind the retina there, as they
+            # come through the lamina cribrosa (the organ set's ran on 3 to 4 mm into the vitreous body): their
+            # last millimetre and what ran on past it drawn in along their radii to it, each still a closed tube
+            stop = Rm - 0.88 * sc
+            for st, mesh in zip(vessels["structures"] if vessels else [], ves):
+                if side_of(st["node"]) != side or "central_retinal" not in st["node"]:
+                    continue
+                q = mm(mesh[0])
+                r = np.linalg.norm(q, axis=1)
+                if r.min() >= stop - 1e-3:
+                    continue
+                top = stop + 1.0 * sc
+                inner = r < top
+                q[inner] *= ((stop + (r[inner] - r.min()) / (top - r.min()) * (top - stop)) / r[inner])[:, None]
+                mesh[0] = world(q)
+                drawn_in.append(f"{st['node']} {Rm - r.min():.1f} mm in")
             if not own:
                 continue
             mine = {key_of(n).replace("_extraocular_muscle", ""): n for n in own if side_of(n) == side}
@@ -1025,20 +1496,44 @@ def remake(folder, quiet=False):
                 if len(sel) >= 3:
                     hit = sel[sel[:, 1] > sel[:, 1].max() - 0.8 * sc].mean(0) + [0, 1.2 * sc, 0]
             io_origin = hit if hit is not None else np.array([11.0, -12.5, 5.0]) * sc
-            built = {k: rectus(Rm, sc, k, A + RING * sc * np.r_[RECTI[k][0], 0], A) for k in RECTI}
-            # the superior oblique from the sphenoid's body above and medial to the optic canal: between the superior
-            # and the medial rectus's origins on the ring, clear of both (2.4 mm from the superior rectus's, its
-            # rounded end passed into the rectus's)
-            built["superior_oblique"] = superior_oblique(Rm, sc, A + 1.15 * RING * sc * np.r_[unit(np.array([0.9, 1.0])), 0]
-                                                         + [0, 0, 1.5 * sc], trochlea, A)
-            built["inferior_oblique"] = inferior_oblique(Rm, sc, io_origin, on_sphere(1, np.radians(128), np.radians(208)), A)
+            # the sclera's face as drawn, for the muscles lying on it
+            bed = Bed(*ball["sclera"])
+            # the bone round the orbit, as a field: how far from it, and the way out of it
+            orbit = Orbit(*merge([(mm(v), f) for v, f in bones]), np.array([-22.0, -28, -52]) * sc,
+                          np.array([38.0, 28, 16]) * sc, 0.45 * A) if bones else None
+            # the recti from the common ring, the superior oblique from the sphenoid's body above and medial to the
+            # optic canal (between the superior and the medial rectus's origins on the ring, clear of both); each
+            # origin seated on the bone at the apex, where the scanned skull has it: on it, not in it nor short of it
+            # (the textbook's ring, 4 mm about the nerve, put the superior rectus's end 2 mm into the sphenoid above
+            # the canal and the lateral's 3 mm short of it, over the superior orbital fissure)
+            origins = {k: A + RING * sc * np.r_[RECTI[k][0], 0] for k in RECTI}
+            origins["superior_oblique"] = A + 1.15 * RING * sc * np.r_[unit(np.array([0.9, 1.0])), 0] + [0, 0, 1.5 * sc]
+            if orbit is not None:
+                # each alone first; then in turn, the one that moves least first, each as far from those seated
+                # before it as the ring draws them
+                drawn = dict(origins)
+                toward = {k: trochlea if k == "superior_oblique" else insertion(Rm, sc, k) for k in drawn}
+                alone = {k: seat(O, toward[k], orbit, 0.25 * sc, centre_line, radius, 1.2 * sc, sc, about=A)
+                         for k, O in drawn.items()}
+                done = []
+                for k in sorted(drawn, key=lambda k: np.linalg.norm(alone[k] - drawn[k])):
+                    # (nearer them where the apex has no room for the ring as drawn: the muscles slimmer there)
+                    for share in (1.0, 0.8, 0.6, 0.4, 0.0):
+                        origins[k] = seat(drawn[k], toward[k], orbit, 0.25 * sc, centre_line, radius, 1.2 * sc, sc,
+                                          apart=[(origins[j], share * np.linalg.norm(drawn[j] - drawn[k])) for j in done],
+                                          about=A)
+                        if origins[k] is not drawn[k]:
+                            break
+                    done.append(k)
+            built = {k: rectus(Rm, sc, k, origins[k], A, bed, orbit) for k in RECTI}
+            built["superior_oblique"] = superior_oblique(Rm, sc, origins["superior_oblique"], trochlea, A, bed, orbit)
+            built["inferior_oblique"] = inferior_oblique(Rm, sc, io_origin, on_sphere(1, np.radians(128), np.radians(208)), A,
+                                                         bed)
             # where one passes another the outer gives way (the superior rectus over the superior oblique's tendon,
             # the inferior oblique under the inferior rectus, the lateral rectus over the inferior oblique's
             # insertion; the superior oblique above the medial rectus; the recti where they gather at the ring),
             # a section at a time; then the optic nerve's sheath, the bone and the eyeball itself, three times over
             moved = {}
-            # each ring's nudges off the bone so far, so the cap holds over all three rounds
-            spent = {k: np.zeros(((len(v) - 2) // SECTION, 3)) for k, (v, f) in built.items()}
             pairs = (("superior_rectus", "superior_oblique"), ("inferior_oblique", "inferior_rectus"),
                      ("lateral_rectus", "inferior_oblique"), ("superior_oblique", "medial_rectus"),
                      ("superior_rectus", "medial_rectus"), ("inferior_rectus", "medial_rectus"),
@@ -1052,11 +1547,10 @@ def remake(folder, quiet=False):
                 if centre_line:
                     for k, (v, f) in built.items():
                         moved[k] = moved.get(k, 0) + tube_way(v, np.array(centre_line), np.array(radius), 0.25 * sc)
-                if len(bone_v):
+                if orbit is not None:
                     for k, (v, f) in built.items():
-                        moved[k] = moved.get(k, 0) + lift_off(v, near[keep], near_n, 0.3 * sc, reach=3.0 * sc,
-                                                              hold=(4 * sc, 8 * sc), limit=1.0 * sc, spent=spent[k],
-                                                              globe=Rm + FLOOR * sc, anchor=2.5 * sc)
+                        moved[k] = moved.get(k, 0) + off_bone(v, orbit, 0.15 * sc, sc, globe=Rm + FLOOR * sc,
+                                                              anchor=2.5 * sc, line=centre_line, radius=radius)
                 for k, (v, f) in built.items():
                     d = np.linalg.norm(v, axis=1)
                     inside = d < Rm + FLOOR * sc
@@ -1090,15 +1584,17 @@ def remake(folder, quiet=False):
                         if need.max() <= 1e-4:
                             break
                         v[pole] += unit(v[pole]) * 2.2 * need.max()
-            # what is left inside the bone (its nearest bone point's normal facing away), checked
+            # where two still share room, both slimmer; and no edge's middle under the eyeball's face
+            slimmed = slim(built, 0.06 * sc)
+            for k, (v, f) in built.items():
+                clear_edges(v, f, Rm + FLOOR * sc)
+            # what is left in the bone (more than 0.3 mm in), checked
             deep = {}
-            if len(bone_v):
-                tree = cKDTree(near[keep])
+            if orbit is not None:
                 for k, (v, f) in built.items():
-                    d, i = tree.query(v)
-                    depth = np.einsum("ij,ij->i", v - near[keep][i], near_n[i])
-                    if ((depth < -0.3 * sc) & (d < 3 * sc)).any():
-                        deep[k] = int(((depth < -0.3 * sc) & (d < 3 * sc)).sum())
+                    sd, _ = orbit.at(v)
+                    if (sd < -0.3 * sc).any():
+                        deep[k] = f"{int((sd < -0.3 * sc).sum())} points, {-sd.min():.1f} mm"
             for k, n in mine.items():
                 v, f = built[k]
                 made_muscles[n] = (world(v), f[:, ::-1] if flip else f)
@@ -1113,8 +1609,13 @@ def remake(folder, quiet=False):
                         f"{np.round(trochlea, 1)}, inferior oblique from {np.round(io_origin, 1)}"
                         f"{'' if hit is not None else ' (no bone found: the textbook place)'}; gave way: "
                         + ", ".join(f"{k} {m}" for k, m in moved.items() if m)
+                        + ("; made slimmer where they crowd: " + ", ".join(f"{k} {m}" for k, m in slimmed.items())
+                           if slimmed else "")
                         + ("; still in the bone: " + ", ".join(f"{k} {m}" for k, m in deep.items()) if deep else ""))
         rewrite(eyes, [made_eyes[st["node"]] for st in eyes["structures"]])
+        if drawn_in:
+            rewrite(vessels, [(v, f) for v, f in ves])
+            notes.append(f"{body['id']}: the central retinal vessels drawn in to the optic disc: " + ", ".join(drawn_in))
         for st in eyes["structures"]:
             colour, opacity, rough = LOOK[key_of(st["node"])]
             st["colour"], st["opacity"], st["roughness"] = colour, opacity, rough
@@ -1130,7 +1631,7 @@ def remake(folder, quiet=False):
                 os.remove(os.path.join(folder, fibres["file"]))
     json.dump(manifest, open(path, "w"), indent=1, ensure_ascii=False)
     if not quiet:
-        for line in said:
+        for line in said + notes:
             print("  " + line)
     return f"{len(said)} eyes made anew" if said else "the eyes made already"
 

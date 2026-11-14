@@ -667,25 +667,6 @@ In the atlas: VH_F_proper_hepatic_artery, VH_M_proper_hepatic_artery
 - [Gallbladder and hepatic artery 2.jpg](https://commons.wikimedia.org/wiki/File:Gallbladder_and_hepatic_artery_2.jpg): CC BY-SA 3.0, Anatomist90 (en+ja)
 - [Slide6CHA.JPG](https://commons.wikimedia.org/wiki/File:Slide6CHA.JPG): CC BY-SA 3.0, Anatomist90 (en+ja)
 
-## hepatic portal vein
-[Wikipedia: Portal vein](https://en.wikipedia.org/wiki/Portal_vein) · [Commons: Portal vein](https://commons.wikimedia.org/wiki/Category:Portal_vein) · 14 images  
-In the atlas: VH_F_hepatic_portal_vein, VH_M_hepatic_portal_vein
-
-- [Gray591.png](https://commons.wikimedia.org/wiki/File:Gray591.png): Public domain, Henry Vandyke Carter (de+it+ja+ru)
-- [Bilebladder.png](https://commons.wikimedia.org/wiki/File:Bilebladder.png): Public domain, Gray's Anatomy; edited by user Rao85 ; (fr+ru+wikidata)
-- [TIEU 0442.gif](https://commons.wikimedia.org/wiki/File:TIEU_0442.gif): Public domain, Tim Tieu (fr+it)
-- [Gray1090.png](https://commons.wikimedia.org/wiki/File:Gray1090.png): Public domain, Henry Vandyke Carter (en)
-- [Gray476.png](https://commons.wikimedia.org/wiki/File:Gray476.png): Public domain, Henry Vandyke Carter (en)
-- [Gray591-Portal vein.png](https://commons.wikimedia.org/wiki/File:Gray591-Portal_vein.png): CC BY-SA 3.0, Jmarchn (en)
-- [Doppler ultrasonography of the portal vein in cirrhosis.jpg](https://commons.wikimedia.org/wiki/File:Doppler_ultrasonography_of_the_portal_vein_in_cirrhosis.jpg): CC0, Mikael Häggström , M.D. Author info - Reusing images - Conflicts of i… (en)
-- [2138 Hepatic Portal Vein System.jpg](https://commons.wikimedia.org/wiki/File:2138_Hepatic_Portal_Vein_System.jpg): CC BY 3.0, OpenStax College (fr)
-- [TIEU 0442-es.gif](https://commons.wikimedia.org/wiki/File:TIEU_0442-es.gif): CC BY 4.0, Tim Tieu (es)
-- [Slide14CHA.JPG](https://commons.wikimedia.org/wiki/File:Slide14CHA.JPG): CC BY-SA 3.0, Anatomist90 (en)
-- [Slide22Gre.JPG](https://commons.wikimedia.org/wiki/File:Slide22Gre.JPG): CC BY-SA 3.0, Anatomist90 (en)
-- [Slide6gen.JPG](https://commons.wikimedia.org/wiki/File:Slide6gen.JPG): CC BY-SA 3.0, Anatomist90 (en)
-- [3D Medical Animation liver parts.jpg](https://commons.wikimedia.org/wiki/File:3D_Medical_Animation_liver_parts.jpg): CC BY-SA 4.0, https://www.scientificanimations.com (commons)
-- [Porta-zaina.gif](https://commons.wikimedia.org/wiki/File:Porta-zaina.gif): CC BY-SA 4.0, Nephron at ingeles wikipedia (commons)
-
 ## hepatic vein
 [Wikipedia: Hepatic veins](https://en.wikipedia.org/wiki/Hepatic_veins) · [Commons: Hepatic veins](https://commons.wikimedia.org/wiki/Category:Hepatic_veins) · 12 images  
 In the atlas: VH_F_left_hepatic_vein, VH_F_right_hepatic_vein, VH_M_left_hepatic_vein, VH_M_right_hepatic_vein
@@ -741,7 +722,7 @@ In the atlas: VH_F_inferior_mesenteric_artery, VH_M_inferior_mesenteric_artery
 
 ## inferior mesenteric vein
 [Wikipedia: Inferior mesenteric vein](https://en.wikipedia.org/wiki/Inferior_mesenteric_vein) · 3 images  
-In the atlas: VH_M_inferior_mesenteric_vein
+In the atlas: VH_F_inferior_mesenteric_vein, VH_M_inferior_mesenteric_vein
 
 - [Gray591.png](https://commons.wikimedia.org/wiki/File:Gray591.png): Public domain, Henry Vandyke Carter (en+fr+it+wikidata)
 - [Gray1041.png](https://commons.wikimedia.org/wiki/File:Gray1041.png): Public domain, Henry Vandyke Carter (en)
@@ -984,7 +965,7 @@ In the atlas: VH_F_ophthalmic_vein_L, VH_F_ophthalmic_vein_R, VH_M_ophthalmic_ve
 
 ## portal vein
 [Wikipedia: Portal vein](https://en.wikipedia.org/wiki/Portal_vein) · [Commons: Portal vein](https://commons.wikimedia.org/wiki/Category:Portal_vein) · 14 images  
-In the atlas: VH_M_portal_vein
+In the atlas: VH_F_hepatic_portal_vein, VH_M_hepatic_portal_vein
 
 - [Gray591.png](https://commons.wikimedia.org/wiki/File:Gray591.png): Public domain, Henry Vandyke Carter (de+it+ja+ru)
 - [Bilebladder.png](https://commons.wikimedia.org/wiki/File:Bilebladder.png): Public domain, Gray's Anatomy; edited by user Rao85 ; (fr+ru+wikidata)
@@ -1364,7 +1345,7 @@ In the atlas: VH_F_left_subclavian_artery_a, VH_F_left_subclavian_artery_b, VH_M
 
 ## superior mesenteric artery
 [Wikipedia: Superior mesenteric artery](https://en.wikipedia.org/wiki/Superior_mesenteric_artery) · [Commons: Superior mesenteric artery](https://commons.wikimedia.org/wiki/Category:Superior_mesenteric_artery) · 20 images  
-In the atlas: VH_F_inferior_mesenteric_vein, VH_F_superior_mesenteric_artery, VH_M_superior_mesenteric_artery
+In the atlas: VH_F_superior_mesenteric_artery, VH_M_superior_mesenteric_artery
 
 - [Superior mesenteric a.gif](https://commons.wikimedia.org/wiki/File:Superior_mesenteric_a.gif): Public domain, The original uploader was Nephron at English Wikipedia . (en+es+fr+wikidata)
 - [Gray1099.png](https://commons.wikimedia.org/wiki/File:Gray1099.png): Public domain, Henry Vandyke Carter (fr+ja)

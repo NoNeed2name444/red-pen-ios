@@ -1512,50 +1512,76 @@ SOFT_TRUNK = ("lungs", "heart", "vessels", "airways", "liver", "gallbladder", "b
               "small-intestine", "pancreas", "thymus", "omentum", "kidneys")
 
 
-def conform_trunk(body, cage, margin=0.002, depth=0.03):
+def _cage_faces(P, ax, hy=0.0025, na=144):
+    """The rib cage's inner and outer faces about the chest's axis: by height (`hy` apart) and angle (`na` round),
+    the innermost and the outermost bone, the gaps between ribs bridged from the rib above to the rib below at the
+    same angle; no face (infinite, and 0) above, below and where no rib passes. P: points over the cage's surface.
+    Returns the two grids and the function giving a point's place in them."""
+    y, th = _cyl(P, ax); r = np.linalg.norm((P - ax)[:, [0, 2]], axis=1)
+    y0 = y.min() - 0.05; ny = int(np.ceil((y.max() + 0.05 - y0) / hy))
+    place = lambda yy, tt: (np.clip(((yy - y0) / hy).astype(int), 0, ny - 1), ((tt + np.pi) / (2 * np.pi) * na).astype(int) % na)
+    inner = np.full((ny, na), np.inf); outer = np.zeros((ny, na))
+    np.minimum.at(inner, place(y, th), r); np.maximum.at(outer, place(y, th), r)
+    for k in range(na):
+        have = np.flatnonzero(np.isfinite(inner[:, k]))
+        if len(have) > 1:
+            span = np.arange(have[0], have[-1] + 1)
+            inner[span, k] = np.interp(span, have, inner[have, k]); outer[span, k] = np.interp(span, have, outer[have, k])
+    inner = ndimage.minimum_filter(inner, size=(3, 3), mode=("nearest", "wrap"))
+    outer = ndimage.maximum_filter(outer, size=(3, 3), mode=("nearest", "wrap"))
+    return inner, outer, lambda Q: place(*_cyl(Q, ax))
+
+
+def conform_trunk(body, cage, margin=0.002, slope=5.0, rounds=4):
     """The organs inside the rib cage give way to it, the bones staying as
     they are (the organ set's thorax and the scan's ribs are two people's:
-    the rigid ribs leave the organs reaching up to a centimetre or so into
-    the front of the cage). Wherever soft tissue reaches past `margin`
-    inside the cage's inner face (the innermost bone within 25 mm up or down
-    and 25 degrees round, which bridges the gaps between ribs), everything
-    soft from `depth` inside that face outward is squeezed in, level toward
-    the chest's axis, to end there: smooth by height and angle, faded out
-    where the cage ends (below the costal margin, above the first ribs),
-    one move for every soft structure. What lies outside the cage's outer
-    face is left alone. cage: the cage's [positions, triangles]."""
+    the rigid ribs leave the organs reaching into the cage's wall, by up to
+    some centimetres at the lowest ribs). Wherever soft tissue reaches past
+    `margin` inside the cage's inner face (_cage_faces), everything soft on
+    that ray from the chest's axis is drawn in, level, in proportion to its
+    distance from the axis, so the outermost ends there: a vessel, an
+    airway or a kidney on the ray keeps its shape, a little smaller. (Drawn
+    in over the outer 30 mm alone, and by the most any ray within 25 mm and
+    25 degrees needed, as this was first done, the heart ended 22 mm behind
+    the sternum, the great vessels behind it were flattened to half their
+    depth and less, and the kidneys' pyramids to a fifth.) Each ray is drawn
+    in by the least it needs, and by no more than a neighbour by over
+    `slope` per metre along the wall (the largest such field: a cone about
+    each ray's need), so nothing is sheared sharply where one rib stands
+    further in than the next; past the cage's ends the draw fades the same
+    way. One move for every soft structure, so organs that touch stay
+    touching. What lies outside the cage's outer face is left alone.
+    cage: the cage's [positions, triangles]."""
     ax = chest_axis(body)
     P = np.concatenate([surface_points(np.asarray(v, float), np.asarray(f), 0.002) for v, f in cage])
+    inner, outer, place = _cage_faces(P, ax)
+    ny, na = inner.shape; hy = 0.0025
     radius = lambda p: np.linalg.norm((p - ax)[:, [0, 2]], axis=1)
-    y, th = _cyl(P, ax); r = radius(P)
-    yb = np.arange(y.min() - 0.05, y.max() + 0.05, 0.005); tb = np.linspace(-np.pi, np.pi, 72, endpoint=False)
-    inner = _grid_field(y, th, r, yb, tb, "min"); outer = _grid_field(y, th, r, yb, tb, "max")
-    cover = _grid_field(y, th, np.ones(len(y)), yb, tb, "max")
+    ha = float(np.median(inner[np.isfinite(inner)])) * 2 * np.pi / na       # an angle's width along the wall
+    ky, ka = int(np.ceil(0.5 / slope / hy)), int(np.ceil(0.5 / slope / ha))  # as far as a need of a half reaches
+    cone = slope * np.hypot(np.arange(-ky, ky + 1)[:, None] * hy, np.arange(-ka, ka + 1)[None, :] * ha)
     parts = [body.part(o) for o in SOFT_TRUNK if body.part(o) is not None]
-    for rnd in range(2):
+    for rnd in range(rounds):
         soft = [(part, k, np.asarray(v, float)) for part in parts for k, (v, f) in enumerate(part["meshes"])]
-        Q = np.concatenate([v for _, _, v in soft]); yq, tq = _cyl(Q, ax); rq = radius(Q)
-        Ri, Ro, c = inner(yq, tq), outer(yq, tq), np.clip(cover(yq, tq), 0, 1)
-        held = (rq < Ro) & (c > 0.01)
-        if not held.any():
+        Q = np.concatenate([v for _, _, v in soft]); rq = radius(Q); j, a = place(Q)
+        ri, ro = inner[j, a], outer[j, a]
+        held = ~np.isfinite(ri) | (rq < ro)                    # not outside the cage's outer face
+        past = np.isfinite(ri) & (rq < ro) & (rq > ri - margin)
+        log(f"    organs past the cage's inner face, round {rnd}: {past.sum() / max(1, held.sum()):.2%} of their points, "
+            f"the farthest {(float((rq - ri + margin)[past].max()) if past.any() else 0.0) * 1000:.0f} mm")
+        if not past.any():
             break
-        Rs = _grid_field(yq[held], tq[held], rq[held], yb, tb, "max")(yq, tq)
-        over = Rs - (Ri - margin); a = Ri - margin - depth
-        squeeze = held & (over > 0) & (rq > a)
-        log(f"    organs past the cage's inner face, round {rnd}: {np.mean(held & (rq > Ri - margin)):.2%} of their points, "
-            f"the farthest {max(0.0, float((rq - Ri + margin)[held].max())) * 1000:.0f} mm")
-        if not squeeze.any():
-            break
-        rn = rq.copy()
-        rn[squeeze] = a[squeeze] + (rq[squeeze] - a[squeeze]) * depth / (depth + over[squeeze])
-        rn = rq + c * (rn - rq)
-        move = _outward(Q, ax) * (rn - rq)[:, None]
+        s = np.ones((ny, na))
+        np.minimum.at(s, (j[past], a[past]), (ri[past] - margin) / rq[past])
+        wide = np.pad(np.pad(s, ((ky, ky), (0, 0)), mode="edge"), ((0, 0), (ka, ka)), mode="wrap")
+        s = ndimage.grey_erosion(wide, structure=-cone, mode="nearest")[ky:-ky, ka:-ka]
+        move = _outward(Q, ax) * (rq * (np.where(held, s[j, a], 1.0) - 1))[:, None]
         at = 0
         for part, k, v in soft:
             n = len(v); f = part["meshes"][k][1]
             part["meshes"][k] = (v + move[at:at + n], f); at += n
         moved = np.linalg.norm(move, axis=1)
-        log(f"    organs squeezed in from the cage: {np.mean(moved > 0.001):.1%} of their points by over 1 mm, "
+        log(f"    organs drawn in from the cage: {np.mean(moved > 0.001):.1%} of their points by over 1 mm, "
             f"the most {moved.max() * 1000:.0f} mm")
 
 

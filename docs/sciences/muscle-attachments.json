@@ -1,0 +1,2542 @@
+{
+ "about": "Where each muscle of the anatomy atlas arises and inserts, as the textbooks give it, and the atlas structures expected at each end. Read by tools/anatomy_attach_audit.py (which checks each muscle's ends against it) and tools/anatomy_attach.py (which moves an end onto its landmark). The textbook statements are written fresh from the sources cited (Gray's Anatomy, 1918, public domain; OpenStax Anatomy and Physiology 2e, CC BY 4.0); Kenhub and Netter were only looked at.",
+ "format": 1,
+ "sources": [
+  {
+   "id": "gray1918",
+   "title": "Anatomy of the Human Body (Gray's Anatomy), 20th edition",
+   "author": "Henry Gray, revised by Warren H. Lewis",
+   "year": 1918,
+   "publisher": "Lea & Febiger, Philadelphia",
+   "licence": "public domain",
+   "note": "Sections and pages are the 1918 edition's; plates are its figure numbers (Wikimedia Commons keeps them as File:Gray<n>.png, public domain)."
+  },
+  {
+   "id": "openstax-ap2e",
+   "title": "Anatomy and Physiology 2e",
+   "author": "J. Gordon Betts et al.",
+   "year": 2022,
+   "publisher": "OpenStax, Rice University",
+   "licence": "CC BY 4.0",
+   "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/1-introduction",
+   "note": "Sections and figure numbers are the 2e's."
+  }
+ ],
+ "how": {
+  "match": "a regular expression on the structure's node name; a row covers both sides unless sided is false",
+  "bones": "keys of bone_keys: each key's expression per body names the atlas structures ({S} is the muscle's own side, L or R; {side} the same as left or right; a key with no structure in a body, such as the woman's hyoid, leaves that end unchecked there)",
+  "kind": "end: a tendon or narrow end, checked where it meets the bone; area: a broad fleshy attachment, checked along the deep face; soft: on a soft structure, listed only",
+  "find": "how the audit finds the end on the mesh: cap [x, y, z] is the share of the muscle's points farthest along that direction (x lateral for a muscle of one side, the body's left for one of the midline; y up; z forward); far [x, y, z] is the end of the muscle's longest way along its surface lying farther that way; face [u0, u1] is its deep face, the points facing the expected bones within reach metres, between those shares of its length from origin (0) to insertion (1)",
+  "moved_by": "a tool that makes the muscle to measure and owns its shape: tools/anatomy_attach.py leaves it alone",
+  "layer": "the order tools/anatomy_attach.py moves muscles in: the deeper first (0, the default), a muscle over them after (the gluteus minimus 1, medius 2, maximus 3); each gives way to those moved before it",
+  "keep_side": "metres: an end whose muscle must lie in front of its first landmark's patch of bone: tools/anatomy_attach.py brings the points straight behind it by that much or less (in the bone, or through a thin one: the iliacus and the iliac wing) back in front, the muscle moving with them",
+  "midline": "metres: tools/anatomy_attach.py keeps the muscle at least this far from the body's midline on its own side (the midline as the suite finds it: the middle of the sacrum's width over its lower half)",
+  "to": "how tools/anatomy_attach.py moves a wrong end: to its first landmark the tools find (the default), or nearest, onto the nearest part of its bones (a broad end whose landmarks are reported only)",
+  "verdicts": "OK: on the right bone within 2 mm; FLOATING: the right bone nearest, farther than 2 mm; WRONG BONE: another bone nearest; INSIDE BONE: the end more than 2 mm inside a bone; UNKNOWN: no row",
+  "new rows": "a muscle added to the atlas needs a row: its match, its kind, origin and insertion with bone keys (add a key if its bone has none) and a find, and its cite and images"
+ },
+ "bone_keys": {
+  "hip bone": {
+   "male": "^VH_M_(ilium|ischium|pubis)_compact_bone_{S}$",
+   "female": "^TS_hip_{S}$"
+  },
+  "ilium": {
+   "male": "^VH_M_ilium_compact_bone_{S}$",
+   "female": "^TS_hip_{S}$"
+  },
+  "ischium": {
+   "male": "^VH_M_ischium_compact_bone_{S}$",
+   "female": "^TS_hip_{S}$"
+  },
+  "pubis": {
+   "male": "^VH_M_pubis_compact_bone_{S}$",
+   "female": "^TS_hip_{S}$"
+  },
+  "sacrum": {
+   "male": "^VH_M_sacrum$",
+   "female": "^VH_F_sacrum$"
+  },
+  "coccyx": {
+   "male": "^VH_M_coccyx$",
+   "female": "^VH_F_coccyx$"
+  },
+  "femur": {
+   "male": "^VH_M_femur_{S}$",
+   "female": "^VH_F_femur_{S}$"
+  },
+  "patella": {
+   "male": "^VH_M_patella_{S}$",
+   "female": "^VH_F_patella_{S}$"
+  },
+  "tibia": {
+   "male": "^VH_M_tibia_{S}$",
+   "female": "^VH_F_tibia_{S}$"
+  },
+  "fibula": {
+   "male": "^VH_M_fibula_{S}$",
+   "female": "^VH_F_fibula_{S}$"
+  },
+  "patellar ligament": {
+   "male": "^VH_M_patellar_ligament_{S}$",
+   "female": "^VH_F_patellar_ligament_{S}$"
+  },
+  "quadriceps tendon": {
+   "male": "^VH_M_tendon_of_quadriceps_femoris_{S}$",
+   "female": "^VH_F_tendon_of_quadriceps_femoris_{S}$"
+  },
+  "rectus femoris": {
+   "male": "^VH_M_rectus_femoris_{S}$",
+   "female": "^VH_F_rectus_femoris_{S}$"
+  },
+  "cervical vertebrae": {
+   "male": "^VH_M_cervical_vertebra_[1-7]$",
+   "female": "^VH_F_cervical_vertebra_[1-7]$"
+  },
+  "upper cervical vertebrae": {
+   "male": "^VH_M_cervical_vertebra_[1-4]$",
+   "female": "^VH_F_cervical_vertebra_[1-4]$"
+  },
+  "thoracic vertebrae": {
+   "male": "^VH_M_thoracic_vertebra_\\d+$",
+   "female": "^VH_F_thoracic_vertebra_\\d+$"
+  },
+  "T12": {
+   "male": "^VH_M_thoracic_vertebra_12$",
+   "female": "^VH_F_thoracic_vertebra_12$"
+  },
+  "lumbar vertebrae": {
+   "male": "^VH_M_lumbar_vertebra_[1-5]$",
+   "female": "^VH_F_lumbar_vertebra_[1-6]$"
+  },
+  "L1": {
+   "male": "^VH_M_lumbar_vertebra_1$",
+   "female": "^VH_F_lumbar_vertebra_1$"
+  },
+  "T12 to L1 disc": {
+   "male": "^VH_M_intervertebral_disk_of_twelfth_thoracic_vertebra$",
+   "female": "^VH_F_intervertebral_disk_of_twelfth_thoracic_vertebra$"
+  },
+  "lumbar discs": {
+   "male": "^VH_M_intervertebral_disk_of_(first|second|third|fourth|fifth)_lumbar_vertebra$",
+   "female": "^VH_F_intervertebral_disk_of_(first|second|third|fourth|fifth|sixth)_lumbar_vertebra$"
+  },
+  "thoracic discs": {
+   "male": "^VH_M_intervertebral_disk_of_\\w+_thoracic_vertebra$",
+   "female": "^VH_F_intervertebral_disk_of_\\w+_thoracic_vertebra$"
+  },
+  "cervical discs": {
+   "male": "^VH_M_intervertebral_disk_of_(axis|\\w+_cervical_vertebra)$",
+   "female": "^VH_F_intervertebral_disk_of_(axis|\\w+_cervical_vertebra)$"
+  },
+  "ribs": {
+   "male": "^TS_rib_\\d+_{S}$",
+   "female": "^TS_rib_\\d+_{S}$"
+  },
+  "costal cartilages": {
+   "male": "^TS_costal_cartilages$",
+   "female": "^TS_costal_cartilages$"
+  },
+  "sternum": {
+   "male": "^TS_sternum$",
+   "female": "^VH_F_(manubrium|sternum)$"
+  },
+  "clavicle": {
+   "male": "^TS_clavicle_{S}$",
+   "female": "^TS_clavicle_{S}$"
+  },
+  "scapula": {
+   "male": "^TS_scapula_{S}$",
+   "female": "^TS_scapula_{S}$"
+  },
+  "occipital bone": {
+   "male": "^NLM_occipital_bone$",
+   "female": "^NLM_occipital_bone$"
+  },
+  "temporal bone": {
+   "male": "^NLM_temporal_bone_{S}$",
+   "female": "^NLM_temporal_bone_{S}$"
+  },
+  "sphenoid bone": {
+   "male": "^NLM_sphenoid_bone$",
+   "female": "^NLM_sphenoid_bone$"
+  },
+  "frontal bone": {
+   "male": "^NLM_frontal_bone$",
+   "female": "^NLM_frontal_bone$"
+  },
+  "maxilla": {
+   "male": "^NLM_maxilla_{S}$",
+   "female": "^NLM_maxilla_{S}$"
+  },
+  "lacrimal bone": {
+   "male": "^NLM_lacrimal_bone_{S}$",
+   "female": "^NLM_lacrimal_bone_{S}$"
+  },
+  "mandible": {
+   "male": "^NLM_mandible$",
+   "female": "^NLM_mandible$"
+  },
+  "hyoid": {
+   "male": "^VH_M_hyoid$",
+   "female": "^VH_F_hyoid$"
+  },
+  "thyroid cartilage": {
+   "male": "^VH_M_thyroid_cartilage$",
+   "female": "^VH_F_thyroid_cartilage$"
+  },
+  "cricoid cartilage": {
+   "male": "^VH_M_cricoid_cartilage$",
+   "female": "^VH_F_cricoid_cartilage$"
+  },
+  "arytenoid cartilage": {
+   "male": "^VH_M_arytenoid_cartilage_{S}$",
+   "female": "^VH_F_arytenoid_cartilage_{S}$"
+  },
+  "arytenoid cartilages": {
+   "male": "^VH_M_arytenoid_cartilage_[LR]$",
+   "female": "^VH_F_arytenoid_cartilage_[LR]$"
+  },
+  "left arytenoid cartilage": {
+   "male": "^VH_M_arytenoid_cartilage_L$",
+   "female": "^VH_F_arytenoid_cartilage_L$"
+  },
+  "right arytenoid cartilage": {
+   "male": "^VH_M_arytenoid_cartilage_R$",
+   "female": "^VH_F_arytenoid_cartilage_R$"
+  },
+  "epiglottic cartilage": {
+   "male": "^VH_M_epiglottic_cartilage$",
+   "female": "^VH_F_epiglot+ic_cartilage$"
+  },
+  "corniculate cartilage": {
+   "male": "^VH_M_corniculate_cartilage_{S}$",
+   "female": "^VH_F_corniculate_cartilage_{S}$"
+  },
+  "sclera": {
+   "male": "^VH_M_sclera_{S}$",
+   "female": "^VH_F_sclera_{S}$"
+  },
+  "corneoscleral junction": {
+   "male": "^VH_M_corneo_scleral_junction_{S}$",
+   "female": "^VH_F_corneo_scleral_junction_{S}$"
+  },
+  "ciliary body": {
+   "male": "^VH_M_ciliary_(body|processes)_{S}$",
+   "female": "^VH_F_ciliary_(body|processes)_{S}$"
+  },
+  "choroid": {
+   "male": "^VH_M_optic_choroid_{S}$",
+   "female": "^VH_F_optic_choroid_{S}$"
+  },
+  "left ventricle wall": {
+   "male": "^VH_M_heart_left_ventricle$",
+   "female": "^VH_F_left_ventricle$"
+  },
+  "right ventricle wall": {
+   "male": "^VH_M_heart_right_ventricle$",
+   "female": "^VH_F_right_ventricle$"
+  },
+  "interventricular septum": {
+   "male": "^VH_M_interventricular_septum$",
+   "female": "^VH_F_interventricular_septum$"
+  },
+  "mitral valve": {
+   "male": "^VH_M_mitral_valve$",
+   "female": "^VH_F_mitral_valve$"
+  },
+  "tricuspid valve": {
+   "male": "^VH_M_tricuspid_valve$",
+   "female": "^VH_F_tricuspid_valve$"
+  },
+  "bladder wall": {
+   "male": "^VH_M_(fundus_of_urinary_bladder_\\w+|trigone_of_urinary_bladder)$",
+   "female": "^VH_F_(fundus_of_urinary_bladder_\\w+|trigone_of_urinary_bladder)$"
+  },
+  "urethra": {
+   "male": "^VH_M_\\w*urethra\\w*$",
+   "female": "^VH_F_\\w*urethra\\w*$"
+  },
+  "prostate": {
+   "male": "^VH_M_\\w*prostat\\w*$",
+   "female": "^$"
+  },
+  "humerus": {
+   "male": "^TS_humerus_{S}$",
+   "female": "^TS_humerus_{S}$"
+  },
+  "radius": {
+   "male": "^TS_radius_{S}$",
+   "female": "^TS_radius_{S}$"
+  },
+  "ulna": {
+   "male": "^TS_ulna_{S}$",
+   "female": "^TS_ulna_{S}$"
+  },
+  "calcaneus": {
+   "male": "^TS_calcaneus_{S}$",
+   "female": "^TS_calcaneus_{S}$"
+  },
+  "talus": {
+   "male": "^TS_talus_{S}$",
+   "female": "^TS_talus_{S}$"
+  },
+  "navicular": {
+   "male": "^TS_navicular_{S}$",
+   "female": "^TS_navicular_{S}$"
+  },
+  "cuboid": {
+   "male": "^TS_cuboid_{S}$",
+   "female": "^TS_cuboid_{S}$"
+  },
+  "carpal bones": {
+   "male": "^TS_carpal_bones_{S}$",
+   "female": "^TS_carpal_bones_{S}$"
+  },
+  "metacarpal 1": {
+   "male": "^TS_first_metacarpal_{S}$",
+   "female": "^TS_first_metacarpal_{S}$"
+  },
+  "metatarsal 1": {
+   "male": "^TS_first_metatarsal_{S}$",
+   "female": "^TS_first_metatarsal_{S}$"
+  },
+  "metacarpal 2": {
+   "male": "^TS_second_metacarpal_{S}$",
+   "female": "^TS_second_metacarpal_{S}$"
+  },
+  "metatarsal 2": {
+   "male": "^TS_second_metatarsal_{S}$",
+   "female": "^TS_second_metatarsal_{S}$"
+  },
+  "metacarpal 3": {
+   "male": "^TS_third_metacarpal_{S}$",
+   "female": "^TS_third_metacarpal_{S}$"
+  },
+  "metatarsal 3": {
+   "male": "^TS_third_metatarsal_{S}$",
+   "female": "^TS_third_metatarsal_{S}$"
+  },
+  "metacarpal 4": {
+   "male": "^TS_fourth_metacarpal_{S}$",
+   "female": "^TS_fourth_metacarpal_{S}$"
+  },
+  "metatarsal 4": {
+   "male": "^TS_fourth_metatarsal_{S}$",
+   "female": "^TS_fourth_metatarsal_{S}$"
+  },
+  "metacarpal 5": {
+   "male": "^TS_fifth_metacarpal_{S}$",
+   "female": "^TS_fifth_metacarpal_{S}$"
+  },
+  "metatarsal 5": {
+   "male": "^TS_fifth_metatarsal_{S}$",
+   "female": "^TS_fifth_metatarsal_{S}$"
+  },
+  "metacarpals": {
+   "male": "^TS_\\w+_metacarpal_{S}$",
+   "female": "^TS_\\w+_metacarpal_{S}$"
+  },
+  "metatarsals": {
+   "male": "^TS_\\w+_metatarsal_{S}$",
+   "female": "^TS_\\w+_metatarsal_{S}$"
+  },
+  "medial cuneiform": {
+   "male": "^TS_medial_cuneiform_{S}$",
+   "female": "^TS_medial_cuneiform_{S}$"
+  },
+  "intermediate cuneiform": {
+   "male": "^TS_intermediate_cuneiform_{S}$",
+   "female": "^TS_intermediate_cuneiform_{S}$"
+  },
+  "lateral cuneiform": {
+   "male": "^TS_lateral_cuneiform_{S}$",
+   "female": "^TS_lateral_cuneiform_{S}$"
+  },
+  "cuneiforms": {
+   "male": "^TS_\\w+_cuneiform_{S}$",
+   "female": "^TS_\\w+_cuneiform_{S}$"
+  },
+  "sesamoids of the great toe": {
+   "male": "^TS_sesamoid_bones_of_the_great_toe_{S}$",
+   "female": "^TS_sesamoid_bones_of_the_great_toe_{S}$"
+  },
+  "proximal phalanx of the thumb": {
+   "male": "^TS_proximal_phalanx_of_thumb_{S}$",
+   "female": "^TS_proximal_phalanx_of_thumb_{S}$"
+  },
+  "distal phalanx of the thumb": {
+   "male": "^TS_distal_phalanx_of_thumb_{S}$",
+   "female": "^TS_distal_phalanx_of_thumb_{S}$"
+  },
+  "phalanges of the thumb": {
+   "male": "^TS_\\w+_phalanx_of_thumb_{S}$",
+   "female": "^TS_\\w+_phalanx_of_thumb_{S}$"
+  },
+  "proximal phalanx of the index finger": {
+   "male": "^TS_proximal_phalanx_of_index_finger_{S}$",
+   "female": "^TS_proximal_phalanx_of_index_finger_{S}$"
+  },
+  "middle phalanx of the index finger": {
+   "male": "^TS_middle_phalanx_of_index_finger_{S}$",
+   "female": "^TS_middle_phalanx_of_index_finger_{S}$"
+  },
+  "distal phalanx of the index finger": {
+   "male": "^TS_distal_phalanx_of_index_finger_{S}$",
+   "female": "^TS_distal_phalanx_of_index_finger_{S}$"
+  },
+  "phalanges of the index finger": {
+   "male": "^TS_\\w+_phalanx_of_index_finger_{S}$",
+   "female": "^TS_\\w+_phalanx_of_index_finger_{S}$"
+  },
+  "proximal phalanx of the middle finger": {
+   "male": "^TS_proximal_phalanx_of_middle_finger_{S}$",
+   "female": "^TS_proximal_phalanx_of_middle_finger_{S}$"
+  },
+  "middle phalanx of the middle finger": {
+   "male": "^TS_middle_phalanx_of_middle_finger_{S}$",
+   "female": "^TS_middle_phalanx_of_middle_finger_{S}$"
+  },
+  "distal phalanx of the middle finger": {
+   "male": "^TS_distal_phalanx_of_middle_finger_{S}$",
+   "female": "^TS_distal_phalanx_of_middle_finger_{S}$"
+  },
+  "phalanges of the middle finger": {
+   "male": "^TS_\\w+_phalanx_of_middle_finger_{S}$",
+   "female": "^TS_\\w+_phalanx_of_middle_finger_{S}$"
+  },
+  "proximal phalanx of the ring finger": {
+   "male": "^TS_proximal_phalanx_of_ring_finger_{S}$",
+   "female": "^TS_proximal_phalanx_of_ring_finger_{S}$"
+  },
+  "middle phalanx of the ring finger": {
+   "male": "^TS_middle_phalanx_of_ring_finger_{S}$",
+   "female": "^TS_middle_phalanx_of_ring_finger_{S}$"
+  },
+  "distal phalanx of the ring finger": {
+   "male": "^TS_distal_phalanx_of_ring_finger_{S}$",
+   "female": "^TS_distal_phalanx_of_ring_finger_{S}$"
+  },
+  "phalanges of the ring finger": {
+   "male": "^TS_\\w+_phalanx_of_ring_finger_{S}$",
+   "female": "^TS_\\w+_phalanx_of_ring_finger_{S}$"
+  },
+  "proximal phalanx of the little finger": {
+   "male": "^TS_proximal_phalanx_of_little_finger_{S}$",
+   "female": "^TS_proximal_phalanx_of_little_finger_{S}$"
+  },
+  "middle phalanx of the little finger": {
+   "male": "^TS_middle_phalanx_of_little_finger_{S}$",
+   "female": "^TS_middle_phalanx_of_little_finger_{S}$"
+  },
+  "distal phalanx of the little finger": {
+   "male": "^TS_distal_phalanx_of_little_finger_{S}$",
+   "female": "^TS_distal_phalanx_of_little_finger_{S}$"
+  },
+  "phalanges of the little finger": {
+   "male": "^TS_\\w+_phalanx_of_little_finger_{S}$",
+   "female": "^TS_\\w+_phalanx_of_little_finger_{S}$"
+  },
+  "proximal phalanx of the great toe": {
+   "male": "^TS_proximal_phalanx_of_great_toe_{S}$",
+   "female": "^TS_proximal_phalanx_of_great_toe_{S}$"
+  },
+  "distal phalanx of the great toe": {
+   "male": "^TS_distal_phalanx_of_great_toe_{S}$",
+   "female": "^TS_distal_phalanx_of_great_toe_{S}$"
+  },
+  "phalanges of the great toe": {
+   "male": "^TS_\\w+_phalanx_of_great_toe_{S}$",
+   "female": "^TS_\\w+_phalanx_of_great_toe_{S}$"
+  },
+  "proximal phalanx of the second toe": {
+   "male": "^TS_proximal_phalanx_of_second_toe_{S}$",
+   "female": "^TS_proximal_phalanx_of_second_toe_{S}$"
+  },
+  "middle phalanx of the second toe": {
+   "male": "^TS_middle_phalanx_of_second_toe_{S}$",
+   "female": "^TS_middle_phalanx_of_second_toe_{S}$"
+  },
+  "distal phalanx of the second toe": {
+   "male": "^TS_distal_phalanx_of_second_toe_{S}$",
+   "female": "^TS_distal_phalanx_of_second_toe_{S}$"
+  },
+  "phalanges of the second toe": {
+   "male": "^TS_\\w+_phalanx_of_second_toe_{S}$",
+   "female": "^TS_\\w+_phalanx_of_second_toe_{S}$"
+  },
+  "proximal phalanx of the third toe": {
+   "male": "^TS_proximal_phalanx_of_third_toe_{S}$",
+   "female": "^TS_proximal_phalanx_of_third_toe_{S}$"
+  },
+  "middle phalanx of the third toe": {
+   "male": "^TS_middle_phalanx_of_third_toe_{S}$",
+   "female": "^TS_middle_phalanx_of_third_toe_{S}$"
+  },
+  "distal phalanx of the third toe": {
+   "male": "^TS_distal_phalanx_of_third_toe_{S}$",
+   "female": "^TS_distal_phalanx_of_third_toe_{S}$"
+  },
+  "phalanges of the third toe": {
+   "male": "^TS_\\w+_phalanx_of_third_toe_{S}$",
+   "female": "^TS_\\w+_phalanx_of_third_toe_{S}$"
+  },
+  "proximal phalanx of the fourth toe": {
+   "male": "^TS_proximal_phalanx_of_fourth_toe_{S}$",
+   "female": "^TS_proximal_phalanx_of_fourth_toe_{S}$"
+  },
+  "middle phalanx of the fourth toe": {
+   "male": "^TS_middle_phalanx_of_fourth_toe_{S}$",
+   "female": "^TS_middle_phalanx_of_fourth_toe_{S}$"
+  },
+  "distal phalanx of the fourth toe": {
+   "male": "^TS_distal_phalanx_of_fourth_toe_{S}$",
+   "female": "^TS_distal_phalanx_of_fourth_toe_{S}$"
+  },
+  "phalanges of the fourth toe": {
+   "male": "^TS_\\w+_phalanx_of_fourth_toe_{S}$",
+   "female": "^TS_\\w+_phalanx_of_fourth_toe_{S}$"
+  },
+  "proximal phalanx of the little toe": {
+   "male": "^TS_proximal_phalanx_of_little_toe_{S}$",
+   "female": "^TS_proximal_phalanx_of_little_toe_{S}$"
+  },
+  "middle phalanx of the little toe": {
+   "male": "^TS_middle_phalanx_of_little_toe_{S}$",
+   "female": "^TS_middle_phalanx_of_little_toe_{S}$"
+  },
+  "distal phalanx of the little toe": {
+   "male": "^TS_distal_phalanx_of_little_toe_{S}$",
+   "female": "^TS_distal_phalanx_of_little_toe_{S}$"
+  },
+  "phalanges of the little toe": {
+   "male": "^TS_\\w+_phalanx_of_little_toe_{S}$",
+   "female": "^TS_\\w+_phalanx_of_little_toe_{S}$"
+  },
+  "proximal phalanges of the fingers": {
+   "male": "^TS_proximal_phalanx_of_\\w+_finger_{S}$",
+   "female": "^TS_proximal_phalanx_of_\\w+_finger_{S}$"
+  },
+  "proximal phalanges of the toes": {
+   "male": "^TS_proximal_phalanx_of_\\w+_toe_{S}$",
+   "female": "^TS_proximal_phalanx_of_\\w+_toe_{S}$"
+  },
+  "middle phalanges of the fingers": {
+   "male": "^TS_middle_phalanx_of_\\w+_finger_{S}$",
+   "female": "^TS_middle_phalanx_of_\\w+_finger_{S}$"
+  },
+  "middle phalanges of the toes": {
+   "male": "^TS_middle_phalanx_of_\\w+_toe_{S}$",
+   "female": "^TS_middle_phalanx_of_\\w+_toe_{S}$"
+  },
+  "distal phalanges of the fingers": {
+   "male": "^TS_distal_phalanx_of_\\w+_finger_{S}$",
+   "female": "^TS_distal_phalanx_of_\\w+_finger_{S}$"
+  },
+  "distal phalanges of the toes": {
+   "male": "^TS_distal_phalanx_of_\\w+_toe_{S}$",
+   "female": "^TS_distal_phalanx_of_\\w+_toe_{S}$"
+  },
+  "ethmoid bone": {
+   "male": "^NLM_ethmoid_bone$",
+   "female": "^NLM_ethmoid_bone$"
+  },
+  "vomer": {
+   "male": "^NLM_vomer$",
+   "female": "^NLM_vomer$"
+  },
+  "parietal bone": {
+   "male": "^NLM_parietal_bone_{S}$",
+   "female": "^NLM_parietal_bone_{S}$"
+  },
+  "nasal bone": {
+   "male": "^NLM_nasal_bone_{S}$",
+   "female": "^NLM_nasal_bone_{S}$"
+  },
+  "palatine bone": {
+   "male": "^NLM_palatine_bone_{S}$",
+   "female": "^NLM_palatine_bone_{S}$"
+  },
+  "zygomatic bone": {
+   "male": "^NLM_zygomatic_bone_{S}$",
+   "female": "^NLM_zygomatic_bone_{S}$"
+  },
+  "upper teeth": {
+   "male": "^VH_M_set_of_upper_jaw_teeth$",
+   "female": "^VH_F_set_of_upper_jaw_teeth$"
+  },
+  "lower teeth": {
+   "male": "^VH_M_set_of_lower_jaw_teeth$",
+   "female": "^VH_F_set_of_lower_jaw_teeth$"
+  },
+  "manubrium": {
+   "male": "^TS_sternum$",
+   "female": "^VH_F_manubrium$"
+  },
+  "C1": {
+   "male": "^VH_M_cervical_vertebra_1$",
+   "female": "^VH_F_cervical_vertebra_1$"
+  },
+  "C2": {
+   "male": "^VH_M_cervical_vertebra_2$",
+   "female": "^VH_F_cervical_vertebra_2$"
+  },
+  "C3": {
+   "male": "^VH_M_cervical_vertebra_3$",
+   "female": "^VH_F_cervical_vertebra_3$"
+  },
+  "C4": {
+   "male": "^VH_M_cervical_vertebra_4$",
+   "female": "^VH_F_cervical_vertebra_4$"
+  },
+  "C5": {
+   "male": "^VH_M_cervical_vertebra_5$",
+   "female": "^VH_F_cervical_vertebra_5$"
+  },
+  "C6": {
+   "male": "^VH_M_cervical_vertebra_6$",
+   "female": "^VH_F_cervical_vertebra_6$"
+  },
+  "C7": {
+   "male": "^VH_M_cervical_vertebra_7$",
+   "female": "^VH_F_cervical_vertebra_7$"
+  },
+  "T1": {
+   "male": "^VH_M_thoracic_vertebra_1$",
+   "female": "^VH_F_thoracic_vertebra_1$"
+  },
+  "rib 1": {
+   "male": "^TS_rib_1_{S}$",
+   "female": "^TS_rib_1_{S}$"
+  },
+  "T2": {
+   "male": "^VH_M_thoracic_vertebra_2$",
+   "female": "^VH_F_thoracic_vertebra_2$"
+  },
+  "rib 2": {
+   "male": "^TS_rib_2_{S}$",
+   "female": "^TS_rib_2_{S}$"
+  },
+  "T3": {
+   "male": "^VH_M_thoracic_vertebra_3$",
+   "female": "^VH_F_thoracic_vertebra_3$"
+  },
+  "rib 3": {
+   "male": "^TS_rib_3_{S}$",
+   "female": "^TS_rib_3_{S}$"
+  },
+  "T4": {
+   "male": "^VH_M_thoracic_vertebra_4$",
+   "female": "^VH_F_thoracic_vertebra_4$"
+  },
+  "rib 4": {
+   "male": "^TS_rib_4_{S}$",
+   "female": "^TS_rib_4_{S}$"
+  },
+  "T5": {
+   "male": "^VH_M_thoracic_vertebra_5$",
+   "female": "^VH_F_thoracic_vertebra_5$"
+  },
+  "rib 5": {
+   "male": "^TS_rib_5_{S}$",
+   "female": "^TS_rib_5_{S}$"
+  },
+  "T6": {
+   "male": "^VH_M_thoracic_vertebra_6$",
+   "female": "^VH_F_thoracic_vertebra_6$"
+  },
+  "rib 6": {
+   "male": "^TS_rib_6_{S}$",
+   "female": "^TS_rib_6_{S}$"
+  },
+  "T7": {
+   "male": "^VH_M_thoracic_vertebra_7$",
+   "female": "^VH_F_thoracic_vertebra_7$"
+  },
+  "rib 7": {
+   "male": "^TS_rib_7_{S}$",
+   "female": "^TS_rib_7_{S}$"
+  },
+  "T8": {
+   "male": "^VH_M_thoracic_vertebra_8$",
+   "female": "^VH_F_thoracic_vertebra_8$"
+  },
+  "rib 8": {
+   "male": "^TS_rib_8_{S}$",
+   "female": "^TS_rib_8_{S}$"
+  },
+  "T9": {
+   "male": "^VH_M_thoracic_vertebra_9$",
+   "female": "^VH_F_thoracic_vertebra_9$"
+  },
+  "rib 9": {
+   "male": "^TS_rib_9_{S}$",
+   "female": "^TS_rib_9_{S}$"
+  },
+  "T10": {
+   "male": "^VH_M_thoracic_vertebra_10$",
+   "female": "^VH_F_thoracic_vertebra_10$"
+  },
+  "rib 10": {
+   "male": "^TS_rib_10_{S}$",
+   "female": "^TS_rib_10_{S}$"
+  },
+  "T11": {
+   "male": "^VH_M_thoracic_vertebra_11$",
+   "female": "^VH_F_thoracic_vertebra_11$"
+  },
+  "rib 11": {
+   "male": "^TS_rib_11_{S}$",
+   "female": "^TS_rib_11_{S}$"
+  },
+  "rib 12": {
+   "male": "^TS_rib_12_{S}$",
+   "female": "^TS_rib_12_{S}$"
+  },
+  "L2": {
+   "male": "^VH_M_lumbar_vertebra_2$",
+   "female": "^VH_F_lumbar_vertebra_2$"
+  },
+  "L3": {
+   "male": "^VH_M_lumbar_vertebra_3$",
+   "female": "^VH_F_lumbar_vertebra_3$"
+  },
+  "L4": {
+   "male": "^VH_M_lumbar_vertebra_4$",
+   "female": "^VH_F_lumbar_vertebra_4$"
+  },
+  "L5": {
+   "male": "^VH_M_lumbar_vertebra_5$",
+   "female": "^VH_F_lumbar_vertebra_5$"
+  },
+  "L6": {
+   "male": "^$",
+   "female": "^VH_F_lumbar_vertebra_6$"
+  },
+  "tibial collateral ligament": {
+   "male": "^VH_M_{side}_tibial_collateri?al_ligament$",
+   "female": "^VH_F_{side}_tibial_collateri?al_ligament$"
+  },
+  "fibular collateral ligament": {
+   "male": "^VH_M_fibular_collateral_ligament_{S}$",
+   "female": "^VH_F_fibular_collateral_ligament_{S}$"
+  },
+  "anterior cruciate ligament": {
+   "male": "^VH_M_anterior_cruciate_ligament_of_knee(_joint)?_{S}$",
+   "female": "^VH_F_anterior_cruciate_ligament_of_knee(_joint)?_{S}$"
+  },
+  "posterior cruciate ligament": {
+   "male": "^VH_M_posterior_cruciate_ligament_of_knee(_joint)?_{S}$",
+   "female": "^VH_F_posterior_cruciate_ligament_of_knee(_joint)?_{S}$"
+  },
+  "menisci": {
+   "male": "^VH_M_meniscus_{S}$",
+   "female": "^VH_F_meniscus_{S}$"
+  },
+  "knee articular cartilage": {
+   "male": "^VH_M_articular_cartilage_of_knee_{S}$",
+   "female": "^VH_F_articular_cartilage_of_knee_{S}$"
+  }
+ },
+ "landmarks": {
+  "femur.greater_trochanter.lateral": {
+   "bone": "femur",
+   "what": "the lateral surface of the greater trochanter (its oblique ridge)",
+   "found": "femur points lateral to the head centre by 3 cm or more, 4 to 28 mm below the trochanter's top, facing out (normal's lateral share over 0.55)"
+  },
+  "femur.greater_trochanter.anterior": {
+   "bone": "femur",
+   "what": "the anterior border and surface of the greater trochanter",
+   "found": "the same band of the trochanter, facing forward (normal's forward share over 0.5)"
+  },
+  "femur.lesser_trochanter": {
+   "bone": "femur",
+   "what": "the lesser trochanter (its tip and the bone just below it)",
+   "found": "the femur's point farthest back and in from the shaft's axis, 35 to 95 mm below the head's centre, and the bone within 9 mm of it"
+  },
+  "femur.gluteal_tuberosity": {
+   "bone": "femur",
+   "what": "the gluteal tuberosity, on the back of the upper shaft",
+   "found": "not found by the tools yet"
+  },
+  "ilium.aiis": {
+   "bone": "ilium",
+   "what": "the anterior inferior iliac spine and the bone within 8 mm of it",
+   "found": "the ilium's most forward point 12 to 50 mm above the acetabulum's centre (the femoral head's), within 45 mm of it across"
+  },
+  "ilium.supra_acetabular": {
+   "bone": "ilium",
+   "what": "the groove above the rim of the acetabulum",
+   "found": "hip bone points 20 to 32 mm from the head's centre, above it, facing up or out"
+  },
+  "ilium.gluteal_surface": {
+   "bone": "ilium",
+   "what": "the outer (gluteal) surface of the ilium's wing",
+   "found": "ilium points above the acetabulum's centre, facing out or back (normal's lateral share over 0.3)"
+  },
+  "ilium.iliac_fossa": {
+   "bone": "ilium",
+   "what": "the iliac fossa, the inner face of the ilium's wing",
+   "found": "ilium points 15 mm or more above the acetabulum's centre, facing in and forward (normal's medial share over 0.3, up to the crest)"
+  },
+  "ilium.iliac_crest.posterior": {
+   "bone": "ilium",
+   "what": "the posterior part of the iliac crest and the posterior superior iliac spine",
+   "found": "ilium points within 40 mm of its most backward point above the acetabulum"
+  },
+  "patella.base": {
+   "bone": "patella",
+   "what": "the base (upper border) of the patella",
+   "found": "the top fifth of the patella's height"
+  },
+  "vertebrae.T12_body": {
+   "bone": "T12",
+   "what": "the side of the body of the twelfth thoracic vertebra, its lower half (the psoas's highest slip arises there and from the T12/L1 disc)",
+   "found": "the vertebra's points in front of its middle, facing out (normal's lateral share over 0.3), below their middle height"
+  },
+  "sacrum.dorsal_surface": {
+   "bone": "sacrum",
+   "what": "the dorsal surface of the sacrum (its median and lateral crests)",
+   "found": "sacrum points facing back (normal's backward share over 0.5)"
+  }
+ },
+ "muscles": [
+  {
+   "id": "gluteus_maximus",
+   "name": "gluteus maximus",
+   "match": "^TS_gluteus_maximus_[LR]$",
+   "kind": "skeletal",
+   "sided": true,
+   "origin": [
+    {
+     "text": "hip bone: the outer surface of the ilium behind the posterior gluteal line, and the posterior part of the iliac crest",
+     "bones": [
+      "ilium"
+     ],
+     "landmarks": [
+      "ilium.iliac_crest.posterior"
+     ],
+     "kind": "area",
+     "find": {
+      "face": [
+       0.0,
+       0.35
+      ],
+      "reach": 0.015
+     }
+    },
+    {
+     "text": "sacrum: the back of its lower part and its side; the coccyx's side; the aponeurosis of the erector spinae and the sacrotuberous ligament",
+     "bones": [
+      "sacrum",
+      "coccyx"
+     ],
+     "landmarks": [
+      "sacrum.dorsal_surface"
+     ],
+     "kind": "area",
+     "find": {
+      "face": [
+       0.0,
+       0.35
+      ],
+      "reach": 0.015
+     },
+     "note": "its fibres on the sacrotuberous ligament and the erector spinae's aponeurosis (neither in the atlas) are not checked"
+    }
+   ],
+   "insertion": [
+    {
+     "text": "femur: the gluteal tuberosity (its deep lower fibres); the rest into the iliotibial tract of the fascia lata (not in the atlas)",
+     "bones": [
+      "femur"
+     ],
+     "landmarks": [
+      "femur.gluteal_tuberosity"
+     ],
+     "kind": "end",
+     "find": {
+      "cap": [
+       0.35,
+       -0.85,
+       -0.3
+      ],
+      "share": 0.04
+     }
+    }
+   ],
+   "cite": [
+    {
+     "source": "gray1918",
+     "section": "IV. Myology: The Muscles and Fasciae of the Thigh (the gluteal region)",
+     "pages": "474",
+     "plates": [
+      434,
+      235,
+      245,
+      344
+     ]
+    },
+    {
+     "source": "openstax-ap2e",
+     "section": "11.6 Appendicular Muscles of the Pelvic Girdle and Lower Limbs",
+     "figures": [
+      "11.30"
+     ],
+     "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/11-6-appendicular-muscles-of-the-pelvic-girdle-and-lower-limbs"
+    }
+   ],
+   "images": [
+    "https://commons.wikimedia.org/wiki/File:Gray434.png",
+    "https://commons.wikimedia.org/wiki/File:Gray235.png",
+    "https://commons.wikimedia.org/wiki/File:Gray245.png"
+   ],
+   "fix": "tools/anatomy_gluteus.py makes it from its attachments; tools/anatomy_attach.py then brings its origin down onto the sacrum and the iliac crest and its insertion onto the femur, its shape kept",
+   "layer": 3,
+   "midline": 0.005
+  },
+  {
+   "id": "gluteus_medius",
+   "name": "gluteus medius",
+   "match": "^TS_gluteus_medius_[LR]$",
+   "kind": "skeletal",
+   "sided": true,
+   "origin": [
+    {
+     "text": "hip bone: the outer surface of the ilium between the iliac crest and posterior gluteal line above and the anterior gluteal line below; the gluteal aponeurosis over it",
+     "bones": [
+      "ilium"
+     ],
+     "landmarks": [
+      "ilium.gluteal_surface"
+     ],
+     "kind": "area",
+     "find": {
+      "face": [
+       0.0,
+       0.6
+      ],
+      "reach": 0.015
+     },
+     "keep_side": 0.012
+    }
+   ],
+   "insertion": [
+    {
+     "text": "femur: the oblique ridge on the lateral surface of the greater trochanter",
+     "bones": [
+      "femur"
+     ],
+     "landmarks": [
+      "femur.greater_trochanter.lateral"
+     ],
+     "kind": "end",
+     "find": {
+      "cap": [
+       0.45,
+       -0.9,
+       0.0
+      ],
+      "share": 0.04
+     }
+    }
+   ],
+   "cite": [
+    {
+     "source": "gray1918",
+     "section": "IV. Myology: The Muscles and Fasciae of the Thigh (the gluteal region)",
+     "pages": "474",
+     "plates": [
+      434,
+      235,
+      244,
+      344
+     ]
+    },
+    {
+     "source": "openstax-ap2e",
+     "section": "11.6 Appendicular Muscles of the Pelvic Girdle and Lower Limbs",
+     "figures": [
+      "11.30"
+     ],
+     "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/11-6-appendicular-muscles-of-the-pelvic-girdle-and-lower-limbs"
+    }
+   ],
+   "images": [
+    "https://commons.wikimedia.org/wiki/File:Gray434.png",
+    "https://commons.wikimedia.org/wiki/File:Gray235.png",
+    "https://commons.wikimedia.org/wiki/File:Gray344.png"
+   ],
+   "layer": 2
+  },
+  {
+   "id": "gluteus_minimus",
+   "name": "gluteus minimus",
+   "match": "^TS_gluteus_minimus_[LR]$",
+   "kind": "skeletal",
+   "sided": true,
+   "origin": [
+    {
+     "text": "hip bone: the outer surface of the ilium between the anterior and inferior gluteal lines, and the margin of the greater sciatic notch",
+     "bones": [
+      "ilium"
+     ],
+     "landmarks": [
+      "ilium.gluteal_surface"
+     ],
+     "kind": "area",
+     "find": {
+      "face": [
+       0.0,
+       0.6
+      ],
+      "reach": 0.015
+     },
+     "keep_side": 0.012
+    }
+   ],
+   "insertion": [
+    {
+     "text": "femur: an impression on the anterior border of the greater trochanter",
+     "bones": [
+      "femur"
+     ],
+     "landmarks": [
+      "femur.greater_trochanter.anterior"
+     ],
+     "kind": "end",
+     "find": {
+      "cap": [
+       0.45,
+       -0.85,
+       0.25
+      ],
+      "share": 0.04
+     }
+    }
+   ],
+   "cite": [
+    {
+     "source": "gray1918",
+     "section": "IV. Myology: The Muscles and Fasciae of the Thigh (the gluteal region)",
+     "pages": "475",
+     "plates": [
+      235,
+      244,
+      344
+     ]
+    },
+    {
+     "source": "openstax-ap2e",
+     "section": "11.6 Appendicular Muscles of the Pelvic Girdle and Lower Limbs",
+     "figures": [
+      "11.30"
+     ],
+     "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/11-6-appendicular-muscles-of-the-pelvic-girdle-and-lower-limbs"
+    }
+   ],
+   "images": [
+    "https://commons.wikimedia.org/wiki/File:Gray235.png",
+    "https://commons.wikimedia.org/wiki/File:Gray244.png",
+    "https://commons.wikimedia.org/wiki/File:Gray344.png"
+   ],
+   "layer": 1
+  },
+  {
+   "id": "iliopsoas",
+   "name": "iliopsoas (psoas major and iliacus)",
+   "match": "^TS_iliopsoas_[LR]$",
+   "kind": "skeletal",
+   "sided": true,
+   "origin": [
+    {
+     "text": "vertebrae T12 to L5 (psoas major): the sides of the bodies and the discs between them, from the last thoracic down, and the front of the transverse processes of all the lumbar vertebrae; its highest slip on T12 and the T12/L1 disc",
+     "bones": [
+      "T12",
+      "lumbar vertebrae",
+      "T12 to L1 disc",
+      "lumbar discs"
+     ],
+     "landmarks": [
+      "vertebrae.T12_body"
+     ],
+     "kind": "end",
+     "find": {
+      "cap": [
+       0.0,
+       1.0,
+       0.0
+      ],
+      "share": 0.03
+     }
+    },
+    {
+     "text": "vertebrae T12 to L5 (psoas major), along the column: the sides of the bodies and discs",
+     "bones": [
+      "T12",
+      "lumbar vertebrae",
+      "T12 to L1 disc",
+      "lumbar discs"
+     ],
+     "landmarks": [],
+     "kind": "area",
+     "find": {
+      "face": [
+       0.0,
+       0.45
+      ],
+      "reach": 0.012
+     }
+    },
+    {
+     "text": "hip bone (iliacus): the upper two-thirds of the iliac fossa and the inner lip of the iliac crest; the ala of the sacrum and the ligaments in front of the sacroiliac joint",
+     "bones": [
+      "ilium",
+      "sacrum"
+     ],
+     "landmarks": [
+      "ilium.iliac_fossa"
+     ],
+     "kind": "area",
+     "find": {
+      "face": [
+       0.2,
+       0.8
+      ],
+      "reach": 0.012
+     },
+     "keep_side": 0.025
+    }
+   ],
+   "insertion": [
+    {
+     "text": "femur: the lesser trochanter (the psoas's tendon, the iliacus joining its lateral side, some fibres on the shaft just below)",
+     "bones": [
+      "femur"
+     ],
+     "landmarks": [
+      "femur.lesser_trochanter"
+     ],
+     "kind": "end",
+     "find": {
+      "cap": [
+       -0.1,
+       -1.0,
+       -0.25
+      ],
+      "share": 0.03
+     }
+    }
+   ],
+   "cite": [
+    {
+     "source": "gray1918",
+     "section": "IV. Myology: The Muscles and Fasciae of the Iliac Region",
+     "pages": "467",
+     "plates": [
+      430,
+      236,
+      245
+     ]
+    },
+    {
+     "source": "openstax-ap2e",
+     "section": "11.6 Appendicular Muscles of the Pelvic Girdle and Lower Limbs",
+     "figures": [
+      "11.30"
+     ],
+     "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/11-6-appendicular-muscles-of-the-pelvic-girdle-and-lower-limbs"
+    }
+   ],
+   "images": [
+    "https://commons.wikimedia.org/wiki/File:Gray430.png",
+    "https://commons.wikimedia.org/wiki/File:Gray236.png",
+    "https://commons.wikimedia.org/wiki/File:Gray245.png"
+   ]
+  },
+  {
+   "id": "rectus_femoris",
+   "name": "rectus femoris",
+   "match": "^VH_[MF]_rectus_femoris_[LR]$",
+   "kind": "skeletal",
+   "sided": true,
+   "origin": [
+    {
+     "text": "hip bone: the anterior inferior iliac spine (straight head) and the groove above the rim of the acetabulum (reflected head)",
+     "bones": [
+      "ilium"
+     ],
+     "landmarks": [
+      "ilium.aiis"
+     ],
+     "kind": "end",
+     "find": {
+      "cap": [
+       0.0,
+       1.0,
+       0.0
+      ],
+      "share": 0.03
+     },
+     "note": "the atlas's rectus femoris shows its straight head; the reflected head (a flat tendon about 3 cm long back over the acetabulum's rim) is not drawn"
+    }
+   ],
+   "insertion": [
+    {
+     "text": "patella: its base, through the quadriceps tendon (and on to the tibial tuberosity by the patellar ligament)",
+     "bones": [
+      "quadriceps tendon",
+      "patella"
+     ],
+     "landmarks": [],
+     "kind": "end",
+     "find": {
+      "cap": [
+       0.0,
+       -1.0,
+       0.0
+      ],
+      "share": 0.03
+     },
+     "via": "quadriceps tendon"
+    }
+   ],
+   "cite": [
+    {
+     "source": "gray1918",
+     "section": "IV. Myology: The Muscles and Fasciae of the Thigh (the anterior femoral muscles: quadriceps femoris)",
+     "pages": "470",
+     "plates": [
+      430,
+      235,
+      344
+     ]
+    },
+    {
+     "source": "openstax-ap2e",
+     "section": "11.6 Appendicular Muscles of the Pelvic Girdle and Lower Limbs",
+     "figures": [
+      "11.31"
+     ],
+     "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/11-6-appendicular-muscles-of-the-pelvic-girdle-and-lower-limbs"
+    }
+   ],
+   "images": [
+    "https://commons.wikimedia.org/wiki/File:Gray430.png",
+    "https://commons.wikimedia.org/wiki/File:Gray235.png",
+    "https://commons.wikimedia.org/wiki/File:Gray344.png"
+   ]
+  },
+  {
+   "id": "quadriceps_tendon",
+   "name": "tendon of quadriceps femoris",
+   "match": "^VH_[MF]_tendon_of_quadriceps_femoris_[LR]$",
+   "kind": "tendon",
+   "sided": true,
+   "origin": [
+    {
+     "text": "the quadriceps femoris: its four heads' tendons uniting above the knee (in the atlas, the rectus femoris)",
+     "bones": [
+      "rectus femoris"
+     ],
+     "landmarks": [],
+     "kind": "end",
+     "find": {
+      "cap": [
+       0.0,
+       1.0,
+       0.0
+      ],
+      "share": 0.06
+     }
+    }
+   ],
+   "insertion": [
+    {
+     "text": "patella: its base (upper border), a few fibres passing on over its front into the patellar ligament",
+     "bones": [
+      "patella"
+     ],
+     "landmarks": [
+      "patella.base"
+     ],
+     "kind": "end",
+     "find": {
+      "cap": [
+       0.0,
+       -1.0,
+       0.0
+      ],
+      "share": 0.06
+     }
+    }
+   ],
+   "cite": [
+    {
+     "source": "gray1918",
+     "section": "IV. Myology: The Muscles and Fasciae of the Thigh (the anterior femoral muscles: quadriceps femoris)",
+     "pages": "470",
+     "plates": [
+      430
+     ]
+    },
+    {
+     "source": "openstax-ap2e",
+     "section": "11.6 Appendicular Muscles of the Pelvic Girdle and Lower Limbs",
+     "figures": [
+      "11.31"
+     ],
+     "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/11-6-appendicular-muscles-of-the-pelvic-girdle-and-lower-limbs"
+    }
+   ],
+   "images": [
+    "https://commons.wikimedia.org/wiki/File:Gray430.png"
+   ]
+  },
+  {
+   "id": "deep_back_muscles",
+   "name": "deep back muscles (erector spinae and transversospinales)",
+   "match": "^TS_deep_back_muscles_[LR]$",
+   "kind": "skeletal",
+   "sided": true,
+   "origin": [
+    {
+     "text": "sacrum: its dorsal surface (median and lateral crests), the posterior part of the iliac crest, and the lumbar spinous processes, through the erector spinae's aponeurosis; the multifidus in the sacral gutter",
+     "bones": [
+      "sacrum",
+      "ilium",
+      "lumbar vertebrae"
+     ],
+     "landmarks": [
+      "sacrum.dorsal_surface",
+      "ilium.iliac_crest.posterior"
+     ],
+     "kind": "end",
+     "find": {
+      "cap": [
+       0.0,
+       -1.0,
+       0.0
+      ],
+      "share": 0.04
+     },
+     "to": "nearest"
+    },
+    {
+     "text": "along the column: the laminae, transverse and spinous processes of every vertebra it passes (the transversospinales between them), the angles of the ribs (iliocostalis)",
+     "bones": [
+      "lumbar vertebrae",
+      "thoracic vertebrae",
+      "cervical vertebrae",
+      "ribs",
+      "sacrum"
+     ],
+     "landmarks": [],
+     "kind": "area",
+     "find": {
+      "face": [
+       0.08,
+       0.92
+      ],
+      "reach": 0.012
+     }
+    }
+   ],
+   "insertion": [
+    {
+     "text": "the cervical vertebrae's transverse and spinous processes (iliocostalis, longissimus and semispinalis cervicis, multifidus); higher slips go on to the mastoid process and the occipital bone (longissimus and semispinalis capitis), beyond the atlas's segmented muscle",
+     "bones": [
+      "cervical vertebrae",
+      "thoracic vertebrae",
+      "occipital bone",
+      "temporal bone"
+     ],
+     "landmarks": [],
+     "kind": "end",
+     "find": {
+      "cap": [
+       0.0,
+       1.0,
+       0.0
+      ],
+      "share": 0.04
+     },
+     "to": "nearest"
+    }
+   ],
+   "cite": [
+    {
+     "source": "gray1918",
+     "section": "IV. Myology: The Deep Muscles of the Back",
+     "pages": "397-400",
+     "plates": [
+      389,
+      388,
+      96
+     ]
+    },
+    {
+     "source": "openstax-ap2e",
+     "section": "11.3 Axial Muscles of the Head, Neck, and Back",
+     "figures": [
+      "11.15"
+     ],
+     "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/11-3-axial-muscles-of-the-head-neck-and-back"
+    }
+   ],
+   "images": [
+    "https://commons.wikimedia.org/wiki/File:Gray389.png",
+    "https://commons.wikimedia.org/wiki/File:Gray388.png",
+    "https://commons.wikimedia.org/wiki/File:Gray96.png"
+   ],
+   "notes": "One structure stands for the whole group (TotalSegmentator's autochthonous back muscles); its top is where the segmented muscle ends, in the neck."
+  },
+  {
+   "id": "cricothyroid",
+   "name": "cricothyroid",
+   "match": "^VH_[MF]_cricothyroid_[LR]$",
+   "kind": "skeletal",
+   "sided": true,
+   "origin": [
+    {
+     "text": "cricoid cartilage: the front and side of its arch",
+     "bones": [
+      "cricoid cartilage"
+     ],
+     "landmarks": [],
+     "kind": "end",
+     "find": {
+      "cap": [
+       -0.4,
+       -0.46,
+       0.79
+      ],
+      "share": 0.05
+     }
+    }
+   ],
+   "insertion": [
+    {
+     "text": "thyroid cartilage: the lower border of its lamina (straight part) and the front of its inferior horn (oblique part)",
+     "bones": [
+      "thyroid cartilage"
+     ],
+     "landmarks": [],
+     "kind": "end",
+     "find": {
+      "cap": [
+       0.4,
+       0.46,
+       -0.79
+      ],
+      "share": 0.05
+     }
+    }
+   ],
+   "cite": [
+    {
+     "source": "gray1918",
+     "section": "XI. Splanchnology: The Larynx (its muscles)",
+     "pages": "1082",
+     "plates": [
+      957,
+      959
+     ]
+    }
+   ],
+   "images": [
+    "https://commons.wikimedia.org/wiki/File:Gray957.png",
+    "https://commons.wikimedia.org/wiki/File:Gray959.png"
+   ]
+  },
+  {
+   "id": "posterior_cricoarytenoid",
+   "name": "posterior crico-arytenoid",
+   "match": "^VH_[MF]_posterior_cricoarytenoid_[LR]$",
+   "kind": "skeletal",
+   "sided": true,
+   "origin": [
+    {
+     "text": "cricoid cartilage: the broad hollow on its half of the back of the lamina",
+     "bones": [
+      "cricoid cartilage"
+     ],
+     "landmarks": [],
+     "kind": "end",
+     "find": {
+      "cap": [
+       -0.5,
+       -0.8,
+       -0.3
+      ],
+      "share": 0.05
+     }
+    }
+   ],
+   "insertion": [
+    {
+     "text": "arytenoid cartilage: the back of its muscular process",
+     "bones": [
+      "arytenoid cartilage"
+     ],
+     "landmarks": [],
+     "kind": "end",
+     "find": {
+      "cap": [
+       0.5,
+       0.8,
+       0.3
+      ],
+      "share": 0.05
+     }
+    }
+   ],
+   "cite": [
+    {
+     "source": "gray1918",
+     "section": "XI. Splanchnology: The Larynx (its muscles)",
+     "pages": "1082",
+     "plates": [
+      958,
+      960,
+      950
+     ]
+    }
+   ],
+   "images": [
+    "https://commons.wikimedia.org/wiki/File:Gray958.png",
+    "https://commons.wikimedia.org/wiki/File:Gray960.png",
+    "https://commons.wikimedia.org/wiki/File:Gray950.png"
+   ]
+  },
+  {
+   "id": "lateral_cricoarytenoid",
+   "name": "lateral crico-arytenoid",
+   "match": "^VH_[MF]_lateral_cricoarytenoid_[LR]$",
+   "kind": "skeletal",
+   "sided": true,
+   "origin": [
+    {
+     "text": "cricoid cartilage: the upper border of the side of its arch",
+     "bones": [
+      "cricoid cartilage"
+     ],
+     "landmarks": [],
+     "kind": "end",
+     "find": {
+      "cap": [
+       0.0,
+       -0.8,
+       0.6
+      ],
+      "share": 0.05
+     }
+    }
+   ],
+   "insertion": [
+    {
+     "text": "arytenoid cartilage: the front of its muscular process",
+     "bones": [
+      "arytenoid cartilage"
+     ],
+     "landmarks": [],
+     "kind": "end",
+     "find": {
+      "cap": [
+       0.0,
+       0.8,
+       -0.6
+      ],
+      "share": 0.05
+     }
+    }
+   ],
+   "cite": [
+    {
+     "source": "gray1918",
+     "section": "XI. Splanchnology: The Larynx (its muscles)",
+     "pages": "1082-1083",
+     "plates": [
+      959,
+      960
+     ]
+    }
+   ],
+   "images": [
+    "https://commons.wikimedia.org/wiki/File:Gray959.png",
+    "https://commons.wikimedia.org/wiki/File:Gray960.png"
+   ]
+  },
+  {
+   "id": "arytenoid",
+   "name": "arytenoid (transverse and oblique)",
+   "match": "^VH_[MF]_arytenoid$",
+   "kind": "skeletal",
+   "sided": false,
+   "origin": [
+    {
+     "text": "the left arytenoid cartilage: its back and lateral border (the oblique part from the back of its muscular process)",
+     "bones": [
+      "left arytenoid cartilage"
+     ],
+     "landmarks": [],
+     "kind": "end",
+     "find": {
+      "cap": [
+       1.0,
+       0.0,
+       0.0
+      ],
+      "share": 0.05
+     }
+    }
+   ],
+   "insertion": [
+    {
+     "text": "the right arytenoid cartilage: the same parts (the oblique part to its apex); the muscle runs from either to the other",
+     "bones": [
+      "right arytenoid cartilage"
+     ],
+     "landmarks": [],
+     "kind": "end",
+     "find": {
+      "cap": [
+       -1.0,
+       0.0,
+       0.0
+      ],
+      "share": 0.05
+     }
+    }
+   ],
+   "cite": [
+    {
+     "source": "gray1918",
+     "section": "XI. Splanchnology: The Larynx (its muscles)",
+     "pages": "1083",
+     "plates": [
+      958,
+      960
+     ]
+    }
+   ],
+   "images": [
+    "https://commons.wikimedia.org/wiki/File:Gray958.png",
+    "https://commons.wikimedia.org/wiki/File:Gray960.png"
+   ],
+   "notes": "A single muscle across the midline: origin and insertion are the two arytenoid cartilages, either way."
+  },
+  {
+   "id": "thyroarytenoid",
+   "name": "thyro-arytenoid",
+   "match": "^VH_[MF]_thyroarytenoid_[LR]$",
+   "kind": "skeletal",
+   "sided": true,
+   "origin": [
+    {
+     "text": "thyroid cartilage: the inner surface of the lower half of its angle, and the median cricothyroid ligament",
+     "bones": [
+      "thyroid cartilage"
+     ],
+     "landmarks": [],
+     "kind": "end",
+     "find": {
+      "cap": [
+       -0.3,
+       0.0,
+       1.0
+      ],
+      "share": 0.05
+     }
+    }
+   ],
+   "insertion": [
+    {
+     "text": "arytenoid cartilage: its base and anterior surface (some fibres on into the aryepiglottic fold)",
+     "bones": [
+      "arytenoid cartilage"
+     ],
+     "landmarks": [],
+     "kind": "end",
+     "find": {
+      "cap": [
+       0.3,
+       0.0,
+       -1.0
+      ],
+      "share": 0.05
+     }
+    }
+   ],
+   "cite": [
+    {
+     "source": "gray1918",
+     "section": "XI. Splanchnology: The Larynx (its muscles)",
+     "pages": "1083",
+     "plates": [
+      959,
+      960
+     ]
+    }
+   ],
+   "images": [
+    "https://commons.wikimedia.org/wiki/File:Gray959.png",
+    "https://commons.wikimedia.org/wiki/File:Gray960.png"
+   ]
+  },
+  {
+   "id": "vocalis",
+   "name": "vocalis",
+   "match": "^VH_[MF]_vocalis$",
+   "kind": "skeletal",
+   "sided": false,
+   "origin": [
+    {
+     "text": "thyroid cartilage: the inner surface of its angle, beside the vocal ligament",
+     "bones": [
+      "thyroid cartilage"
+     ],
+     "landmarks": [],
+     "kind": "end",
+     "find": {
+      "cap": [
+       0.0,
+       0.0,
+       1.0
+      ],
+      "share": 0.05
+     }
+    }
+   ],
+   "insertion": [
+    {
+     "text": "arytenoid cartilages: the vocal process and the anterior surface next to it, each side",
+     "bones": [
+      "arytenoid cartilages"
+     ],
+     "landmarks": [],
+     "kind": "end",
+     "find": {
+      "cap": [
+       0.0,
+       0.0,
+       -1.0
+      ],
+      "share": 0.05
+     }
+    }
+   ],
+   "cite": [
+    {
+     "source": "gray1918",
+     "section": "XI. Splanchnology: The Larynx (its muscles)",
+     "pages": "1083",
+     "plates": [
+      960,
+      953
+     ]
+    }
+   ],
+   "images": [
+    "https://commons.wikimedia.org/wiki/File:Gray960.png",
+    "https://commons.wikimedia.org/wiki/File:Gray953.png"
+   ],
+   "notes": "The deepest fibres of the thyro-arytenoid, both sides in one structure in the atlas."
+  },
+  {
+   "id": "thyroepiglotticus",
+   "name": "thyro-epiglotticus",
+   "match": "^VH_[MF]_thyroepiglott\\w*$",
+   "kind": "skeletal",
+   "sided": false,
+   "origin": [
+    {
+     "text": "thyroid cartilage: the inner surface of its lamina and angle (fibres of the thyro-arytenoid carried on)",
+     "bones": [
+      "thyroid cartilage"
+     ],
+     "landmarks": [],
+     "kind": "end",
+     "find": {
+      "cap": [
+       0.0,
+       -0.75,
+       0.66
+      ],
+      "share": 0.06
+     }
+    }
+   ],
+   "insertion": [
+    {
+     "text": "epiglottic cartilage: its margin (some fibres lost in the aryepiglottic fold)",
+     "bones": [
+      "epiglottic cartilage"
+     ],
+     "landmarks": [],
+     "kind": "end",
+     "find": {
+      "cap": [
+       0.0,
+       0.75,
+       -0.66
+      ],
+      "share": 0.06
+     }
+    }
+   ],
+   "cite": [
+    {
+     "source": "gray1918",
+     "section": "XI. Splanchnology: The Larynx (its muscles)",
+     "pages": "1083",
+     "plates": [
+      959
+     ]
+    }
+   ],
+   "images": [
+    "https://commons.wikimedia.org/wiki/File:Gray959.png"
+   ],
+   "notes": "Tagged cartilage in the manifest; a muscle all the same."
+  },
+  {
+   "id": "medial_rectus",
+   "name": "medial rectus",
+   "match": "^VH_[MF]_medial_rectus_extraocular_muscle_[LR]$",
+   "kind": "skeletal",
+   "sided": true,
+   "origin": [
+    {
+     "text": "sphenoid bone: the common tendinous ring (annulus of Zinn) round the optic canal at the apex of the orbit",
+     "bones": [
+      "sphenoid bone"
+     ],
+     "landmarks": [],
+     "kind": "end",
+     "find": {
+      "far": [
+       0.0,
+       0.0,
+       -1.0
+      ]
+     }
+    }
+   ],
+   "insertion": [
+    {
+     "text": "eyeball: the sclera in front of the equator, about 5.5 mm behind the corneal margin",
+     "bones": [
+      "sclera"
+     ],
+     "landmarks": [],
+     "kind": "end",
+     "find": {
+      "far": [
+       0.0,
+       0.0,
+       1.0
+      ]
+     }
+    }
+   ],
+   "cite": [
+    {
+     "source": "gray1918",
+     "section": "X. The Organs of the Senses: The Accessory Organs of the Eye (the ocular muscles)",
+     "pages": "1022",
+     "plates": [
+      888,
+      890
+     ]
+    },
+    {
+     "source": "openstax-ap2e",
+     "section": "11.3 Axial Muscles of the Head, Neck, and Back",
+     "figures": [
+      "11.9",
+      "Table 11.3"
+     ],
+     "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/11-3-axial-muscles-of-the-head-neck-and-back"
+    }
+   ],
+   "images": [
+    "https://commons.wikimedia.org/wiki/File:Gray888.png",
+    "https://commons.wikimedia.org/wiki/File:Gray890.png"
+   ],
+   "fix": "tools/anatomy_eyes.py (made to the textbook's measures); not moved by tools/anatomy_attach.py",
+   "moved_by": "tools/anatomy_eyes.py"
+  },
+  {
+   "id": "inferior_rectus",
+   "name": "inferior rectus",
+   "match": "^VH_[MF]_inferior_rectus_extraocular_muscle_[LR]$",
+   "kind": "skeletal",
+   "sided": true,
+   "origin": [
+    {
+     "text": "sphenoid bone: the common tendinous ring (annulus of Zinn) round the optic canal at the apex of the orbit",
+     "bones": [
+      "sphenoid bone"
+     ],
+     "landmarks": [],
+     "kind": "end",
+     "find": {
+      "far": [
+       0.0,
+       0.0,
+       -1.0
+      ]
+     }
+    }
+   ],
+   "insertion": [
+    {
+     "text": "eyeball: the sclera in front of the equator, about 6.5 mm behind the corneal margin",
+     "bones": [
+      "sclera"
+     ],
+     "landmarks": [],
+     "kind": "end",
+     "find": {
+      "far": [
+       0.0,
+       0.0,
+       1.0
+      ]
+     }
+    }
+   ],
+   "cite": [
+    {
+     "source": "gray1918",
+     "section": "X. The Organs of the Senses: The Accessory Organs of the Eye (the ocular muscles)",
+     "pages": "1022",
+     "plates": [
+      888,
+      890
+     ]
+    },
+    {
+     "source": "openstax-ap2e",
+     "section": "11.3 Axial Muscles of the Head, Neck, and Back",
+     "figures": [
+      "11.9",
+      "Table 11.3"
+     ],
+     "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/11-3-axial-muscles-of-the-head-neck-and-back"
+    }
+   ],
+   "images": [
+    "https://commons.wikimedia.org/wiki/File:Gray888.png",
+    "https://commons.wikimedia.org/wiki/File:Gray890.png"
+   ],
+   "fix": "tools/anatomy_eyes.py (made to the textbook's measures); not moved by tools/anatomy_attach.py",
+   "moved_by": "tools/anatomy_eyes.py"
+  },
+  {
+   "id": "lateral_rectus",
+   "name": "lateral rectus",
+   "match": "^VH_[MF]_lateral_rectus_extraocular_muscle_[LR]$",
+   "kind": "skeletal",
+   "sided": true,
+   "origin": [
+    {
+     "text": "sphenoid bone: the common tendinous ring (annulus of Zinn) round the optic canal at the apex of the orbit",
+     "bones": [
+      "sphenoid bone"
+     ],
+     "landmarks": [],
+     "kind": "end",
+     "find": {
+      "far": [
+       0.0,
+       0.0,
+       -1.0
+      ]
+     }
+    }
+   ],
+   "insertion": [
+    {
+     "text": "eyeball: the sclera in front of the equator, about 6.9 mm behind the corneal margin",
+     "bones": [
+      "sclera"
+     ],
+     "landmarks": [],
+     "kind": "end",
+     "find": {
+      "far": [
+       0.0,
+       0.0,
+       1.0
+      ]
+     }
+    }
+   ],
+   "cite": [
+    {
+     "source": "gray1918",
+     "section": "X. The Organs of the Senses: The Accessory Organs of the Eye (the ocular muscles)",
+     "pages": "1022",
+     "plates": [
+      888,
+      890
+     ]
+    },
+    {
+     "source": "openstax-ap2e",
+     "section": "11.3 Axial Muscles of the Head, Neck, and Back",
+     "figures": [
+      "11.9",
+      "Table 11.3"
+     ],
+     "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/11-3-axial-muscles-of-the-head-neck-and-back"
+    }
+   ],
+   "images": [
+    "https://commons.wikimedia.org/wiki/File:Gray888.png",
+    "https://commons.wikimedia.org/wiki/File:Gray890.png"
+   ],
+   "fix": "tools/anatomy_eyes.py (made to the textbook's measures); not moved by tools/anatomy_attach.py",
+   "moved_by": "tools/anatomy_eyes.py"
+  },
+  {
+   "id": "superior_rectus",
+   "name": "superior rectus",
+   "match": "^VH_[MF]_superior_rectus_extraocular_muscle_[LR]$",
+   "kind": "skeletal",
+   "sided": true,
+   "origin": [
+    {
+     "text": "sphenoid bone: the common tendinous ring (annulus of Zinn) round the optic canal at the apex of the orbit",
+     "bones": [
+      "sphenoid bone"
+     ],
+     "landmarks": [],
+     "kind": "end",
+     "find": {
+      "far": [
+       0.0,
+       0.0,
+       -1.0
+      ]
+     }
+    }
+   ],
+   "insertion": [
+    {
+     "text": "eyeball: the sclera in front of the equator, about 7.7 mm behind the corneal margin",
+     "bones": [
+      "sclera"
+     ],
+     "landmarks": [],
+     "kind": "end",
+     "find": {
+      "far": [
+       0.0,
+       0.0,
+       1.0
+      ]
+     }
+    }
+   ],
+   "cite": [
+    {
+     "source": "gray1918",
+     "section": "X. The Organs of the Senses: The Accessory Organs of the Eye (the ocular muscles)",
+     "pages": "1022",
+     "plates": [
+      888,
+      890
+     ]
+    },
+    {
+     "source": "openstax-ap2e",
+     "section": "11.3 Axial Muscles of the Head, Neck, and Back",
+     "figures": [
+      "11.9",
+      "Table 11.3"
+     ],
+     "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/11-3-axial-muscles-of-the-head-neck-and-back"
+    }
+   ],
+   "images": [
+    "https://commons.wikimedia.org/wiki/File:Gray888.png",
+    "https://commons.wikimedia.org/wiki/File:Gray890.png"
+   ],
+   "fix": "tools/anatomy_eyes.py (made to the textbook's measures); not moved by tools/anatomy_attach.py",
+   "moved_by": "tools/anatomy_eyes.py"
+  },
+  {
+   "id": "superior_oblique",
+   "name": "superior oblique",
+   "match": "^VH_[MF]_superior_oblique_extraocular_muscle_[LR]$",
+   "kind": "skeletal",
+   "sided": true,
+   "origin": [
+    {
+     "text": "sphenoid bone: its body above and medial to the optic canal; the tendon turns in the trochlea on the frontal bone's trochlear fovea",
+     "bones": [
+      "sphenoid bone"
+     ],
+     "landmarks": [],
+     "kind": "end",
+     "find": {
+      "far": [
+       0.0,
+       0.0,
+       -1.0
+      ]
+     }
+    }
+   ],
+   "insertion": [
+    {
+     "text": "eyeball: the sclera behind the equator, in its upper lateral back quarter, under the superior rectus",
+     "bones": [
+      "sclera"
+     ],
+     "landmarks": [],
+     "kind": "end",
+     "find": {
+      "far": [
+       0.0,
+       0.0,
+       1.0
+      ]
+     }
+    }
+   ],
+   "cite": [
+    {
+     "source": "gray1918",
+     "section": "X. The Organs of the Senses: The Accessory Organs of the Eye (the ocular muscles)",
+     "pages": "1022",
+     "plates": [
+      888,
+      890
+     ]
+    },
+    {
+     "source": "openstax-ap2e",
+     "section": "11.3 Axial Muscles of the Head, Neck, and Back",
+     "figures": [
+      "11.9",
+      "Table 11.3"
+     ],
+     "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/11-3-axial-muscles-of-the-head-neck-and-back"
+    }
+   ],
+   "images": [
+    "https://commons.wikimedia.org/wiki/File:Gray888.png",
+    "https://commons.wikimedia.org/wiki/File:Gray890.png",
+    "https://commons.wikimedia.org/wiki/File:Gray776.png"
+   ],
+   "fix": "tools/anatomy_eyes.py (made to the textbook's measures); not moved by tools/anatomy_attach.py",
+   "moved_by": "tools/anatomy_eyes.py"
+  },
+  {
+   "id": "inferior_oblique",
+   "name": "inferior oblique",
+   "match": "^VH_[MF]_inferior_oblique_extraocular_muscle_[LR]$",
+   "kind": "skeletal",
+   "sided": true,
+   "origin": [
+    {
+     "text": "maxilla: the orbital surface, just lateral to the nasolacrimal groove, at the front of the orbit's floor",
+     "bones": [
+      "maxilla",
+      "lacrimal bone"
+     ],
+     "landmarks": [],
+     "kind": "end",
+     "find": {
+      "far": [
+       -0.6,
+       0.0,
+       0.8
+      ]
+     }
+    }
+   ],
+   "insertion": [
+    {
+     "text": "eyeball: the sclera behind the equator, low on its lateral back part, under the lateral rectus",
+     "bones": [
+      "sclera"
+     ],
+     "landmarks": [],
+     "kind": "end",
+     "find": {
+      "far": [
+       0.6,
+       0.0,
+       -0.8
+      ]
+     }
+    }
+   ],
+   "cite": [
+    {
+     "source": "gray1918",
+     "section": "X. The Organs of the Senses: The Accessory Organs of the Eye (the ocular muscles)",
+     "pages": "1023",
+     "plates": [
+      888,
+      890
+     ]
+    },
+    {
+     "source": "openstax-ap2e",
+     "section": "11.3 Axial Muscles of the Head, Neck, and Back",
+     "figures": [
+      "11.9",
+      "Table 11.3"
+     ],
+     "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/11-3-axial-muscles-of-the-head-neck-and-back"
+    }
+   ],
+   "images": [
+    "https://commons.wikimedia.org/wiki/File:Gray888.png",
+    "https://commons.wikimedia.org/wiki/File:Gray890.png"
+   ],
+   "fix": "tools/anatomy_eyes.py (made to the textbook's measures); not moved by tools/anatomy_attach.py",
+   "moved_by": "tools/anatomy_eyes.py"
+  },
+  {
+   "id": "ciliary_muscle",
+   "name": "ciliary muscle (smooth)",
+   "match": "^VH_[MF]_ciliary_muscle_[LR]$",
+   "kind": "smooth",
+   "sided": true,
+   "origin": [
+    {
+     "text": "the scleral spur, at the corneoscleral junction",
+     "bones": [
+      "corneoscleral junction",
+      "sclera"
+     ],
+     "landmarks": [],
+     "kind": "soft",
+     "find": null,
+     "check": false
+    }
+   ],
+   "insertion": [
+    {
+     "text": "the ciliary body and the choroid",
+     "bones": [
+      "ciliary body",
+      "choroid"
+     ],
+     "landmarks": [],
+     "kind": "soft",
+     "find": null,
+     "check": false
+    }
+   ],
+   "cite": [
+    {
+     "source": "gray1918",
+     "section": "X. The Organs of the Senses: The Tunics of the Eye (the ciliary body)",
+     "pages": null,
+     "plates": []
+    }
+   ],
+   "images": [],
+   "notes": "Smooth muscle inside the eyeball: no bone attachment; listed so every muscle structure has its row."
+  },
+  {
+   "id": "papillary_anterior_lv",
+   "name": "papillary anterior (left ventricle)",
+   "match": "^VH_[MF]_papillary_muscle_of_heart_ant(erior)?$",
+   "kind": "cardiac",
+   "sided": false,
+   "origin": [
+    {
+     "text": "the left ventricle wall: the trabeculae carneae",
+     "bones": [
+      "left ventricle wall",
+      "interventricular septum"
+     ],
+     "landmarks": [],
+     "kind": "soft",
+     "find": null,
+     "check": false
+    }
+   ],
+   "insertion": [
+    {
+     "text": "the cusps of the mitral valve, through the chordae tendineae (not in the atlas)",
+     "bones": [
+      "mitral valve"
+     ],
+     "landmarks": [],
+     "kind": "soft",
+     "find": null,
+     "check": false
+    }
+   ],
+   "cite": [
+    {
+     "source": "gray1918",
+     "section": "V. Angiology: The Heart (the ventricles)",
+     "pages": null,
+     "plates": []
+    },
+    {
+     "source": "openstax-ap2e",
+     "section": "19.1 Heart Anatomy",
+     "figures": [
+      "19.11"
+     ],
+     "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/19-1-heart-anatomy"
+    }
+   ],
+   "images": [],
+   "notes": "Cardiac muscle: no bone attachment; listed so every muscle structure has its row."
+  },
+  {
+   "id": "papillary_anterolateral_lv",
+   "name": "papillary anterolateral (left ventricle)",
+   "match": "^VH_[MF]_papillary_muscle_of_heart_ant(erolateral|lat)$",
+   "kind": "cardiac",
+   "sided": false,
+   "origin": [
+    {
+     "text": "the left ventricle wall: the trabeculae carneae",
+     "bones": [
+      "left ventricle wall",
+      "interventricular septum"
+     ],
+     "landmarks": [],
+     "kind": "soft",
+     "find": null,
+     "check": false
+    }
+   ],
+   "insertion": [
+    {
+     "text": "the cusps of the mitral valve, through the chordae tendineae (not in the atlas)",
+     "bones": [
+      "mitral valve"
+     ],
+     "landmarks": [],
+     "kind": "soft",
+     "find": null,
+     "check": false
+    }
+   ],
+   "cite": [
+    {
+     "source": "gray1918",
+     "section": "V. Angiology: The Heart (the ventricles)",
+     "pages": null,
+     "plates": []
+    },
+    {
+     "source": "openstax-ap2e",
+     "section": "19.1 Heart Anatomy",
+     "figures": [
+      "19.11"
+     ],
+     "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/19-1-heart-anatomy"
+    }
+   ],
+   "images": [],
+   "notes": "Cardiac muscle: no bone attachment; listed so every muscle structure has its row."
+  },
+  {
+   "id": "papillary_posteromedial_lv",
+   "name": "papillary posteromedial (left ventricle)",
+   "match": "^VH_[MF]_papillary_muscle_of_heart_pos(teromedial|med)$",
+   "kind": "cardiac",
+   "sided": false,
+   "origin": [
+    {
+     "text": "the left ventricle wall: the trabeculae carneae",
+     "bones": [
+      "left ventricle wall",
+      "interventricular septum"
+     ],
+     "landmarks": [],
+     "kind": "soft",
+     "find": null,
+     "check": false
+    }
+   ],
+   "insertion": [
+    {
+     "text": "the cusps of the mitral valve, through the chordae tendineae (not in the atlas)",
+     "bones": [
+      "mitral valve"
+     ],
+     "landmarks": [],
+     "kind": "soft",
+     "find": null,
+     "check": false
+    }
+   ],
+   "cite": [
+    {
+     "source": "gray1918",
+     "section": "V. Angiology: The Heart (the ventricles)",
+     "pages": null,
+     "plates": []
+    },
+    {
+     "source": "openstax-ap2e",
+     "section": "19.1 Heart Anatomy",
+     "figures": [
+      "19.11"
+     ],
+     "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/19-1-heart-anatomy"
+    }
+   ],
+   "images": [],
+   "notes": "Cardiac muscle: no bone attachment; listed so every muscle structure has its row."
+  },
+  {
+   "id": "papillary_posterior_rv",
+   "name": "papillary posterior (right ventricle)",
+   "match": "^VH_[MF]_papillary_muscle_of_heart_pos(terior)?$",
+   "kind": "cardiac",
+   "sided": false,
+   "origin": [
+    {
+     "text": "the right ventricle wall: the trabeculae carneae",
+     "bones": [
+      "right ventricle wall",
+      "interventricular septum"
+     ],
+     "landmarks": [],
+     "kind": "soft",
+     "find": null,
+     "check": false
+    }
+   ],
+   "insertion": [
+    {
+     "text": "the cusps of the tricuspid valve, through the chordae tendineae (not in the atlas)",
+     "bones": [
+      "tricuspid valve"
+     ],
+     "landmarks": [],
+     "kind": "soft",
+     "find": null,
+     "check": false
+    }
+   ],
+   "cite": [
+    {
+     "source": "gray1918",
+     "section": "V. Angiology: The Heart (the ventricles)",
+     "pages": null,
+     "plates": []
+    },
+    {
+     "source": "openstax-ap2e",
+     "section": "19.1 Heart Anatomy",
+     "figures": [
+      "19.11"
+     ],
+     "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/19-1-heart-anatomy"
+    }
+   ],
+   "images": [],
+   "notes": "Cardiac muscle: no bone attachment; listed so every muscle structure has its row."
+  },
+  {
+   "id": "papillary_septal_rv",
+   "name": "papillary septal (right ventricle)",
+   "match": "^VH_[MF]_papillary_muscle_of_heart_med(ial)?$",
+   "kind": "cardiac",
+   "sided": false,
+   "origin": [
+    {
+     "text": "the interventricular septum: the trabeculae carneae",
+     "bones": [
+      "interventricular septum",
+      "interventricular septum"
+     ],
+     "landmarks": [],
+     "kind": "soft",
+     "find": null,
+     "check": false
+    }
+   ],
+   "insertion": [
+    {
+     "text": "the cusps of the tricuspid valve, through the chordae tendineae (not in the atlas)",
+     "bones": [
+      "tricuspid valve"
+     ],
+     "landmarks": [],
+     "kind": "soft",
+     "find": null,
+     "check": false
+    }
+   ],
+   "cite": [
+    {
+     "source": "gray1918",
+     "section": "V. Angiology: The Heart (the ventricles)",
+     "pages": null,
+     "plates": []
+    },
+    {
+     "source": "openstax-ap2e",
+     "section": "19.1 Heart Anatomy",
+     "figures": [
+      "19.11"
+     ],
+     "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/19-1-heart-anatomy"
+    }
+   ],
+   "images": [],
+   "notes": "Cardiac muscle: no bone attachment; listed so every muscle structure has its row."
+  },
+  {
+   "id": "bladder_neck_smooth_muscle",
+   "name": "smooth muscle of the bladder neck",
+   "match": "^VH_[MF]_urinary_bladder_neck_smooth_muscle$",
+   "kind": "smooth",
+   "sided": false,
+   "origin": [
+    {
+     "text": "the bladder wall at its neck (the trigone)",
+     "bones": [
+      "bladder wall"
+     ],
+     "landmarks": [],
+     "kind": "soft",
+     "find": null,
+     "check": false
+    }
+   ],
+   "insertion": [
+    {
+     "text": "the urethra's beginning (the prostate in the man)",
+     "bones": [
+      "urethra",
+      "prostate"
+     ],
+     "landmarks": [],
+     "kind": "soft",
+     "find": null,
+     "check": false
+    }
+   ],
+   "cite": [
+    {
+     "source": "gray1918",
+     "section": "XI. Splanchnology: The Urinary Bladder",
+     "pages": null,
+     "plates": []
+    }
+   ],
+   "images": [],
+   "notes": "Smooth muscle in the bladder's wall: no bone attachment; listed so every muscle structure has its row."
+  }
+ ]
+}

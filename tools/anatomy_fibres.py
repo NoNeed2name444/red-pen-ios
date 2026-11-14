@@ -87,6 +87,21 @@ RULES = [
     (r"gluteus_medius", r"ilium|hip_bone|_hip_", r"femur", {}),
     (r"gluteus_minimus", r"ilium|hip_bone|_hip_", r"femur", {}),
     (r"iliopsoas", r"lumbar_vertebra|ilium|hip_bone|_hip_", r"femur", {"far": 0.4}),
+    # the head's and neck's (tools/anatomy_muscles_more.py), as Gray's Anatomy (1918) gives them
+    (r"masseter", r"zygomatic_bone|maxilla|temporal_bone", r"mandible", {}),
+    (r"temporalis", r"temporal_bone|parietal_bone|frontal_bone|sphenoid_bone", r"mandible", {}),
+    (r"lateral_pterygoid", r"sphenoid_bone", r"mandible", {}),
+    (r"medial_pterygoid", r"sphenoid_bone|palatine_bone|maxilla", r"mandible", {}),
+    (r"digastric", r"temporal_bone", r"mandible", {}),
+    (r"sternocleidomastoid", r"sternum|manubrium|clavicle", r"temporal_bone|occipital_bone", {}),
+    (r"scalenus_anterior", r"cervical_vertebra_[3-6]$", r"rib_1_", {}),
+    (r"scalenus_medius", r"cervical_vertebra_[1-7]$", r"rib_1_", {}),
+    (r"scalenus_posterior", r"cervical_vertebra_[4-7]$", r"rib_2_", {}),
+    (r"levator_scapulae", r"cervical_vertebra_[1-4]$", r"scapula", {}),
+    (r"sternothyroid", r"sternum|manubrium", r"thyroid_cartilage", {}),
+    (r"thyrohyoid", r"thyroid_cartilage", r"hyoid", {}),
+    (r"longus_colli", r"thoracic_vertebra_[1-3]$|cervical_vertebra_[5-7]$", r"occipital_bone|cervical_vertebra_[12]$",
+     {}),
     # tools/anatomy_muscles_body.py's (its MUSCLES says where each arises and inserts)
     (r"vastus_", r"femur", r"patella", {}),
     (r"adductor_|pectineus|obturator_|gemelli|piriformis", HIP_BONE + r"|sacrum", r"femur", {}),
@@ -108,6 +123,8 @@ RULES = [
     (r"semispinalis_cervicis", r"thoracic_vertebra", r"cervical_vertebra_[2-5]", {}),
     (r"quadratus_lumborum", HIP_BONE, r"rib_12|lumbar_vertebra", {}),
 ]
+# what a rule may name besides bone: the larynx's cartilages
+RULE_CARTILAGE = re.compile(r"thyroid_cartilage")
 # muscle that is not skeletal: the heart's, the eye's ciliary, the bladder's smooth muscle
 NOT_SKELETAL = re.compile(r"papillary|ciliary|smooth_muscle|gyrus")
 # the eye's muscles (tools/anatomy_eyes.py): their tendons flat (the recti's, curving on the eyeball) or long and
@@ -120,6 +137,10 @@ THIN_TENDONS = re.compile(r"extraocular")
 ORIGIN_TOWARD = [
     (r"rectus_femoris|quadriceps", (0.0, 1.0, 0.0)),      # the anterior inferior iliac spine, above; the patella below
     (r"deep_back_muscles", (0.0, -1.0, 0.0)),             # the sacrum and iliac crest (the erector spinae's common origin)
+    # tools/anatomy_muscles_more.py's (the head and neck)
+    (r"masseter|temporalis|medial_pterygoid|scalenus_|levator_scapulae", (0.0, 1.0, 0.0)),
+    (r"lateral_pterygoid", (0.0, 0.0, 1.0)),          # the sphenoid, in front; the condyle's neck behind
+    (r"sternocleidomastoid|sternothyroid|thyrohyoid|longus_colli", (0.0, -1.0, 0.0)),
     # tools/anatomy_muscles_body.py's: "medial" is toward the midline, whichever side the muscle is on
     (r"trapezius|rhomboid|latissimus|supraspinatus|infraspinatus|subscapularis|obturator_|gemelli|piriformis", "medial"),
     (r"splenius|semispinalis|quadratus_lumborum", (0.0, -1.0, 0.0)),
@@ -822,10 +843,13 @@ def annotate(folder, quiet=False, again=False):
         bones = {}
         named = re.compile("|".join(f"{o}|{i}" for _, o, i, _ in RULES))
         for part in body["parts"]:
-            if part["system"] != "skeletal":
+            wanted = [st for st in part["structures"] if named.search(st["node"]) and (
+                (part["system"] == "skeletal" and st.get("tissue") == "bone")
+                or (st.get("tissue") == "cartilage" and RULE_CARTILAGE.search(st["node"])))]
+            if not wanted:
                 continue
             for st, (v, f) in zip(part["structures"], read_part(os.path.join(folder, part["file"]))):
-                if st.get("tissue") == "bone" and named.search(st["node"]):
+                if any(st is w for w in wanted):
                     bones[st["node"]] = surface_points(v, f)
         skeletal = lambda st: st.get("tissue") == "muscle" and not NOT_SKELETAL.search(st["node"])
         need = {}   # how often each muscle would be split on its own, and to how many triangles brought down;
