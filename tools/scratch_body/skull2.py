@@ -326,6 +326,11 @@ FACE_POINTS = [  # the front surface's depth z where no traced line gives it: (x
     (50.0, -6.0, 69.5), (53.0, 2.0, 68.5), (54.5, 12.0, 68.0), (54.0, 20.0, 69.5),
     (57.4, 15.0, 63.5), (57.6, 5.0, 62.5), (59.5, -4.0, 57.0), (55.6, -12.8, 62.0), (49.2, -19.5, 67.0),
     (40.7, -21.1, 70.5), (35.5, -23.0, 70.5),
+    # the frontal bone's zygomatic process and the temporal crest above it: x from the outline seen from in front (FACE_EDGE,
+    # a millimetre inside it), y and z from the crest traced on the side view (temporal.FRONTAL_CREST). Without them the
+    # forehead turned back too soon: at the crest's line it stood 47 mm out where the outline from in front has 52, and the
+    # pillar beside the orbit ended in a horn under that narrow place.
+    (54.5, 25.3, 65.7), (52.6, 28.7, 72.3), (50.9, 34.1, 75.1), (49.6, 39.5, 75.1), (48.2, 45.0, 74.7), (47.2, 49.4, 74.0),
     # the tooth-bearing process: the swellings over the roots and the hollows between
     (4.5, -38, 97.6), (9.5, -38, 96.0), (13.8, -38, 92.8), (17.5, -36, 91.5), (17.5, -41, 89.5), (21.5, -38, 83.5),
     (24.3, -38, 76.0), (27.6, -37, 66.5), (30.0, -36, 57.0), (4.5, -43, 97.8), (9.5, -43, 95.8),
@@ -353,8 +358,11 @@ def face(T, V, h, log=print):
     for x, y, z in FACE_POINTS:
         pts.append((x, y, z, 1.0))
     # above the orbits the relief runs into the braincase: take the braincase's own surface there
+    fe = np.array(FACE_EDGE[1:6], float)[::-1]                                             # the slab's edge beside the forehead, going up
     for x in np.arange(0, 61, 6.0):
         for y in (48.0, 56.0):
+            if x > np.interp(y, fe[:, 1], fe[:, 0]) + 2.0:      # past the edge a line only grazes the braincase's side: that says nothing of the forehead, and pulled the crest 2 mm back
+                continue
             zz = np.arange(40, 115, 0.5)
             d = V.field(np.full(len(zz), x), np.full(len(zz), y), zz)[0]
             k = np.where(d < 0)[0]
@@ -375,21 +383,30 @@ def face(T, V, h, log=print):
     jaw = np.interp(M.V, [-42, -30, -18, -8, 0, 12], [41.0, 40.5, 43.0, 48.0, 54.0, 58.0]) + 7.0 * ease((M.U - 24.0) / 9.0) ** 2
     mid = 44.0 + (jaw - 44.0) * ease((M.U - 13.0) / 6.0)
     t = np.interp(M.U, [33.0, 40.0, 60.0], [0.0, 1.0, 1.0])
-    plate = Zf - np.interp(M.V, [-25, -10, 10, 30, 52], [13.0, 12.0, 9.5, 10.0, 16.0])
+    plate = np.interp(M.V, [-25, -10, 10, 30, 52], [13.0, 12.0, 9.5, 10.0, 16.0])
+    # Above the orbit the slab's outer edge is the temporal crest, and the bone falls away into the fossa straight behind it:
+    # there the slab is a lip 4 to 5 mm deep, not a plate 10 to 14 mm deep whose flat back stood in the fossa as a second step.
+    plate = Zf - plate * (1.0 - 0.65 * ease((reg + 7.0) / 7.0) * ease((M.V - 27.0) / 6.0))
     inner = np.where(M.U < 33.0, mid, mid + (plate - mid) * t)
     inner = np.minimum(inner, Zf - 3.0)
     # toward the top of the forehead the relief sinks under the braincase, so the two meet without a step
     t = np.clip((M.V - 40.0) / 16.0, 0.0, 1.0)
     outer = Zf - 7.0 * t * t * (3 - 2 * t)
-    # and likewise along its outer edge above the orbit, where the forehead turns into the temple
-    outer = outer - 5.0 * ease((reg + 5.0) / 5.0) * ease((M.V - 30.0) / 8.0)
+    # and likewise along its outer edge, where the forehead turns into the temple. Not from the orbit's roof up, as first done:
+    # the outline from in front (FACE_EDGE: x 52.9 at y 30, 51.0 at 37.6, 49.5 at 44) is the frontal bone's zygomatic process
+    # running up into the temporal crest, which stands out of the braincase until about 45 mm up. Sunk from 30 mm it left the
+    # pillar beside the orbit ending in a horn at its top, 5 mm proud of the forehead's side.
+    outer = outer - 5.0 * ease((reg + 5.0) / 5.0) * ease((M.V - 42.0) / 10.0)
     solid = Slab(M, (0, 1, 2), outer, np.minimum(inner, outer - 3.0), reg, round=2.2)
     return solid, Zf, M, om, ap, reg
 
 
 # =================================== the cheek bone and its arch: a relief over the side view ===================================
 ZYG_SIDE = [   # the cheek bone with the arch behind it, seen from the side, traced on Fig. 188: (z, y), closed
-    (71.0, 30.0), (63.5, 30.0), (62.2, 23.6), (59.7, 20.9), (57.5, 17.4), (56.1, 13.7), (55.6, 9.8), (55.4, 5.9), (54.6, 3.7),
+    # (its top: the hind border does not run straight up to a level top 30 mm above the Frankfurt plane, as first drawn. From
+    # the frontozygomatic suture's hind end, page (750, 1745), it leans forward and up as the frontal bone's temporal crest,
+    # page (730, 1700) and (675, 1655): the pillar beside the orbit narrows upward into the forehead's side)
+    (72.9, 27.6), (71.4, 28.8), (68.0, 27.0), (64.7, 25.3), (62.4, 22.6), (59.7, 20.9), (57.5, 17.4), (56.1, 13.7), (55.6, 9.8), (55.4, 5.9), (54.6, 3.7),
     (52.0, 0.6), (49.0, -0.8), (46.4, -0.9), (40.1, 0.4), (34.8, 1.2), (28.4, 1.6), (22.0, 1.9), (15.5, 1.9), (9.2, 1.5),
     (3.0, 1.6), (3.1, -0.4), (5.3, -0.4), (9.0, -0.8), (11.8, -2.9), (13.9, -5.7), (16.8, -7.4), (19.5, -7.5), (22.4, -6.3),
     (25.0, -4.2), (27.5, -2.7), (31.7, -3.2), (35.8, -4.3), (39.3, -5.7), (39.9, -7.1), (44.6, -9.7), (49.2, -12.7),
@@ -411,11 +428,17 @@ def cheek(M, Zf, reg, log=print):
     gz = M.sample(Zf, gx, gy)
     ok = (M.sample(reg, gx, gy) < -1.5) & (gz > 50.0) & (gz < 76.0)
     pts += [(z, y, x, 0.6) for x, y, z in zip(gx[ok], gy[ok], gz[ok])]
+    # The frontal process: nothing held its outer face between the arch (z 46 and back) and the face's relief, and it bellied
+    # out to x 62 at its hind border, 4 mm beyond the face's outline seen from in front (FACE_EDGE: 57.6 at y 6.6, 57.4 at 19,
+    # 56.0 at 24, 52.9 at 30) and beyond the arch's own line seen from below. Its hind border is held on that outline.
+    # At its top the process runs into the frontal bone's zygomatic process, which the face's slab draws on the same outline.
+    pts += [(55.5, 8.0, 58.6, 1.0), (56.1, 13.7, 57.6, 1.0), (59.7, 20.9, 56.4, 1.0), (64.7, 25.3, 55.0, 1.0), (68.0, 27.0, 54.2, 1.0),
+            (71.4, 28.8, 53.2, 1.0), (72.9, 27.6, 53.4, 1.0)]
     pts = np.array(pts, float)
     Xo = S.thin_plate(pts, weight=20.0)
     miss = S.sample(Xo, pts[:, 0], pts[:, 1]) - pts[:, 2]
     log("cheek relief through %d points: off by rms %.2f, worst %.2f mm" % (len(pts), np.sqrt((miss ** 2).mean()), np.abs(miss).max()))
-    t = np.interp(S.U, [0, 6, 12, 22, 44, 50, 58, 66], [14.0, 12.0, 8.0, 4.4, 4.2, 5.5, 8.0, 10.0])
+    t = np.interp(S.U, [0, 6, 12, 22, 44, 50, 58, 66], [14.0, 12.0, 8.0, 4.4, 4.2, 5.0, 5.5, 9.0])      # (the frontal process is a plate 5 to 6 mm thick, not 8)
     return Slab(S, (2, 1, 0), Xo, Xo - t, S.region(ZYG_SIDE), round=1.6)
 
 
@@ -435,8 +458,10 @@ def drape(F, zy):
     return out
 
 
-def wander(P, amp, seed, snap=None):
-    """A line on the braincase made to wander from side to side as a toothed suture does (mm), its ends kept."""
+def wander(P, amp, seed, snap=None, wave=plates.TOOTHED, depth=None):
+    """A line on the braincase made to wander from side to side as a toothed suture does (mm), its ends kept.
+    depth(P): how deep the teeth are at each point of the line (1 = amp). (The waves were once as short as 1.4 mm: on a line
+    kept every half millimetre and a half-millimetre grid those came out as a row of pits, not as teeth.)"""
     P = spline(np.asarray(P, float), 0.5)
     if snap is not None:
         P = snap(P)
@@ -445,7 +470,10 @@ def wander(P, amp, seed, snap=None):
     n = P - C; n /= np.linalg.norm(n, axis=1, keepdims=True)
     b = np.cross(t, n); b /= np.maximum(np.linalg.norm(b, axis=1, keepdims=True), 1e-9)
     r = np.random.default_rng(seed).uniform(0, 2 * np.pi, 4)
-    w = np.sin(2 * np.pi * s / 3.3 + r[0]) + 0.7 * np.sin(2 * np.pi * s / 2.1 + r[1]) + 0.6 * np.sin(2 * np.pi * s / 5.9 + r[2]) + 0.4 * np.sin(2 * np.pi * s / 1.4 + r[3])
+    if depth is None:
+        w = sum(a * np.sin(2 * np.pi * s / q + f) for a, q, f in zip((1.0, 0.7, 0.6, 0.4), wave, r))
+    else:
+        w = 2.5 * surface.teeth(s, wave, r, np.random.default_rng(seed + 100).uniform(0, 2 * np.pi, 4)) * depth(P)
     fade = np.clip(np.minimum(s, s[-1] - s) / 3.0, 0, 1)
     Q = P + (amp * 0.5 * w * fade)[:, None] * b
     Q[:, 0] = np.maximum(Q[:, 0], 0.0)
@@ -463,20 +491,45 @@ def sutures(F, T, V, log=print):
     a0, a1 = np.arctan2(b[1] - C[1], b[0] - C[2]), np.arctan2(l[1] - C[1], l[0] - C[2])
     ang = np.linspace(a0, a1 if a1 > a0 else a1 + 2 * np.pi, 40)
     lines["sagittal"] = V.on(np.column_stack([np.zeros(len(ang)), C[1] + 50 * np.sin(ang), C[2] + 50 * np.cos(ang)]))
+    # The coronal and lambdoid sutures begin on the midline, at the sagittal's two ends (bregma and lambda). The vault is nearly
+    # level from side to side there, so the lines draped from the side view began 12 and 18 mm out and the three never met.
+    for name, end in (("coronal", 0), ("lambdoid", -1)):
+        P = lines[name]
+        lines[name] = np.vstack([lines["sagittal"][end], P[P[:, 0] > 0.0]])
     for seed, (name, P) in enumerate(sorted(lines.items())):
         P = P[(P[:, 0] > 0.0) | (name == "sagittal") | (np.arange(len(P)) == 0)]
         if name == "occipitomastoid":                      # it runs behind and inward of the mastoid process, never on to it
             P = P[(((P - np.array(MASTOID[0])) / (np.array(MASTOID[1]) + 2.5)) ** 2).sum(1) > 1.0]
+        stop = None
+        if name == "sphenofrontal":                        # its groove ends in the fossa, at the back of the cheek bone's frontal process: draped
+            up_ = np.where(np.diff(P[:, 0]) > 2.0)[0]      # from the side its last points climb the process's hind edge, and the groove cut a pit in it.
+            up_ = up_[up_ > len(P) // 2]                   # (The line itself is kept whole: the bones are parted along it, out to the process's edge.)
+            if len(up_):
+                stop = P[up_[0]]
         if len(P) < 3:
             continue
+        toothed = name in ("coronal", "lambdoid")
+        deep = None
+        if name == "coronal":                              # long teeth above, a fine wavering line below (plates.CORONAL_FINE_BELOW)
+            y0 = float(T.F.mm(np.array([plates.CORONAL_FINE_BELOW], float))[0][1])
+            deep = lambda q: 0.3 + 0.7 * np.clip((q[:, 1] - y0 + 4.0) / 8.0, 0, 1)
+        elif name == "lambdoid":
+            deep = lambda q: np.ones(len(q))
         Q, n = wander(P, 0.0 if name == "sagittal" else plates.SUTURE_WAVE[name], seed,
-                      snap=(lambda q: V.on(q, 0.0)) if name in ("coronal", "lambdoid") else None)
+                      snap=(lambda q: V.on(q, 0.0)) if toothed else None, depth=deep)
         if name == "sagittal":                             # on the midline: cut after the halves are joined, with a wander of its own (whole())
-            build.midline.append((name, Q + 0.35 * n, plates.SUTURE_WAVE[name] * 0.5, 0.85))
+            build.midline.append((name, Q + 0.15 * n, plates.SAGITTAL["teeth"], 0.65))      # a narrower groove: its teeth stay apart
             out[name] = np.round(Q[::4], 2).tolist()
             continue
-        F.cut(Tube(Q + 0.35 * n, 0.85), 0.5)
-        out[name] = np.round(Q[::4], 2).tolist()
+        k = len(Q) if stop is None else int(np.argmin(((Q - stop) ** 2).sum(1))) + 1
+        lift = np.zeros(len(Q))
+        if stop is not None:                               # It ends 3 mm short of the process's hind face and runs out to nothing over its last
+            run = np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(Q[:k], axis=0), axis=1))])      # 6 mm: carried to the foot of that steep face at
+            k = int(np.searchsorted(run, run[-1] - 3.0)) + 1                                             # full depth, its end bit a round pit into it.
+            t_ = np.clip((run[:k] - (run[k - 1] - 6.0)) / 6.0, 0, 1)
+            lift[:k] = t_ * t_ * (3 - 2 * t_)
+        F.cut(Tube((Q + (0.35 + lift)[:, None] * n)[:k], 0.85), 0.5)
+        out[name] = np.round(Q[::2 if toothed else 4], 2).tolist()      # (the toothed ones kept every millimetre: the bones part along the teeth)
     log("sutures cut: " + ", ".join(sorted(out)))
     return out
 
@@ -500,7 +553,14 @@ def build(h=1.0, log=print, box=None):
     F.add(cheek(M, Zf, reg, log), 2.5)
     # the outer wall of the orbit, running back and inward from the outer rim to the braincase
     wall = spline([(50, 16, 67), (44, 17, 59), (36, 18, 51), (27, 19, 43)], 2)
-    F.add(Tube(wall, [(0, 17.0), (1, 10)], 2.6, up=up, n=3), 6)
+    F.add(Tube(wall, [(0, 17.0), (1, 10)], 2.6, up=up, n=3, true=True), 6)      # (its distance as it is: counted in its thin half-width it swelled the temple by a millimetre up to a ruled step 14 mm above it)
+    temporal.fossa_front(F, F0, ZYG_SIDE[9:3:-1], log)     # the hollow behind the cheek bone's hind border (those six points of its outline) and the frontal bone's crest, as the plate draws it
+    # The cheek bone's frontal process is a plate 5 to 6 mm thick with a hollowed back (its temporal surface), not a block.
+    # The hollow lies between the plate and the orbit's outer wall and opens backward into the fossa: an oval laid along the
+    # wall (which runs back and inward at 37 degrees), so that its inner bank is the wall's own face and runs on into the
+    # fossa's floor with no sill between. (A round channel cut straight in read as a slot with a pointed top.)
+    d_, n_ = np.array([0.6, 0.0, 0.8]), np.array([0.8, 0.0, -0.6])
+    F.cut(Ellipsoid((48.8, 14.5, 58.5), (4.5, 8.0, 2.4), np.stack([d_, np.array([0.0, 1.0, 0.0]), n_], axis=1)), 2.5)
     # ---- temporal bone: the arch's root over the joint, the tubercle in front of it, the plate round the ear hole, the mastoid
     B = base.build(F, F0, log)
     F.add(Ellipsoid((54, 1.4, 9), (10.5, 4.4, 12)), 5)
@@ -572,6 +632,11 @@ def build(h=1.0, log=print, box=None):
     foramina.press(F, B, foramina.cut(F, B, log), log)
     # small openings
     F.cut(Tube(np.array([(30.6, -9.8, 92.0), (29.5, -5.5, 74)]), 1.9), 0.8)          # infraorbital foramen
+    # two more that the front view (Fig. 190) draws: the notch in the orbit's upper rim, 23.7 mm from the middle plane (page
+    # 757, 1648), a groove across the rim's edge from the orbit's roof up on to the forehead; and the small hole on the cheek
+    # bone's face, 51 mm out and 1 mm below the Frankfurt plane (page 505, 1983), running in toward the orbit
+    F.cut(Ellipsoid((23.7, 30.2, 97.0), (2.6, 2.1, 3.6), rot((1, 0, 0), -30)), 1.2)   # supraorbital notch: a shallow rounded bite out of the rim's edge, 5 mm wide and under 2 deep
+    F.cut(Tube(np.array([(51.6, -0.8, 72.5), (49.4, 2.0, 66.5)]), 0.85), 0.4)        # zygomaticofacial foramen
     F.cut(Tube(np.array([(15, 21, 44.0), (9.5, 22.5, 30)]), 2.4), 1.0)               # optic canal
     # the two fissures at the back of the orbit: slits, the upper one between the sphenoid's wings, the lower one in the floor
     F.cut(Tube(np.array([(21.3, 20.6, 47.5), (19.5, 20.0, 30.0)]), 5.6, 1.5, up=(0.55, 0.83, 0), taper=0.55), 0.6)
@@ -611,7 +676,10 @@ def whole(F, log=print, rough=True):
     whole.midlines = {}                                       # each midline suture as it was really cut (bones.py splits the paired bones along them)
     for name, P, amp, r in getattr(build, "midline", []):
         if len(P) > 2:
-            Q = surface.wander_line(P, amp, rng); whole.midlines[name] = Q
+            sg = plates.SAGITTAL if name == "sagittal" else None       # deep teeth in its front two-thirds, shallow behind
+            Q = surface.wander_line(P, amp, rng, **(dict(wave=sg["wave"], drift=sg["drift"], depth=lambda u: sg["hind"] + (1 - sg["hind"]) *
+                                                         (1 - np.clip((u - 0.6) / 0.14, 0, 1))) if sg else {}))
+            whole.midlines[name] = Q
             G.cut(Tube(Q, r), 0.4)
     temporal.relief(G, log)                                   # the temporal bone's small relief, each side with its own unevenness
     if rough:

@@ -7,10 +7,10 @@ public domain), and the page beside each is where a search of the book's text fi
 - **plain**: there, but only as part of a larger traced form
 - **missing**: not there
 
-Of 144 details: 82 built, 22 plain, 40 missing.
+Of 144 details: 89 built, 19 plain, 36 missing.
 
 
-## Frontal (1 of 13 built)
+## Frontal (4 of 13 built)
 
 | Detail | State | Where, or what is lacking | Gray, page |
 | --- | --- | --- | --- |
@@ -18,9 +18,9 @@ Of 144 details: 82 built, 22 plain, 40 missing.
 | superciliary arch | plain | the face's relief through traced points (skull2.face); no arch of its own | 135 |
 | glabella | plain | a point of the traced profile (landmarks.py) | 135 |
 | supraorbital margin | built | skull2.orbit_margin: the orbit's rim as traced | 135 |
-| supraorbital notch or foramen | missing | the rim is traced from it but no notch is cut | 136 |
-| zygomatic process | plain | the orbit's outer rim; the suture below it is in the split (bones.py) | 136 |
-| temporal line | missing |  | 136 |
+| supraorbital notch or foramen | built | a shallow notch cut in the orbit's upper rim, 5 mm wide (skull2.build) | 136 |
+| zygomatic process | built | its hind edge is the temporal crest traced on Fig. 188 (temporal.FRONTAL_CREST), the fossa hollowed behind it (temporal.fossa_front); the suture below it is in the split (bones.py) | 136 |
+| temporal line | built | temporal.lines_relief: the crest on the frontal bone, traced on Fig. 188 | 136 |
 | nasal part and nasal spine | missing | the nasal bones meet the frontal bone on a plain wall | 136 |
 | orbital plate (roof of the orbit) | plain | the orbit's funnel (skull2.build) | 137 |
 | fossa for the lacrimal gland | missing |  | 137 |
@@ -28,12 +28,12 @@ Of 144 details: 82 built, 22 plain, 40 missing.
 | frontal sinus | missing | the bone is solid | 135 |
 | inside: frontal crest, foramen cecum, sagittal sulcus | missing | the cranial cavity is one smooth hollow | 136 |
 
-## Parietal (0 of 4 built)
+## Parietal (1 of 4 built)
 
 | Detail | State | Where, or what is lacking | Gray, page |
 | --- | --- | --- | --- |
 | parietal eminence | plain | the braincase's traced outline | 133 |
-| superior and inferior temporal lines | missing |  | 134 |
+| superior and inferior temporal lines | built | temporal.lines_relief: two low lines over the parietal, traced on Fig. 188; they still read as a very regular arc | 134 |
 | parietal foramen | missing |  | 134 |
 | inside: grooves for the middle meningeal vessels, sagittal sulcus | missing | the cranial cavity is one smooth hollow | 134 |
 
@@ -148,13 +148,13 @@ Of 144 details: 82 built, 22 plain, 40 missing.
 | incisive foramen and canals | built | palate.py | 162 |
 | maxillary sinus | missing | the bone is solid | 158 |
 
-## Zygomatic (2 of 6 built)
+## Zygomatic (4 of 6 built)
 
 | Detail | State | Where, or what is lacking | Gray, page |
 | --- | --- | --- | --- |
 | malar surface | built | skull2.cheek | 164 |
-| zygomaticofacial foramen | missing |  | 164 |
-| frontosphenoidal process | plain | the orbit's outer rim | 164 |
+| zygomaticofacial foramen | built | a small oblique hole on the cheek surface (skull2.build) | 164 |
+| frontosphenoidal process | built | skull2.cheek: a plate 5 to 6 mm thick, its hind border traced on Fig. 188 (ZYG_SIDE), hollowed behind along the orbit's outer wall | 164 |
 | temporal process and the arch | built | skull2.cheek, at the usual breadth of 133 mm | 166 |
 | orbital surface and its foramina | missing | the surface is there; the foramina are not | 165 |
 | zygomaticotemporal foramen | missing |  | 164 |
@@ -209,18 +209,18 @@ Of 144 details: 82 built, 22 plain, 40 missing.
 | angle | built | mandible4.py: a round turn, about 118 degrees | 174 |
 | mandibular canal | missing | inside the bone | 173 |
 
-## Whole skull (9 of 15 built)
+## Whole skull (10 of 15 built)
 
 | Detail | State | Where, or what is lacking | Gray, page |
 | --- | --- | --- | --- |
-| sutures of the vault: coronal, sagittal, lambdoidal, squamosal | built | skull2.sutures, traced on Fig. 188; cut into the surface | 178 |
+| sutures of the vault: coronal, sagittal, lambdoidal, squamosal | built | skull2.sutures, traced on Fig. 188 and checked over the plate (dev/plate_lines.py); toothed as Gray describes them, meeting at bregma and lambda | 178 |
 | sutures round the great wing and the mastoid | built | skull2.sutures | 182 |
 | sutures of the face | plain | walls in the split (bones.py); not cut into the one-piece skull | 186 |
 | sutures of the palate | built | palate.py |  |
 | orbit: margin and four walls | built | skull2.build | 183 |
 | inferior orbital fissure | plain | a slit, not its true shape | 184 |
 | nasolacrimal canal | missing |  | 188 |
-| temporal fossa | plain | the side of the braincase; no lines round it | 178 |
+| temporal fossa | built | bounded by the temporal lines and the frontal crest (temporal.lines_relief), hollowed behind the cheek bone and the crest (temporal.fossa_front) | 178 |
 | infratemporal fossa | built | base.py, pterygoid.py | 180 |
 | pterygomaxillary fissure and pterygopalatine fossa | built | pterygoid.py | 184 |
 | choanae | built | left between the plates, the vomer, the body and the palate | 180 |

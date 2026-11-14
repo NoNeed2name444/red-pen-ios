@@ -36,6 +36,20 @@ ARTERY = [(-9.0, 9.0), (-10.5, 17.0), (-12.5, 26.0), (-13.5, 34.0)]    # the gro
 LIP_X = 56.6                # how far out the hole's lip stands: well inside the arch's root above it and the mastoid behind it
 STYLOID = [(41.8, -13.0, -1.5), (41.4, -20.0, 1.6), (40.0, -28.0, 5.0), (38.2, -35.5, 8.4)]   # down, forward and a little inward, with a slight bow: 24 mm
 INSIDE = MASTOID_SIDE[-6:] + MASTOID_SIDE[:1]       # the part of the mastoid's outline that lies in the bone: there the process runs out into the skull's side
+# The temporal lines, which Fig. 188 draws and names ("Supr. temporal line", "Infr. temporal line"): one crest climbs from the
+# frontal bone's zygomatic process up the side of the forehead and parts in two as it nears the coronal suture; the two lines
+# arch back over the parietal bone 6 to 9 mm apart and come down behind, the lower one into the supramastoid crest. Read off
+# the plate's page (the bands of its shading and the two labels, which the engraver set along them), then put into the head
+# frame: (z, y) on the side view.
+# The crest on the frontal bone is the front edge of the plate's dark band (the temporal fossa falling away behind it). It leaves
+# the cheek bone's hind border at the frontozygomatic suture, leans forward and up, turns upright beside the orbit's roof and
+# curves back above: page (730, 1700), (675, 1655), (660, 1600), (670, 1550), (685, 1500), (700, 1460), (725, 1420), (750, 1390),
+# (772, 1340). (First drawn as three points from 16 mm higher up: a ruled bar that began in the middle of the forehead's side.)
+FRONTAL_CREST = [(64.7, 25.3), (71.3, 28.7), (74.1, 34.1), (74.1, 39.5), (73.7, 45.0), (73.0, 49.4), (71.3, 54.1), (69.3, 57.8), (68.1, 63.4)]
+LINE_UPPER = [(67.1, 72.8), (60.1, 80.7), (51.8, 87.3), (43.3, 92.9), (34.4, 97.2), (24.3, 100.1), (13.7, 101.3), (2.6, 99.8), (-7.7, 97.1),
+              (-17.4, 92.1), (-27.6, 84.6), (-36.2, 74.5), (-42.4, 62.9), (-45.5, 50.6), (-45.8, 38.8), (-42.6, 28.4)]
+LINE_LOWER = [(66.3, 69.2), (59.0, 75.6), (50.5, 81.1), (41.7, 85.7), (32.8, 89.2), (22.5, 91.6), (11.8, 92.0), (0.8, 91.0), (-8.5, 87.9),
+              (-17.2, 82.4), (-25.6, 73.4), (-31.6, 62.8), (-34.5, 51.5), (-34.6, 40.7), (-32.2, 31.6), (-31.6, 23.0)]
 
 
 def smoothstep(t):
@@ -163,6 +177,101 @@ def side_relief(seed, log=print):
     return M, ndimage.gaussian_filter(H, 1.0)
 
 
+def lines_relief(seed, log=print):
+    """The temporal crest and lines as a height map over the side view (mm, + raised). The lower line is the muscle's edge: on
+    the frontal bone a crest of nearly 1 mm, gentle toward the forehead and steep toward the fossa, with the bone behind it
+    hollowed (the front of the temporal fossa, deepest just behind the crest beside the orbit's roof and shallower upward); on
+    the parietal a plain low line with the muscle's bed a shade lower inside it. The upper line, where the fascia holds, is
+    fainter and broader. Neither is even along its length."""
+    M = Map(-62.0, 86.0, 8.0, 108.0, 0.5)
+    slow = uneven(M, seed, 9.0); fine = np.clip(uneven(M, seed + 1, 2.5), -1.5, 1.5)
+    H = np.zeros(M.U.shape)
+    lower, upper = FRONTAL_CREST + LINE_LOWER, FRONTAL_CREST + LINE_UPPER
+    seg = lambda L: np.linalg.norm(np.diff(np.array(L, float), axis=0), axis=1).sum()
+    tc = seg(FRONTAL_CREST) / seg(lower)                                   # how much of the lower line is the crest on the frontal bone
+    reg = M.region(spline(np.array(lower + [(-32.0, 12.0), (20.0, 12.0), (58.0, 14.0)], float), 0.5, closed=True))      # below zero inside the muscle's field
+    d, t = along(M, lower)
+    high = 0.3 + 0.6 * (1 - smoothstep((t - 0.8 * tc) / (0.6 * tc)))        # strongest on the crest, 0.3 mm on the parietal
+    wide = np.where(reg > 0, 1.9, 1.0) + 0.25 * fine
+    H += high * smoothstep(t / 0.025) * (1.0 + 0.3 * slow) * np.exp(-(d / wide) ** 2) * (1 - 0.6 * smoothstep((t - 0.85) / 0.15))
+    d, t = along(M, upper)
+    H += 0.2 * smoothstep((t - 1.1 * tc) / 0.08) * (1.0 + 0.35 * slow) * np.exp(-(d / 2.2) ** 2) * (1 - 0.7 * smoothstep((t - 0.85) / 0.15))
+    H -= 0.16 * smoothstep(-reg / 2.5) * np.exp(-(reg / 12.0) ** 2)         # the step down across the lower line, dying away within 12 mm
+    dc, _ = along(M, FRONTAL_CREST + LINE_LOWER[:1])
+    deep = 2.3 * smoothstep((M.V - 44.0) / 10.0) * (1 - 0.85 * smoothstep((M.V - 38.0) / 26.0))     # (below that the fossa's front is cut back to the braincase behind the crest: fossa_front)
+    H -= deep * smoothstep(dc / 3.5) * np.exp(-(dc / 16.0) ** 2) * smoothstep(-reg / 2.0) * (1.0 + 0.15 * slow)
+    return M, ndimage.gaussian_filter(H, 1.0)
+
+
+def fossa_front(F, F0, border, log=print):
+    """The front of the temporal fossa: the hollow behind the pillar that bounds the orbit on the outside.
+
+    Nothing drew it before: the pillar was a slab over the front view ten millimetres thick with a flat back, and behind it the
+    orbit's outer wall stood up as a plate with a level top, so the pillar ended in a knob with a ledge running back to the
+    pterion. The plate (Fig. 188) draws the cheek bone's hind border leaning forward and up into the frontal bone's temporal
+    crest (FRONTAL_CREST), with the fossa falling away behind it all the way. Here whatever stands behind that line (border: the
+    cheek bone's hind border from above the arch upward, (z, y)) is taken down to the braincase's own surface less a hollow
+    that is deepest just behind the line.
+
+    The cut has an edge only along that line. Upward, backward and downward it runs out to nothing over 6 to 8 mm (a first
+    cut ended on a level top and an upright hind side, and a second faded out below the top of what it was removing: each
+    left a ruled step across the temple, where bone has none). Its hollow has run out by 44 mm, where the relief's
+    (lines_relief) begins. It never leaves the orbit's outer wall under 2.5 mm thick."""
+    S = Map(40.0, 78.0, 4.0, 59.0, 0.5)                                    # u = z, v = y
+    lo = np.asarray(F.lo, float); hi = lo + F.h * (np.array(F.n) - 1)
+    if lo[1] > 6.0 or hi[1] < 57.0 or lo[2] > 42.0 or hi[2] < 76.0 or hi[0] < 70.0:
+        return False
+    xs = np.arange(76.0, 20.0, -0.25)
+    P = np.stack(np.broadcast_arrays(xs[:, None, None], S.V[None], S.U[None]), -1).reshape(-1, 3)
+    shape = (len(xs),) + S.U.shape
+
+    def outer(A):                         # where the bone is first met coming in from the side, and which samples are bone
+        d = sdf.sample_field(A, F.lo, F.h, P).reshape(shape)
+        ins = d < 0
+        i = np.clip(ins.argmax(0), 1, len(xs) - 1)
+        d1 = np.take_along_axis(d, i[None], 0)[0]; d0 = np.take_along_axis(d, (i - 1)[None], 0)[0]
+        x = xs[i] + 0.25 * np.where(d0 > d1, -d1 / np.maximum(d0 - d1, 1e-6), 0.0)
+        return np.where(ins.any(0), x, 30.0), ins, i
+
+    x0, _, _ = outer(F0)
+    x0 = ndimage.gaussian_filter(x0, 1.0 / S.cell)
+    xc, ins, ic = outer(F.D)
+    edge = list(border) + FRONTAL_CREST[:7] + [(70.3, 58.0)]              # the cheek bone's hind border, then the crest
+    dc, _ = along(S, edge)
+    # The orbit's outer wall ends at 34 mm; the edge of the face's slab (the frontal bone's zygomatic process, then the crest)
+    # stands out of the braincase to about 45 mm and has sunk into it by 52 (skull2.face). The cut runs out between 44 and 54,
+    # where there is less and less to step over.
+    fade = (1 - smoothstep((S.V - 44.0) / 10.0)) * smoothstep((S.U - 43.0) / 7.0) * smoothstep((S.V - 7.0) / 6.0)
+    # Below the frontozygomatic suture the cheek bone's hind border is a plate's free edge: the fossa begins straight behind
+    # it. Above, the crest is the lip of a slope: the frontal bone's temporal surface falls away over 7 to 8 mm, not off a cliff.
+    fade = fade * smoothstep(dc / (2.0 + 6.0 * smoothstep((S.V - 20.0) / 14.0)))
+    # Above the orbit's roof nothing stands in the fossa further than that slope reaches: the cut ends 7 to 17 mm behind the crest.
+    fade = fade * (1 - smoothstep((S.V - 32.0) / 6.0) * smoothstep((dc - 7.0) / 10.0))
+    # The hollow is deepest at the level of the cheek bone's frontal process and runs out upward over 20 mm: ended over 5 (as it
+    # first was) it left a level shelf across the fossa at the height of the orbit's roof, 2.3 mm in 4.
+    hollow = 2.6 * smoothstep(dc / 3.0) * np.exp(-(dc / 16.0) ** 2) * (1 - smoothstep((S.V - 24.0) / 20.0)) * smoothstep((S.V - 10.0) / 10.0)
+    # Above the orbit's roof there is little or nothing to take away far behind the crest. A cut laid exactly on the surface
+    # there planes off its grain where that stands a hair above and leaves it where it lies a hair below: a stitched row of
+    # pits across the forehead's side. So up there the cut stops 0.6 mm above the braincase's own surface.
+    want = x0 - hollow + 0.6 * smoothstep((S.V - 34.0) / 6.0)
+    # no deeper than leaves 2.5 mm of bone under the new surface (the orbit lies inside this wall)
+    n = 10
+    c = np.cumsum(ins, 0, dtype=np.int32); c = np.concatenate([c, np.repeat(c[-1:], n, 0)], 0)
+    thick = (c[n:] - np.concatenate([np.zeros((1,) + S.U.shape, np.int32), c[:-n - 1]], 0)) == n + 1      # bone from this sample to 2.5 mm in
+    idx = np.arange(len(xs))[:, None, None]
+    it = np.clip(np.floor((xs[0] - want) / 0.25).astype(int), 0, len(xs) - 1)
+    okay = thick & (idx <= it[None]) & (idx >= ic[None])
+    last = len(xs) - 1 - okay[::-1].argmax(0)
+    floor = np.where(okay.any(0), np.where(last >= it, want, xs[last]), xc + 1.0)
+    inner = (xc + 1.0) - fade * np.maximum(xc + 1.0 - floor, 0.0)
+    reg = S.region(spline(np.array(edge + [(41.0, 58.0), (41.0, 5.0)], float), 0.5, closed=True))
+    F.cut(Slab(S, (2, 1, 0), np.full(S.U.shape, 84.0), inner, reg, round=1.2, mirror=False), 1.2)
+    took = np.where(reg < 0, xc - inner, 0.0)
+    log("front of the temporal fossa: taken back to the braincase behind the cheek bone's hind border and the crest (up to %.1f mm of the pillar's back, a hollow of up to %.1f mm), running out to nothing above, behind and below"
+        % (took.max(), (hollow * fade)[reg < 0].max()))
+    return True
+
+
 def press(G, M, H, side, lo=(44.0, -36.0, -41.0), hi=(70.0, 39.0, 29.0)):
     """Push a relief over the side view into the bone's own outer surface on one side of the finished head (side = +1 left, -1 right)."""
     a, b = np.array(lo, float), np.array(hi, float)
@@ -186,7 +295,12 @@ def press(G, M, H, side, lo=(44.0, -36.0, -41.0), hi=(70.0, 39.0, 29.0)):
 
 def relief(G, log=print):
     """Both sides' small relief, each with its own unevenness. For the whole head's field."""
-    done = 0
+    done = lines = 0
+    for side, seed in ((1, 1390), (-1, 1400)):
+        M, H = lines_relief(seed, log)
+        lines += press(G, M, H, side, lo=(15.0, 8.0, -62.0), hi=(76.0, 108.0, 86.0))
+    if lines:
+        log("temporal lines: the crest on the frontal bone and the two lines over the parietal pressed in on %d side(s), %.2f to %.2f mm" % (lines, H.min(), H.max()))
     for side, seed in ((1, 1370), (-1, 1380)):
         M, H = side_relief(seed, log)
         done += press(G, M, H, side)

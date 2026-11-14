@@ -110,11 +110,29 @@ def roughen(D, lo, h, seed=1918, zones=ZONES, log=print):
     return D
 
 
-def wander_line(P, amp, rng, wave=(6.1, 3.4, 9.7, 2.3)):
-    """A line (N x 3) made to wander sideways (in x) by up to about amp mm, its ends kept: a suture on the midline."""
+def teeth(s, wave, ph, ph2):
+    """The sideways run of a toothed suture along its length s (mm), about -1.5 to 1.5: teeth of several lengths at once, their
+    spacing and their depth both changing from place to place (no two teeth of a real suture are alike, and a plain sum of
+    waves reads as a zip)."""
+    warp = s + 1.2 * np.sin(2 * np.pi * s / 23.0 + ph2[0]) + 0.8 * np.sin(2 * np.pi * s / 13.7 + ph2[1])
+    deep = 0.75 + 0.3 * np.sin(2 * np.pi * s / 19.0 + ph2[2]) + 0.2 * np.sin(2 * np.pi * s / 7.3 + ph2[3])
+    return deep * sum(a * np.sin(2 * np.pi * warp / L + p) for a, L, p in zip((1.0, 0.8, 0.7, 0.45), wave, ph)) / 1.9
+
+
+def wander_line(P, amp, rng, wave=(6.1, 3.4, 9.7, 2.3), drift=0.0, depth=None):
+    """A line (N x 3) made to wander sideways (in x) by up to about amp mm, its ends kept: a suture on the midline.
+    depth(u): how deep its teeth are at each place along it (u from 0 at its start to 1 at its end; 1 = amp).
+    drift: how far the whole line strays from the middle plane besides (mm), over lengths of 4 to 7 cm."""
     P = np.asarray(P, float)
     s = np.concatenate([[0], np.cumsum(np.linalg.norm(np.diff(P, axis=0), axis=1))])
     ph = rng.uniform(0, 2 * np.pi, 4)
-    w = sum(a * np.sin(2 * np.pi * s / L + p) for a, L, p in zip((1.0, 0.8, 0.7, 0.45), wave, ph)) / 1.9
-    Q = P.copy(); Q[:, 0] += amp * w * np.clip(np.minimum(s, s[-1] - s) / 2.0, 0, 1)
+    if depth is None:
+        w = sum(a * np.sin(2 * np.pi * s / L + p) for a, L, p in zip((1.0, 0.8, 0.7, 0.45), wave, ph)) / 1.9
+    else:
+        w = teeth(s, wave, ph, rng.uniform(0, 2 * np.pi, 4)) * depth(s / s[-1])
+    end = np.minimum(s, s[-1] - s)
+    Q = P.copy(); Q[:, 0] += amp * w * np.clip(end / 2.0, 0, 1)
+    if drift:
+        ph = rng.uniform(0, 2 * np.pi, 2)
+        Q[:, 0] += drift * (np.sin(2 * np.pi * s / 71.0 + ph[0]) + 0.6 * np.sin(2 * np.pi * s / 43.0 + ph[1])) / 1.3 * np.clip(end / 14.0, 0, 1)
     return Q

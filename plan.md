@@ -3573,8 +3573,7 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
   whatever the grid, and the middle scrolls are joined to the ethmoid's block.
   Left for F8: writing the parts out for the app.
 - [ ] F7. The side of the head (ear hole's rim, the arch's root), the orbit's
-  fissures, the molars' crowns, the cranial floor, the temporal lines, the
-  maxillary sinus.
+  fissures, the molars' crowns, the cranial floor, the maxillary sinus.
 - [x] F7a. The feature ledger (14 Nov): tools/scratch_body/LEDGER.md, written
   by dev/ledger.py. Every named detail of the skull's bones and the jaw in
   Gray's account (pp. 129 to 198), 144 of them, each with the page a search of
@@ -3583,10 +3582,31 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
   this order: the inside of the skull (the three fossae, sella, crista galli
   and cribriform plate, grooves, internal acoustic meatus: one smooth hollow
   now); the air sinuses (frontal, sphenoidal, maxillary: the bones are solid);
-  the temporal lines; the orbit (supraorbital notch, lacrimal fossa and
-  crests, nasolacrimal canal, ethmoidal foramina, true shapes of the two
-  fissures); the small foramina (rotundum, pterygoid canal, sphenopalatine,
-  zygomatic, parietal, mastoid).
+  the temporal lines (done, F7b); the orbit (supraorbital notch, done in
+  F7b; lacrimal fossa and crests, nasolacrimal canal, ethmoidal foramina,
+  true shapes of the two fissures); the small foramina (rotundum, pterygoid
+  canal, sphenopalatine, zygomatic, parietal, mastoid).
+- [x] F7b. The temple and the vault's sutures (14 Nov, after the owner's
+  "bones don't normally look perfectly straight like that"). The sutures are
+  retraced on Fig. 188 and checked over the plate (dev/plate_lines.py); they
+  meet at bregma and lambda, and where Gray calls one serrated (pp. 177, 184)
+  it has uneven teeth. The temporal lines and the frontal bone's crest are
+  pressed in (temporal.lines_relief). The pillar beside the orbit was a slab
+  with a flat back ending in a knob and a level ledge: it is now a plate 5 to
+  6 mm thick whose hind border is the traced one, running up into the crest,
+  with the fossa hollowed behind (temporal.fossa_front). Its top stood 3 mm
+  inside the traced front outline because skull2.face sank the forehead's
+  edge too low; the outline now follows the traced one within 1 mm from 30
+  to 44 mm up. The face's surface fits its traced points to 0.27 mm rms
+  (0.41 before): a sampling line that only grazed the braincase's side was
+  pulling the crest back. Supraorbital notch and zygomaticofacial foramen
+  cut. Ledger: 89 built, 19 plain, 36 missing. The split had to follow: the
+  retraced pterion lies 6 mm further back, so the wall that roofs the
+  sphenoid's small wings now reaches 20 mm forward of it (bones.py; with 12
+  the frontal bone and the sphenoid came out as one piece), and the
+  sphenofrontal line is kept out to the pillar's edge for the split while
+  its groove stops in the fossa (drawn on to the edge it cut a pit in the
+  pillar). 0 problems, 21 skull bones, 54 parts with the jaw and teeth.
 - [ ] F8. Mesh checks, the neck and down, the muscles, the woman, and where
   the from-scratch model goes in the app.
 

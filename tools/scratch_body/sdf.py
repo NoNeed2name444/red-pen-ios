@@ -105,7 +105,11 @@ class Box:
 class Tube:
     """A solid swept along a line: at each point an oval `a` (along `up`) by `b` (across), power `n`
     (2 = oval, more = squarer). `taper` thins the section toward +up (0 = none). Round ends."""
-    def __init__(self, P, a, b=None, up=(0, 1, 0), n=2.0, taper=0.0):
+    def __init__(self, P, a, b=None, up=(0, 1, 0), n=2.0, taper=0.0, true=False):
+        # true: for a squared-off section (n > 2), measure the distance as it is in every direction. Without it the distance is
+        # counted in the section's small half-width, so beyond the long side of a flat tube it reads several times too small and a
+        # rounded join (Field.add with k) swells the bone far above and below the tube, up to the edge of the block it is worked in.
+        self.true = true
         self.P = np.asarray(P, float)
         m = len(self.P)
         self.a = along(self.P, a); self.b = self.a.copy() if b is None else along(self.P, b)
@@ -140,6 +144,11 @@ class Tube:
             k1 = np.sqrt((qu / a ** 2) ** 2 + (qw / b ** 2) ** 2 + (qe / c ** 2) ** 2)
             return np.where(k1 > 1e-9, k0 * (k0 - 1.0) / np.maximum(k1, 1e-9), -c)
         k0 = (np.abs(qu / a) ** n + np.abs(qw / b) ** n + np.abs(qe / c) ** n) ** (1.0 / n)
+        if self.true:
+            with np.errstate(divide="ignore", invalid="ignore"):
+                g = k0 ** (1.0 - n) * np.sqrt((np.abs(qu / a) ** (n - 1.0) / a) ** 2 + (np.abs(qw / b) ** (n - 1.0) / b) ** 2 + (np.abs(qe / c) ** (n - 1.0) / c) ** 2)
+            g = np.nan_to_num(g, nan=0.0, posinf=0.0)
+            return np.where(g > 1e-6, (k0 - 1.0) / np.maximum(g, 1e-6), -c)
         return (k0 - 1.0) * c
 
 

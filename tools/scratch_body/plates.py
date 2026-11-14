@@ -91,17 +91,36 @@ CHEEK_FRONT = [      # the cheek bone's outline in the front view: frontal proce
 
 # the braincase's sutures as the side view draws them (Fig. 188, page pixels), each from its upper or front end
 SUTURES_SIDE = {
-    "coronal": [(1230, 1000), (1175, 1059), (1143, 1124), (1104, 1176), (1071, 1228), (1032, 1280), (987, 1332), (955, 1385),
-                (929, 1450), (918, 1515), (916, 1567), (877, 1606)],
-    "sphenoparietal": [(877, 1606), (980, 1598), (1084, 1593)],
-    "sphenofrontal": [(877, 1606), (820, 1640), (770, 1690), (750, 1720)],
-    "squamosal": [(1084, 1593), (1162, 1570), (1240, 1561), (1318, 1567), (1396, 1587), (1461, 1619), (1513, 1671), (1565, 1737),
-                  (1617, 1795), (1630, 1828)],
-    "sphenosquamosal": [(1084, 1593), (1030, 1700), (960, 1800), (900, 1890), (880, 1950)],
-    "parietomastoid": [(1630, 1828), (1656, 1893), (1708, 1958), (1753, 1997)],
-    "lambdoid": [(2108, 1690), (2050, 1750), (1980, 1820), (1900, 1890), (1820, 1950), (1753, 1997)],
-    "occipitomastoid": [(1753, 1997), (1700, 2090), (1620, 2180), (1540, 2260), (1480, 2320)],
+    # Each line is the plate's own, in page pixels, checked by drawing it back over the page (dev/plate_lines.py). An earlier
+    # tracing stood 2 to 5 mm off the plate round the pterion and 4 to 10 mm off behind the mastoid, and cut straight across
+    # the tongue of the parietal bone (its mastoid angle) that the plate draws let into the notch between squama and mastoid.
+    "coronal": [(1230, 1000), (1214, 1050), (1198, 1092), (1166, 1135), (1148, 1166), (1122, 1192), (1105, 1232), (1082, 1268),
+                (1055, 1300), (1032, 1342), (996, 1368), (962, 1402), (948, 1440), (945, 1470), (943, 1530), (940, 1575), (932, 1611)],
+    "sphenoparietal": [(932, 1611), (960, 1612), (985, 1609), (1010, 1612), (1040, 1617), (1070, 1625), (1105, 1633)],
+    "sphenofrontal": [(932, 1611), (905, 1610), (890, 1630), (880, 1650), (860, 1665), (840, 1675), (820, 1687), (800, 1696),
+                      (775, 1715), (752, 1740)],
+    "squamosal": [(1105, 1633), (1127, 1623), (1160, 1600), (1193, 1581), (1240, 1572), (1280, 1575), (1327, 1587), (1373, 1600),
+                  (1397, 1622), (1433, 1643), (1473, 1657), (1508, 1672), (1520, 1705), (1545, 1735), (1573, 1753), (1593, 1787),
+                  (1627, 1800), (1650, 1822), (1655, 1845), (1632, 1872), (1628, 1905), (1638, 1930), (1628, 1958), (1617, 1983)],
+    "sphenosquamosal": [(1105, 1633), (1080, 1655), (1050, 1690), (1015, 1740), (985, 1780), (960, 1820), (945, 1870), (938, 1930),
+                        (935, 1950)],
+    "parietomastoid": [(1617, 1983), (1643, 1977), (1667, 1980), (1693, 1990), (1720, 1982), (1740, 1993), (1760, 2003), (1790, 2020)],
+    "lambdoid": [(2108, 1690), (2090, 1707), (2073, 1727), (2053, 1753), (2033, 1787), (2013, 1813), (1993, 1840), (1980, 1860),
+                 (1953, 1887), (1940, 1913), (1913, 1933), (1893, 1953), (1865, 1975), (1840, 1998), (1815, 2012), (1790, 2020)],
+    "occipitomastoid": [(1790, 2020), (1787, 2047), (1772, 2082), (1750, 2113), (1737, 2153), (1722, 2180), (1722, 2205), (1702, 2240),
+                        (1690, 2268), (1670, 2307)],
 }
 # how far each wanders from side to side (mm): the toothed ones a millimetre or more, the scale-like ones hardly at all
-SUTURE_WAVE = {"coronal": 0.9, "sagittal": 1.1, "lambdoid": 1.5, "squamosal": 0.25, "parietomastoid": 0.7, "occipitomastoid": 0.6,
+SUTURE_WAVE = {"coronal": 1.1, "sagittal": 1.1, "lambdoid": 1.9, "squamosal": 0.25, "parietomastoid": 0.7, "occipitomastoid": 0.6,
                "sphenoparietal": 0.3, "sphenofrontal": 0.4, "sphenosquamosal": 0.3}
+# The parietal's toothed borders, in Gray's words (1918): the frontal border "is deeply serrated" and the occipital "deeply
+# denticulated" (p. 134); the sagittal suture is "deeply serrated in its anterior two-thirds" (p. 177). The teeth of those three
+# are longer than the rest's (lengths in mm that a groove a millimetre wide can still show apart on a half-millimetre grid);
+# the sagittal's reach 2 to 3 mm to either side in front and about half of that in its hind third, and the whole line strays
+# from the middle plane by about a millimetre: no real one is ruled (the owner, 14 November: "bones don't normally look
+# perfectly straight like that").
+TOOTHED = (5.3, 3.4, 8.9, 2.6)
+SAGITTAL = dict(teeth=1.8, hind=0.55, drift=1.3, wave=(6.1, 4.3, 9.7, 3.1))
+# The coronal suture's teeth are long only in its upper half: the plate draws loops of 2 mm and more down to page row 1400
+# (61 mm above the Frankfurt plane) and a fine wavering line of a third of a millimetre from there to the pterion.
+CORONAL_FINE_BELOW = (962, 1402)

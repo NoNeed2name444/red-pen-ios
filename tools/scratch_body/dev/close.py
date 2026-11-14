@@ -41,6 +41,14 @@ SETS = {
                  ("great opening, from below", (0, -1, 0), (0, 0, -16), 60), ("from below and the side", (0.55, -0.8, 0.2), (25, -10, 6), 70)],
     "vault": [("left side", (1, 0, 0), (0, 30, 8), 235), ("top", (0, 1, 0), (0, 30, 8), 235),
               ("back", (0, 0, -1), (0, 30, 8), 235), ("from above and in front", (0.5, 0.6, 0.62), (0, 30, 8), 235)],
+    "sutures": [("top", (0, 1, 0), (0, 60, -20), 200), ("bregma, from above", (0, 1, 0.1), (0, 100, 28), 84),
+                ("lambda, from behind and above", (0, 0.55, -0.83), (0, 60, -75), 96), ("from above and the side", (0.6, 0.75, 0.2), (20, 70, 0), 150)],
+    "brow": [("left orbit and cheek, front", (0, 0, 1), (32, 12, 80), 76), ("left orbit's upper rim, from below and in front", (0, -0.45, 0.89), (26, 28, 90), 48),
+             ("left cheek bone", (0.55, 0, 0.83), (48, -2, 70), 48), ("left temple", (0.92, 0.15, 0.36), (60, 50, 40), 120)],
+    "pillar": [("pillar beside the left orbit, side", (1, 0, 0), (56, 18, 62), 40), ("from the side and behind", (0.6, 0.1, -0.8), (54, 18, 60), 40),
+               ("from the side and in front", (0.7, 0, 0.7), (54, 18, 66), 40), ("from behind and above", (0.45, 0.7, -0.55), (52, 22, 62), 40)],
+    "pterion": [("left temple, side", (1, 0, 0), (60, 44, 48), 76), ("from the side and in front", (0.85, 0.1, 0.52), (60, 44, 52), 76),
+                ("from the side and behind", (0.9, 0.1, -0.42), (60, 44, 44), 76), ("from the side and above", (0.8, 0.6, 0.1), (60, 50, 48), 76)],
 }
 if "--nojaw" in sys.argv:
     meshes = meshes[:2] if "tv" in Z else meshes[:1]

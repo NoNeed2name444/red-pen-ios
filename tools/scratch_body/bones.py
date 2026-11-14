@@ -168,7 +168,10 @@ def walls(D, lo, h, ctx, step):
     for k in ("squamosal", "parietomastoid", "occipitomastoid", "sphenoparietal", "sphenosquamosal"):
         # (the sphenoparietal wall is drawn on forward past the pterion: deep in the thick wall there it is the sphenoid's roof as far as
         # the front edge of the small wings)
-        W.append((k, ribbon(S[k], step, depth=40.0 if k == "sphenoparietal" else 22.0, ext=(12.0, 3.0) if k == "sphenoparietal" else 3.0)))
+        # (How far forward: the small wings' front edge is the plane at 46 mm, below. The pterion as now traced lies on that plane,
+        # and 20 mm roofs the wings in as far as there is bone above them, 26 mm from the midline; with 12, which did while the
+        # pterion was traced 6 mm further forward, the frontal bone and the sphenoid came out as one piece.)
+        W.append((k, ribbon(S[k], step, depth=40.0 if k == "sphenoparietal" else 22.0, ext=(20.0, 3.0) if k == "sphenoparietal" else 3.0)))
     W.append(("sphenofrontal", ribbon(S["sphenofrontal"], step, depth=40.0)))        # (the wall is thick behind the orbit)
     # ---- the base, between the openings (x, z), carried up through the base's thickness
     lac, jo, jh, spine = (17.4, 16.8), (23.0, -0.1), (30.5, -1.1), (37.0, 11.0)

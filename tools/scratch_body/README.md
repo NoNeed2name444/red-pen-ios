@@ -17,14 +17,17 @@ down, the muscles, the woman, the place in the app.
   y up, z forward.
 - A relief is a height map laid on a surface (`relief.Map`, `relief.Slab`): the face, the base's under side, the palate,
   the pterygoid plates and the jaw's two faces are maps through points read off a plate.
-- The surface's grain, pores and pits are `surface.roughen`; a suture on the midline wanders by `surface.wander_line`.
+- The surface's grain, pores and pits are `surface.roughen`; a suture on the midline wanders by `surface.wander_line`,
+  and a toothed one (the sagittal, the lambdoid, the coronal's upper part) gets uneven teeth from `surface.teeth`.
+- The vault's sutures are traced on Fig. 188 (`plates.SUTURES_SIDE`) and meet at bregma and lambda; where Gray calls
+  one serrated (pp. 177, 184) it is toothed, and elsewhere it only wanders.
 - `bones.py` tells the skull's bones apart (each its own part, the face's bones marked off by their sutures).
 
 | Module | What it holds | Plates (Gray 1918) |
 | --- | --- | --- |
 | `skull2.py` | the skull: vault, face, orbits, cheek, base, cavity, the whole build | Fig. 187, 188, 189, 190, 196 |
 | `base.py`, `foramina.py`, `occiput.py` | the under side of the base, its openings, the back of the head | Fig. 187, 194 |
-| `temporal.py` | the side of the head: ear hole, arch, mastoid, styloid | Fig. 137, 188; p. 139 |
+| `temporal.py` | the side of the head: ear hole, arch, mastoid, styloid; the temporal lines and the front of the temporal fossa | Fig. 137, 188; p. 139 |
 | `palate.py` | the roof of the mouth and the floor of the nose | Fig. 187 |
 | `nose.py` | the septum and the scrolls | Fig. 187, 190, 195, 196; p. 194 |
 | `pterygoid.py` | the two pterygoid plates, the hook, the pyramidal process | Fig. 189, 187, 147; pp. 151, 168 |
@@ -41,9 +44,12 @@ heads in `sb/`, pictures in `look/`. Gray's pages for the side-by-side pictures 
 
 ```
 python3 dev/try_skull.py 0.5 skull30 --teeth --jaw    # the whole head at 0.5 mm: about 5 minutes, 13 GB of memory
-python3 dev/close.py skull30 palate                   # close pictures: face, jaw, base, ear, nose, ptery, palate, palcorner, maxilla, openings
+python3 dev/close.py skull30 palate                   # close pictures: face, jaw, base, ear, nose, ptery, palate, palcorner, maxilla, openings, sutures, brow, vault, pterion, pillar
 python3 dev/look_face.py skull30                      # the lower face beside Gray's front view
-python3 dev/save_field.py 0.5 f05d                    # the skull's field alone (for sections and the bone split)
+python3 dev/save_field.py 0.5 f05d                    # the skull's field alone (for sections and the bone split): 80 seconds
+python3 dev/plate_side.py f05d 560 1250 1160 1900 out.jpg   # the field's outline and surface drawn over Fig. 188 (page pixels: left, top, right, bottom)
+python3 dev/plate_lines.py 300 300 2000 2100 0.6 out.jpg   # the traced sutures over Fig. 188 (page pixels, then the zoom), to check a tracing against the plate
+python3 dev/block.py f05d blk 0,-12,10,84,122,112     # mesh one box of a field (x0,y0,z0,x1,y1,z1) in half a minute, for dev/close.py blk <set>
 python3 dev/look_back.py f05d --field                 # the choanae and pterygoid plates, the skull behind them cut away
 python3 dev/pt_cuts.py f05d                           # upright sections through the same region
 python3 dev/try_bones.py f05d --mesh --head skull30   # the bones told apart, with that head's jaw and teeth; coloured pictures
