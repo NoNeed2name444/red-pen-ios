@@ -3522,6 +3522,55 @@ for screenshots.
     text section beside it (ScienceTextSection is a copy); the plots stand
     220 points tall where Vitals' stand 150.
 
+### The from-scratch body (asked 12 to 14 Nov)
+
+The owner, 12 Nov: "start a from scratch with no 3d model import and use only
+references to build a full anatomy model"; 13 Nov: "start the from scratch one
+that u build without the help of premade 3d models". Newest marks (14 Nov, on
+the palate and the face): "that's not irregularities i meant. this looks
+unnatural right now. the texture i mean"; "bones don't normally look perfectly
+straight like that"; "the jaw should be angled no? and it shouldn't be
+perfectly straight in sides no?".
+
+Where: tools/scratch_body (its README says how it is made, how to run it and
+what is still wrong). Nothing is imported: outlines and measures are read off
+Gray's Anatomy 1918 (public domain), each module naming its figures and pages.
+Free-for-commercial-use sources only, as everywhere in the atlas.
+
+- [x] F1. Skull, teeth and lower jaw of the man at 0.5 mm (skull2.py and its
+  modules, teeth.py, mandible4.py): no tooth inside bone, jaw seated 1.2 mm
+  clear of its socket.
+- [x] F2. 14 Nov, the owner's circles behind the palate: the straight bars are
+  gone. The pterygoid plates are thin curved sheets with uneven borders
+  (pterygoid.py: Fig. 189, 187, 147), the hook and the palatine's pyramidal
+  process are there, the vomer's hind edge is hollowed and spreads into its
+  two wings above, the choanae have no frame. The tooth-bearing ridge ended in
+  a ball 7 mm behind the last molar that hid the outer plate; it now ends 4 mm
+  behind it.
+- [x] F3. 14 Nov, the palate: the pits that ran together into a net of cracks
+  are thinned out, the bumps are out, the septum's foot no longer shows in the
+  mouth as a ruled strip, the midline suture wanders.
+- [ ] F4. The jaw from in front. Found: its outline lies within 1.6 mm of
+  Gray's front view once seen from 8 degrees above, the plate's own
+  viewpoint; dead level the same jaw's sides look upright. The flare added at
+  the angle is taken back (0.8 mm, the plate has 1). Open, for the owner to
+  say: the jaw is square (angle about 112 degrees, the low end of the 110 to
+  120 Gray gives on p. 177; lower border 16 degrees off the Frankfurt plane,
+  where the orthodontists' norm is about 25). Making it less square means
+  leaving Gray's side view (Fig. 188) for the jaw's lower border. Next: build
+  that second jaw and send both, so the owner picks from pictures.
+- [ ] F5. Real bone surface in the app (the pictures here have fine grain,
+  pores and a broken sheen; the app's own material is still to do).
+- [ ] F6. Every bone its own part: bones.py's rules are brought up to the new
+  pterygoid region but not run on it; the jaw is not yet a part; coloured
+  together and apart pictures to send.
+- [ ] F7. The side of the head (ear hole's rim, the arch's root), the orbit's
+  fissures, the molars' crowns, the cranial floor, the temporal lines, the
+  maxillary sinus.
+- [ ] F8. Mesh checks, the feature ledger (every detail in the free sources,
+  done or missing), the neck and down, the muscles, the woman, and where the
+  from-scratch model goes in the app.
+
 ### Waiting on the owner
 
 - The marks on the latest screens.
