@@ -1,0 +1,16 @@
+
+compile rc=0
+ok   the foot rises past the docked tray, with the gap: 68.0
+ok   no tray (floating or hidden): no gap
+ok   a tray clear of the room: no gap
+ok   before the room is measured: no gap
+ok   comparing: the paper keeps the size it was drawn at
+ok   drawing: the paper fills its room again
+ok   nothing drawn on yet: the room decides
+ok   an unmeasured size is never held
+ok   with the tray gone the room grows, and the paper stays the size it was drawn at
+ok   dark: the figure's white is inverted and screened away, no white block
+ok   light: the figure's white is multiplied into the page
+ALL RECALL PAPER TESTS PASS
+
+run rc=0

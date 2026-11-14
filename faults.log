@@ -1,0 +1,31 @@
+
+compile rc=0
+ok   offline or timed out: queued for the next try
+ok   a 500: queued
+ok   a 502 or 504 from the Worker: queued
+ok   a 429: today's checks are used
+ok   a 200 that says the day is used: the same
+ok   a 200 with an answer that cannot be read: done, and the items stay unchecked (Unverified)
+ok   a 402: not Pro, with the server's words
+ok   a 402 with no words: the app's own
+ok   a 401: sign in again
+ok   a 200 that says busy (nobody checked): wait, not done
+ok   busy only counts with a 200: a 500 is still queued
+ok   a refusal is not written to the ledger
+ok   every other outcome is
+ok   a 200 is read
+ok   a 500 is tried once more, after a pause
+ok   ...and with no pause on the last try
+ok   the Worker's timeout (504) is a hiccup too
+ok   a 429 stops with the server's words
+ok   a 429 with no words: the app's own, pointing at the phone
+ok   a 503: not set up (no retry against a server that has no key)
+ok   404 and 410: not set up
+ok   a 401: sign in
+ok   a 402: Pro
+ok   no HTTP answer at all (code 0): a stop with a reason, not a retry loop
+ok   an unexpected 4xx: stops with the server's words
+
+ALL FAULT TESTS PASS
+
+run rc=0

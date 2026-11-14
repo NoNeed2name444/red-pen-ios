@@ -1,0 +1,43 @@
+
+compile rc=0
+PASS L1a space: no lens at Smooth
+PASS L1a neurons: no lens at Smooth
+PASS L1a performance: no lens at Smooth
+PASS L1b Performance has no lens even at High
+PASS L1c the plain lens costs nothing
+PASS L1d space: HDR and bloom at High
+PASS L1e space: bloom only on the brightest (the shaders already glow)
+PASS L1f space: colours kept close to the drawing
+PASS L1g space: vignette and fringe in range
+PASS L1d neurons: HDR and bloom at High
+PASS L1e neurons: bloom only on the brightest (the shaders already glow)
+PASS L1f neurons: colours kept close to the drawing
+PASS L1g neurons: vignette and fringe in range
+PASS L2a lensed starlight exactly when the shaders draw their detail (smooth)
+PASS L2a lensed starlight exactly when the shaders draw their detail (high)
+PASS L2b only Space bends light
+PASS L3a a microscope focuses shallower than a telescope
+PASS L3c bioluminescence blooms most and widest
+PASS L3d the microscope's corners are darkest
+PASS L3e the telescope has the most colour fringe
+PASS L3f the two looks differ
+PASS L4a a 55° lens on a 24 mm sensor is about 23 mm
+PASS L4b a wider view is a shorter lens
+PASS L4c silly angles stay finite
+PASS L4d the same blur at twice the focus from a cell to a region, 2 to 60 units (0.0025)
+PASS L4d' the whole map from far off: softer, not sharper or blurrier than wanted (0.0025)
+PASS L4d the same blur at twice the focus from a cell to a region, 2 to 60 units (0.006)
+PASS L4d' the whole map from far off: softer, not sharper or blurrier than wanted (0.006)
+PASS L4e what is in focus is sharp
+PASS L4f further from the focus is blurrier
+PASS L4g a closer focus opens the aperture less (smaller fStop further away)
+PASS L4h no blur asked: the aperture shut down
+PASS L4i the aperture stays in SceneKit's range
+PASS L4j a focus inside the lens stays finite
+PASS L5a the Neurons fill the whole window, the near cells allowed past its edge
+PASS L5b Space keeps every point on screen
+PASS L5c the plain map keeps the usual framing
+PASS L5d only the depth is eased
+ALL PASSED
+
+run rc=0

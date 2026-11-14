@@ -1,0 +1,152 @@
+
+compile rc=0
+ok   O1 masked: a card for each of the 11 labels
+ok   O1 masked: on every card, no word of any label shows
+ok   O1 masked: each card asks one, under its own "?"
+ok   O1 heart: "Superior vena cava" has exactly one cover
+ok   O1 heart: every word of "Superior vena cava" is wholly under it
+ok   O1 heart: "Superior vena cava" has a margin all round
+ok   O1 heart: "Superior vena cava"'s cover reaches no other label
+ok   O1 heart: "Right atrium" has exactly one cover
+ok   O1 heart: every word of "Right atrium" is wholly under it
+ok   O1 heart: "Right atrium" has a margin all round
+ok   O1 heart: "Right atrium"'s cover reaches no other label
+ok   O1 heart: "Tricuspid valve" has exactly one cover
+ok   O1 heart: every word of "Tricuspid valve" is wholly under it
+ok   O1 heart: "Tricuspid valve" has a margin all round
+ok   O1 heart: "Tricuspid valve"'s cover reaches no other label
+ok   O1 heart: "Right ventricle" has exactly one cover
+ok   O1 heart: every word of "Right ventricle" is wholly under it
+ok   O1 heart: "Right ventricle" has a margin all round
+ok   O1 heart: "Right ventricle"'s cover reaches no other label
+ok   O1 heart: "Inferior vena cava" has exactly one cover
+ok   O1 heart: every word of "Inferior vena cava" is wholly under it
+ok   O1 heart: "Inferior vena cava" has a margin all round
+ok   O1 heart: "Inferior vena cava"'s cover reaches no other label
+ok   O1 heart: "Aorta" has exactly one cover
+ok   O1 heart: every word of "Aorta" is wholly under it
+ok   O1 heart: "Aorta" has a margin all round
+ok   O1 heart: "Aorta"'s cover reaches no other label
+ok   O1 heart: "Pulmonary trunk" has exactly one cover
+ok   O1 heart: every word of "Pulmonary trunk" is wholly under it
+ok   O1 heart: "Pulmonary trunk" has a margin all round
+ok   O1 heart: "Pulmonary trunk"'s cover reaches no other label
+ok   O1 heart: "Left atrium" has exactly one cover
+ok   O1 heart: every word of "Left atrium" is wholly under it
+ok   O1 heart: "Left atrium" has a margin all round
+ok   O1 heart: "Left atrium"'s cover reaches no other label
+ok   O1 heart: "Mitral valve" has exactly one cover
+ok   O1 heart: every word of "Mitral valve" is wholly under it
+ok   O1 heart: "Mitral valve" has a margin all round
+ok   O1 heart: "Mitral valve"'s cover reaches no other label
+ok   O1 heart: "Left ventricle" has exactly one cover
+ok   O1 heart: every word of "Left ventricle" is wholly under it
+ok   O1 heart: "Left ventricle" has a margin all round
+ok   O1 heart: "Left ventricle"'s cover reaches no other label
+ok   O1 heart: "Interventricular septum" has exactly one cover
+ok   O1 heart: every word of "Interventricular septum" is wholly under it
+ok   O1 heart: "Interventricular septum" has a margin all round
+ok   O1 heart: "Interventricular septum"'s cover reaches no other label
+ok   O1 kidney: "Cortex" has exactly one cover
+ok   O1 kidney: every word of "Cortex" is wholly under it
+ok   O1 kidney: "Cortex" has a margin all round
+ok   O1 kidney: "Cortex"'s cover reaches no other label
+ok   O1 kidney: "Medulla" has exactly one cover
+ok   O1 kidney: every word of "Medulla" is wholly under it
+ok   O1 kidney: "Medulla" has a margin all round
+ok   O1 kidney: "Medulla"'s cover reaches no other label
+ok   O1 kidney: "Renal pelvis" has exactly one cover
+ok   O1 kidney: every word of "Renal pelvis" is wholly under it
+ok   O1 kidney: "Renal pelvis" has a margin all round
+ok   O1 kidney: "Renal pelvis"'s cover reaches no other label
+ok   O1 kidney: "Minor calyx" has exactly one cover
+ok   O1 kidney: every word of "Minor calyx" is wholly under it
+ok   O1 kidney: "Minor calyx" has a margin all round
+ok   O1 kidney: "Minor calyx"'s cover reaches no other label
+ok   O1 kidney: "vein" has exactly one cover
+ok   O1 kidney: every word of "vein" is wholly under it
+ok   O1 kidney: "vein" has a margin all round
+ok   O1 kidney: "vein"'s cover reaches no other label
+ok   O1 kidney: "artery" has exactly one cover
+ok   O1 kidney: every word of "artery" is wholly under it
+ok   O1 kidney: "artery" has a margin all round
+ok   O1 kidney: "artery"'s cover reaches no other label
+ok   O1 kidney: "Renal capsule" has exactly one cover
+ok   O1 kidney: every word of "Renal capsule" is wholly under it
+ok   O1 kidney: "Renal capsule" has a margin all round
+ok   O1 kidney: "Renal capsule"'s cover reaches no other label
+ok   O1 kidney: "Ureter" has exactly one cover
+ok   O1 kidney: every word of "Ureter" is wholly under it
+ok   O1 kidney: "Ureter" has a margin all round
+ok   O1 kidney: "Ureter"'s cover reaches no other label
+ok   O1 kidney: "vein" over "artery" stay two labels
+ok   O1 stacked: "vein" has exactly one cover
+ok   O1 stacked: every word of "vein" is wholly under it
+ok   O1 stacked: "vein" has a margin all round
+ok   O1 stacked: "vein"'s cover reaches no other label
+ok   O1 stacked: "artery" has exactly one cover
+ok   O1 stacked: every word of "artery" is wholly under it
+ok   O1 stacked: "artery" has a margin all round
+ok   O1 stacked: "artery"'s cover reaches no other label
+ok   O1 stacked: "Aortic arch" has exactly one cover
+ok   O1 stacked: every word of "Aortic arch" is wholly under it
+ok   O1 stacked: "Aortic arch" has a margin all round
+ok   O1 stacked: "Aortic arch"'s cover reaches no other label
+ok   O1 stacked: glyph-tight "vein" over "artery" stay two labels
+ok   O1 photo: one label's two drags are one cover
+ok   O1 photo: and that cover holds all its words
+ok   O1 photo: one term in two far places keeps both
+ok   O1 photo: the saved cards have one cover for the label
+ok   O2 reveal: the answer is the words under its cover
+ok   O2 reveal: its words come into view
+ok   O2 reveal: every other label stays covered
+ok   O2 reveal: the answer is the words under its cover
+ok   O2 reveal: its words come into view
+ok   O2 reveal: every other label stays covered
+ok   O2 reveal: the answer is the words under its cover
+ok   O2 reveal: its words come into view
+ok   O2 reveal: every other label stays covered
+ok   O2 reveal: the answer is the words under its cover
+ok   O2 reveal: its words come into view
+ok   O2 reveal: every other label stays covered
+ok   O2 reveal: the answer is the words under its cover
+ok   O2 reveal: its words come into view
+ok   O2 reveal: every other label stays covered
+ok   O2 reveal: the answer is the words under its cover
+ok   O2 reveal: its words come into view
+ok   O2 reveal: every other label stays covered
+ok   O2 reveal: the answer is the words under its cover
+ok   O2 reveal: its words come into view
+ok   O2 reveal: every other label stays covered
+ok   O2 reveal: the answer is the words under its cover
+ok   O2 reveal: its words come into view
+ok   O2 reveal: every other label stays covered
+ok   O2 reveal: the answer is the words under its cover
+ok   O2 reveal: its words come into view
+ok   O2 reveal: every other label stays covered
+ok   O2 reveal: the answer is the words under its cover
+ok   O2 reveal: its words come into view
+ok   O2 reveal: every other label stays covered
+ok   O2 reveal: the answer is the words under its cover
+ok   O2 reveal: its words come into view
+ok   O2 reveal: every other label stays covered
+ok   O2 reveal: across the deck, each label is revealed by its own card
+ok   O3 rate: the whole deck is due the first time
+ok   O3 rate: Good moves on to the next card
+ok   O3 rate: Again brings it back within the sitting, not now
+ok   O3 rate: and it is back once its minutes are up
+ok   O4 photo: each label read gets a cover
+ok   O4 photo: a cover moves
+ok   O4 photo: saving makes a card for each answered cover
+ok   O4 photo: the added label is asked
+ok   O4 photo: the moved cover is where it was put
+ok   O4 photo: an unanswered cover still masks on every card
+ok   O4 photo: the cards are reviewable picture cards
+ok   O5 relaunch: the cards read back the same
+ok   O5 relaunch: every cover and sibling is where it was
+ok   O5 relaunch: still every cover masked on every card
+ok   O5 relaunch: the ratings read back, so the next card is the same
+
+ALL OCCLUSION FLOW TESTS PASS
+
+run rc=0

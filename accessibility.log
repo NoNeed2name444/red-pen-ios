@@ -1,0 +1,61 @@
+
+compile rc=0
+ok   bare drops the leading in
+ok   bare leaves a plain label
+ok   bare trims
+ok   shown under a rating
+ok   never back in in
+ok   nothing to show
+ok   days in words
+ok   one day
+ok   minutes in words
+ok   one minute
+ok   hours in words
+ok   unknown unit left alone
+ok   not a number left alone
+ok   rating with its interval
+ok   rating without one
+ok   in 1 min has no abbreviation
+ok   in 10 min has no abbreviation
+ok   in 1 hr has no abbreviation
+ok   in 5 hr has no abbreviation
+ok   in 1 d has no abbreviation
+ok   in 36 d has no abbreviation
+ok   one card
+ok   no cards
+ok   own plural
+ok   percent rounds
+ok   percent clamps high
+ok   percent clamps low
+ok   percent of nan
+ok   clock minutes and seconds
+ok   clock whole minute
+ok   clock seconds only
+ok   clock zero
+ok   clock never negative
+ok   before checking, chosen
+ok   before checking, nothing gives the answer away
+ok   right and picked
+ok   right, not picked
+ok   picked, wrong
+ok   neither
+ok   announce right
+ok   announce wrong with the answer
+ok   announce wrong, empty option
+ok   announce wrong, no key
+ok   cloze blanks said as blank
+ok   cloze without blanks unchanged
+ok   nothing done
+ok   nothing anywhere
+ok   a little
+ok   quarter is light
+ok   some
+ok   a lot
+ok   the busiest day
+ok   over the busiest clamps
+ok   one of one is the most
+ok   strengths rise
+ok   every step has its own word
+all accessibility text checks passed
+
+run rc=0

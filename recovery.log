@@ -1,0 +1,16 @@
+
+compile rc=0
+ok   records: the readable ones are kept
+ok   records: and the one this version cannot read is counted, not fatal
+ok   records: a file that is not a schedule at all is nil
+ok   records: an empty schedule is empty, nothing skipped
+ok   list: read one at a time
+ok   list: none is none
+ok   put aside: a copy beside the file
+ok   put aside: not again while the file is unchanged
+ok   copies: every recovery copy, newest first, nothing else
+ok   copies: an empty or missing folder has none
+
+ALL RECOVERY TESTS PASS
+
+run rc=0

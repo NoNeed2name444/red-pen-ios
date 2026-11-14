@@ -1,0 +1,100 @@
+
+compile rc=0
+PASS B1 the smooth minimum is the membrane's
+PASS B2a R 0.34 h 0.088: the join is beside the centre, before the flare's end
+PASS B2b R 0.34 h 0.088: the tube's own width from the flare's end out
+PASS B3a R 0.34 h 0.088: h + k across at the join
+PASS B3b R 0.34 h 0.088: the outline there on the cell's disc
+PASS B3c R 0.34 h 0.088: never wider nearer the centre than the join
+PASS B4a R 0.34 h 0.088: narrows steadily from the join to the flare's end
+PASS B4b R 0.34 h 0.088: between the tube's width and h + k throughout
+PASS B4c R 0.34 h 0.088: a real flare (well wider than the tube halfway)
+PASS B5a R 0.34 h 0.088: leaves the disc along it (tangent at the join)
+PASS B5b R 0.34 h 0.088: meets the tube along it (flat at the flare's end)
+PASS B2a R 0.45 h 0.088: the join is beside the centre, before the flare's end
+PASS B2b R 0.45 h 0.088: the tube's own width from the flare's end out
+PASS B3a R 0.45 h 0.088: h + k across at the join
+PASS B3b R 0.45 h 0.088: the outline there on the cell's disc
+PASS B3c R 0.45 h 0.088: never wider nearer the centre than the join
+PASS B4a R 0.45 h 0.088: narrows steadily from the join to the flare's end
+PASS B4b R 0.45 h 0.088: between the tube's width and h + k throughout
+PASS B4c R 0.45 h 0.088: a real flare (well wider than the tube halfway)
+PASS B5a R 0.45 h 0.088: leaves the disc along it (tangent at the join)
+PASS B5b R 0.45 h 0.088: meets the tube along it (flat at the flare's end)
+PASS B2a R 0.6 h 0.088: the join is beside the centre, before the flare's end
+PASS B2b R 0.6 h 0.088: the tube's own width from the flare's end out
+PASS B3a R 0.6 h 0.088: h + k across at the join
+PASS B3b R 0.6 h 0.088: the outline there on the cell's disc
+PASS B3c R 0.6 h 0.088: never wider nearer the centre than the join
+PASS B4a R 0.6 h 0.088: narrows steadily from the join to the flare's end
+PASS B4b R 0.6 h 0.088: between the tube's width and h + k throughout
+PASS B4c R 0.6 h 0.088: a real flare (well wider than the tube halfway)
+PASS B5a R 0.6 h 0.088: leaves the disc along it (tangent at the join)
+PASS B5b R 0.6 h 0.088: meets the tube along it (flat at the flare's end)
+PASS B2a R 0.34 h 0.118: the join is beside the centre, before the flare's end
+PASS B2b R 0.34 h 0.118: the tube's own width from the flare's end out
+PASS B3a R 0.34 h 0.118: h + k across at the join
+PASS B3b R 0.34 h 0.118: the outline there on the cell's disc
+PASS B3c R 0.34 h 0.118: never wider nearer the centre than the join
+PASS B4a R 0.34 h 0.118: narrows steadily from the join to the flare's end
+PASS B4b R 0.34 h 0.118: between the tube's width and h + k throughout
+PASS B4c R 0.34 h 0.118: a real flare (well wider than the tube halfway)
+PASS B5a R 0.34 h 0.118: leaves the disc along it (tangent at the join)
+PASS B5b R 0.34 h 0.118: meets the tube along it (flat at the flare's end)
+PASS B2a R 0.6 h 0.118: the join is beside the centre, before the flare's end
+PASS B2b R 0.6 h 0.118: the tube's own width from the flare's end out
+PASS B3a R 0.6 h 0.118: h + k across at the join
+PASS B3b R 0.6 h 0.118: the outline there on the cell's disc
+PASS B3c R 0.6 h 0.118: never wider nearer the centre than the join
+PASS B4a R 0.6 h 0.118: narrows steadily from the join to the flare's end
+PASS B4b R 0.6 h 0.118: between the tube's width and h + k throughout
+PASS B4c R 0.6 h 0.118: a real flare (well wider than the tube halfway)
+PASS B5a R 0.6 h 0.118: leaves the disc along it (tangent at the join)
+PASS B5b R 0.6 h 0.118: meets the tube along it (flat at the flare's end)
+PASS B2a R 1.0 h 0.3: the join is beside the centre, before the flare's end
+PASS B2b R 1.0 h 0.3: the tube's own width from the flare's end out
+PASS B3a R 1.0 h 0.3: h + k across at the join
+PASS B3b R 1.0 h 0.3: the outline there on the cell's disc
+PASS B3c R 1.0 h 0.3: never wider nearer the centre than the join
+PASS B4a R 1.0 h 0.3: narrows steadily from the join to the flare's end
+PASS B4b R 1.0 h 0.3: between the tube's width and h + k throughout
+PASS B4c R 1.0 h 0.3: a real flare (well wider than the tube halfway)
+PASS B5a R 1.0 h 0.3: leaves the disc along it (tangent at the join)
+PASS B5b R 1.0 h 0.3: meets the tube along it (flat at the flare's end)
+PASS B2a R 0.5 h 0.05: the join is beside the centre, before the flare's end
+PASS B2b R 0.5 h 0.05: the tube's own width from the flare's end out
+PASS B3a R 0.5 h 0.05: h + k across at the join
+PASS B3b R 0.5 h 0.05: the outline there on the cell's disc
+PASS B3c R 0.5 h 0.05: never wider nearer the centre than the join
+PASS B4a R 0.5 h 0.05: narrows steadily from the join to the flare's end
+PASS B4b R 0.5 h 0.05: between the tube's width and h + k throughout
+PASS B4c R 0.5 h 0.05: a real flare (well wider than the tube halfway)
+PASS B5a R 0.5 h 0.05: leaves the disc along it (tangent at the join)
+PASS B5b R 0.5 h 0.05: meets the tube along it (flat at the flare's end)
+PASS B6 finite, never narrower than the tube, whatever the sizes
+PASS B7a runs from 0 to 1, always further on
+PASS B7b crowded at the ends, sparse in the middle
+PASS B7c the same at both ends
+PASS B8 no flare within about 17 degrees of the view, all of it from 30, steadily between
+PASS B9a the sine of the link's angle to the view
+PASS B9b how far a point is from a cell as seen
+PASS B10 starts at the join side on, further out slanting, capped within 30 degrees
+PASS B11a the cells' membrane radii, both flares drawn
+PASS B11b continuous with both cells: the strip's first and last edges on their discs
+PASS B11c flared at both ends, its own width in the middle
+PASS B11d samples closest at the ends
+PASS B11e a link pointing at the camera: no flare, the trim capped
+PASS B11f a short link: each trim at most 0.45 of it
+PASS B11g the eye at a cell's centre: a view all the same
+PASS B12a a mouth as wide as the outline at the join
+PASS B12b the first mouth opens as the strip leaves its cell, the second as it arrives
+PASS B12c two mouths facing each other, each its cell's width
+PASS B12d half grown: the first mouth open, the second shut
+PASS B12e two cells in one place: no mouths
+PASS B13a four a cell, the most open first
+PASS B13b none pointing at the camera, none shut
+PASS B13c a link half turned to the camera ranks below a wide-open one seen side on
+PASS B13d a new frame starts empty
+ALL PASSED
+
+run rc=0
