@@ -20,6 +20,12 @@ import Foundation
 // text is broken across two lines, and at the standard sizes the tiles
 // are not sliced by that line while the round can give up a bed to lift
 // them clear (`tilesTrim`).
+//
+// The round gets there by giving up beds, one at a time, at rest, and one
+// bed always stays. At large text a bed comes off while the line slices
+// Start ward round (`slices`). At the standard sizes one comes off while the
+// line slices the tiles (`tilesTrim`), and while Start and the card's foot
+// end past the line and fewer beds would lift them clear (`startTrim`).
 
 enum HomeFit {
     /// Window heights (points, inside the safe area) under this are short:
@@ -76,9 +82,10 @@ enum HomeFit {
     }
 
     /// How many of the round's beds are shown.
-    /// `trimmed` is how many more were taken off, one at a time, while the
-    /// bar's line sliced Start ward round at large text (`slices`); one
-    /// bed always stays.
+    /// `trimmed` is how many more were taken off, one at a time: at large
+    /// text while the bar's line sliced Start ward round (`slices`), at the
+    /// standard sizes while it sliced the tiles (`tilesTrim`) or the card
+    /// ran past it (`startTrim`); one bed always stays.
     static func shownBeds(_ count: Int, short: Bool, trimmed: Int = 0) -> Int {
         let base: Int = short ? min(count, shortBeds) : count
         return max(min(base, 1), base - max(0, trimmed))
@@ -103,6 +110,32 @@ enum HomeFit {
     static func tilesTrim(tiles: Box?, spare: Double, cut: Double) -> Bool {
         guard let tiles, spare > 0, slices(minY: tiles.minY, maxY: tiles.maxY, cut: cut) else { return false }
         return tiles.maxY - spare <= cut
+    }
+
+    /// Whether the round gives up another bed so the card and its Start ward
+    /// round button end above the bar's line at the standard text sizes, the
+    /// page at rest: the first screen is meant to hold the whole round, and
+    /// the card's end is what `faults` measures against the line. Ward
+    /// preview run 43605786251 (standard text, three plan rows, no exam
+    /// date): the 17 Pro's card ran 350-738 with Start at 666-722 and the
+    /// line at 682; an SE-size window's, 416-728 with Start at 655-711 and
+    /// the line at 683. The header's exam button, taller beds and a taller
+    /// bar had used up the room the same data had before.
+    ///
+    /// The card ends `foot` under Start's bottom: its own padding under the
+    /// button (WardSpace.gutter, which `wardCard` gives it; the caller
+    /// passes that token and a test pins the match). A bed comes off while
+    /// that end is below the line (`cut`) and fewer beds would lift it
+    /// clear: `spare` is how far the card would rise with one bed left (as
+    /// in `tilesTrim`). On a window too short for that, no bed is given up
+    /// for nothing and the round keeps what it has. Each trim lifts the card
+    /// by one bed and the next call reads the lifted frame, so the trims
+    /// stop at the first bed count that fits; with one bed left `spare` is
+    /// 0 and the answer is false.
+    static func startTrim(start: Box?, foot: Double, spare: Double, cut: Double) -> Bool {
+        guard let start, spare > 0 else { return false }
+        let end: Double = start.maxY + foot
+        return end > cut && end - spare <= cut
     }
 
     /// A laid-out thing's edges, in one coordinate space.
@@ -139,7 +172,8 @@ enum HomeFit {
     ///
     /// At the standard text sizes the round card and its Start ward round
     /// button end `barRoom` above the bar, so the first screen holds the
-    /// whole round. At the larger sizes (`large`: XL and up) the page may
+    /// whole round (the round gives up beds to get there, `startTrim`, and
+    /// what it cannot lift clear is a fault). At the larger sizes (`large`: XL and up) the page may
     /// run on behind the bar and scroll, as Apple's large-text guidance
     /// expects, but the bar's line must not slice the Start button (whole
     /// above it or wholly past it). At any size New set sits on no part of

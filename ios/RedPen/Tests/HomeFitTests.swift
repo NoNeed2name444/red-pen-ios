@@ -207,6 +207,112 @@ check("nothing laid out is a fault", HomeFit.faults(card: nil, start: nil, bar: 
 check("a card with no button is a fault",
       HomeFit.faults(card: box(0, 1), start: nil, bar: nil, newSet: nil).count == 1)
 
+// MARK: - Start ward round gets the card's room for the bar (T0270)
+
+// Ward preview run 43605786251, standard text, three plan rows, no exam date.
+// 17 Pro: card 350-738, Start 666-722, the bar's line at 682. SE-size window:
+// card 416-728, Start 655-711, line 683, two beds already shown. Both ran
+// past the line. The card ends 16 points under Start (the card's padding).
+let evidenceFoot: Double = 16
+func startBox(_ y0: Double, _ y1: Double) -> HomeFit.Box { box(y0, y1, x0: 190, x1: 359) }
+
+check("17 Pro: Start and the card past the line, a bed comes off",
+      HomeFit.startTrim(start: startBox(666, 722), foot: evidenceFoot, spare: 74, cut: 682))
+check("17 Pro: one bed off, Start at 592-648 and the card at 664, no more come off",
+      !HomeFit.startTrim(start: startBox(592, 648), foot: evidenceFoot, spare: 74, cut: 682))
+check("SE size: Start and the card past the line, a bed comes off",
+      HomeFit.startTrim(start: startBox(655, 711), foot: evidenceFoot, spare: 92, cut: 683))
+check("SE size: one bed off, Start at 563-619, no more come off",
+      !HomeFit.startTrim(start: startBox(563, 619), foot: evidenceFoot, spare: 92, cut: 683))
+check("Pro Max: the card ends at 706, the line at 764: nothing comes off",
+      !HomeFit.startTrim(start: startBox(634, 690), foot: evidenceFoot, spare: 148, cut: 764))
+check("iPad: the card ends at 676, the line at 1106: nothing comes off",
+      !HomeFit.startTrim(start: startBox(604, 660), foot: evidenceFoot, spare: 148, cut: 1106))
+check("one bed left (spare 0): nothing to give up",
+      !HomeFit.startTrim(start: startBox(666, 722), foot: evidenceFoot, spare: 0, cut: 682))
+check("a bed that cannot lift the card clear stays (spare 40: 738 - 40 is past 682)",
+      !HomeFit.startTrim(start: startBox(666, 722), foot: evidenceFoot, spare: 40, cut: 682))
+check("a window too short for any number of beds keeps its round",
+      !HomeFit.startTrim(start: startBox(700, 756), foot: evidenceFoot, spare: 148, cut: 560))
+check("lifting the card exactly to the line is enough",
+      HomeFit.startTrim(start: startBox(666, 722), foot: evidenceFoot, spare: 56, cut: 682))
+check("a card ending on the line is clear",
+      !HomeFit.startTrim(start: startBox(644, 666), foot: evidenceFoot, spare: 148, cut: 682))
+check("Start clear of the line but the card's foot past it still trims (Start ends 678, card 694)",
+      HomeFit.startTrim(start: startBox(622, 678), foot: evidenceFoot, spare: 148, cut: 682))
+check("no Start laid out: nothing to trim",
+      !HomeFit.startTrim(start: nil, foot: evidenceFoot, spare: 148, cut: 682))
+check("a frame that is not a number trims nothing",
+      !HomeFit.startTrim(start: startBox(.nan, .nan), foot: evidenceFoot, spare: 148, cut: 682)
+      && !HomeFit.startTrim(start: startBox(666, 722), foot: evidenceFoot, spare: .nan, cut: 682))
+
+// The trims the app makes, as a model: each bed off lifts Start and the card's
+// end by that bed's height; the spare is the beds above the first. The shown
+// beds are HomeFit.shownBeds', so one bed always stays.
+func settle(plan: Int, short: Bool, bed: Double, startBottom: Double, cut: Double)
+    -> (trimmed: Int, shown: Int, cardEnd: Double, steps: Int) {
+    var trimmed: Int = 0
+    var steps: Int = 0
+    var bottom: Double = startBottom
+    while steps < 40 {
+        steps += 1
+        let shown: Int = HomeFit.shownBeds(plan, short: short, trimmed: trimmed)
+        let spare: Double = Double(max(0, shown - 1)) * bed
+        guard HomeFit.startTrim(start: startBox(bottom - 56, bottom), foot: evidenceFoot, spare: spare, cut: cut)
+        else { break }
+        trimmed += 1
+        bottom -= bed
+    }
+    return (trimmed, HomeFit.shownBeds(plan, short: short, trimmed: trimmed), bottom + evidenceFoot, steps)
+}
+let pro17 = settle(plan: 3, short: false, bed: 74, startBottom: 722, cut: 682)
+check("17 Pro: one bed comes off, two stay, the card ends at 664 (line 682)",
+      pro17.trimmed == 1 && pro17.shown == 2 && pro17.cardEnd == 664, "\(pro17)")
+let se = settle(plan: 3, short: true, bed: 92, startBottom: 711, cut: 683)
+check("SE size: one bed comes off, one stays, the card ends at 635 (line 683)",
+      se.trimmed == 1 && se.shown == 1 && abs(se.cardEnd - 636) <= 1, "\(se)")
+let proMax = settle(plan: 3, short: false, bed: 74, startBottom: 690, cut: 764)
+check("Pro Max: no change", proMax.trimmed == 0 && proMax.shown == 3, "\(proMax)")
+let ipad = settle(plan: 3, short: false, bed: 74, startBottom: 660, cut: 1106)
+check("iPad: no change", ipad.trimmed == 0 && ipad.shown == 3, "\(ipad)")
+
+// It cannot loop and cannot over-trim: over a sweep of windows, plans and
+// bed heights, the trims stop within one fewer than the beds shown, one bed
+// stays, a round that starts to trim ends clear of the line, and one that
+// cannot be lifted clear keeps every bed.
+var sweepOK: Bool = true
+var sweepWhy: String = ""
+var sweepRuns: Int = 0
+var sweepTrims: Int = 0
+for plan in 1...5 {
+    for short in [false, true] {
+        for bed in stride(from: 60.0, through: 100.0, by: 8.0) {
+            for cut in stride(from: 480.0, through: 1100.0, by: 7.0) {
+                for bottom in stride(from: 520.0, through: 1000.0, by: 11.0) {
+                    sweepRuns += 1
+                    let base: Int = HomeFit.shownBeds(plan, short: short)
+                    let r = settle(plan: plan, short: short, bed: bed, startBottom: bottom, cut: cut)
+                    if r.trimmed > 0 { sweepTrims += 1 }
+                    let cardEnd0: Double = bottom + evidenceFoot
+                    let clearable: Bool = cardEnd0 - Double(max(0, base - 1)) * bed <= cut
+                    var why: String = ""
+                    if r.trimmed > max(0, base - 1) || r.steps > base { why = "did not stop" }
+                    else if r.shown < min(base, 1) { why = "below one bed" }
+                    else if cardEnd0 <= cut && r.trimmed != 0 { why = "trimmed a round that fit" }
+                    else if cardEnd0 > cut && clearable && r.cardEnd > cut { why = "left the card past the line" }
+                    else if cardEnd0 > cut && !clearable && r.trimmed != 0 { why = "gave up beds for nothing" }
+                    if !why.isEmpty && sweepOK {
+                        sweepOK = false
+                        sweepWhy = "\(why): plan \(plan) short \(short) bed \(bed) cut \(cut) bottom \(bottom)"
+                    }
+                }
+            }
+        }
+    }
+}
+check("over \(sweepRuns) windows and plans (\(sweepTrims) trimmed) the trims stop, keep one bed and give none up for nothing",
+      sweepOK && sweepRuns > 10000 && sweepTrims > 1000, sweepWhy)
+
 // MARK: - The parts book (WardPartBook's ledger)
 
 // The ledger still guards a cut a page may set (WardPartBook.cut, nil on
@@ -914,6 +1020,69 @@ check("the record ends when home is covered again, when the return begins and wh
 check("the record holds the four inputs the trim reads",
       homeSource.contains("struct HomeTrimInputs: Equatable {\n    var startFrame: CGRect\n    var tilesFrame: CGRect\n    var bedsSpare: Double\n    var barTop: CGFloat?\n}")
         && library.contains("HomeTrimInputs(startFrame: startFrame, tilesFrame: tilesFrame, bedsSpare: bedsSpare, barTop: barTop)"))
+
+// MARK: - Start ward round's trim reads what is measured and writes only the beds (T0270)
+
+// The app's call, read from the source: Start's bottom and the card's foot
+// are measured against the line in the standard-size branch only, under the
+// guards the tiles' trim has, from values already measured
+let trimBody: String = bodyOf(library, from: "    private func trimSlicedStart() {", to: "    // MARK: home's own layout state under a pushed page")
+let largeBranch: String = bodyOf(trimBody, from: "        if typeSize > .large {", to: "        } else if HomeFit.tilesTrim(")
+let standardBranch: String = trimBody.range(of: "        } else if HomeFit.tilesTrim(").map { String(trimBody[$0.lowerBound...]) } ?? ""
+check("found trimSlicedStart's branches", !trimBody.isEmpty && !largeBranch.isEmpty && !standardBranch.isEmpty)
+check("the trim runs under the same guards before either branch",
+      trimBody.hasPrefix("    private func trimSlicedStart() {\n"
+                         + "        guard homeShowing, bedsTrimmed < 8, bandTrack.isAtRest, let barTop else { return }\n"
+                         + "        guard homeWaiting.trimRecord.allows(trimInputs) else { return }\n"
+                         + "        let cut: Double = HomeFit.barLine(barTop: Double(barTop))\n"
+                         + "        if typeSize > .large {\n"))
+check("the standard sizes still trim for the tiles first",
+      standardBranch.hasPrefix("        } else if HomeFit.tilesTrim(tiles: Self.box(tilesFrame), spare: bedsSpare, cut: cut) {\n"
+                               + "            bedsTrimmed += 1\n"))
+check("the standard sizes trim for Start ward round and the card's foot",
+      standardBranch.contains("HomeFit.startTrim(start: Self.box(startFrame)"))
+check("Start's trim needs a measured Start, as the large-text branch does",
+      standardBranch.contains("} else if startFrame.height > 0,\n                  HomeFit.startTrim("))
+check("Start's trim reads the spare and the line already measured",
+      standardBranch.contains("foot: Double(WardSpace.gutter),\n                                    spare: bedsSpare, cut: cut) {\n"))
+check("the card's foot is the token its padding is (WardSpace.gutter)",
+      standardBranch.contains("foot: Double(WardSpace.gutter),"))
+check("Start's trim is not in the large-text branch", !largeBranch.contains("startTrim"))
+check("the large-text branch is as it was",
+      largeBranch == "        if typeSize > .large {\n"
+        + "            guard startFrame.height > 0 else { return }\n"
+        + "            if HomeFit.slices(minY: Double(startFrame.minY), maxY: Double(startFrame.maxY), cut: cut) {\n"
+        + "                bedsTrimmed += 1\n"
+        + "            }\n")
+check("a bed comes off in these three places only, all in the trim",
+      library.components(separatedBy: "bedsTrimmed += 1").count - 1 == 3
+        && trimBody.components(separatedBy: "bedsTrimmed += 1").count - 1 == 3)
+// every line of the trim that writes: the cut and the three beds, nothing else
+let trimWrites: [String] = trimBody.split(separator: "\n")
+    .map { $0.trimmingCharacters(in: .whitespaces) }
+    .filter { $0.contains(" = ") || $0.contains("+=") || $0.contains("-=") }
+check("the trim writes one thing only, the beds taken off: no state, no animation",
+      trimWrites == ["let cut: Double = HomeFit.barLine(barTop: Double(barTop))",
+                     "bedsTrimmed += 1", "bedsTrimmed += 1", "bedsTrimmed += 1"],
+      trimWrites.joined(separator: "; "))
+
+// The card's foot: Start is the card's last child and the card's padding under
+// it is wardCard's default, WardSpace.gutter, 16 (738 - 722 in the run above)
+let wardSurfaces = (try? String(contentsOfFile: "ios/RedPen/Shared/Ward/WardSurfaces.swift", encoding: .utf8)) ?? ""
+let wardTokens = (try? String(contentsOfFile: "ios/RedPen/Shared/Ward/WardTokens.swift", encoding: .utf8)) ?? ""
+let wardPalette = (try? String(contentsOfFile: "ios/RedPen/Shared/Ward/WardPalette.swift", encoding: .utf8)) ?? ""
+check("found the card's sources", !wardSurfaces.isEmpty && !wardTokens.isEmpty && !wardPalette.isEmpty)
+check("wardCard's padding is WardSpace.gutter unless given",
+      wardSurfaces.contains("func wardCard(padding: CGFloat = WardSpace.gutter, lift: WardLift = .mid)")
+        && wardSurfaces.contains("struct WardCardStyle: ViewModifier {\n    var padding: CGFloat = WardSpace.gutter"))
+check("WardSpace.gutter is 16 (WardScale.l)",
+      wardTokens.contains("static let gutter = CGFloat(WardScale.l)")
+        && wardPalette.contains("static let xs = 4.0, s = 8.0, m = 12.0, l = 16.0,"))
+let roundCardBody: String = bodyOf(homeSource, from: "struct HomeRoundCard: View {", to: "        .launchEntrance(inOpening: true)")
+check("the round card is a wardCard with that padding, and Start is the last thing in it",
+      roundCardBody.contains("                startButton\n            }\n        }\n")
+        && roundCardBody.contains("        .wardCard(lift: .low)\n")
+        && !roundCardBody.contains(".wardCard(padding:"))
 
 // MARK: - A text-size change reaches the Lists a pushed page covers, without an animation (T0268)
 

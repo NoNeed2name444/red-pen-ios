@@ -652,9 +652,13 @@ struct LibraryView: View {
     /// with the page at rest the bar's line must not fall through Start ward
     /// round: half a button would stand behind New set and the dock. Then
     /// the round gives up a bed (Plan has the whole day) and Start rises
-    /// clear. At the standard sizes the card already ends above the line;
-    /// the tiles under it get the same room (T0211 A3): while the line
-    /// slices them and fewer beds would lift them clear, a bed comes off.
+    /// clear. At the standard sizes the first screen holds the whole round:
+    /// the card and Start end above the line. While Start's bottom and the
+    /// card's foot (its padding under the button) are below it and fewer
+    /// beds would lift them clear, a bed comes off (HomeFit.startTrim), one
+    /// at a time, and never the last. The tiles under the card get the same
+    /// room (T0211 A3): while the line slices them and fewer beds would
+    /// lift them clear, a bed comes off.
     /// A page being scrolled is left alone, and so is home while a page is
     /// pushed over it (homeShowing): a bed taken off changes the round card
     /// (WardHome.swift, shownBeds), so no bed comes off under a pushed page.
@@ -674,6 +678,11 @@ struct LibraryView: View {
                 bedsTrimmed += 1
             }
         } else if HomeFit.tilesTrim(tiles: Self.box(tilesFrame), spare: bedsSpare, cut: cut) {
+            bedsTrimmed += 1
+        } else if startFrame.height > 0,
+                  HomeFit.startTrim(start: Self.box(startFrame), foot: Double(WardSpace.gutter),
+                                    spare: bedsSpare, cut: cut) {
+            // the card's foot is wardCard's padding: WardSpace.gutter
             bedsTrimmed += 1
         }
     }
