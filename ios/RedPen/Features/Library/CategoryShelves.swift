@@ -21,6 +21,8 @@ struct KindShelfView: View {
     /// destination, so they do not pass through the library's, which is
     /// where it is otherwise remembered.
     @AppStorage("cramdown.lastSetId") private var lastSetId = ""
+    /// Read only by the list's transaction, below (T0268).
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     private var kind: StudySetKind { feature.shelfKind ?? .mcq }
 
@@ -46,6 +48,10 @@ struct KindShelfView: View {
                 CategoryHeading(title: heading)
             }
         }
+        // a set pushed over this page leaves the list alive out of every
+        // window: a new text size reaches it without an animation, as in
+        // the library's list (T0268; LibraryView, content)
+        .transaction(value: typeSize) { $0.animation = nil }
         .scrollContentBackground(.hidden)
         // one comfortable column on a wide iPad
         .frame(maxWidth: 760)
@@ -162,6 +168,8 @@ struct PhotoCardsTile: View {
 struct ReasoningToolPicker: View {
     let feature: CategoryFeature
     @EnvironmentObject private var store: Store
+    /// Read only by the list's transaction, below (T0268).
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     private var tool: ReasoningTool {
         feature == .scripts ? .scripts : .duels
@@ -196,6 +204,9 @@ struct ReasoningToolPicker: View {
                 CategoryHeading(title: "Pick a set")
             }
         }
+        // a set pushed over this page leaves the list alive out of every
+        // window: a new text size reaches it without an animation (T0268)
+        .transaction(value: typeSize) { $0.animation = nil }
         .scrollContentBackground(.hidden)
         // one comfortable column on a wide iPad
         .frame(maxWidth: 760)

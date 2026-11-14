@@ -938,6 +938,14 @@ struct LibraryView: View {
                 // rail on a wide iPad they stay, to keep the list off it.
                 .listSectionMargins(.horizontal, railed ? 16 : 0)
             }
+            // A new text size reaches this list without an animation
+            // (T0268, a hypothesis for the T0242 crash). A page pushed over
+            // home leaves this list alive and out of every window, and the
+            // audit's text-size steps lay it out again and again there (the
+            // layout recorder, T0267); the guess is that each step reaches
+            // it as an animated update. This acts only when typeSize
+            // changes; with the size as it is, nothing about the list does.
+            .transaction(value: typeSize) { $0.animation = nil }
             // the scale's 16, not a page's 24: Start ward round has to end
             // above New set, which floats over the list
             .listSectionSpacing(WardSpace.l)

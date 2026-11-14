@@ -23,6 +23,8 @@ struct StatsView: View {
     @State private var drill: StudySet?
     /// A quiz from the sections about lost marks, with how it is to be sat.
     @State private var insightQuiz: InsightQuiz?
+    /// Read only by the list's transaction, below (T0268).
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         let stats = store.subjectStats()
@@ -102,6 +104,9 @@ struct StatsView: View {
                 .wardRowBackground()
             }
         }
+        // a drill pushed over this page leaves the list alive out of every
+        // window: a new text size reaches it without an animation (T0268)
+        .transaction(value: typeSize) { $0.animation = nil }
         .wardForm()
         .navigationTitle("By subject")
         .navigationBarTitleDisplayMode(.inline)

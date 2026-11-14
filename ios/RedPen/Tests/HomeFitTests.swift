@@ -915,6 +915,60 @@ check("the record holds the four inputs the trim reads",
       homeSource.contains("struct HomeTrimInputs: Equatable {\n    var startFrame: CGRect\n    var tilesFrame: CGRect\n    var bedsSpare: Double\n    var barTop: CGFloat?\n}")
         && library.contains("HomeTrimInputs(startFrame: startFrame, tilesFrame: tilesFrame, bedsSpare: bedsSpare, barTop: barTop)"))
 
+// MARK: - A text-size change reaches the Lists a pushed page covers, without an animation (T0268)
+
+// A hypothesis for the T0242 crash, not a shown cause: the layout recorder
+// named the library's own List, under the card pushed over it, being laid out
+// four times as the audit stepped the text size. Every List that the library's
+// stack leaves under a pushed page takes `.transaction(value: typeSize)`, so a
+// new text size reaches it with no animation; with the size unchanged the
+// modifier does nothing. Each List below is pinned to its own struct, so a
+// deleted modifier, a deleted environment value or a moved modifier fails here.
+let typeStep: String = ".transaction(value: typeSize) { $0.animation = nil }"
+let typeRead: String = "@Environment(\\.dynamicTypeSize) private var typeSize"
+func occurrences(_ part: String, in text: String) -> Int { text.components(separatedBy: part).count - 1 }
+/// Whether the parts come one after the other, each after the one before.
+func inOrder(_ text: String, _ parts: [String]) -> Bool {
+    var from: String.Index = text.startIndex
+    for part in parts {
+        guard let at = text.range(of: part, range: from..<text.endIndex) else { return false }
+        from = at.upperBound
+    }
+    return true
+}
+let shelves = (try? String(contentsOfFile: "ios/RedPen/Features/Library/CategoryShelves.swift", encoding: .utf8)) ?? ""
+let pages = (try? String(contentsOfFile: "ios/RedPen/Features/Library/CategoryPages.swift", encoding: .utf8)) ?? ""
+let stats = (try? String(contentsOfFile: "ios/RedPen/Features/Library/StatsView.swift", encoding: .utf8)) ?? ""
+check("found the pushed pages' sources", !shelves.isEmpty && !pages.isEmpty && !stats.isEmpty)
+
+// the library's own List (setRow-anki's), the one the recorder named
+let homeList: String = bodyOf(library, from: "private var content: some View {", to: "private func keepRow(")
+check("found the library's List", !homeList.isEmpty && occurrences("List {", in: homeList) == 1)
+check("the library's List takes the text size without an animation, on the List itself",
+      occurrences(typeStep, in: library) == 1 && inOrder(homeList, ["List {", typeStep, ".listSectionSpacing(WardSpace.l)"]))
+check("the library reads the text size it steps on",
+      library.contains("@Environment(\\.dynamicTypeSize) var typeSize")
+        && occurrences("@Environment(\\.dynamicTypeSize)", in: library) == 1)
+check("the scroll position is not reset by the text size (no .id on it)",
+      !library.contains(".id(typeSize") && !library.contains(".id(dynamicTypeSize"))
+
+// the pages the stack pushes that push a page of their own over their List
+let shelfList: String = bodyOf(shelves, from: "struct KindShelfView: View {", to: "struct ReasoningToolPicker: View {")
+let toolList: String = bodyOf(shelves, from: "struct ReasoningToolPicker: View {", to: "struct TurnIntoListView: View {")
+let patientsList: String = bodyOf(pages, from: "struct SpokenPatientsView: View {", to: "struct CategoryRowLabel: View {")
+let statsList: String = bodyOf(stats, from: "struct StatsView: View {", to: "private func withDrillBar")
+for (name, part) in [("a mode's shelf", shelfList), ("the reasoning tools' picker", toolList),
+                     ("the talking patient's page", patientsList), ("the progress page", statsList)] {
+    check("\(name): found its source", !part.isEmpty)
+    check("\(name): its List takes the text size without an animation, on the List itself",
+          occurrences("List {", in: part) == 1 && occurrences(typeStep, in: part) == 1
+            && inOrder(part, ["List {", typeStep]))
+    check("\(name): it reads the text size it steps on", occurrences(typeRead, in: part) == 1)
+}
+check("no other List was given the modifier",
+      occurrences(typeStep, in: shelves) == 2 && occurrences(typeStep, in: pages) == 1
+        && occurrences(typeStep, in: stats) == 1)
+
 if failures.isEmpty {
     print("all HomeFit checks passed")
 } else {

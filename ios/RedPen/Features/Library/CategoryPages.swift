@@ -30,6 +30,8 @@ struct StudySetScreen: View {
 /// marked example to see how it goes.
 struct SpokenPatientsView: View {
     @EnvironmentObject private var store: Store
+    /// Read only by the list's transaction, below (T0268).
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     private var stations: [OsceChecklist] {
         store.library.filter { $0.kind == .osce }.flatMap(\.osceChecklists)
@@ -71,6 +73,9 @@ struct SpokenPatientsView: View {
                 }
             }
         }
+        // a station pushed over this page leaves the list alive out of every
+        // window: a new text size reaches it without an animation (T0268)
+        .transaction(value: typeSize) { $0.animation = nil }
         .scrollContentBackground(.hidden)
         // one comfortable column on a wide iPad
         .frame(maxWidth: 760)
