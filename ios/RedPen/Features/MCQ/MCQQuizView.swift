@@ -1149,13 +1149,9 @@ struct MCQQuizView: View {
         }
     }
 
+    @ViewBuilder
     private func answerButtons(_ proxy: ScrollViewProxy) -> some View {
         let explains: Bool = ChartQuiz.explains(checked: a.checked, examMode: examMode)
-        let symbol: String = a.checked ? "arrow.right" : "checkmark"
-        let waiting: Bool = !a.checked && (holding || (a.selected == nil && !examMode))
-        // says what to do, rather than sitting there grey with no reason
-        let title: String = ChartQuiz.primaryTitle(checked: a.checked, picked: a.selected != nil, holding: holding,
-                                                   examMode: examMode, last: current == questions.count - 1)
         // At the accessibility sizes the buttons stand one above another,
         // Check answer the column's width and Back its own: side by side,
         // Check answer was squeezed to 176 points wide and 521 tall at AX5,
@@ -1163,8 +1159,32 @@ struct MCQQuizView: View {
         let layout: AnyLayout = decksInline
             ? AnyLayout(VStackLayout(spacing: WardSpace.m))
             : AnyLayout(HStackLayout(spacing: WardSpace.m))
+        if decksInline {
+            answerRow(proxy, layout: layout, explains: explains, short: explains)
+        } else {
+            // Side by side, Back's word and the main button's label share one
+            // row, and both stay on one line. The first row is used whenever
+            // both fit at full size; where they do not, the second, with Back
+            // as its chevron alone, so the main button's words are not
+            // squeezed (T0266). Kept in the Explain state too, where the two
+            // rows are alike, so the buttons stay the same views across Check.
+            ViewThatFits(in: .horizontal) {
+                answerRow(proxy, layout: layout, explains: explains, short: explains)
+                answerRow(proxy, layout: layout, explains: explains, short: true)
+            }
+        }
+    }
+
+    /// The row itself, built once: Back (its word, or its chevron alone when
+    /// `short`), Explain once the explanation shows, and the main button.
+    private func answerRow(_ proxy: ScrollViewProxy, layout: AnyLayout, explains: Bool, short: Bool) -> some View {
+        let symbol: String = a.checked ? "arrow.right" : "checkmark"
+        let waiting: Bool = !a.checked && (holding || (a.selected == nil && !examMode))
+        // says what to do, rather than sitting there grey with no reason
+        let title: String = ChartQuiz.primaryTitle(checked: a.checked, picked: a.selected != nil, holding: holding,
+                                                   examMode: examMode, last: current == questions.count - 1)
         return layout {
-            backButton(short: explains)
+            backButton(short: short)
                 .a11yProbeHide("quiz-rest-back-button")
 
             if span == .broad && !decksInline { Spacer(minLength: 16) }
@@ -1199,7 +1219,8 @@ struct MCQQuizView: View {
     }
 
     /// Back: with its word before checking, the chevron alone once Explain
-    /// needs the room; the left arrow key either way.
+    /// needs the room, or the row is too narrow for both words at full size;
+    /// the left arrow key either way.
     private func backButton(short: Bool) -> some View {
         Button { if current > 0 { current -= 1 } } label: {
             // T0265 probe: `quiz-rest-back-title` takes the word away
