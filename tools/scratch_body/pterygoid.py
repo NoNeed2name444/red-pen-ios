@@ -100,7 +100,7 @@ def build(F, log=print):
     # palate's hind corner and inside the upper jaw's tuberosity (p. 168: "received into the angular interval between the lower
     # extremities of the pterygoid plates"); its hind face is the lowest part of the hollow between the plates
     F.add(sdf.Ellipsoid(PYRAMID[0], PYRAMID[1], sdf.rot((0, 1, 0), 28.0)), 2.2)
-    F.add(Tube(spline(np.array(HAMULUS, float), 0.5), [(0, 1.0), (0.5, 0.88), (1, 0.7)]), 0.7, keep=3)
+    F.add(Tube(spline(np.array(HAMULUS, float), 0.5), [(0, 1.35), (0.5, 1.15), (1, 0.9)]), 0.9, keep=3)       # (at 1 mm and less it read as a wire from below)
     F.cut(sdf.Ellipsoid(*SCAPHOID), 0.8)
     # the cleft between the upper jaw's back and the outer plate's front border (pterygomaxillary fissure, Fig. 189): open above,
     # where it runs up into the fissure in the orbit's floor, closing below where jaw, palatine bone and plate meet

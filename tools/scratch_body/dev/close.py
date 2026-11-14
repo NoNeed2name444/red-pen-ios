@@ -13,8 +13,12 @@ if "tv" in Z:
 if "mv" in Z:
     meshes.append((Z["mv"], Z["mf"], view.BONE))
 SETS = {
-    "face": [("front", (0, 0, 1), (0, -8, 80), 150), ("left side, face", (1, 0, 0), (0, -8, 55), 150),
-             ("three-quarter", (0.62, 0.12, 0.77), (0, -5, 60), 170), ("from below and in front", (0.35, -0.65, 0.67), (0, -15, 50), 170)],
+    "face": [("front", (0, 0, 1), (0, -14, 80), 172), ("left side, face", (1, 0, 0), (0, -14, 55), 172),
+             ("three-quarter", (0.62, 0.12, 0.77), (0, -12, 60), 184), ("from below and in front", (0.35, -0.65, 0.67), (0, -18, 50), 180)],
+    "under": [("jaw from below", (0, -1, 0), (0, 0, 50), 124), ("left half of the jaw from below, close", (0, -1, 0), (30, 0, 50), 62),
+              ("from below and the side", (0.7, -0.7, 0.15), (30, -60, 45), 96), ("the angle from below and behind", (0.45, -0.6, -0.66), (40, -55, 20), 62)],
+    "jaw": [("lower face, front", (0, 0, 1), (0, -50, 60), 132), ("lower face, left side", (1, 0, 0), (0, -50, 50), 132),
+            ("three-quarter", (0.62, 0.05, 0.78), (0, -50, 55), 140), ("from in front and a little below", (0, -0.26, 0.97), (0, -52, 60), 132)],
     "base": [("below", (0, -1, 0), (0, 0, 10), 190), ("below, front half", (0, -1, 0), (0, 0, 55), 110),
              ("from below and behind", (0.3, -0.72, -0.62), (0, -5, 0), 190), ("from below and the side", (0.75, -0.6, 0.25), (0, -5, 20), 190)],
     "ear": [("left side, ear", (1, 0, 0), (0, -10, 2), 90), ("from below, left half", (0, -1, 0), (30, 0, 5), 100),

@@ -3550,26 +3550,45 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
 - [x] F3. 14 Nov, the palate: the pits that ran together into a net of cracks
   are thinned out, the bumps are out, the septum's foot no longer shows in the
   mouth as a ruled strip, the midline suture wanders.
-- [ ] F4. The jaw from in front. Found: its outline lies within 1.6 mm of
-  Gray's front view once seen from 8 degrees above, the plate's own
-  viewpoint; dead level the same jaw's sides look upright. The flare added at
-  the angle is taken back (0.8 mm, the plate has 1). Open, for the owner to
-  say: the jaw is square (angle about 112 degrees, the low end of the 110 to
-  120 Gray gives on p. 177; lower border 16 degrees off the Frankfurt plane,
-  where the orthodontists' norm is about 25). Making it less square means
-  leaving Gray's side view (Fig. 188) for the jaw's lower border. Next: build
-  that second jaw and send both, so the owner picks from pictures.
+- [x] F4. The jaw is angled and its sides are no longer upright (14 Nov, the
+  owner's red lines). Measured on the build, the owner was right twice over:
+  the lower border lay 17.5 degrees off the Frankfurt plane with an angle of
+  112.5, and seen from in front the side stood exactly upright for 20 mm (a
+  flare at the angle and a hollow above it had undone the ramus's own lean).
+  Earlier notes here said it would stay Gray's jaw and that a steeper border
+  needed a chin 10 mm longer; both were wrong. The model's own usual sizes
+  (landmarks.py: nasion to chin 120, joint to angle 62) give it: chin 4 mm
+  lower, the angle a round turn. Now: lower border 22 degrees (Downs' norm
+  21.9), angle 118.5 (Gray p. 177: 110 to 120), 121 mm across the joint heads
+  and 98 across the angles with the side leaning in all the way down, 31 mm of
+  bone at the chin (27 before) and 20.5 under the last molar (19.9). No tooth
+  inside bone; joint clearance unchanged at 1.24 mm. Before-and-now picture
+  sent. The chin is 4 mm below where Gray's two plates draw it.
 - [ ] F5. Real bone surface in the app (the pictures here have fine grain,
   pores and a broken sheen; the app's own material is still to do).
-- [ ] F6. Every bone its own part: bones.py's rules are brought up to the new
-  pterygoid region but not run on it; the jaw is not yet a part; coloured
-  together and apart pictures to send.
+- [x] F6. Every bone its own part (14 Nov): the split runs clean at 0.5 mm, 21
+  skull bones each one piece, and with the jaw and the 32 teeth 54 parts
+  (dev/try_bones.py --head). Coloured pictures sent: together, apart, face.
+  Two things had to change for the finer grid: a suture wall is 3 mm thick
+  whatever the grid, and the middle scrolls are joined to the ethmoid's block.
+  Left for F8: writing the parts out for the app.
 - [ ] F7. The side of the head (ear hole's rim, the arch's root), the orbit's
   fissures, the molars' crowns, the cranial floor, the temporal lines, the
   maxillary sinus.
-- [ ] F8. Mesh checks, the feature ledger (every detail in the free sources,
-  done or missing), the neck and down, the muscles, the woman, and where the
-  from-scratch model goes in the app.
+- [x] F7a. The feature ledger (14 Nov): tools/scratch_body/LEDGER.md, written
+  by dev/ledger.py. Every named detail of the skull's bones and the jaw in
+  Gray's account (pp. 129 to 198), 144 of them, each with the page a search of
+  the book's text finds it on: 82 built as shapes of their own, 22 there only
+  as part of a larger form, 40 missing. The missing ones, the next to build in
+  this order: the inside of the skull (the three fossae, sella, crista galli
+  and cribriform plate, grooves, internal acoustic meatus: one smooth hollow
+  now); the air sinuses (frontal, sphenoidal, maxillary: the bones are solid);
+  the temporal lines; the orbit (supraorbital notch, lacrimal fossa and
+  crests, nasolacrimal canal, ethmoidal foramina, true shapes of the two
+  fissures); the small foramina (rotundum, pterygoid canal, sphenopalatine,
+  zygomatic, parietal, mastoid).
+- [ ] F8. Mesh checks, the neck and down, the muscles, the woman, and where
+  the from-scratch model goes in the app.
 
 ### Waiting on the owner
 

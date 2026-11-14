@@ -24,7 +24,7 @@ from scipy import ndimage, sparse
 import sdf
 from sdf import spline, Ellipsoid
 from relief import Map
-import pterygoid
+import pterygoid, nose
 
 C = np.array([0.0, 45.0, -2.0])           # the centre the braincase is drawn about (skull2.C)
 BONES = ["frontal", "parietal", "occipital", "temporal", "sphenoid", "ethmoid", "vomer", "maxilla", "zygomatic",
@@ -35,7 +35,7 @@ MIDLINE = {"parietal": "sagittal", "maxilla": "median palatine", "palatine": "me
 COLOUR = {"frontal": (232, 196, 120), "parietal": (150, 190, 230), "occipital": (150, 210, 150), "temporal": (236, 150, 140),
           "sphenoid": (190, 150, 220), "ethmoid": (250, 240, 130), "vomer": (120, 220, 210), "maxilla": (240, 222, 196),
           "zygomatic": (240, 170, 100), "nasal bone": (120, 150, 240), "lacrimal": (240, 120, 180), "palatine": (160, 200, 110),
-          "inferior nasal concha": (200, 120, 90), "mandible": (214, 205, 180)}
+          "inferior nasal concha": (200, 120, 90), "mandible": (168, 176, 190)}
 
 # a point well inside each bone, left side (the right side's are these mirrored); (x, y, z)
 SEEDS = {
@@ -177,7 +177,7 @@ def walls(D, lo, h, ctx, step):
           ("petro-occipital", curtain([lac, (19.6, 10.5), (21.6, 4.5), jo, (26.5, -0.8), jh], (0, 2), -24.0, 16.0, step)),
           ("occipitomastoid, on the base", curtain([jh, (34.0, -5.0), (37.5, -11.0), (41.0, -19.0), (om[0], om[2])], (0, 2), -32.0, 10.0, step)),
           ("sphenopetrosal", curtain([lac, (24.0, 13.4), (31.0, 11.6), spine], (0, 2), -22.0, 20.0, step)),
-          ("sphenosquamosal, on the base", curtain([spine, (38.5, 16.0), (40.0, 21.0), (42.0, 27.0), (44.0, 34.0), (ss[0], ss[2])], (0, 2), -14.0, 16.0, step))]
+          ("sphenosquamosal, on the base", curtain([spine, (38.5, 16.0), (40.0, 21.0), (42.0, 27.0), (44.0, 34.0), (ss[0], ss[2])], (0, 2), -14.0, 26.0, step))]      # (up past where the suture's own wall, slanting in and up from the surface, begins: at 0.5 mm a slit was left between the two)
     # ---- the cheek bone's four sutures
     W.append(("zygomaticotemporal", curtain(wavy([(50.4, 3.8), (48.5, 0.6), (46.8, -2.2), (45.6, -4.6), (43.6, -6.4), (41.6, -9.6), (40.3, -12.0)], 0.7, 11),
                                             (2, 1), 54.0, 76.0, step, ext=0)))
@@ -292,6 +292,14 @@ def paints(D, lo, h, ctx, log=print):
             w = side[0].sample(side[1], *np.broadcast_arrays(Z, Y))
             return (slab(X, Y, Z) < 0.3) & (np.abs(X) < w + 0.3)
         put("inferior nasal concha" if "inferior" in name else "ethmoid", (-27, -31, 39), (27, 11, 97), scroll)
+        if "middle" in name:
+            # the middle scroll is the ethmoid's own: the strip of the side wall it hangs from, up to the ethmoid's block, goes with it
+            # (without it the scroll hung from the upper jaw's bone and came out as a loose piece of the ethmoid)
+            top = np.array(nose.MIDDLE["top"], float); top = top[np.argsort(top[:, 0])]
+            def stem(X, Y, Z, top=top):
+                w = side[0].sample(side[1], *np.broadcast_arrays(Z, Y))
+                return (np.abs(X) > w - 0.4) & (np.abs(X) < w + 2.4) & (Y > np.interp(Z, top[:, 0], top[:, 1]) - 1.0) & (Y < 8.0) & (Z > top[0, 0]) & (Z < top[-1, 0])
+            put("ethmoid", (-27, -6, 44), (27, 9, 80), stem)
     # the partition: the vomer below and behind, the ethmoid's plate above and in front
     sep = ctx.get("septum")
     if sep is not None:
@@ -337,7 +345,10 @@ def label(D, lo, h, ctx, log=print):
             ijk = np.round((P * np.array([sgn, 1.0, 1.0]) - lo) / h).astype(int)
             ok = np.all((ijk >= 0) & (ijk < shape), axis=1)
             wall[tuple(ijk[ok].T)] = True
-    wall = ndimage.binary_dilation(wall, ndimage.generate_binary_structure(3, 1))
+    # A wall is about 3 mm thick whatever the grid (what it takes is given back to the nearer bone at the end, so the
+    # boundary still lies on the suture). One cell either side was enough at 1 mm; at 0.5 mm it left slits where two walls
+    # meet (the frontal bone ran through one into the sphenoid, the cheek bone into the upper jaw).
+    wall = ndimage.binary_dilation(wall, ndimage.generate_binary_structure(3, 1), iterations=max(1, int(round(1.0 / h))))
     paint = paints(D, lo, h, ctx, log)
     free = bone & ~wall & (paint == 0)
     comp, n = ndimage.label(free)

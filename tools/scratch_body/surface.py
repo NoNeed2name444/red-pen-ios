@@ -23,7 +23,7 @@ ZONES = [
     ("palate, maxilla's part", (0, -34, 72), (17, 9, 20), 0.06, 0.035),
     ("palate, palatine bone", (0, -30, 49), (15, 4, 7), 0.02, 0.012),
     ("alveolar process, upper", (0, -38, 74), (32, 8, 30), 0.03, 0.03),
-    ("nuchal plane", (0, -18, -52), (52, 16, 28), 0.06, 0.05),
+    ("nuchal plane", (0, -18, -52), (52, 16, 28), 0.06, 0.008),    # (rough, but not pitted all over: at a pit every 20 mm2 it looked like kneaded clay)
     ("mastoid", (56, -12, -17), (10, 20, 14), 0.05, 0.003),      # (its small openings are finer than the grid: as pits they came out as craters)
     ("mastoid", (-56, -12, -17), (10, 20, 14), 0.05, 0.003),
     ("pterygoid plates", (22, -22, 37), (10, 16, 7), 0.04, 0.04),

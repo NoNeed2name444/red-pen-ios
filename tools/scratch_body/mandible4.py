@@ -76,7 +76,7 @@ def maps(S, log=print):
     """Everything drawn on the unrolled sheet: the outline, the two faces, the rim's roundness; and the lines
     other steps need (the lower border and the tooth-bearing margin as heights over s)."""
     use()
-    M = relief.Map(-16.0, 114.0, -97.0, 4.0, 0.5)
+    M = relief.Map(-16.0, 114.0, -101.0, 4.0, 0.5)
     sy = lambda P: np.column_stack([S.sn(P[:, 0], P[:, 2])[0], P[:, 1]])
     # the outline, unrolled: tooth-bearing margin, front border of the ramus, coronoid, notch, neck, hind border, angle, lower border
     T = np.array(M2.T, float)[:8]; B = np.array(M2.B, float)
@@ -84,7 +84,7 @@ def maps(S, log=print):
     ram = sy(ramus3(O[:, 0], O[:, 1]))                              # the traced ramus outline, point for point
     top = sy(T)
     low = sy(B)[:9][::-1]                                           # from under the ramus forward to the chin
-    low[:, 1] += 0.9 * np.exp(-((low[:, 0] - low[1, 0]) / 7.0) ** 2)  # the shallow notch in front of the angle (the facial artery's groove)
+    low[:, 1] += 1.2 * np.exp(-((low[:, 0] - low[1, 0]) / 7.0) ** 2)  # the shallow notch in front of the angle (the facial artery's groove)
     k_front = 16                                                    # OUTLINE[16] is the front border at the height of the teeth
     poly = np.concatenate([top[::-1] * np.array([-1.0, 1.0]), top,  # (mirrored across the midline so that no rim falls on it)
                            ram[k_front:], ram[:13], low, low[::-1][1:] * np.array([-1.0, 1.0])])
@@ -124,7 +124,7 @@ def maps(S, log=print):
     zs = lambda z, y: float(sy(ramus3(z, y))[0, 0])
     TH = [  # (z, y, thickness) on the side view
         (8.5, -12, 6.2), (9.5, -20, 5.7), (11.5, -30, 5.5), (14.5, -40, 5.5), (14.0, -50, 5.6), (13.0, -60, 5.6),     # hind border
-        (17, -66, 5.3), (24, -70, 5.2), (34, -73, 6.0), (44, -76, 7.4),                                         # angle and lower border
+        (16, -65, 5.3), (23, -69.5, 5.2), (34, -74.5, 6.0), (44, -78.5, 7.4),                                   # angle and lower border
         (30, -27, 2.6), (28, -38, 4.4), (28, -50, 4.4), (30, -60, 4.6), (21, -45, 3.8), (36, -40, 3.6), (36, -28, 2.8), (21, -30, 3.0),
         (45, -20, 3.2), (44.5, -30, 3.6), (43.0, -40, 4.2), (43.5, -48, 5.0),                                   # front border
         (41, -10, 2.8), (39.5, -7, 2.3), (26, -23, 2.2), (20, -21, 2.6), (31, -21, 2.2),                        # coronoid, notch
@@ -132,8 +132,13 @@ def maps(S, log=print):
     th = M.thin_plate(np.array([(zs(z, y), y, t) for z, y, t in TH]), weight=20.0, tension=0.05)
     th = np.clip(th, 2.0, 8.0)
     g = lambda z, y, r: gauss(M, (zs(z, y), y), (r, r))
-    mid = mid + 0.8 * g(14.0, -62.0, 11.0) + 1.2 * g(40.0, -8.0, 9.0)        # the angle turned outward a little (Gray, p. 174: it "may be either inverted or everted"; Fig. 190 has it 1 mm out); the coronoid tip curves out a little
-    mid = mid - 0.8 * g(17.0, -40.0, 11.0) + 1.2 * g(11.0, -24.0, 7.0)       # between the neck and the angle the ramus is a little hollow (seen from in front its side is a slow S, never a ruled line)
+    # Seen from in front the jaw's side is no upright ruled line (the owner, 14 November: "it shouldn't be perfectly straight in
+    # sides"). An earlier build turned the angle 0.8 mm out and hollowed the ramus 0.8 above it, which together undid the
+    # plane's own lean: 20 mm of the side stood exactly upright. Now the side keeps the plane's lean all the way down (in by
+    # 1 mm for every 8 of height, 121 mm across the joint heads to 98 across the angles), a little hollow under the neck and
+    # a little full over the masseter's ridges, and turns in to the lower border round the angle.
+    mid = mid + 1.2 * g(40.0, -8.0, 9.0)                                     # the coronoid tip curves out a little
+    mid = mid - 0.35 * g(17.0, -38.0, 10.0) + 1.2 * g(11.0, -24.0, 7.0) + 0.3 * g(17.0, -55.0, 7.0)
     orr, irr = mid + th / 2, mid - th / 2
     # cheek-side roughness for the masseter near the angle (low oblique ridges), the lingula's ridge and the ridge from the neck on the tongue side
     for (z0, y0), (z1, y1), hgt in (((14, -52), (26, -65), 0.42), ((18, -45), (33, -61), 0.34), ((13, -60), (20, -69), 0.4), ((23, -47), (38, -63), 0.26), ((12, -44), (19, -53), 0.22)):
@@ -224,7 +229,7 @@ def maps(S, log=print):
 
     # the rim's roundness: the lower border broad, the hind border and angle rounded, the notch and coronoid thin, the tooth-bearing margin 2 mm
     edge = [(0.0, yb(0.0), 4.6), (20.0, yb(20.0), 4.2), (45.0, yb(45.0), 3.8), (70.0, yb(70.0), 3.2)]
-    edge += [(zs(z, y), y, r) for z, y, r in ((16, -68, 2.6), (11, -55, 2.7), (12, -37, 2.7), (8, -20, 2.8), (7, -9, 3.0),
+    edge += [(zs(z, y), y, r) for z, y, r in ((15.5, -66, 2.6), (11.5, -55, 2.7), (12, -37, 2.7), (8, -20, 2.8), (7, -9, 3.0),
                                               (26, -21, 1.1), (39.5, -6, 1.2), (46, -20, 1.5), (45.5, -40, 1.8), (48, -56, 2.0))]
     edge += [(sv, yt(sv), 2.0) for sv in (0.0, 15.0, 30.0, 45.0)]
     rad = M.thin_plate(np.array(sym(np.array(edge)), float), weight=10.0, tension=0.3)
@@ -237,7 +242,7 @@ def build(h=0.5, log=print, seat=True):
     S = sheet()
     W = maps(S, log)
     M = W["M"]
-    F = sdf.Field([0, -99, -4], [68, 5, 101], h)
+    F = sdf.Field([0, -103, -4], [68, 5, 101], h)
     F.add(Ribbon(S, M, W["outer"], W["inner"], W["reg"], W["rad"], body=(W["inner_body"], W["top"], W["sunk"], W["lip"], W["meet"], W["away"])))
     on = lambda z, y, out=0.0: MB.on_ramus(z, y, out)
 

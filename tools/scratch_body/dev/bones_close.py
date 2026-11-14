@@ -9,7 +9,8 @@ S = os.environ.get("SCRATCH_OUT", "/tmp/scratch_body_out")       # working folde
 name = sys.argv[1]; which = sys.argv[2] if len(sys.argv) > 2 else "face"
 M = pickle.load(open(S + "/sb/%s_bones.pkl" % name, "rb"))
 hide = sys.argv[3].split(",") if len(sys.argv) > 3 else []
-meshes = [(v, f, bones.COLOUR[n.split(",")[0]]) for n, (v, f) in M.items() if not any(n.startswith(q) for q in hide)]
+col = lambda n: (244, 240, 228) if n.startswith("tooth") else bones.COLOUR[n.split(",")[0]]
+meshes = [(v, f, col(n)) for n, (v, f) in M.items() if not any(n.startswith(q) for q in hide)]
 SETS = {
     "face": [("face, from in front", (0, 0, 1), (0, -5, 80), 135), ("left orbit, from in front and a little outward", (0.3, 0.05, 1), (30, 14, 70), 62),
              ("nose and inner wall of the left orbit", (0.75, 0.1, 0.65), (12, 8, 85), 70), ("left cheek, from the side and front", (0.8, 0.0, 0.6), (40, -5, 70), 110)],

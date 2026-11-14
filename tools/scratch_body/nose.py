@@ -55,10 +55,14 @@ def septum(h=0.5, log=print):
     half = 0.5 * sheet + 0.55 * smoothstep((-24.0 - M.V) / 4.0) * smoothstep((M.U - 45.0) / 8.0) + 0.3 * smoothstep((M.V - 6.0) / 6.0)   # (its free hind edge stays thin to its foot)
     # the vomer's hind border "is thick and bifid above, thin below": toward the sphenoid's body it spreads into the two wings (alae)
     # that clasp the body's beak; seen from behind a Y, not a T
-    half = half + 3.1 * smoothstep((M.V + 14.5) / 6.0) ** 2 * smoothstep((45.0 - M.U) / 7.0)
+    # Seen from below the wings are a leaf, not a tile: narrow in front, widest (10 mm across the two) a little before their hind end,
+    # each lip's edge a little uneven and the two not alike.
+    rng = np.random.default_rng(195)
+    wing = 4.5 * smoothstep((M.V + 14.5) / 6.0) ** 2 * smoothstep((46.0 - M.U) / 13.0) * (1.0 - 0.45 * smoothstep((33.0 - M.U) / 3.5))
+    lips = [wing * (1.0 + 0.16 * ndimage.gaussian_filter(np.interp(M.U, np.linspace(25.0, 50.0, 9), rng.uniform(-1, 1, 9)), 3.0)) for _ in range(2)]
     log("septum: a sheet %.1f mm thick, bowed %.1f mm to the left; its front edge lies %.0f mm behind the nasal spine at the gap's corner"
         % (sheet, BOW, 100.0 - min(p[0] for p in SEPTUM[:9])))
-    return Slab(M, (2, 1, 0), bow + half, bow - half, reg, round=min(0.5, 0.38 * sheet), mirror=False)
+    return Slab(M, (2, 1, 0), bow + half + lips[0], bow - half - lips[1], reg, round=min(0.5, 0.38 * sheet), mirror=False)
 
 
 def side_wall(F, M, x0=1.5, x1=26.0):

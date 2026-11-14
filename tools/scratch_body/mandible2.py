@@ -26,16 +26,22 @@ T = [(0, -62.8, 89.9), (5.5, -63.0, 88.6), (10.8, -64.6, 85.6), (14.8, -63.2, 80
 # nearly straight (about 27 degrees off the midline) to the angles. Under the premolars the base lies straight under the teeth;
 # under the molars it lies outside them, more and more toward the ramus. (An earlier line stood 4 to 7 mm too far out in its
 # front half: from in front the jaw was a box, where the plate of the skull from in front, Fig. 190, narrows evenly to the chin.)
-B = [(0, -90.0, 86.2), (6.2, -90.0, 85.9), (10.6, -89.6, 82.4), (15.0, -88.5, 74.6), (19.8, -86.4, 64.5),
-     (25.2, -82.8, 54.0), (31.6, -78.6, 42.0), (37.6, -75.0, 31.0), (42.0, -72.5, 22.0),
-     (44.5, -70.0, 16.5), (45.2, -66.5, 12.8)]                 # breadths: the usual ones (about 50 between the chin's foramina, 98 across the angles)
+# Its height is not the plate's. Traced from Fig. 188 the chin's lowest point stood 90 mm below the Frankfurt plane and the
+# angle 67: a lower border 17 degrees off that plane and an angle of 112 degrees, a square jaw with upright sides (the owner,
+# 14 November: "the jaw should be angled no?"). The usual sizes this model is built to (landmarks.py: nasion to chin 120 mm,
+# joint to angle 62) put the chin at 94 and the angle at 64: the border then slopes 21 degrees (Downs' norm for the mandibular
+# plane is 21.9) and the angle opens to about 117, inside the "110 to 120 degrees" Gray gives for the adult (p. 177). The
+# body gains height in front (31 mm at the chin for 27) and keeps what it had under the last molar.
+B = [(0, -94.2, 86.2), (6.2, -94.2, 85.9), (10.6, -93.7, 82.4), (15.0, -91.8, 74.6), (19.8, -88.2, 64.5),
+     (25.2, -84.2, 54.0), (31.6, -79.4, 42.0), (37.6, -74.9, 31.0), (42.0, -71.0, 22.0),
+     (44.5, -67.6, 16.5), (45.2, -63.6, 12.8)]                 # breadths: the usual ones (about 50 between the chin's foramina, 98 across the angles)
 # the ramus: a plane closing in toward the chin and leaning in toward the angle (120 across the condyles, 98 across the angles);
 # its outline in (z, y) as traced
 O = np.array([49.0, -12.0, 10.5])
 ES = sdf.unit((-0.20, 0.0, 0.98))
 ET = np.array([0.065, 1.0, 0.0])
 OUTLINE = [(5.5, -6.0), (4.9, -9.2), (6.5, -15.7), (8.4, -21.4), (9.6, -26.2), (11.6, -31.2), (12.2, -37.4), (11.6, -45.0),
-           (11.0, -52.4), (10.2, -59.9), (11.2, -65.8), (15.0, -69.4), (21.9, -72.9), (36.4, -76.4), (46.0, -78.5),
+           (11.1, -51.5), (11.0, -57.5), (12.6, -63.0), (16.4, -67.6), (21.9, -71.0), (36.4, -77.1), (46.0, -81.0),      # the angle: a round turn of 9 to 10 mm, not a corner
            (50.0, -69.0), (48.5, -58.0), (44.8, -47.3), (46.1, -35.4), (47.2, -26.5), (47.9, -18.3), (46.2, -11.9),
            (43.1, -8.2), (39.5, -5.5), (36.6, -6.2), (35.5, -8.1), (32.9, -15.1), (30.0, -19.9), (25.8, -21.4),
            (21.7, -19.7), (17.9, -15.9), (15.1, -11.4), (12.9, -7.1), (11.5, -5.0)]
