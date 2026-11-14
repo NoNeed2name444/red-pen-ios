@@ -86,8 +86,15 @@ def maps(S, log=print):
     low = sy(B)[:9][::-1]                                           # from under the ramus forward to the chin
     low[:, 1] += 1.2 * np.exp(-((low[:, 0] - low[1, 0]) / 7.0) ** 2)  # the shallow notch in front of the angle (the facial artery's groove)
     k_front = 16                                                    # OUTLINE[16] is the front border at the height of the teeth
-    poly = np.concatenate([top[::-1] * np.array([-1.0, 1.0]), top,  # (mirrored across the midline so that no rim falls on it)
-                           ram[k_front:], ram[:13], low, low[::-1][1:] * np.array([-1.0, 1.0])])
+    # Where the body's upper border meets the ramus the outline turned a corner: the margin ran level to the ramus's front
+    # border and that rose from it at 70 degrees, a U-shaped notch behind the last molar (the owner's circle, 14 November:
+    # "fix this"). A jaw has none: "the anterior border is thin above, thicker below, and continuous with the oblique line"
+    # (Gray 1918, p. 174), which runs "backward and upward from each mental tubercle" (p. 172). So the border comes down in one
+    # sweep that passes outside the third and second molars and dies into the body's face beside the first: the last teeth
+    # stand in a gutter between the tooth-bearing margin and that ridge.
+    sweep = np.array([(45.5, -58.8), (49.5, -58.1), (53.0, -56.8), (56.0, -54.6), (58.3, -51.4)])
+    poly = np.concatenate([top[::-1] * np.array([-1.0, 1.0]), top[:7], sweep,  # (mirrored across the midline so that no rim falls on it)
+                           ram[k_front + 1:], ram[:13], low, low[::-1][1:] * np.array([-1.0, 1.0])])
     poly = poly[np.concatenate([[True], np.linalg.norm(np.diff(poly, axis=0), axis=1) > 0.5])]
     reg = M.region(sdf.spline(poly, 1.0, closed=True))
     yb = lambda s: np.interp(np.abs(s), low[::-1][:, 0], low[::-1][:, 1])          # lower border
@@ -177,7 +184,8 @@ def maps(S, log=print):
     outer = outer + 0.3 * np.exp(-(s / 1.4) ** 2) * smoothstep((M.V - (yc + 13.0)) / 3.0) * smoothstep((yt(M.U) - 1.0 - M.V) / 3.0)   # the symphysis's faint ridge above it
     outer = outer - 0.7 * G2((7.0, yc + 20.5), (4.0, 3.8))                       # incisive fossa
     s_fr = zs(48.3, -58.0)                                                       # the ramus's front border at the height of the margin
-    outer = outer + 0.45 * near_abs(M, [(12.5, yc + 5.5), (26.0, yb(26.0) + 9.5), (40.0, yb(40.0) + 13.5), (52.0, yb(52.0) + 18.0), (s_fr, -58.5)], 2.6)   # oblique line
+    # the oblique line: faint in front, as Gray has it, and stronger toward the ramus, whose front border it becomes
+    outer = outer + (0.45 + 0.55 * smoothstep((s - 36.0) / 16.0)) * near_abs(M, [(12.5, yc + 5.5), (26.0, yb(26.0) + 9.5), (40.0, yb(40.0) + 13.5), (50.0, yb(50.0) + 18.5), (56.0, -56.5), (58.3, -51.4)], 2.6)
     # The tongue side. Under the teeth it is the body's own face (its traced sections), and the body's top is the
     # tooth-bearing margin: the shelf the third molar stands on, with the ramus rising from its cheek-side third.
     # Behind that tooth there is no second surface: the ramus's face itself swells toward the tongue to meet the

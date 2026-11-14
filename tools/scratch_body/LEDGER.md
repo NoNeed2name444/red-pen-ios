@@ -19,7 +19,7 @@ Of 144 details: 92 built, 19 plain, 33 missing.
 | glabella | plain | a point of the traced profile (landmarks.py) | 135 |
 | supraorbital margin | built | skull2.orbit_margin: the orbit's rim as traced | 135 |
 | supraorbital notch or foramen | built | a shallow notch cut in the orbit's upper rim, 5 mm wide (skull2.build) | 136 |
-| zygomatic process | built | its hind edge is the temporal crest traced on Fig. 188 (temporal.FRONTAL_CREST), the fossa hollowed behind it (temporal.fossa_front); the suture below it is in the split (bones.py) | 136 |
+| zygomatic process | built | its hind edge is the temporal crest (temporal.FRONTAL_CREST), which runs on from the pillar's border below (skull2.PILLAR_HIND) in one sweep, the fossa hollowed behind it (temporal.fossa_front); the suture below it is in the split (bones.py) | 136 |
 | temporal line | built | temporal.lines_relief: the crest on the frontal bone, traced on Fig. 188 | 136 |
 | nasal part and nasal spine | missing | the nasal bones meet the frontal bone on a plain wall | 136 |
 | orbital plate (roof of the orbit) | plain | the orbit's funnel (skull2.build) | 137 |
@@ -67,8 +67,8 @@ Of 144 details: 92 built, 19 plain, 33 missing.
 | mandibular fossa | built | base.py, base.socket_cut | 139 |
 | postglenoid process | built | temporal.ear_hole: the small process between the ear hole and the socket | 145 |
 | petrotympanic fissure | missing |  | 139 |
-| external acoustic meatus | built | temporal.ear_hole; its rim is too even | 139 |
-| tympanic part | built | temporal.py: the thick rough lip round the ear hole | 138 |
+| external acoustic meatus | built | temporal.py: an oval opening under the arch's hind root, taller than wide, its long axis leaning down and back (p. 145); roofed by the squama and edged in front, below and behind by the tympanic part (p. 183) | 139 |
+| tympanic part | built | temporal.py: a curved plate in front of the mastoid whose free outer border is rough and uneven (p. 145), not a ring round the hole; its lower border runs into the styloid's sheath | 138 |
 | mastoid process | built | skull2.build, on its traced outline | 141 |
 | mastoid notch (digastric) and occipital groove | built | skull2.build | 141 |
 | mastoid foramen | missing | finer than the grid: as a pit it came out as a crater | 140 |
@@ -154,7 +154,7 @@ Of 144 details: 92 built, 19 plain, 33 missing.
 | --- | --- | --- | --- |
 | malar surface | built | skull2.cheek | 164 |
 | zygomaticofacial foramen | built | the end of a fine canal from the orbital surface, opening obliquely on the cheek (skull2.build) | 164 |
-| frontosphenoidal process | built | skull2.cheek: a plate 5 to 6 mm thick, its hind border traced on Fig. 188 (ZYG_SIDE), hollowed behind along the orbit's outer wall | 164 |
+| frontosphenoidal process | built | skull2.cheek: a plate 5 to 6 mm thick; its hind (temporal) border is one sweep, "curved like an italic letter f" (p. 166), within 2.7 mm of the line Fig. 188 draws but without that drawing's level step (skull2.PILLAR_HIND); its back is the broad shallow hollow of the temporal surface (p. 164) | 164 |
 | temporal process and the arch | built | skull2.cheek, at the usual breadth of 133 mm | 166 |
 | orbital surface and its foramina | built | the orifices of the two canals (skull2.build) | 165 |
 | zygomaticotemporal foramen | built | the second canal, through to the temporal fossa (skull2.build) | 164 |
@@ -195,7 +195,7 @@ Of 144 details: 92 built, 19 plain, 33 missing.
 | mental tubercle | built | mandible4.py | 172 |
 | incisive fossa | built | mandible4.py | 172 |
 | mental foramen | built | opens backward and upward under a front and lower lip (mandible4.py) | 172 |
-| oblique line | built | mandible4.py | 172 |
+| oblique line | built | mandible4.py: faint in front and stronger toward the ramus, whose front border it becomes in one sweep outside the last two molars (pp. 172, 174); no notch behind the third molar | 172 |
 | mental spines | built | mandible4.py | 172 |
 | digastric fossa | built | mandible4.py | 173 |
 | mylohyoid line | built | mandible4.py | 173 |

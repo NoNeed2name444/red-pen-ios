@@ -330,7 +330,7 @@ FACE_POINTS = [  # the front surface's depth z where no traced line gives it: (x
     # a millimetre inside it), y and z from the crest traced on the side view (temporal.FRONTAL_CREST). Without them the
     # forehead turned back too soon: at the crest's line it stood 47 mm out where the outline from in front has 52, and the
     # pillar beside the orbit ended in a horn under that narrow place.
-    (54.5, 25.3, 65.7), (52.6, 28.7, 72.3), (50.9, 34.1, 75.1), (49.6, 39.5, 75.1), (48.2, 45.0, 74.7), (47.2, 49.4, 74.0),
+    (53.6, 26.8, 67.9), (51.9, 30.2, 70.7), (50.9, 34.0, 72.9), (49.9, 38.2, 74.3), (48.8, 42.5, 74.9), (48.0, 46.5, 74.6), (47.2, 49.4, 74.0),
     # the tooth-bearing process: the swellings over the roots and the hollows between
     (4.5, -38, 97.6), (9.5, -38, 96.0), (13.8, -38, 92.8), (17.5, -36, 91.5), (17.5, -41, 89.5), (21.5, -38, 83.5),
     (24.3, -38, 76.0), (27.6, -37, 66.5), (30.0, -36, 57.0), (4.5, -43, 97.8), (9.5, -43, 95.8),
@@ -402,11 +402,18 @@ def face(T, V, h, log=print):
 
 
 # =================================== the cheek bone and its arch: a relief over the side view ===================================
+PILLAR_HIND = [(55.2, 6.5), (55.9, 10.0), (57.1, 13.6), (58.8, 17.0), (61.1, 20.3), (63.9, 23.6), (66.9, 26.8), (69.7, 30.2)]     # the pillar's hind border below the crest: (z, y)
 ZYG_SIDE = [   # the cheek bone with the arch behind it, seen from the side, traced on Fig. 188: (z, y), closed
     # (its top: the hind border does not run straight up to a level top 30 mm above the Frankfurt plane, as first drawn. From
     # the frontozygomatic suture's hind end, page (750, 1745), it leans forward and up as the frontal bone's temporal crest,
     # page (730, 1700) and (675, 1655): the pillar beside the orbit narrows upward into the forehead's side)
-    (72.9, 27.6), (71.4, 28.8), (68.0, 27.0), (64.7, 25.3), (62.4, 22.6), (59.7, 20.9), (57.5, 17.4), (56.1, 13.7), (55.6, 9.8), (55.4, 5.9), (54.6, 3.7),
+    # The hind border is one sweep, in Gray's words "curved like an italic letter f ... continuous above with the commencement
+    # of the temporal line, and below with the upper border of the zygomatic arch" (1918, p. 166). The plate draws it so on a
+    # skull tipped back by 12 degrees; traced point by point and levelled on the Frankfurt plane, the stretch through the
+    # frontozygomatic suture came out at 27 degrees from the level between two corners: a step backward in the pillar (the
+    # owner, 14 November: "fix those curves that i don't think should exist"). The same sweep is now drawn without corners,
+    # nowhere flatter than 47 degrees and at most 2.7 mm from the plate's line (PILLAR_HIND, the arch upward).
+    (72.9, 27.6), (71.9, 30.3)] + PILLAR_HIND[::-1] + [(54.6, 3.7),
     (52.0, 0.6), (49.0, -0.8), (46.4, -0.9), (40.1, 0.4), (34.8, 1.2), (28.4, 1.6), (22.0, 1.9), (15.5, 1.9), (9.2, 1.5),
     (3.0, 1.6), (3.1, -0.4), (5.3, -0.4), (9.0, -0.8), (11.8, -2.9), (13.9, -5.7), (16.8, -7.4), (19.5, -7.5), (22.4, -6.3),
     (25.0, -4.2), (27.5, -2.7), (31.7, -3.2), (35.8, -4.3), (39.3, -5.7), (39.9, -7.1), (44.6, -9.7), (49.2, -12.7),
@@ -432,8 +439,8 @@ def cheek(M, Zf, reg, log=print):
     # out to x 62 at its hind border, 4 mm beyond the face's outline seen from in front (FACE_EDGE: 57.6 at y 6.6, 57.4 at 19,
     # 56.0 at 24, 52.9 at 30) and beyond the arch's own line seen from below. Its hind border is held on that outline.
     # At its top the process runs into the frontal bone's zygomatic process, which the face's slab draws on the same outline.
-    pts += [(55.5, 8.0, 58.6, 1.0), (56.1, 13.7, 57.6, 1.0), (59.7, 20.9, 56.4, 1.0), (64.7, 25.3, 55.0, 1.0), (68.0, 27.0, 54.2, 1.0),
-            (71.4, 28.8, 53.2, 1.0), (72.9, 27.6, 53.4, 1.0)]
+    pts += [(55.3, 7.0, 58.6, 1.0), (57.1, 13.6, 57.6, 1.0), (61.1, 20.3, 56.3, 1.0), (63.9, 23.6, 55.2, 1.0), (66.9, 26.8, 53.6, 1.0),
+            (69.7, 30.2, 51.8, 1.0), (72.9, 27.6, 52.4, 1.0)]
     pts = np.array(pts, float)
     Xo = S.thin_plate(pts, weight=20.0)
     miss = S.sample(Xo, pts[:, 0], pts[:, 1]) - pts[:, 2]
@@ -554,18 +561,18 @@ def build(h=1.0, log=print, box=None):
     # the outer wall of the orbit, running back and inward from the outer rim to the braincase
     wall = spline([(50, 16, 67), (44, 17, 59), (36, 18, 51), (27, 19, 43)], 2)
     F.add(Tube(wall, [(0, 17.0), (1, 10)], 2.6, up=up, n=3, true=True), 6)      # (its distance as it is: counted in its thin half-width it swelled the temple by a millimetre up to a ruled step 14 mm above it)
-    temporal.fossa_front(F, F0, ZYG_SIDE[9:3:-1], log)     # the hollow behind the cheek bone's hind border (those six points of its outline) and the frontal bone's crest, as the plate draws it
-    # The cheek bone's frontal process is a plate 5 to 6 mm thick with a hollowed back (its temporal surface), not a block.
-    # The hollow lies between the plate and the orbit's outer wall and opens backward into the fossa: an oval laid along the
-    # wall (which runs back and inward at 37 degrees), so that its inner bank is the wall's own face and runs on into the
-    # fossa's floor with no sill between. (A round channel cut straight in read as a slot with a pointed top.)
-    d_, n_ = np.array([0.6, 0.0, 0.8]), np.array([0.8, 0.0, -0.6])
-    F.cut(Ellipsoid((48.8, 14.5, 58.5), (4.5, 8.0, 2.4), np.stack([d_, np.array([0.0, 1.0, 0.0]), n_], axis=1)), 2.5)
+    temporal.fossa_front(F, F0, PILLAR_HIND, log)          # the hollow behind the pillar's hind border and the frontal bone's crest
+    # The cheek bone's frontal process is a three-sided bar: its back, the temporal surface, "directed backward and medialward,
+    # is concave" (Gray 1918, p. 164) and runs from the free hind border inward to the orbit's outer wall. It was hollowed by a narrow oval laid along that
+    # wall, which undercut the plate by up to 6 mm and showed from behind as a slot with a rim, cut into the pillar. The
+    # hollow is now a broad shallow one, 2 mm at its deepest, leaning with the hind border and running out at both ends.
+    u1, u2 = np.array([0.0, 0.92, 0.39]), np.array([0.0, -0.39, 0.92])
+    F.cut(Ellipsoid((49.9, 14.8, 54.3), (5.1, 12.0, 5.4), np.stack([np.array([1.0, 0.0, 0.0]), u1, u2], axis=1)), 4.0)      # (it stops 2 mm short of the free border: nearer, it frayed the border's edge)
     # ---- temporal bone: the arch's root over the joint, the tubercle in front of it, the plate round the ear hole, the mastoid
     B = base.build(F, F0, log)
     F.add(Ellipsoid((54, 1.4, 9), (10.5, 4.4, 12)), 5)
     F.add(Ellipsoid((52, -3.8, 18.5), (11, 3.9, 5.2), rot((0, 1, 0), -12)), 3.5)
-    F.add(Ellipsoid((46.5, -5.4, -1.2), (11.0, 7.4, 5.4), rot((0, 1, 0), -10)), 3)   # the ground the ear hole's canal runs in (its mouth, lip and wall: temporal.ear_hole)
+    F.add(Ellipsoid((46.5, -5.0, -4.4), (11.0, 7.2, 6.2), rot((0, 1, 0), -8)), 3)    # the ground the ear canal runs in (its mouth and the tympanic part round it: temporal.ear_hole)
     # the mastoid process: its outline traced on the side view (Fig. 188), full in the middle of its outer face, falling away to
     # the tip 33 mm below the Frankfurt plane; the notch for the digastric is cut on its inner side further down
     temporal.mastoid(F, log)

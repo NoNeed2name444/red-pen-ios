@@ -3572,8 +3572,9 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
   Two things had to change for the finer grid: a suture wall is 3 mm thick
   whatever the grid, and the middle scrolls are joined to the ethmoid's block.
   Left for F8: writing the parts out for the app.
-- [ ] F7. The side of the head (ear hole's rim, the arch's root), the orbit's
-  fissures, the molars' crowns, the cranial floor, the maxillary sinus.
+- [ ] F7. The side of the head (the arch's root, the crest above the mastoid,
+  the mastoid from below; the ear opening is done, F7d), the orbit's
+  fissures, the molars' crowns, the cranial floor, the air sinuses (F7e).
 - [x] F7a. The feature ledger (14 Nov): tools/scratch_body/LEDGER.md, written
   by dev/ledger.py. Every named detail of the skull's bones and the jaw in
   Gray's account (pp. 129 to 198), 144 of them, each with the page a search of
@@ -3622,6 +3623,35 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
   runs from that surface into the temporal fossa. A lip that sharp is
   thinner than a cell of the grid and meshed as a row of teeth: the field is
   eased there (sdf.Field.ease). Ledger: 92 built, 19 plain, 33 missing.
+- [x] F7d. The owner's three marks of 14 Nov on the side of the head and the
+  jaw. (1) The ear, "i don't think a true skull has this round foramen.
+  check what EXACTLY this should be": it is the outer opening of the bony
+  ear canal, which a true skull has, but Gray's words are an "elliptical
+  orifice" below the arch's hind root (p. 183), its long axis "directed
+  downward and slightly backward" (p. 145), roofed by the squama and edged
+  in front, below and behind by the tympanic part, whose outer border is
+  "free and rough". The round hole in a raised ring is gone: the opening is
+  7.1 by 9.4 mm, and the tympanic part is a curved plate with an uneven
+  border running into the styloid's sheath. (2) The pillar beside the orbit,
+  "fix those curves that i don't think should exist": Fig. 188 does draw its
+  hind border with a nearly level run through the frontozygomatic suture
+  between two corners, but Gray's text has the border "curved like an italic
+  letter f" (p. 166) and the crest above running on from it (p. 1288). It is
+  now one sweep (skull2.PILLAR_HIND into temporal.FRONTAL_CREST), nowhere
+  flatter than 47 degrees and within 2.7 mm of the plate's line; the slot
+  the old hollow cut into the pillar's back (it undercut the plate by up to
+  6 mm) is the broad shallow hollow of p. 164. (3) The jaw behind the last
+  molar, "fix this": the outline turned a square corner where the level
+  tooth-bearing margin met the ramus's front border. The border now comes
+  down in one sweep outside the last two molars into the oblique line (pp.
+  172, 174), which is faint in front and stronger toward the ramus. Whole
+  head: teeth 0.06 mm clear with no point inside bone, jaw 1.73 mm from the
+  skull, split 0 problems and 54 parts. Before-and-now pictures sent for
+  each.
+- [ ] F7e. The air sinuses (14 Nov, "make sure to do the air sinuses in the
+  skull too"): maxillary, frontal, sphenoidal, ethmoidal cells, mastoid
+  cells, each opening where Gray has it (pp. 998 to 1000). The bones are
+  solid now. In progress.
 - [ ] F8. Mesh checks, the neck and down, the muscles, the woman, and where
   the from-scratch model goes in the app.
 

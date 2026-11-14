@@ -89,7 +89,16 @@ whether the model has it as a shape of its own, only as part of a larger form, o
   the mandibular plane is 21.9), angle 118.5 (Gray, p. 177: "from 110° to 120°"), 121 mm across the joint heads and
   98 across the angles, the sides leaning in all the way down. The chin is therefore 4 mm lower than Gray's two plates
   draw it; `dev/look_face.py` will show that difference.
-- The side of the head: the ear hole's rim is too even and the root of the cheek's arch is a lump.
+- The side of the head: the root of the cheek's arch is a lump, the crest above the mastoid reads as a ruled bar, and
+  from below the mastoid is a ball and the tympanic plate's lower edge and the styloid are thin lines. The ear opening
+  itself was redone on 14 November after the owner's circle ("i don't think a true skull has this round foramen"): an
+  oval under the arch's hind root, taller than wide, with the tympanic part's uneven plate in front, below and behind
+  (Gray, pp. 145, 183).
+- The pillar beside the orbit follows Gray's text where his plate and his text differ: Fig. 188 draws its hind border
+  with a nearly level step at the frontozygomatic suture, the text has it "curved like an italic letter f" (p. 166).
+  The owner marked the step on 14 November ("fix those curves that i don't think should exist"); the border is one
+  sweep now and stands up to 2.7 mm off the plate's line. A faint soft oval still shows on the pillar's back.
+- The ramus's front border above the sweep behind the last molar is nearly a straight line.
 - The orbit's fissures, the molars' crowns, the cranial floor and the temporal lines are plain or absent; the upper jaw
   is solid (no sinus).
 - The upper jaws' bones come out solid in the split too (41 cm3 each): the sinus again.
