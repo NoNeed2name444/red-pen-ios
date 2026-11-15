@@ -3,7 +3,7 @@ package com.stethoscore.app.ui.ward
 // A port of WardSection from ios/RedPen/Shared/Ward/WardLook.swift.
 //
 // The parts of the app, each with a colour of its own (palette direction 3,
-// seven section colours). Every accent is drawn from the section's hue: the
+// six section colours). Every accent is drawn from the section's hue: the
 // paper's grid and the controls' edges (`ink`), the words and glyphs of
 // buttons, links, the chosen tab, progress and a right answer (`accent`), and
 // the fills under white words (`fill`). The base, the cards, the body text
@@ -20,7 +20,7 @@ data class WardSectionColours(
 
 @Suppress("EnumEntryName")
 enum class WardSection {
-    questions, cards, textbook, cases, osce, audio, ideas;
+    questions, cards, textbook, cases, osce, audio;
 
     private val colours: WardSectionColours get() = table.getValue(this)
 
@@ -80,7 +80,6 @@ enum class WardSection {
                 cases to WardSectionColours(42.0, WardPair(0xFF9F7A, 0xFF9F7A), WardPair(0xFF9F7A, 0xFF9F7A), WardPair(0xFF9F7A, 0xFF9F7A)),
                 osce to WardSectionColours(129.0, WardPair(0xA3E635, 0xA3E635), WardPair(0xA3E635, 0xA3E635), WardPair(0xA3E635, 0xA3E635)),
                 audio to WardSectionColours(294.0, WardPair(0xA78BFA, 0xA78BFA), WardPair(0xA78BFA, 0xA78BFA), WardPair(0xA78BFA, 0xA78BFA)),
-                ideas to WardSectionColours(350.0, WardPair(0xF472B6, 0xF472B6), WardPair(0xF472B6, 0xF472B6), WardPair(0xF472B6, 0xF472B6)),
             )
         }
 
@@ -111,7 +110,7 @@ enum class WardSection {
  * middle, both ways; then all are made a quarter stronger, to [top]. A mode's colour
  * is pulled toward grey first, and the mesh is scaled so its strongest possible point
  * is that mode's cap, by day and at night: as strong as it can be while every colour
- * that reads on the plain base still reads on it. Ideas has none. Plain sRGB mixing.
+ * that reads on the plain base still reads on it. Plain sRGB mixing.
  */
 object WardModeWash {
     /** Each mode's earlier colour, 0xRRGGBB. */

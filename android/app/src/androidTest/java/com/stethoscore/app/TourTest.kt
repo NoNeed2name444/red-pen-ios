@@ -1,7 +1,6 @@
 package com.stethoscore.app
 
 import android.net.Uri
-import android.os.SystemClock
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -21,7 +20,6 @@ import com.stethoscore.app.data.CaseRun
 import com.stethoscore.app.data.CaseRunStore
 import com.stethoscore.app.data.LibraryImport
 import com.stethoscore.app.data.MCQAnswer
-import com.stethoscore.app.data.Note
 import com.stethoscore.app.data.SourceDoc
 import com.stethoscore.app.data.SourcePage
 import com.stethoscore.app.data.StudySet
@@ -32,9 +30,6 @@ import com.stethoscore.app.exam.NewSetPreset
 import com.stethoscore.app.exam.WardCalc
 import com.stethoscore.app.exam.WardPocket
 import com.stethoscore.app.exam.WardScores
-import com.stethoscore.app.ideas.GraphTheme
-import com.stethoscore.app.ideas.IdeaBook
-import com.stethoscore.app.ideas.NoteFolder
 import com.stethoscore.app.quiz.ChartQuiz
 import com.stethoscore.app.quiz.ExamTrack
 import com.stethoscore.app.quiz.MockFormat
@@ -61,8 +56,6 @@ import com.stethoscore.app.ui.exam.ExamPickerScreen
 import com.stethoscore.app.ui.exam.ExamSheet
 import com.stethoscore.app.ui.exam.WardPocketScreen
 import com.stethoscore.app.ui.exam.WardPocketTab
-import com.stethoscore.app.ui.ideas.IdeasSettings
-import com.stethoscore.app.ui.ideas.MoveSheet
 import com.stethoscore.app.ui.learn.LearnRoute
 import com.stethoscore.app.ui.learn.LearnRouter
 import com.stethoscore.app.ui.learn.WardRoundClock
@@ -681,126 +674,6 @@ class TourTest {
         val store = tour.store()
         val empty = store.first(StudySetKind.NARRATE).copy(narrateSegments = emptyList())
         tour.inEachMode(content = { m -> tour.Page(m, audio) { NarrateReviewScreen(empty, store, {}) } }) { m -> tour.shot(97, "narrate-empty", m) }
-    }
-
-    // MARK: ideas
-
-    /** ScreenshotTest's four linked ideas, two of them in a folder when [folder]. */
-    private fun ideasStore(folder: Boolean = false): StudyStore = tour.store().also { s ->
-        val cardiology = NoteFolder(name = "Cardiology")
-        val inFolder = if (folder) cardiology.id else null
-        val heart = Note(title = "Heart failure", tags = listOf("cardio"), folderId = inFolder)
-        val bnp = Note(title = "BNP", body = "Rises with ventricular stretch.", links = listOf(heart.id), tags = listOf("labs"))
-        val edema = Note(title = "Pulmonary oedema", links = listOf(heart.id, bnp.id), tags = listOf("cardio"), folderId = inFolder)
-        val diuretics = Note(title = "Loop diuretics", links = listOf(edema.id), tags = listOf("drugs"))
-        s.replaceIdeas(listOf(heart, bnp, edema, diuretics), if (folder) listOf(cardiology) else emptyList())
-    }
-
-    /** Ideas' remembered view ("ideas" preferences), as ScreenshotTest sets it. */
-    private fun ideasPrefs(block: android.content.SharedPreferences.Editor.() -> Unit) =
-        tour.context.getSharedPreferences("ideas", android.content.Context.MODE_PRIVATE).edit().clear().apply(block).commit()
-
-    private fun space() = ideasPrefs { putString("vignette.ideas.mode", "space") }
-
-    private val spaceMap = hasContentDescription("Space of ideas: 4 notes", substring = true)
-
-    /** Waits for the map's node, then lets its first frames draw. The tour shoots the map whether or not the GL surface has drawn yet. */
-    private fun mapShown(what: String, matcher: SemanticsMatcher, timeoutMs: Long = 30_000) {
-        tour.waitFor(what, matcher, timeoutMs)
-        SystemClock.sleep(3_000)
-    }
-
-    private fun ideas(row: Int, name: String, store: () -> StudyStore = { ideasStore() }, steps: (Mode) -> Unit) {
-        val stores = Mode.entries.associateWith { store() }
-        tour.inEachMode(content = { m -> tour.App(stores.getValue(m), "ideas", m) }) { m -> steps(m); tour.shot(row, name, m) }
-    }
-
-    @Test fun r100_ideasList() = ideas(100, "ideas") { tour.waitFor("the idea Loop diuretics", hasText("Loop diuretics", substring = true)) }
-
-    @Test fun r101_ideasEmpty() = ideas(101, "home-ideas", tour::store) {}
-
-    @Test fun r101_ideasEmptyMap() { space(); ideas(101, "ideas-map-empty", tour::store) {} }
-
-    @Test fun r102_board() {
-        ideasPrefs { putString("vignette.ideas.mode", "board") }
-        ideas(102, "ideas-board") { tour.waitFor("the idea Loop diuretics on the board", hasText("Loop diuretics", substring = true)) }
-    }
-
-    @Test fun r103_brainMap() { space(); ideas(103, "ideas-map") { mapShown("the Space map of 4 notes", spaceMap) } }
-
-    /** Performance on the four ideas, as the Look menu stores it; the speed readout kept out, as for the million demo. */
-    private fun performance() = ideasPrefs { putString("vignette.ideas.mode", "space"); putString("vignette.space.theme", "performance")
-        putBoolean(IdeasSettings.READOUT_KEY, false) }
-
-    private val performanceMap = hasContentDescription("${GraphTheme.PERFORMANCE.mapLabel}: 4 notes", substring = true)
-
-    @Test fun r103_brainMapPerformance() { performance(); ideas(103, "ideas-map-performance") { mapShown("the Performance map of 4 notes", performanceMap) } }
-
-    @Test fun r104_millionDemo() {
-        // the speed readout is a debug tool, kept out of the tour's pictures
-        ideasPrefs { putString("vignette.ideas.mode", "space"); putString("vignette.space.theme", "performance"); putInt("vignette.space.perfDemo", 1_000_000)
-            putBoolean(IdeasSettings.READOUT_KEY, false) }
-        ideas(104, "ideas-million", tour::store) {
-            // building a million nodes and their octree takes a few seconds on a CI emulator
-            tour.waitFor("the million-note demo's map", hasContentDescription("demo of 1,000,000 synthetic notes", substring = true), 120_000)
-            SystemClock.sleep(6_000)
-        }
-    }
-
-    @Test fun r105_legend() {
-        space()
-        ideas(105, "ideas-legend", { ideasStore(folder = true) }) {
-            mapShown("the Space map of 4 notes", spaceMap)
-            tour.tap("the map's Look tool", hasContentDescription("Look") and hasClickAction())
-            tour.tap("the Look menu's legend", hasText(GraphTheme.SPACE.legendTitle) and hasClickAction())
-        }
-    }
-
-    @Test fun r105_legendPerformance() {
-        performance()
-        ideas(105, "ideas-legend-performance", { ideasStore(folder = true) }) {
-            mapShown("the Performance map of 4 notes", performanceMap)
-            tour.tap("the map's Look tool", hasContentDescription("Look") and hasClickAction())
-            tour.tap("the Look menu's legend", hasText(GraphTheme.PERFORMANCE.legendTitle) and hasClickAction())
-        }
-    }
-
-    @Test fun r105_folderLooks() {
-        space()
-        ideas(105, "ideas-folder-looks", { ideasStore(folder = true) }) {
-            mapShown("the Space map of 4 notes", spaceMap)
-            tour.tap("the map's Look tool", hasContentDescription("Look") and hasClickAction())
-            tour.tap("the Look menu's Folder looks", hasText("Folder looks") and hasClickAction())
-        }
-    }
-
-    @Test fun r106_noteEditorAndLinkPicker() {
-        val stores = Mode.entries.associateWith { ideasStore() }
-        tour.inEachMode(content = { m -> tour.App(stores.getValue(m), "ideas", m) }) { m ->
-            tour.tap("the idea Loop diuretics", hasText("Loop diuretics", substring = true) and hasClickAction())
-            val link = hasContentDescription("Link to…") and hasClickAction()
-            tour.waitFor("the note editor's Link to… button", link)
-            tour.shot(106, "note-editor", m)
-            tour.tap("the note editor's Link to… button", link)
-            tour.shot(107, "link-picker", m)
-        }
-    }
-
-    @Test fun r108_ideaName() {
-        val stores = Mode.entries.associateWith { ideasStore(folder = true) }
-        tour.inEachMode(content = { m ->
-            tour.App(stores.getValue(m), "ideas", m)
-            tour.Over(m, WardSection.ideas) { com.stethoscore.app.ui.ideas.NameSheet("New folder", "Folder name", "", "Create", {}) {} }
-        }) { m -> tour.shot(108, "idea-name", m) }
-    }
-
-    @Test fun r108_ideaMove() {
-        val stores = Mode.entries.associateWith { ideasStore(folder = true) }
-        tour.inEachMode(content = { m ->
-            val s = stores.getValue(m)
-            tour.App(s, "ideas", m)
-            tour.Over(m, WardSection.ideas) { MoveSheet(IdeaBook(s.notes, s.noteFolders), {}) {} }
-        }) { m -> tour.shot(108, "idea-move", m) }
     }
 
     // MARK: vitals

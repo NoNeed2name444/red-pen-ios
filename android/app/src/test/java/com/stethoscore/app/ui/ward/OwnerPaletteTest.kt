@@ -3,8 +3,6 @@ package com.stethoscore.app.ui.ward
 import com.stethoscore.app.data.OcclusionCovers
 import com.stethoscore.app.data.StudySetKind
 import com.stethoscore.app.export.DeckPalette
-import com.stethoscore.app.ideas.NoteTone
-import com.stethoscore.app.map.MapPalette
 import org.junit.Test
 import java.io.File
 import kotlin.math.roundToInt
@@ -32,7 +30,6 @@ class OwnerPaletteTest {
     private fun mode(dark: Boolean) = if (dark) "dark" else "light"
     private fun byte(x: Double) = (x * 255).roundToInt()
     private fun hex(r: Double, g: Double, b: Double) = (byte(r) shl 16) or (byte(g) shl 8) or byte(b)
-    private fun hex(rgb: FloatArray) = hex(rgb[0].toDouble(), rgb[1].toDouble(), rgb[2].toDouble())
 
     @Test fun theTenColoursInTheirRoles() = checks {
         val ten = listOf(pulseTeal, freshMint, careBlue, electricIndigo, softLilac, vitalCoral, peachGlow,
@@ -40,11 +37,10 @@ class OwnerPaletteTest {
         check("ten colours, each its own", ten.toSet().size == 10)
 
         // Questions Vital Coral, Cards Care Blue, Textbook Pulse Teal, Cases Peach Glow, OSCE Lime Zest,
-        // Audio Soft Lilac, Ideas Bubblegum Pink: the section's ink, accent and fill, in both modes
+        // Audio Soft Lilac: the section's ink, accent and fill, in both modes
         val sections = mapOf(
             WardSection.questions to vitalCoral, WardSection.cards to careBlue, WardSection.textbook to pulseTeal,
             WardSection.cases to peachGlow, WardSection.osce to limeZest, WardSection.audio to softLilac,
-            WardSection.ideas to bubblegumPink,
         )
         check("every section has its colour", sections.keys == WardSection.entries.toSet())
         for ((s, want) in sections) for (dark in modes) {
@@ -77,12 +73,6 @@ class OwnerPaletteTest {
                 got == careBlue, hx(got))
         }
 
-        // the folders (NoteTone), in order
-        val folders = listOf(pulseTeal, electricIndigo, peachGlow, softLilac, limeZest, bubblegumPink, careBlue)
-        val tones = NoteTone.palette.map { hex(it) }
-        check("the folders are Pulse Teal, Electric Indigo, Peach Glow, Soft Lilac, Lime Zest, Bubblegum Pink and Care Blue",
-            tones == folders, tones.joinToString { hx(it) })
-
         // the occlusion cover (the asked label) is Peach Glow; the question screen's picture
         // (StudyScreens' CardImage) covers labels in OcclusionCovers' colours too, with no literal
         val cover = OcclusionCovers.targetRgb.let { hex(it.first, it.second, it.third) }
@@ -104,12 +94,5 @@ class OwnerPaletteTest {
                 check("the deck's $kind $role is ${hx(want)}", rgb == want, hx(rgb))
             }
         }
-
-        // the graph's nodes (MapPalette), by group
-        val nodes = (0 until MapPalette.rgb.size / 3).map {
-            hex(MapPalette.rgb[3 * it].toDouble(), MapPalette.rgb[3 * it + 1].toDouble(), MapPalette.rgb[3 * it + 2].toDouble())
-        }
-        check("the graph's nodes are Care Blue, Pulse Teal, Optimistic Amber, Soft Lilac, Bubblegum Pink and Lime Zest",
-            nodes == listOf(careBlue, pulseTeal, optimisticAmber, softLilac, bubblegumPink, limeZest), nodes.joinToString { hx(it) })
     }
 }

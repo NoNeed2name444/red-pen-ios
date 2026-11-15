@@ -133,15 +133,4 @@ class ContentCreditsTest {
         assertTrue("MedMCQA's line matches its credit",
             medmcqaLine.contains("Apache-2.0") && ContentSources.medmcqa.licences == listOf(ContentSources.apache2))
     }
-
-    // the Earth's imagery is credited in Settings with the line its maps'
-    // SOURCES.md gives, word for word (Android's copy of it, in assets/earth)
-    @Test fun theEarthImageryIsCredited() {
-        val sources = File(root(), "android/app/src/main/assets/earth/SOURCES.md").readText()
-        val flat = sources.split(Regex("\\s+")).filter { it.isNotEmpty() }.joinToString(" ")
-        assertTrue("the Earth imagery's credit is its SOURCES.md's, word for word",
-            flat.contains("\"" + ContentSources.nasaEarthCredit + "\"") &&
-                ContentSources.nasaEarth.attribution.startsWith(ContentSources.nasaEarthCredit))
-        assertTrue("the Earth imagery is in Settings' list", ContentSources.nasaEarth in ContentSources.all)
-    }
 }

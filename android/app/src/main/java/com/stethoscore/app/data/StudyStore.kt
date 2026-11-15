@@ -2,7 +2,6 @@ package com.stethoscore.app.data
 
 import com.stethoscore.app.exam.ExamDefaults
 import com.stethoscore.app.exam.MemoryExamDefaults
-import com.stethoscore.app.ideas.NoteFolder
 import com.stethoscore.app.ui.home.ExamCountdown
 import org.json.JSONArray
 import org.json.JSONObject

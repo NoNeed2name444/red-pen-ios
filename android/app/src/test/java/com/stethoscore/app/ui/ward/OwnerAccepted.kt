@@ -59,7 +59,6 @@ object OwnerAccepted {
             case("accent", "cases", "light", "its wash", 1.702)
             case("accent", "osce", "light", "its wash", 1.282)
             case("accent", "audio", "light", "its wash", 2.315)
-            case("accent", "ideas", "light", "its wash", 2.253)
         }
         // the owner, 4 Nov: a wash of each mode's earlier colour behind its screens, randomly tinted
         // (plan.md 12e), capped so every pair that reads on the plain base reads at the mesh's
@@ -100,8 +99,6 @@ object OwnerAccepted {
             case("a control's edge", "osce", "light", "surface", 1.245)
             case("a control's edge", "audio", "light", "background", 2.016)
             case("a control's edge", "audio", "light", "surface", 2.016)
-            case("a control's edge", "ideas", "light", "background", 2.023)
-            case("a control's edge", "ideas", "light", "surface", 2.023)
             case("a control's edge", "cards", "dark", "background", 2.927)
             case("a control's edge", "cards", "dark", "surface", 2.927)
         }
@@ -130,10 +127,6 @@ object OwnerAccepted {
             case("accent", "audio", "light", "background", 2.315)
             case("accent", "audio", "light", "surface", 2.315)
             case("accent", "audio", "light", "raised", 2.315)
-            case("accent", "ideas", "light", "well", 2.033)
-            case("accent", "ideas", "light", "background", 2.253)
-            case("accent", "ideas", "light", "surface", 2.253)
-            case("accent", "ideas", "light", "raised", 2.253)
         }
         accept("WardLookTest.eachSectionsAccents", "accent glyphs read 3:1") {
             case("accent", "questions", "light", "well", 2.130)
@@ -157,10 +150,6 @@ object OwnerAccepted {
             case("accent", "audio", "light", "background", 2.315)
             case("accent", "audio", "light", "surface", 2.315)
             case("accent", "audio", "light", "raised", 2.315)
-            case("accent", "ideas", "light", "well", 2.033)
-            case("accent", "ideas", "light", "background", 2.253)
-            case("accent", "ideas", "light", "surface", 2.253)
-            case("accent", "ideas", "light", "raised", 2.253)
         }
         accept("WardLookTest.eachSectionsAccents", "the on-fill words read 4.5:1 on the fill") {
             case("onPrimary", "questions", "light", "its fill", 2.775)
@@ -169,14 +158,12 @@ object OwnerAccepted {
             case("onPrimary", "cases", "light", "its fill", 2.001)
             case("onPrimary", "osce", "light", "its fill", 1.508)
             case("onPrimary", "audio", "light", "its fill", 2.721)
-            case("onPrimary", "ideas", "light", "its fill", 2.648)
             case("onPrimary", "questions", "dark", "its fill", 2.775)
             case("onPrimary", "cards", "dark", "its fill", 3.678)
             case("onPrimary", "textbook", "dark", "its fill", 2.489)
             case("onPrimary", "cases", "dark", "its fill", 2.001)
             case("onPrimary", "osce", "dark", "its fill", 1.508)
             case("onPrimary", "audio", "dark", "its fill", 2.721)
-            case("onPrimary", "ideas", "dark", "its fill", 2.648)
         }
         accept("WardLookTest.eachSectionsAccents", "the accent is not mistaken for a colour that means something") {
             case("accent", "questions", "light", "the nearest colour that means something", 0.000)
@@ -224,7 +211,6 @@ object OwnerAccepted {
             case("accent", "cases", "light", "a chip's well", 1.702)
             case("accent", "osce", "light", "a chip's well", 1.282)
             case("accent", "audio", "light", "a chip's well", 2.315)
-            case("accent", "ideas", "light", "a chip's well", 2.253)
             case("primaryInk", "the palette", "light with Increase Contrast", "a chip's well", 3.128)
             case("ecg", "the palette", "light with Increase Contrast", "a chip's well", 2.360)
             case("success", "the palette", "light with Increase Contrast", "a chip's well", 1.296)
@@ -236,7 +222,6 @@ object OwnerAccepted {
             case("accent", "cases", "light with Increase Contrast", "a chip's well", 1.702)
             case("accent", "osce", "light with Increase Contrast", "a chip's well", 1.282)
             case("accent", "audio", "light with Increase Contrast", "a chip's well", 2.315)
-            case("accent", "ideas", "light with Increase Contrast", "a chip's well", 2.253)
         }
         accept("WardPaletteTest.twoCharacters", "a value of its own in each mode") {
             case("primaryInk", "the palette", "light and dark", "the other mode", 0.000)
@@ -263,14 +248,12 @@ object OwnerAccepted {
             case("onPrimary", "cases", "light", "its fill", 2.001)
             case("onPrimary", "osce", "light", "its fill", 1.508)
             case("onPrimary", "audio", "light", "its fill", 2.721)
-            case("onPrimary", "ideas", "light", "its fill", 2.648)
             case("onPrimary", "questions", "dark", "its fill", 2.775)
             case("onPrimary", "cards", "dark", "its fill", 3.678)
             case("onPrimary", "textbook", "dark", "its fill", 2.489)
             case("onPrimary", "cases", "dark", "its fill", 2.001)
             case("onPrimary", "osce", "dark", "its fill", 1.508)
             case("onPrimary", "audio", "dark", "its fill", 2.721)
-            case("onPrimary", "ideas", "dark", "its fill", 2.648)
         }
         accept("WardStatesTest.theStatesAsDrawn", "its words and glyphs read 4.5:1 on its face") {
             // owner 22 Oct, wells and sheets one tone: a chosen or held segment is a well in
@@ -347,18 +330,6 @@ object OwnerAccepted {
             case("the tile held: its glyph", "audio", "light", "its face", 2.315)
             case("the tile chosen: its glyph", "audio", "light", "its face", 2.315)
             case("the tile chosen and held: its glyph", "audio", "light", "its face", 2.315)
-            case("the primary at rest: its glyph", "ideas", "light", "its face", 2.253)
-            case("the primary held: its glyph", "ideas", "light", "its face", 2.253)
-            case("the destructive at rest: its glyph", "ideas", "light", "its face", 2.360)
-            case("the destructive held: its glyph", "ideas", "light", "its face", 2.360)
-            case("the compact at rest: its glyph", "ideas", "light", "its face", 2.253)
-            case("the compact held: its glyph", "ideas", "light", "its face", 2.253)
-            case("the circle chosen: its glyph", "ideas", "light", "its face", 2.253)
-            case("the circle chosen and held: its glyph", "ideas", "light", "its face", 2.253)
-            case("the tile at rest: its glyph", "ideas", "light", "its face", 2.253)
-            case("the tile held: its glyph", "ideas", "light", "its face", 2.253)
-            case("the tile chosen: its glyph", "ideas", "light", "its face", 2.253)
-            case("the tile chosen and held: its glyph", "ideas", "light", "its face", 2.253)
         }
         accept("WardStatesTest.theStatesAsDrawn", "told apart from unchosen by more than relief") {
             // owner 22 Oct, wells and sheets one tone: a chosen segment's well is the page colour,
@@ -399,12 +370,6 @@ object OwnerAccepted {
             case("the tile chosen", "audio", "light", "unchosen", 0.043)
             case("the tile chosen and held", "audio", "light", "unchosen", 0.043)
             case("the tile chosen and disabled", "audio", "light", "unchosen", 0.043)
-            case("the chip chosen and disabled", "ideas", "light", "unchosen", 0.039)
-            case("the circle chosen and disabled", "ideas", "light", "unchosen", 0.039)
-            case("the segment chosen and disabled", "ideas", "light", "unchosen", 0.036)
-            case("the tile chosen", "ideas", "light", "unchosen", 0.039)
-            case("the tile chosen and held", "ideas", "light", "unchosen", 0.039)
-            case("the tile chosen and disabled", "ideas", "light", "unchosen", 0.039)
         }
         accept("WardStatesTest.theStatesAsDrawn", "the knob reads 3:1 on the filled track") {
             case("the toggle chosen: its knob", "questions", "light", "the filled track", 2.360)
@@ -417,8 +382,6 @@ object OwnerAccepted {
             case("the toggle chosen and held: its knob", "osce", "light", "the filled track", 1.282)
             case("the toggle chosen: its knob", "audio", "light", "the filled track", 2.315)
             case("the toggle chosen and held: its knob", "audio", "light", "the filled track", 2.315)
-            case("the toggle chosen: its knob", "ideas", "light", "the filled track", 2.253)
-            case("the toggle chosen and held: its knob", "ideas", "light", "the filled track", 2.253)
         }
         accept("WardStatesTest.theFocusRing", "the focus ring reads 3:1") {
             case("the focus ring", "questions", "light", "well", 2.130)
@@ -442,10 +405,6 @@ object OwnerAccepted {
             case("the focus ring", "audio", "light", "background", 2.315)
             case("the focus ring", "audio", "light", "surface", 2.315)
             case("the focus ring", "audio", "light", "raised", 2.315)
-            case("the focus ring", "ideas", "light", "well", 2.033)
-            case("the focus ring", "ideas", "light", "background", 2.253)
-            case("the focus ring", "ideas", "light", "surface", 2.253)
-            case("the focus ring", "ideas", "light", "raised", 2.253)
         }
     }.all
 

@@ -2,6 +2,8 @@
 
 Audit snapshot: 13 October 2026. Selected repository: `NoNeed2name444/red-pen-ios`, branch `personal`, commit **`be11a567cff6f96d74266cdadba63415b832a32c`** (9 October 2026, 16:03:43 UTC).
 
+Note (15 Nov 2026): this audit's Ideas and map work is history. Ideas left Stethoscore for the separate app Sorta, and Android's Ideas code was deleted.
+
 ## Evidence
 
 - All **119 actual iOS branch heads** were inspected by name, SHA, timestamp and subject. `red-pen-ios-refs.tsv` has 120 rows because its `origin` row is the symbolic default alias. See `ios-branch-inspection.md` for a disposition for every branch.

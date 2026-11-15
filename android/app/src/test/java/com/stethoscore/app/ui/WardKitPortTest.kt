@@ -66,7 +66,6 @@ class WardKitPortTest {
         assertTrue("a pressable tile drops its lights unless a control", surfaces.contains("val lit = control || !LocalWardUnlit.current"))
         // the owner, 9 Oct: "remove the glow around the deck and floating buttons"
         assertTrue("home's New set and dock", File(ui, "StethoscoreApp.kt").readText().contains("ward.WardUnlit {"))
-        assertTrue("the Ideas bar", File(ui, "ideas/IdeasView.kt").readText().contains("WardUnlit { Box("))
         val decks = sources().map { it.readText() }.filter { it.contains("fun StudyActionBar(folds") }
         assertTrue("the folded study deck", decks.isNotEmpty() && decks.all { it.contains("WardUnlit {") })
     }
@@ -150,7 +149,7 @@ class WardKitPortTest {
         val spinner = Regex("(Circular|Linear)ProgressIndicator\\(")
         for (file in sources().filter { !it.path.contains("/ui/map/") })
             assertTrue("${file.name} still spins", !spinner.containsMatchIn(file.readText()))
-        for (name in listOf("MCQExamTools.kt", "ideas/IdeasSpace.kt"))
+        for (name in listOf("MCQExamTools.kt"))
             assertTrue("$name waits on the ECG trace", File(ui, name).readText().contains("EcgLoader()"))
     }
 

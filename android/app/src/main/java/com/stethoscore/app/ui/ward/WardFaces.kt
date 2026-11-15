@@ -79,7 +79,7 @@ val LocalWardShowsPressed = staticCompositionLocalOf { false }
  * Faces drawn without their lights (iOS WardUnlitKey): no shade cast round
  * them, only the face, its edge and, held or chosen, the hollow inside it;
  * a control keeps its small rim, the one soft light the app allows. For
- * what floats over a page (the home's New set and dock, the Ideas bar, the
+ * what floats over a page (the home's New set and dock, the
  * folded study deck: the owner, 9 Oct, "remove the glow around the deck and
  * floating buttons"). Off everywhere else.
  */

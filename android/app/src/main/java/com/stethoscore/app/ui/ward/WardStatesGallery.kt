@@ -16,7 +16,6 @@ import androidx.compose.material.icons.rounded.Checklist
 import androidx.compose.material.icons.rounded.Collections
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.GridView
-import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material.icons.rounded.MedicalServices
 import androidx.compose.material.icons.rounded.Assignment
 import androidx.compose.material3.Icon
@@ -115,7 +114,6 @@ val WardSection.galleryTitle: String get() = when (this) {
     WardSection.cases -> "Cases"
     WardSection.osce -> "OSCE"
     WardSection.audio -> "Audio"
-    WardSection.ideas -> "Ideas"
 }
 
 /** The section's glyph, the nearest Material icon to its mode's symbol. */
@@ -126,5 +124,4 @@ val WardSection.galleryIcon: ImageVector get() = when (this) {
     WardSection.cases -> Icons.Rounded.MedicalServices
     WardSection.osce -> Icons.Rounded.Assignment
     WardSection.audio -> Icons.Rounded.GraphicEq
-    WardSection.ideas -> Icons.Rounded.Lightbulb
 }

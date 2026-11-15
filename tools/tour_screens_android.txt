@@ -81,20 +81,6 @@
 95	Fix a word	r095_fixWord	r095-narrate-fixing-light r095-narrate-fixing-dark
 96	Sections sheet	r096_sections	r096-narrate-sections-light r096-narrate-sections-dark
 97	Nothing to read yet	r097_nothingToRead	r097-narrate-empty-light r097-narrate-empty-dark
-100	Ideas list	r100_ideasList	r100-ideas-light r100-ideas-dark
-101	Ideas empty	r101_ideasEmpty	r101-home-ideas-light r101-home-ideas-dark
-101	Ideas empty, map	r101_ideasEmptyMap	r101-ideas-map-empty-light r101-ideas-map-empty-dark
-102	Board	r102_board	r102-ideas-board-light r102-ideas-board-dark
-103	Brain map	r103_brainMap	r103-ideas-map-light r103-ideas-map-dark
-103	Brain map: Performance	r103_brainMapPerformance	r103-ideas-map-performance-light r103-ideas-map-performance-dark
-104	Million-note demo	r104_millionDemo	r104-ideas-million-light r104-ideas-million-dark
-105	Legend	r105_legend	r105-ideas-legend-light r105-ideas-legend-dark
-105	Legend: Performance	r105_legendPerformance	r105-ideas-legend-performance-light r105-ideas-legend-performance-dark
-105	Folder looks	r105_folderLooks	r105-ideas-folder-looks-light r105-ideas-folder-looks-dark
-106	Note editor	r106_noteEditorAndLinkPicker	r106-note-editor-light r106-note-editor-dark
-107	Link picker	r106_noteEditorAndLinkPicker	r107-link-picker-light r107-link-picker-dark
-108	Name a new idea	r108_ideaName	r108-idea-name-light r108-idea-name-dark
-108	Move an idea	r108_ideaMove	r108-idea-move-light r108-idea-move-dark
 109	Vitals	r109_vitals	r109-vitals-light r109-vitals-dark
 110	Vitals empty	r110_vitalsEmpty	r110-vitals-empty-light r110-vitals-empty-dark
 111	Insight question list	r111_insightQuestions	r111-insight-questions-light r111-insight-questions-dark

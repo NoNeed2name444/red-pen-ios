@@ -2,6 +2,8 @@
 
 Snapshot: 2026-10-13. All 119 branch heads were inspected by name, SHA, commit time and subject. This is a branch-head/source-selection audit, not a claim that every historical file was reviewed. The checkout is shallow.
 
+Note (15 Nov 2026): the Ideas rows below are history. Ideas left Stethoscore for the separate app Sorta, and Android's Ideas code was deleted.
+
 | Branch | Head | UTC commit time | Role / decision | Latest subject |
 |---|---|---|---|---|
 | `aahp/personal` | `cece1a4dbd6d54650dc623563fd5f25934536b97` | 2026-10-09T05:51:20Z | Experimental / work in progress; not selected | AAHP T0033 attempt 0 |

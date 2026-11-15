@@ -152,7 +152,7 @@ class WardLookTest {
     private val accentsTest = "WardLookTest.eachSectionsAccents"
 
     @Test fun sections() = checks {
-        check("seven sections", sections.size == 7)
+        check("six sections", sections.size == 6)
         check("outside any section the look is Cards", WardSection.outside == WardSection.cards)
         check("the default paper ink is the outside look's",
             WardPaper.ink(dark = false, highContrast = false).hex == WardSection.outside.ink(false) &&
@@ -236,7 +236,7 @@ class WardLookTest {
         // the lower of the two ends (a mix of light and dark falls to about 1.2:1).
         var worstText = Double.POSITIVE_INFINITY
         for ((from, to) in listOf(day to night, night to day, day to WardLook(false, WardSection.audio),
-            night to WardLook(true, WardSection.ideas), day to WardLook(true, WardSection.cases))) {
+            night to WardLook(true, WardSection.osce), day to WardLook(true, WardSection.cases))) {
             var g = WardGlide.toward(to, from = WardGlide.rest(from))
             val floor = min(inkOnBase(WardGlide.rest(from), from.dark), inkOnBase(WardGlide.rest(to), to.dark))
             for (i in 0..20) {

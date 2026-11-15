@@ -59,7 +59,7 @@ class WardGroundTest {
     // mesh, each screen's from its own seed. Measured at the strongest point a mesh
     // can have, each mode's cap by day and at night, since cards and wells are
     // see-through over it: every pair that reads on the plain base reads there too.
-    // Ideas has none, and home's ground stays the plain base.
+    // Home's ground stays the plain base.
     private class MeshPin(val seed: Long, val strengths: List<Double>, val x: List<Double>, val y: List<Double>,
                           val questionsLight: List<Int>, val questionsDark: List<Int>, val top: Int, val bottom: Int, val sample: Double)
 
@@ -90,8 +90,6 @@ class WardGroundTest {
             WardSection.cases to 0xE67D21, WardSection.osce to 0x339E59, WardSection.audio to 0x8C52CC,
         )
         check("each mode's wash colour is its earlier colour", WardModeWash.colour == colours)
-        check("Ideas has no wash", WardModeWash.colours(WardSection.ideas, false, WardModeWash.mesh(1)) == null &&
-            WardModeWash.strongest(WardSection.ideas, true) == null)
         check("the wash's rule: the earlier mesh's strengths, turned, mirrored, moved 0.12 and 0.12, a quarter stronger to 0.40, 35% to grey",
             WardModeWash.strengths == listOf(0.30, 0.18, 0.26, 0.16, 0.05, 0.18, 0.24, 0.16, 0.30) &&
                 WardModeWash.strengthJitter == 0.12 && WardModeWash.pointJitter == 0.12 && WardModeWash.boost == 1.25 &&
@@ -153,7 +151,7 @@ class WardGroundTest {
         )
         for (dark in modes) {
             val base = plainBase.of(dark)
-            for (s in WardSection.entries.filter { it != WardSection.ideas }) {
+            for (s in WardSection.entries) {
                 val strongest = WardModeWash.strongest(s, dark)
                 check("${mode(dark)} $s: the strongest possible point is as measured",
                     strongest == strongestPossible["${mode(dark)} $s"], strongest?.let(::hx) ?: "none")

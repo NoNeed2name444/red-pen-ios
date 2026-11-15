@@ -98,21 +98,6 @@ object ContentSources {
         changes = null,
         home = "https://open.fda.gov/")
 
-    // imagery the app draws with (assets/earth, iOS Resources/Earth)
-
-    /** The credit line the Earth maps' SOURCES.md gives, word for word. */
-    const val nasaEarthCredit = "Earth imagery: NASA Earth Observatory (Blue Marble: Next Generation, Black Marble); clouds: NASA Goddard Space Flight Center; water mask: NASA GPM."
-
-    val nasaEarth = ContentSource(
-        id = "nasa-earth", name = "NASA Earth imagery",
-        use = "The Earth in the Ideas map's Space theme: its land and seas, clouds, city lights and coastlines",
-        licences = listOf(
-            ContentLicence("NASA images and media: not subject to U.S. copyright", "https://www.nasa.gov/nasa-brand-center/images-and-media/"),
-            ContentLicence("GPM data: freely available, source acknowledged", "https://gpm.nasa.gov/data/policy")),
-        attribution = "$nasaEarthCredit No endorsement by NASA is implied.",
-        changes = "Resized to 4096 by 2048 and 2048 by 1024 pixels and recompressed; the clouds, lights and water kept as grey maps.",
-        home = "https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/")
-
     // the app's type (res/font, iOS Resources/Fonts)
 
     val ofl = ContentLicence("SIL Open Font License 1.1", "https://openfontlicense.org/open-font-license-official-text/")
@@ -126,7 +111,7 @@ object ContentSources {
         home = "https://github.com/googlefonts/nunito")
 
     /** Every source of content the app brings, for Settings. */
-    val all: List<ContentSource> = listOf(medqa, medmcqa, medlinePlus, europePMC, openFDA, nasaEarth, fonts)
+    val all: List<ContentSource> = listOf(medqa, medmcqa, medlinePlus, europePMC, openFDA, fonts)
 
     /** The bank behind an exam's style examples (ExemplarSource's raw value). */
     fun styleBank(raw: String): ContentSource? = when {

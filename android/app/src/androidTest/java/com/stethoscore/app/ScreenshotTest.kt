@@ -19,8 +19,6 @@ import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
 import com.stethoscore.app.data.*
 import com.stethoscore.app.ui.*
-import com.stethoscore.app.ui.map.MapDrawn
-import com.stethoscore.app.ui.map.MapDrawnKey
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TestWatcher
@@ -107,57 +105,6 @@ class ScreenshotTest {
     @Test fun osce() { val store=store();val set=store.library.first {it.kind==StudySetKind.OSCE};compose.setContent {StethoscoreTheme {Surface(Modifier.fillMaxSize()) {Box(Modifier.fillMaxSize().safeDrawingPadding()) {ClinicalScreen(set,store,{})}}}};shot("07-osce") }
     @Test fun cases() { val store=store();val set=store.library.first {it.kind==StudySetKind.CASES};compose.setContent {StethoscoreTheme {Surface(Modifier.fillMaxSize()) {Box(Modifier.fillMaxSize().safeDrawingPadding()) {ClinicalScreen(set,store,{})}}}};shot("08-cases") }
     @Test fun narrate() { val store=store();val set=store.library.first {it.kind==StudySetKind.NARRATE};compose.setContent {StethoscoreTheme {Surface(Modifier.fillMaxSize()) {Box(Modifier.fillMaxSize().safeDrawingPadding()) {ClinicalScreen(set,store,{})}}}};compose.onNodeWithText("Line 1 of ${set.narrateSegments.size}").assertIsDisplayed();shot("13-narrate") }
-    /** Ideas' remembered choices (the "ideas" preferences), cleared, then set as [block] says. */
-    private fun ideasPrefs(block: android.content.SharedPreferences.Editor.() -> Unit) {
-        val context=InstrumentationRegistry.getInstrumentation().targetContext
-        context.getSharedPreferences("ideas",android.content.Context.MODE_PRIVATE).edit().clear().apply(block).commit()
-    }
-    /** The map's own record of what it has drawn (Map3DView's MapDrawnKey); null before its node is there. */
-    private fun mapDrawn(description:String):MapDrawn? =
-        compose.onAllNodesWithContentDescription(description,substring=true).fetchSemanticsNodes().firstOrNull()?.config?.getOrElseNullable(MapDrawnKey) { null }
-    private fun framed(drawn:MapDrawn?,bodies:Boolean)=
-        drawn!=null && drawn.frames>=MapDrawn.ENOUGH && (!bodies || drawn.bodyFrames>=MapDrawn.ENOUGH)
-    /**
-     * Waits, up to a minute, until the map reports MapDrawn.ENOUGH finished frames, with its Space
-     * bodies when [bodies]. The CI emulator draws GL in software, which builds each shader on its
-     * first draw: the Space map's first frame with bodies takes seconds there, and until it is
-     * shown the map holds only its summary star, a point that renderer allows 1 px. The wait is
-     * on the map's word, never on the screen: requireMapDrawn still looks once, as strictly as
-     * before, and fails with the record if the wait ran out.
-     */
-    private fun awaitMapFrames(description:String,bodies:Boolean) {
-        try { compose.waitUntil(60_000) { framed(mapDrawn(description),bodies) } } catch (timeout:ComposeTimeoutException) {}
-    }
-    /**
-     * The GL surface really drew: the map reports finished frames (with its bodies, in Space), and
-     * the middle of the map (below the readout, above the zoom buttons) holds bright, coloured
-     * points. The readout and labels are near-white text, so only saturated colour counts.
-     */
-    private fun requireMapDrawn(description:String,bodies:Boolean) {
-        val drawn=mapDrawn(description)
-        check(framed(drawn,bodies)) {"The 3D map has not finished ${MapDrawn.ENOUGH} frames${if (bodies) " with its bodies" else ""} (waited up to a minute) for $description: $drawn"}
-        val bounds=compose.onNodeWithContentDescription(description,substring=true).fetchSemanticsNode().boundsInRoot
-        val screen=checkNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()) {"No screenshot for $description"}
-        val left=(bounds.left+bounds.width*0.08f).toInt().coerceIn(0,screen.width-1)
-        val right=(bounds.right-bounds.width*0.08f).toInt().coerceIn(left+1,screen.width)
-        val top=(bounds.top+bounds.height*0.3f).toInt().coerceIn(0,screen.height-1)
-        val bottom=(bounds.bottom-bounds.height*0.2f).toInt().coerceIn(top+1,screen.height)
-        var coloured=0; var samples=0
-        // for the message: the most saturated and the brightest sample, whether they counted or not
-        var vivid=-1; var vividAt=""; var bright=-1; var brightAt=""
-        for (y in top until bottom step 2) for (x in left until right step 2) {
-            val c=screen.getPixel(x,y)
-            val r=(c shr 16) and 255; val g=(c shr 8) and 255; val b=c and 255
-            if (r+g+b>220 && maxOf(r,g,b)-minOf(r,g,b)>45) coloured++
-            samples++
-            if (maxOf(r,g,b)-minOf(r,g,b)>vivid) { vivid=maxOf(r,g,b)-minOf(r,g,b); vividAt="rgb($r,$g,$b) at ($x,$y)" }
-            if (r+g+b>bright) { bright=r+g+b; brightAt="rgb($r,$g,$b) at ($x,$y)" }
-        }
-        val seen="$coloured coloured of $samples samples in x $left-$right, y $top-$bottom of the ${screen.width}x${screen.height} screen; " +
-            "most coloured $vividAt, brightest $brightAt; the map reports $drawn"
-        android.util.Log.i("ScreenshotTest","$description: $seen")
-        check(coloured>25) {"The 3D map drew nothing visible ($seen) for $description"}
-    }
     @Test fun textbook() {
         val store=store()
         val set=store.library.first {it.kind==StudySetKind.BOOK}

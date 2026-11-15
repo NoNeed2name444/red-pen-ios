@@ -47,11 +47,11 @@ class ColourRolesTest {
 
     @Test fun everyScreenNamesOnlyItsOwnModesColour() = checks {
         // a folder that belongs to one mode, and that mode's section
-        val modeOf = mapOf("ui/cases/" to "cases", "ui/osce/" to "osce", "ui/narrate/" to "audio", "ui/ideas/" to "ideas",
+        val modeOf = mapOf("ui/cases/" to "cases", "ui/osce/" to "osce", "ui/narrate/" to "audio",
             "ui/book/" to "textbook", "ui/mock/" to "questions")
         // the router (the section each route wears) is where sections are given out
         val router = setOf("ui/StethoscoreApp.kt")
-        val named = Regex("""WardSection\.(questions|cards|textbook|cases|osce|audio|ideas)\b""")
+        val named = Regex("""WardSection\.(questions|cards|textbook|cases|osce|audio)\b""")
         val stray = mutableListOf<String>()
         for ((rel, text) in sources) {
             if (rel in router) continue
@@ -158,7 +158,7 @@ class ColourRolesTest {
             Site("ui/home/WardHome.kt", "@Composable private fun HomeChip(", "home's Due and New chips", true),
             Site("ui/home/WardHome.kt", "Text(\"Open plan\"", "home's Open plan link", false),
             Site("ui/StethoscoreApp.kt", "@Composable private fun DockItemFace(", "the dock's tab names", true),
-            Site("ui/ward/WardSwitcher.kt", "@Composable private fun <T> SwitcherStrip(", "the Ideas switcher's segments", true),
+            Site("ui/ward/WardSwitcher.kt", "@Composable private fun <T> SwitcherStrip(", "the floating switcher's segments", true),
         )
         val words = Regex("""\b(?:Basic)?Text\(""")
         val colour = Regex("""color\s*=\s*(wardColor\(WardToken\.(\w+)\)|[A-Za-z_][\w.]*(?:\(\))?)""")
