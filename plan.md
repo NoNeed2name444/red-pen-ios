@@ -3438,8 +3438,8 @@ with the marks on the screens last.
 - [ ] Owner's answers, 15 Nov (to the list of what needs him): (1) the "message
   sent first": none, nothing is missing. (2) the ward-flavoured words that waited
   on the copy deck: "change them for a study centered alternative". (3) the
-  Settings cards question: "I don't understand"; folded into the overhaul, no
-  answer owed. (4) the old route/words items: "fix"; closed above. (5) "start with
+  Settings cards question: first "I don't understand", then, once explained,
+  "ok make them consistent": all groups as cards (T0273, see the Settings item). (4) the old route/words items: "fix"; closed above. (5) "start with
   arabic too". (6) "the app is A LOT and SOOOO CONFUSING to manage through it make
   it simpler without losing function (this is an app overhaul)".
   - [ ] Words and Arabic (T0272): rhythm Consistent / Uneven / Resting; Night
@@ -3735,7 +3735,10 @@ home follow iOS, Settings follows Android.
 - [x] One exam row on both: Android's "Choose your exam" button is gone,
   the row is the tap.
 - [ ] Ask the owner: iOS's other groups (reminders, Study, library data,
-  platform, accuracy engine, About) as cards too, or as they are.
+  platform, accuracy engine, About) as cards too, or as they are. Owner,
+  15 Nov: "make them consistent": every group is a card under its small-caps
+  heading, as the four built on 23 Oct (T0273, after T0272 so the two do not
+  meet in SupportCenter.swift; the overhaul keeps this rule).
 - [ ] The next Mac run's screenshots are the proof for iOS (no SwiftUI here).
 
 ### Colour roles, the rest of D8 and the cloze answer (30 Oct, T0163)
