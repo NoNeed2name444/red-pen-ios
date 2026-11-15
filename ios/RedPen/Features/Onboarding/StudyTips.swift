@@ -3,8 +3,8 @@ import SwiftUI
 import TipKit
 #endif
 
-/// The five one-time tips: Turn into…, hold a set for more, Undo after a
-/// rating, Study Lens's photo and file scanning, and the Ideas map's theme.
+/// The four one-time tips: Turn into…, hold a set for more, Undo after a
+/// rating, and Study Lens's photo and file scanning.
 ///
 /// Each waits until its screen is familiar - opened twice already
 /// (TipSightings) - and TipKit then shows it once: closed, it never comes
@@ -15,7 +15,7 @@ import TipKit
 /// On a screen: `.tipSighting(.lens)` counts an opening, and
 /// `.studyTip(.lens)` puts the tip over the view it is about.
 enum StudyTip {
-    case turnInto, holdSet, undo, lens, ideasTheme
+    case turnInto, holdSet, undo, lens
 
     /// The screen whose openings it waits for.
     var screen: TipScreen {
@@ -24,7 +24,6 @@ enum StudyTip {
         case .holdSet: return .library
         case .undo: return .review
         case .lens: return .lens
-        case .ideasTheme: return .ideas
         }
     }
 }
@@ -34,7 +33,7 @@ enum StudyTips {
     /// Whether this launch shows tips at all.
     static let allowed: Bool = TipSightings.allowed(
         arguments: ProcessInfo.processInfo.arguments,
-        preview: PreviewLaunch.screen != nil || GraphPreview.isOn,
+        preview: PreviewLaunch.screen != nil,
         simulator: FirstRunStore.simulator)
 
     private static var configured = false
@@ -78,15 +77,6 @@ extension View {
     func studyTip(_ tip: StudyTip, when: Bool = true) -> some View {
         modifier(StudyTipModifier(tip: tip, when: when))
     }
-
-    /// The Ideas map's theme tip, as a small glass card along the top: the
-    /// Look button it is about is drawn by the map itself, deep in Ideas.
-    /// Only over the 3D map (not List or Board, nor search results) and only
-    /// once the map is past its own "how to start" card, which sits in the
-    /// same place.
-    func ideasThemeTip(when: Bool = true) -> some View {
-        modifier(IdeasThemeTipModifier(when: when))
-    }
 }
 
 private struct TipSightingModifier: ViewModifier {
@@ -119,42 +109,6 @@ private struct StudyTipModifier: ViewModifier {
     }
 }
 
-private struct IdeasThemeTipModifier: ViewModifier {
-    let when: Bool
-    @EnvironmentObject private var notes: NoteStore
-    /// IdeasView's own switcher (List, Board, Space), read only.
-    @AppStorage("vignette.ideas.mode") private var modeRaw: String = IdeasMode.list.rawValue
-    @State private var ready = false
-
-    /// The map, and a map past its first-steps card (Graph3DView shows that
-    /// card while there are no folders and fewer than 25 notes).
-    private var onMap: Bool {
-        let space: Bool = modeRaw == IdeasMode.space.rawValue
-        let settled: Bool = !notes.folders.isEmpty || notes.notes.count >= 25
-        return when && space && settled
-    }
-
-    func body(content: Content) -> some View {
-        #if canImport(TipKit)
-        let shown: Bool = ready && onMap
-        return content
-            .overlay(alignment: .top) {
-                if shown {
-                    TipView(IdeasThemeTip())
-                        .frame(maxWidth: 520)
-                        .padding(.horizontal, WardSpace.gutter)
-                        .padding(.top, 8)
-                }
-            }
-            .task(id: onMap) {
-                if onMap { ready = StudyTips.ready(.ideasTheme) }
-            }
-        #else
-        return content
-        #endif
-    }
-}
-
 #if canImport(TipKit)
 extension StudyTip {
     var tip: any Tip {
@@ -163,7 +117,6 @@ extension StudyTip {
         case .holdSet: return HoldSetTip()
         case .undo: return UndoRatingTip()
         case .lens: return LensScanTip()
-        case .ideasTheme: return IdeasThemeTip()
         }
     }
 }
@@ -203,12 +156,4 @@ struct LensScanTip: Tip {
     var options: [Option] { MaxDisplayCount(1) }
 }
 
-struct IdeasThemeTip: Tip {
-    var title: Text { Text("Change the map\u{2019}s look") }
-    var message: Text? {
-        Text("In the map, the round Look button switches it between Space, Neurons and Performance.")
-    }
-    var image: Image? { Image(systemName: "paintpalette") }
-    var options: [Option] { MaxDisplayCount(1) }
-}
 #endif

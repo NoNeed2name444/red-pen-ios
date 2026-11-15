@@ -108,10 +108,6 @@ struct ExamplesHubView: View {
 
     @ViewBuilder
     private var thinkingRows: some View {
-        let ideas: String = seeded ? "13 linked groin hernia notes" : "Your own ideas"
-        let ideasDetail: String = ideas + " \u{2014} switch List / Board / Space with the switcher at the bottom"
-        row("Ideas: dump, board and 3D map", "point.3.connected.trianglepath.dotted",
-            ideasDetail, id: "ideas") { IdeasView() }
         row("Lookalike duels, disease scripts", "brain.head.profile",
             "Open \u{201C}Examples\u{201D} under your sets", id: "reasoning") { ReasoningView() }
         row("How to reach it \u{2014} a groin lump", "signpost.right",

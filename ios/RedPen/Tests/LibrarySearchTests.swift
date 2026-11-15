@@ -46,13 +46,12 @@ var lectureSet = StudySet(name: "Lecture only", subject: "Nephrology", kind: .mc
 lectureSet.sources = [SourceDoc(name: "Nephrotic lecture",
                                 pages: [SourceDoc.Page(number: 1, text: "Nothing here"),
                                         SourceDoc.Page(number: 2, text: "The nephrotic syndrome causes oedema. Nephrotic again.")])]
-let notes = [LibrarySearch.NoteText(id: UUID(), title: "Oedema mnemonic", body: "Pitting vs non-pitting", tags: ["renal"])]
 let sets = [renal, cardio, lectureSet]
-let index = LibrarySearch.build(sets: sets, notes: notes)
+let index = LibrarySearch.build(sets: sets)
 
 // MARK: the index
 
-ok(index.entries.count == 3 + 3 + 6 + 1, "a set, its questions, its cards and each note are entries")
+ok(index.entries.count == 3 + 3 + 6, "a set, its questions and its cards are entries")
 ok(index.lectures.count == 1, "each lecture with pages is kept for page search")
 ok(LibrarySearch.clozeBare("{{c1::Warfarin::drug}} needs {{c2::INR}}") == "Warfarin needs INR",
    "a cloze reads with its gaps filled in")
@@ -76,15 +75,12 @@ ok(r.items.contains { $0.kind == .lecture && $0.page == 2 }, "a lecture page mat
 ok(r.items.filter { $0.kind == .lecture }.count == 1, "one hit per page, however many times it says it")
 
 r = LibrarySearch.search("OEDEMA", in: index, scope: .all)
-ok(r.items.contains { $0.kind == .note }, "notes are searched, case aside")
-ok(r.items.contains { $0.kind == .card }, "and cards")
+ok(r.items.contains { $0.kind == .card }, "cards are searched, case aside")
 ok(r.items.contains { $0.kind == .question }, "and questions, in their explanation too")
 
 r = LibrarySearch.search("oedema", in: index, scope: .cards)
 ok(!r.items.isEmpty && r.items.allSatisfy { $0.kind == .card }, "the Cards scope shows only cards")
 ok(r.sets.isEmpty, "and no sets group")
-r = LibrarySearch.search("oedema", in: index, scope: .notes)
-ok(r.items.count == 1 && r.items[0].kind == .note, "the Notes scope, only notes")
 r = LibrarySearch.search("oedema", in: index, scope: .lectures)
 ok(r.items.allSatisfy { $0.kind == .lecture } && !r.items.isEmpty, "the Lectures scope, only pages")
 
@@ -104,7 +100,7 @@ ok(LibrarySearch.search("   ", in: index, scope: .all).isEmpty, "a blank search 
 
 var many = StudySet(name: "Big", kind: .mcq)
 many.questions = (0..<80).map { q("Renal question number \($0) here") }
-let big = LibrarySearch.build(sets: [many], notes: [])
+let big = LibrarySearch.build(sets: [many])
 r = LibrarySearch.search("renal", in: big, scope: .questions)
 ok(r.items.count == LibrarySearch.itemLimit && r.more, "results are capped at fifty, and say there are more")
 
@@ -227,7 +223,7 @@ tagged.cards = [taggedCard, plainCard]
 var setTaggedDeck = StudySet(name: "Pharm deck", subject: "General", kind: .anki)
 setTaggedDeck.tags = ["Cardio"]
 setTaggedDeck.cards = [card("Beta blocker", "Atenolol")]
-let tagIndex = LibrarySearch.build(sets: [tagged, setTaggedDeck], notes: [])
+let tagIndex = LibrarySearch.build(sets: [tagged, setTaggedDeck])
 let byHash = LibrarySearch.search("#cardio", in: tagIndex, scope: .all)
 ok(byHash.items.contains { $0.itemID == taggedCard.id } && !byHash.items.contains { $0.itemID == plainCard.id },
    "#cardio finds the card tagged #AK_Step1::Cardio, not its neighbour")

@@ -2,12 +2,11 @@ import Combine
 import SwiftUI
 import UIKit
 
-/// The app's one screen at the top: the floating dock's four categories -
-/// Questions, Cards, OSCE, Audio - and Ideas beside them. For the
-/// category chosen it shows its sets (tap to open, swipe to delete or export,
-/// hold or tap the ellipsis for the rest), a tile for each of its modes above
-/// them when it has more than one, and every way to practise them underneath.
-/// Ideas swaps the page for the idea dump, its board and the 3D map.
+/// The app's one screen at the top: the floating dock's five categories -
+/// Questions, Cards, Cases, OSCE and Audio. For the category chosen it
+/// shows its sets (tap to open, swipe to delete or export, hold or tap the
+/// ellipsis for the rest), a tile for each of its modes above them when it
+/// has more than one, and every way to practise them underneath.
 ///
 /// Where things sit, for the hand that reaches them: what is tapped again and
 /// again - the dock and New set - is at the bottom under the thumb (on a wide
@@ -21,8 +20,8 @@ import UIKit
 struct LibraryView: View {
     @EnvironmentObject var store: Store
     @EnvironmentObject var reviews: ReviewStore
-    /// Read only, for search: notes are found here and opened in their editor;
-    /// and counted for the home's brain map tile.
+    /// Handed to the study screens' Save to Ideas buttons (attachIdeaSaver,
+    /// LibrarySavedIdeas). Search and the home no longer read it.
     @EnvironmentObject var noteStore: NoteStore
     /// Who is signed in, for the home's greeting.
     @EnvironmentObject var account: AccountStore
@@ -53,7 +52,8 @@ struct LibraryView: View {
     @StateObject var search = LibrarySearchModel()
     /// A card a search found, shown on its own.
     @State var foundCard: FoundCard?
-    /// A note a search found, open in its editor.
+    /// Nothing sets this any more (a search no longer finds notes);
+    /// LibrarySavedIdeas still clears it, and goes with that file.
     @State var foundNote: FoundNote?
     /// Whether "Build a session" is up, and the search it starts from.
     @State var buildingSession = false
@@ -85,11 +85,9 @@ struct LibraryView: View {
     /// Which category the dock has chosen. Questions first: it is where most
     /// of the studying is, and what the app opens on.
     @State var category: StudyCategory = .questions
-    /// Whether the page is Ideas rather than a category. Never kept between
-    /// launches: the app always opens on Questions.
+    /// Always false: Ideas has left the library (T0274). Kept only because
+    /// LibrarySavedIdeas reads and clears it; it goes with that file.
     @State var inIdeas = false
-    /// What the search field holds while Ideas is on show.
-    @State var ideasQuery = ""
     /// Whether the software keyboard is up. The dock steps aside while it
     /// is, so the field being typed in is not squeezed between the two.
     @State var keyboardUp = false
@@ -104,10 +102,6 @@ struct LibraryView: View {
     @AppStorage("cramdown.confirmDelete") var confirmDelete = true
     @AppStorage("cramdown.openLastSet") var openLastSet = false
     @AppStorage("cramdown.lastSetId") var lastSetId = ""
-    /// Which of Ideas' views is open (IdeasView): only the 3D map keeps the sky.
-    @AppStorage("vignette.ideas.mode") private var ideasModeRaw = IdeasMode.list.rawValue
-    /// The phone's light or dark, for the dock: over the 3D map it is night.
-    @Environment(\.colorScheme) private var scheme
     /// Which way the last move along the dock went, so the new page slides
     /// in from the side the dock moved towards.
     @State private var forward = true
@@ -332,23 +326,14 @@ struct LibraryView: View {
         // whatever was open; a written one goes to New set, filled in
         .onChange(of: modeSwitch.opening) { _, set in openTurned(set) }
         .sheet(item: $modeSwitch.writing) { preset in NewSetView(preset: preset).wardSheet() }
-        // Ideas is a place in the dock now, not a pushed page: anything that
-        // still asks for the old page is taken there instead.
-        .onChange(of: support) { _, page in
-            if page == .notes {
-                support = nil
-                goToIdeas()
-            }
-        }
         .task { restoreLastSet() }
         // the "section-switch" preview steps along the dock as a tap would
-        .onReceive(NotificationCenter.default.publisher(for: PreviewExtras.dockStep)) { note in
-            previewDockStep(toIdeas: note.object as? String == "ideas")
+        .onReceive(NotificationCenter.default.publisher(for: PreviewExtras.dockStep)) { _ in
+            previewDockStep()
         }
-        // the search's index follows the library and the notes; it is only
-        // rebuilt while a search is showing
+        // the search's index follows the library; it is only rebuilt while a
+        // search is showing
         .onReceive(store.$library) { search.libraryChanged($0) }
-        .onReceive(noteStore.$notes) { search.notesChanged($0) }
         .onChange(of: query) { _, text in
             search.update(query: text)
             // a search is the student's own move: a turn's hold ends
@@ -367,7 +352,6 @@ struct LibraryView: View {
             FoundCardSheet(found: found) { set in opened.append(set) }
                 .wardSheet()
         }
-        .sheet(item: $foundNote) { found in NoteEditorView(noteID: found.id).noteSourceChip(noteID: found.id).wardSheet() }
         // decks, tables and backups opened from other apps: the import preview
         // (waiting while one of the library's own sheets is up)
         .incomingImportPreview(busy: presentingSheet)
@@ -376,7 +360,8 @@ struct LibraryView: View {
             openSearch(note.userInfo?["text"] as? String)
         }
         // Save to Ideas: the study screens' store, and a saved note's way
-        // back to where it came from (LibrarySavedIdeas)
+        // back to where it came from (LibrarySavedIdeas; T0275 takes the
+        // buttons out)
         .onAppear {
             LaunchStage.shared.mark("home", once: true)
             attachIdeaSaver()
@@ -392,17 +377,16 @@ struct LibraryView: View {
         let sets: Bool = newSetKind != nil || addingKind != nil || naming != nil || renaming != nil
         let edits: Bool = renamingFolder != nil || editing != nil || reading != nil || reasoningFor != nil
             || creditsFor != nil
-        let found: Bool = buildingSession || foundCard != nil || foundNote != nil || exportURL != nil
+        let found: Bool = buildingSession || foundCard != nil || exportURL != nil
         let turned: Bool = turning != nil || modeSwitch.writing != nil
         return sets || edits || found || turned
     }
 
     /// The library's search, open with the keyboard in it - back on the
-    /// library itself, out of Ideas - and the text given, when there is one.
+    /// library itself - and the text given, when there is one.
     private func openSearch(_ text: String?) {
         if !opened.isEmpty { opened = [] }
         support = nil
-        if inIdeas { dockSelection.wrappedValue = category }
         if let text, !text.isEmpty { query = text }
         // after a pop back to the library has landed
         Task { @MainActor in
@@ -411,11 +395,9 @@ struct LibraryView: View {
         }
     }
 
-    /// The pushed support page - never Ideas, which is a place of its own.
+    /// The pushed support page.
     private var pushedSupport: Binding<SupportPage?> {
-        Binding(get: {
-            support == .notes ? nil : support
-        }, set: { support = $0 })
+        Binding(get: { support }, set: { support = $0 })
     }
 
     /// "Open the last set on launch": once, at launch, if the set is still
@@ -440,7 +422,6 @@ struct LibraryView: View {
         modeSwitch.opening = nil
         withAnimation(Motion.gentle(.snappy(duration: 0.25))) {
             dockSelection.wrappedValue = StudyCategory(kind: set.kind)
-            inIdeas = false
             arrived = set.id
             quickQuiz = nil
             featureQuiz = nil
@@ -451,55 +432,27 @@ struct LibraryView: View {
     }
 
     /// The dock's choice, noting which way it moved on the way through.
-    /// Choosing any category also leaves Ideas.
     private var dockSelection: Binding<StudyCategory> {
         Binding(get: { category }, set: { new in
             let all: [StudyCategory] = StudyCategory.allCases
             let to: Int = all.firstIndex(of: new) ?? 0
-            let here: Int = all.firstIndex(of: category) ?? 0
-            let from: Int = inIdeas ? IdeasPlace.order : here
+            let from: Int = all.firstIndex(of: category) ?? 0
             forward = to >= from
-            inIdeas = false
-            ideasQuery = ""
             category = new
         })
     }
 
-    /// The dock's Ideas pill. Leaving Ideas is choosing a category, so only
-    /// "on" does anything here.
-    private var ideasSelection: Binding<Bool> {
-        Binding(get: { inIdeas }, set: { on in
-            if on { goToIdeas() }
-        })
-    }
-
     /// One step along the dock, as a tap on the next place would take it:
-    /// each category, then Ideas, then back to Questions (a recording of the
-    /// sections' hues shifting); or straight to Ideas.
-    private func previewDockStep(toIdeas: Bool = false) {
+    /// each category, then back to Questions (a recording of the sections'
+    /// hues shifting).
+    private func previewDockStep() {
         let all: [StudyCategory] = StudyCategory.allCases
         withAnimation(Motion.gentle(.snappy(duration: 0.3))) {
-            if toIdeas {
-                inIdeas = true
-            } else if inIdeas {
-                dockSelection.wrappedValue = all[0]
-            } else if let i = all.firstIndex(of: category), i + 1 < all.count {
+            if let i = all.firstIndex(of: category), i + 1 < all.count {
                 dockSelection.wrappedValue = all[i + 1]
             } else {
-                inIdeas = true
+                dockSelection.wrappedValue = all[0]
             }
-        }
-    }
-
-    /// Ideas in place of the category's page. It sits after the four
-    /// categories, so it always slides in from the trailing side.
-    func goToIdeas() {
-        withAnimation(Motion.gentle(.snappy(duration: 0.3))) {
-            forward = true
-            selecting = false
-            selected = []
-            query = ""
-            inIdeas = true
         }
     }
 
@@ -546,9 +499,9 @@ struct LibraryView: View {
             .onChange(of: bedsSpare) { trimSlicedStart() }
             .onChange(of: typeSize) { untrimBeds() }
             .onChange(of: span) { untrimBeds() }
-            // the category's hue (or Ideas') on the paper's grid and the
-            // controls' edges, shifting with the dock
-            .wardSection(inIdeas ? .ideas : WardSection(rawValue: category.rawValue) ?? .questions)
+            // the category's hue on the paper's grid and the controls'
+            // edges, shifting with the dock
+            .wardSection(WardSection(rawValue: category.rawValue) ?? .questions)
             .onChange(of: homeShowing, initial: true) { _, showing in WardPaperTop.shared.home = showing }
             .onAppear { WardPaperTop.shared.home = homeShowing }
             .onDisappear { WardPaperTop.shared.home = false }
@@ -562,7 +515,7 @@ struct LibraryView: View {
 
     /// The page, and everything it can push.
     private var routedPage: some View {
-        let pageKey: String = inIdeas ? "ideas" : category.rawValue
+        let pageKey: String = category.rawValue
         return ZStack {
             // One page at a time, keyed by it, so a move along the dock
             // slides the new page in and takes the old one away rather than
@@ -605,18 +558,10 @@ struct LibraryView: View {
             }
     }
 
-    /// The category's page, or Ideas.
-    @ViewBuilder
+    /// The category's page.
     private var page: some View {
-        if inIdeas {
-            IdeasView(query: $ideasQuery, dockClearance: ideasClearance)
-                // once Ideas is familiar: the map's theme (StudyTips)
-                .tipSighting(.ideas)
-                .ideasThemeTip(when: ideasQuery.isEmpty)
-        } else {
-            categoryPage
-                .tipSighting(.library)
-        }
+        categoryPage
+            .tipSighting(.library)
     }
 
     /// The category's list; on a wide iPad, one column of a comfortable
@@ -637,16 +582,8 @@ struct LibraryView: View {
 
     /// The band runs down from the window's top to just under the header,
     /// on a category's page at rest or scrolled, not while searching (the
-    /// header steps aside), not in Ideas and never under the sky.
-    private var bandShown: Bool { !inIdeas && !underSky && !searching }
-
-    /// How far Ideas' lists run on past their last row: the dock's height,
-    /// as they run on under it; nothing while the keyboard has put the dock
-    /// away.
-    private var ideasClearance: CGFloat {
-        if keyboardUp { return 0 }
-        return dockHeight
-    }
+    /// header steps aside).
+    private var bandShown: Bool { !searching }
 
     /// At large text the round can run on behind the bar and scroll, but
     /// with the page at rest the bar's line must not fall through Start ward
@@ -787,39 +724,26 @@ struct LibraryView: View {
                            maxX: Double(rect.maxX), maxY: Double(rect.maxY))
     }
 
-    /// The base under every page, Ideas' list and board too, with the grid
-    /// band under a category page's header; only the 3D map keeps the sky
-    /// it flies through.
+    /// The base under every page, with the grid band under a category
+    /// page's header.
     @ViewBuilder
     private var backdrop: some View {
-        // one ground or the other at once, never cross-faded
-        if underSky {
-            AppBackdrop(tint: IdeasPlace.tint)
-                .transition(.identity)
-        } else {
-            WardBackground()
-                .overlay(alignment: .top) {
-                    if bandShown { HomeBand(track: bandTrack).transition(.identity) }
-                }
-                .transition(.identity)
-        }
+        WardBackground()
+            .overlay(alignment: .top) {
+                if bandShown { HomeBand(track: bandTrack).transition(.identity) }
+            }
+            .transition(.identity)
     }
-
-    private var underSky: Bool { inIdeas && ideasModeRaw == IdeasMode.space.rawValue }
-
-    /// The dock is soft UI shaped from the base; over the 3D map's sky the
-    /// base is the night one, so the dock is too.
-    private var dockScheme: ColorScheme { underSky ? .dark : scheme }
 
     /// A category's page is titled by its own first row - the date, the
     /// app's name with its squiggle, a greeting (WardHome) - so the bar
-    /// carries no title of its own there; Ideas keeps its name.
-    private var screenTitle: String { inIdeas ? IdeasPlace.title : "" }
+    /// carries no title of its own.
+    private var screenTitle: String { "" }
 
-    /// The one search field at the top searches whatever is on show.
-    private var searchText: Binding<String> { inIdeas ? $ideasQuery : $query }
+    /// The one search field at the top searches the library.
+    private var searchText: Binding<String> { $query }
 
-    private var searchPrompt: String { inIdeas ? "Search ideas" : "Search questions, cards, notes" }
+    private var searchPrompt: String { "Search questions, cards, lectures" }
 
     /// The dock on end, on a wide iPad, while no sets are being picked -
     /// not at the accessibility text sizes, where it is at the bottom.
@@ -829,10 +753,8 @@ struct LibraryView: View {
     @ViewBuilder
     private var rail: some View {
         if railed && !selecting {
-            CategoryDock(selection: dockSelection, inIdeas: ideasSelection, axis: .vertical) { count(in: $0) }
+            CategoryDock(selection: dockSelection, axis: .vertical) { count(in: $0) }
                 .a11yProbeHide("library-tab-bar")
-                .environment(\.colorScheme, dockScheme)
-                .environment(\.wardHeld, underSky)
                 .wardUnlit()
                 .launchEntrance()
                 .transition(.slideIn(.leading))
@@ -870,14 +792,12 @@ struct LibraryView: View {
             VStack(spacing: 10) {
                 // An empty library has its own big button in the middle of
                 // the page, so this one stays away until there is something
-                // to list; Ideas has its own capture row instead.
+                // to list.
                 // arrives with the page's opening at the hand-off (LaunchStage)
                 if newSet { newSetRow.launchEntrance().transition(.identity) }
                 if !railed {
-                    CategoryDock(selection: dockSelection, inIdeas: ideasSelection) { count(in: $0) }
+                    CategoryDock(selection: dockSelection) { count(in: $0) }
                         .a11yProbeHide("library-tab-bar")
-                        .environment(\.colorScheme, dockScheme)
-                        .environment(\.wardHeld, underSky)
                         .launchEntrance()
                 }
             }
@@ -891,8 +811,8 @@ struct LibraryView: View {
                 noteDockHeight($0)
             }
             // where the bar begins: Start ward round's line, and the
-            // preview's fit check. Beside the rail with no New set (Ideas)
-            // the bar holds nothing, and the page runs on to the bottom.
+            // preview's fit check. Beside the rail with no New set the bar
+            // holds nothing, and the page runs on to the bottom.
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
                 HomeFitProbe.shared.bar = $0
                 noteBarTop($0.height > 0 ? $0.minY : nil)
@@ -903,8 +823,8 @@ struct LibraryView: View {
     }
 
     /// Whether this page has a New set button: an empty library has its
-    /// own big button in the middle, and Ideas its own capture row.
-    private var newSetShown: Bool { !inIdeas && !store.library.isEmpty }
+    /// own big button in the middle.
+    private var newSetShown: Bool { !store.library.isEmpty }
 
     /// New set on its own row over the dock, at the trailing end - under the
     /// right thumb on a phone, bottom-right under the right hand on a wide
@@ -939,7 +859,7 @@ struct LibraryView: View {
                     }
                     // Today's ward round - what is due, the weakest topic,
                     // something new, a station - in one card, and on Questions
-                    // the Vitals and brain map tiles under it (WardHome).
+                    // the Vitals tile under it (WardHome).
                     homeRoundSections
                     // The modes first - one tile per kind of set here - where
                     // there is more than one. A category of one kind has its
@@ -1343,10 +1263,10 @@ struct LibraryView: View {
         .padding(.horizontal, WardSpace.l)
         .padding(.top, WardSpace.xs)
         .padding(.bottom, WardSpace.s)
-        // over a category the header's paper band runs on behind it; in
-        // Ideas the plain base, so nothing scrolled shows through
+        // over a category the header's paper band runs on behind it; while
+        // searching the plain base, so nothing scrolled shows through
         .background {
-            if !bandShown && !underSky {
+            if !bandShown {
                 Color.wardWash
                     .ignoresSafeArea(edges: [.top, .horizontal])
                     .transition(.identity)

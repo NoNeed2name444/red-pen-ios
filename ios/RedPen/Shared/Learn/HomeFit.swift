@@ -99,14 +99,15 @@ enum HomeFit {
 
     /// Whether the round gives up another bed so the tiles clear the bar's
     /// line at the standard text sizes, the page at rest. The review found
-    /// New set over the Brain map tile mid-sentence on a 914 dp phone
-    /// (T0211 A3): the card ended above the line, the tiles under it did
-    /// not. So the tiles get the card's room for the bar too: while the
-    /// line slices them, a bed comes off (Plan has the whole day) and they
-    /// rise. Only while that can lift them clear: `spare` is how far they
-    /// would rise with one bed left (the shown beds' bottom less the first
-    /// bed's); on a window too short for that, no bed is given up for
-    /// nothing, and the tiles pass behind the bar and scroll clear.
+    /// New set over a home tile mid-sentence on a 914 dp phone (T0211 A3;
+    /// the Brain map tile, since removed): the card ended above the line,
+    /// the tiles under it did not. So the tiles get the card's room for the
+    /// bar too: while the line slices them, a bed comes off (Plan has the
+    /// whole day) and they rise. Only while that can lift them clear:
+    /// `spare` is how far they would rise with one bed left (the shown
+    /// beds' bottom less the first bed's); on a window too short for that,
+    /// no bed is given up for nothing, and the tiles pass behind the bar
+    /// and scroll clear.
     static func tilesTrim(tiles: Box?, spare: Double, cut: Double) -> Bool {
         guard let tiles, spare > 0, slices(minY: tiles.minY, maxY: tiles.maxY, cut: cut) else { return false }
         return tiles.maxY - spare <= cut

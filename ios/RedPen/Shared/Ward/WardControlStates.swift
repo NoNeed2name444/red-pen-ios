@@ -79,11 +79,8 @@ enum WardDock {
 
     // MARK: the row along the bottom, on every phone
 
-    /// The bar: room at its sides, the Ideas pill's width, the gap between
-    /// the panel and the pill, and the widest the bar grows.
+    /// The bar: room at its sides, and the widest the bar grows.
     static let barSide = 10.0
-    static let ideasWidth = 56.0
-    static let barSpacing = 6.0
     static let barMaxWidth = 560.0
     /// A tab is never narrower than a finger.
     static let leastTab = 44.0
@@ -98,11 +95,10 @@ enum WardDock {
     static func showsList(accessibilitySize: Bool) -> Bool { accessibilitySize }
 
     /// The room the five tabs share on a window `width` wide: less the
-    /// page's inset, the bar's sides, the pill and its gap, and the panel's
-    /// inset round the tabs.
+    /// page's inset, the bar's sides, and the panel's inset round the tabs.
     static func tabsRoom(width: Double) -> Double {
         let bar = min(width - 2 * WardPaper.sideInset - 2 * barSide, barMaxWidth)
-        return bar - ideasWidth - barSpacing - 2 * barInset
+        return bar - 2 * barInset
     }
 
     /// How much the names shrink so the tabs, each a name with its side

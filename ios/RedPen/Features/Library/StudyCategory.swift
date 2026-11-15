@@ -514,35 +514,15 @@ struct CategoryHeading: View {
     }
 }
 
-/// Ideas: the idea dump, its board and the 3D map - a place of its own in
-/// the dock, beside the four categories rather than one of them. It holds no
-/// sets, so it is not a StudyCategory; the library shows IdeasView in its
-/// place when it is chosen.
-enum IdeasPlace {
-    static let title: String = "Ideas"
-    static let symbol: String = "lightbulb"
-    static let chosenSymbol: String = "lightbulb.fill"
-    /// Pager Amber: the tint of the 3D map's backdrop, the one place that
-    /// keeps its own look.
-    static var tint: Color { .wardBeam }
-    /// Ideas' accent (WardSection.ideas), for its glyph beside the
-    /// categories' own.
-    static var accent: Color { .wardAccent(.ideas) }
-    /// Where Ideas sits along the dock: after the four categories.
-    static var order: Int { StudyCategory.allCases.count }
-}
-
-/// Five categories share a raised panel beside the 56-point Ideas pill.
-/// Slots fit their names, then share spare room by filling the narrower slots
-/// equally. The chosen hollow travels between categories with the selection.
+/// Five categories share one raised panel. Slots fit their names, then
+/// share spare room by filling the narrower slots equally. The chosen hollow
+/// travels between categories with the selection.
 /// Wide windows use the leading rail; accessibility sizes open a list instead.
 /// At every other size the bottom is the full row, on every phone: where the
 /// names and their room are wider than the window, the names shrink a little,
 /// all by the same amount, and never their room from the ring (WardDock).
 struct CategoryDock: View {
     @Binding var selection: StudyCategory
-    /// Whether Ideas, rather than a category, is the page on show.
-    @Binding var inIdeas: Bool
     /// Along the bottom, or on end as the wide iPad's rail.
     var axis: Axis = .horizontal
     /// How many sets sit in each category.
@@ -554,10 +534,9 @@ struct CategoryDock: View {
     /// The list of places, open at the accessibility text sizes.
     @State private var listing = false
 
-    init(selection: Binding<StudyCategory>, inIdeas: Binding<Bool>, axis: Axis = .horizontal,
+    init(selection: Binding<StudyCategory>, axis: Axis = .horizontal,
          count: @escaping (StudyCategory) -> Int) {
         self._selection = selection
-        self._inIdeas = inIdeas
         self.axis = axis
         self.count = count
     }
@@ -590,8 +569,8 @@ struct CategoryDock: View {
     /// One wide Ward button: where you are, and a tap for every place.
     private var listButton: some View {
         let shape: RoundedRectangle = panelShape
-        let here: String = inIdeas ? IdeasPlace.title : selection.title
-        let symbol: String = inIdeas ? IdeasPlace.chosenSymbol : selection.symbol
+        let here: String = selection.title
+        let symbol: String = selection.symbol
         return Button { listing = true } label: {
             // The place's name is one word, never broken: with its symbol
             // where both fit, without it where only the name does, and
@@ -620,7 +599,7 @@ struct CategoryDock: View {
         .task { if PreviewLaunch.screen == "sections" { listing = true } }
         .sheet(isPresented: $listing) {
             // a sheet has its lights, whatever the dock floats with
-            DockListSheet(selection: $selection, inIdeas: $inIdeas, count: count)
+            DockListSheet(selection: $selection, count: count)
                 .wardUnlit(false)
                 .wardSheet()
         }
@@ -652,15 +631,12 @@ struct CategoryDock: View {
     // MARK: along the bottom
 
     private var bar: some View {
-        HStack(spacing: CGFloat(WardDock.barSpacing)) {
-            categoriesPanel
-            ideasPill
-        }
-        // the pill as tall as the panel, whatever the text size
-        .fixedSize(horizontal: false, vertical: true)
-        .frame(maxWidth: CGFloat(WardDock.barMaxWidth))
-        .padding(.horizontal, CGFloat(WardDock.barSide))
-        .padding(.bottom, 10)
+        categoriesPanel
+            // as tall as its tabs, whatever the text size
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: CGFloat(WardDock.barMaxWidth))
+            .padding(.horizontal, CGFloat(WardDock.barSide))
+            .padding(.bottom, 10)
     }
 
     /// At the screen's bottom corners its corners are concentric with the
@@ -677,30 +653,6 @@ struct CategoryDock: View {
         }
     }
 
-    /// Ideas, on a panel of its own beside the categories.
-    private var ideasPill: some View {
-        WardCorners(own: WardDock.panelRadius) { radii in ideasPill(shape: radii.shape) }
-    }
-
-    private func ideasPill(shape: UnevenRoundedRectangle) -> some View {
-        let chosen: Bool = inIdeas
-        return Button(action: chooseIdeas) {
-            ideasFace(chosen: chosen)
-                .frame(width: CGFloat(WardDock.ideasWidth))
-                .frame(minHeight: 56, maxHeight: .infinity)
-                .contentShape(shape)
-                .contentShape(.hoverEffect, shape)
-                .hoverEffect(.highlight)
-        }
-        // pressed in with the accent edge when chosen, sinking when held
-        .buttonStyle(WardPanelButtonStyle(chosen: chosen, lift: .high, shape: shape))
-        .accessibilityLabel(L10n.lookup(IdeasPlace.title))
-        .accessibilityHint(L10n.string("Your idea dump, board and 3D map"))
-        .accessibilityAddTraits(chosen ? [.isSelected] : [])
-        .accessibilityIdentifier("dockCategory-ideas")
-        .keyboardShortcut(CategoryDock.digit(IdeasPlace.order + 1), modifiers: .command)
-    }
-
     // MARK: on end, the wide iPad's rail
 
     private var rail: some View {
@@ -708,10 +660,6 @@ struct CategoryDock: View {
             ForEach(StudyCategory.allCases) { category in
                 item(category)
             }
-            WardEtch()
-                .padding(.horizontal, 12)
-                .padding(.vertical, 4)
-            ideasRailItem
         }
         .padding(CGFloat(WardDock.railInset))
         // as wide as its widest name needs, and never under 76, so the
@@ -723,53 +671,13 @@ struct CategoryDock: View {
         .frame(maxHeight: .infinity)
     }
 
-    /// Ideas in the rail: an item like the others, after the divider.
-    private var ideasRailItem: some View {
-        let chosen: Bool = inIdeas
-        let segment = self.segment
-        return Button(action: chooseIdeas) {
-            ideasFace(chosen: chosen)
-                .padding(.horizontal, CGFloat(WardDock.labelSide))
-                .padding(.vertical, CGFloat(WardDock.labelVertical))
-                .frame(maxWidth: .infinity, minHeight: CGFloat(WardDock.tabMinHeight))
-                .background {
-                    if chosen {
-                        WardReliefFace(shape: segment, lift: .low, inset: true)
-                            .wardChosenEdge(segment, true)
-                            .matchedGeometryEffect(id: "chosen", in: lift)
-                            .transition(.identity)
-                    }
-                }
-                .contentShape(segment)
-                .contentShape(.hoverEffect, segment)
-                .hoverEffect(.highlight)
-        }
-        .buttonStyle(WardItemButtonStyle(chosen: chosen, shape: segment))
-        .keyboardShortcut(CategoryDock.digit(IdeasPlace.order + 1), modifiers: .command)
-        .accessibilityLabel(L10n.lookup(IdeasPlace.title))
-        .accessibilityHint(L10n.string("Your idea dump, board and 3D map"))
-        .accessibilityAddTraits(chosen ? [.isSelected] : [])
-        .accessibilityIdentifier("dockCategory-ideas")
-    }
-
     // MARK: the pieces
 
     /// How a choice moves the hollow: not at all under Reduce Motion.
     private var change: Animation? { reduceMotion ? nil : .snappy(duration: 0.3) }
 
-    private func chooseIdeas() {
-        withAnimation(change) { inIdeas = true }
-    }
-
-    /// The lightbulb over the word Ideas, in the section's accent when chosen.
-    private func ideasFace(chosen: Bool) -> some View {
-        let symbol: String = chosen ? IdeasPlace.chosenSymbol : IdeasPlace.symbol
-        return DockItemFace(symbol: symbol, title: L10n.lookup(IdeasPlace.title), chosen: chosen)
-            .contentTransition(.identity)
-    }
-
     private func item(_ category: StudyCategory) -> some View {
-        let chosen: Bool = !inIdeas && category == selection
+        let chosen: Bool = category == selection
         let segment = self.segment
         let number: Int = (StudyCategory.allCases.firstIndex(of: category) ?? 0) + 1
         return Button {
@@ -808,7 +716,7 @@ struct CategoryDock: View {
         .accessibilityIdentifier("dockCategory-\(category.rawValue)")
     }
 
-    /// Command 1 to 5 for the categories, Command 6 for Ideas.
+    /// Command 1 to 5 for the categories.
     private static func digit(_ number: Int) -> KeyEquivalent {
         let text: String = String(number)
         let character: Character = text.first ?? "1"
@@ -823,11 +731,10 @@ struct CategoryDock: View {
     }
 }
 
-/// The dock as a list, at the accessibility text sizes: every section and
-/// Ideas, one to a row, with room for the whole name at any size.
+/// The dock as a list, at the accessibility text sizes: every section, one
+/// to a row, with room for the whole name at any size.
 private struct DockListSheet: View {
     @Binding var selection: StudyCategory
-    @Binding var inIdeas: Bool
     var count: (StudyCategory) -> Int
     @Environment(\.dismiss) private var dismiss
 
@@ -835,18 +742,12 @@ private struct DockListSheet: View {
         NavigationStack {
             List {
                 ForEach(StudyCategory.allCases) { category in
-                    let chosen: Bool = !inIdeas && category == selection
+                    let chosen: Bool = category == selection
                     let detail: String = SpokenText.count(count(category), "set")
                     row(title: L10n.lookup(category.title), detail: detail, symbol: category.symbol,
                         tint: category.tint, chosen: chosen, id: "dockCategory-\(category.rawValue)") {
                         selection = category
-                        inIdeas = false
                     }
-                }
-                row(title: L10n.lookup(IdeasPlace.title), detail: L10n.string("Your idea dump, board and 3D map"),
-                    symbol: IdeasPlace.symbol, tint: IdeasPlace.accent, chosen: inIdeas,
-                    id: "dockCategory-ideas") {
-                    inIdeas = true
                 }
             }
             .wardForm()

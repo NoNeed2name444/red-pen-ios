@@ -14,7 +14,7 @@ enum PreviewExtras {
     static let screens = ["anki-quizable", "quiz-from-cards", "narrate-fixing", "occlusion-example",
                           "quiz-folded", "quiz-scrolled", "library-end", "library-loading", "signin", "account-deleted",
                           "settings", "settings-study", "settings-data", "settings-end",
-                          "sheet", "mode-switch", "section-switch", "home-ideas", "mode-switch-quiz", "lens", "a11y-probe"]
+                          "sheet", "mode-switch", "section-switch", "mode-switch-quiz", "lens", "a11y-probe"]
                           + tourScreens
 
     /// Posted by the "section-switch" preview: home moves one place along
@@ -84,13 +84,6 @@ enum PreviewExtras {
             // home stepping along its dock every 2 s, each place's hue
             // shifting to the next, for a recording
             PreviewSectionSwitch()
-        case "home-ideas":
-            // home on Ideas, in its hue
-            LibraryView()
-                .task {
-                    try? await Task.sleep(for: .seconds(1))
-                    NotificationCenter.default.post(name: PreviewExtras.dockStep, object: "ideas")
-                }
         default:
             // the whole-app tour (below, and tools/tour_screens.txt)
             tourView(for: screen)
@@ -389,10 +382,6 @@ extension PreviewExtras {
         "case-debrief",
         // audio
         "narrate-sections", "narrate-empty", "commute", "explain-back", "explain-result",
-        // ideas
-        "ideas", "ideas-board", "ideas-map", "ideas-million", "note-editor", "link-picker", "idea-name",
-        // the map's other themes, and their legends (T0147)
-        "ideas-map-neurons", "ideas-map-performance", "ideas-legend-neurons", "ideas-legend-performance",
         // vitals
         "vitals", "insight-questions", "rules", "coverage", "stats",
         // settings, support, platform
@@ -671,56 +660,6 @@ extension PreviewExtras {
         case "explain-result":
             return AnyView(NavigationStack { ExplainResultView(attempt: VoiceExamples.inguinalCanal) })
 
-        // MARK: ideas, on the example notes
-        case "ideas":
-            return AnyView(TourNotes { _ in LibraryView(inIdeas: true) })
-        case "ideas-board":
-            return AnyView(TourSetup({ TourData.register(["vignette.ideas.mode": IdeasMode.board.rawValue]) }) {
-                TourNotes { _ in LibraryView(inIdeas: true) }
-            })
-        case "ideas-map":
-            return AnyView(TourSetup({
-                TourData.register(["vignette.ideas.mode": IdeasMode.space.rawValue])
-                TourData.mapCardsSeen()
-            }) {
-                TourNotes { _ in LibraryView(inIdeas: true) }
-            })
-        case "ideas-map-neurons":
-            return themedMap(.neurons, legend: false)
-        case "ideas-map-performance":
-            return themedMap(.performance, legend: false)
-        case "ideas-legend-neurons":
-            return themedMap(.neurons, legend: true)
-        case "ideas-legend-performance":
-            return themedMap(.performance, legend: true)
-        case "ideas-million":
-            return AnyView(TourSetup({
-                TourData.register(["vignette.ideas.mode": IdeasMode.space.rawValue,
-                                   GraphPerfDemo.key: GraphPerfDemo.million])
-            }) {
-                TourNotes { _ in LibraryView(inIdeas: true) }
-            })
-        case "note-editor":
-            return AnyView(TourNotes { notes in
-                LibraryView(inIdeas: true).sheet(isPresented: .constant(true)) {
-                    NoteEditorView(noteID: TourData.hub(in: notes))
-                }
-            })
-        case "link-picker":
-            return AnyView(TourNotes { notes in
-                LibraryView(inIdeas: true).sheet(isPresented: .constant(true)) {
-                    LinkPickerView(noteID: TourData.hub(in: notes))
-                }
-            })
-        case "idea-name":
-            return AnyView(TourSetup({ TourData.register(["vignette.ideas.mode": IdeasMode.board.rawValue]) }) {
-                TourNotes { _ in
-                    LibraryView(inIdeas: true).sheet(isPresented: .constant(true)) {
-                        NameSheet(title: "New idea", prompt: "The idea", initial: "", confirm: "Add", onConfirm: { _ in })
-                    }
-                }
-            })
-
         // MARK: vitals (a preview build has no answer history to show)
         case "vitals":
             return AnyView(NavigationStack { AnalyticsView() })
@@ -761,38 +700,6 @@ extension PreviewExtras {
     }
 }
 
-extension PreviewExtras {
-    /// ideas-map in another theme (GraphTheme.key registered, as the Look
-    /// menu would store it), on the example notes; with `legend`, that
-    /// theme's legend open over the map as the Look menu opens it.
-    @MainActor
-    fileprivate static func themedMap(_ theme: GraphTheme, legend: Bool) -> AnyView {
-        AnyView(TourSetup({
-            TourData.register(["vignette.ideas.mode": IdeasMode.space.rawValue, GraphTheme.key: theme.rawValue])
-            TourData.mapCardsSeen()
-        }) {
-            TourNotes { _ in
-                if legend {
-                    LibraryView(inIdeas: true).sheet(isPresented: .constant(true)) { TourLegend(theme: theme) }
-                } else {
-                    LibraryView(inIdeas: true)
-                }
-            }
-        })
-    }
-}
-
-/// A theme's legend, sized as the map presents it (Graph3DView).
-private struct TourLegend: View {
-    let theme: GraphTheme
-    @Environment(\.horizontalSizeClass) private var sizeClass
-
-    var body: some View {
-        GraphLegendSheet(theme: theme)
-            .modifier(GraphLegendPresentation(regular: sizeClass == .regular))
-    }
-}
-
 /// The checked quiz, for the sheets the quiz opens over itself.
 private struct TourChecked: View {
     var body: some View {
@@ -830,23 +737,6 @@ private struct TourStore<Content: View>: View {
     var body: some View { content.environmentObject(store) }
 }
 
-/// The content on a throwaway notes store holding the example ideas
-/// (NoteExamples): the preview's own notes store is empty.
-private struct TourNotes<Content: View>: View {
-    @StateObject private var notes: NoteStore
-    private let content: (NoteStore) -> Content
-
-    init(@ViewBuilder content: @escaping (NoteStore) -> Content) {
-        let made = NoteStore(fileURL: FileManager.default.temporaryDirectory
-            .appendingPathComponent("redpen-preview-\(UUID().uuidString).json"))
-        NoteExamples.seed(into: made)
-        _notes = StateObject(wrappedValue: made)
-        self.content = content
-    }
-
-    var body: some View { content(notes).environmentObject(notes) }
-}
-
 /// Home with a learning screen open over it, the way LearnRouter opens one.
 private struct TourLearn: View {
     let route: LearnRoute
@@ -875,24 +765,10 @@ private enum TourData {
         UserDefaults.standard.register(defaults: values)
     }
 
-    /// Every map theme's first-run card (GraphUniverseHint) put away, as
-    /// "Got it" leaves it, so the map shots show the map, alike in every
-    /// theme and in light and dark (Graph3DView's cardSeen and the touch
-    /// lines' GraphMapTouch). The card itself stays in the app.
-    static func mapCardsSeen() {
-        let all: String = GraphTheme.allCases.map(\.rawValue).joined(separator: ",")
-        register(["vignette.space.universeHintSeen": true, GraphTheme.hintsKey: all, GraphMapTouch.seenKey: all])
-    }
-
     /// PLAB, six weeks away.
     static func chooseExam() {
         register([ExamTrack.storageKey: ExamTrack.plab.rawValue,
                   ExamTrack.dateKey: Date().addingTimeInterval(42 * 86_400).timeIntervalSince1970])
-    }
-
-    /// The example ideas' hub note.
-    static func hub(in notes: NoteStore) -> UUID {
-        (notes.notes.first { $0.title == "Groin hernia" } ?? notes.notes.first)?.id ?? UUID()
     }
 
     /// The samples' questions and the lupus quiz, as a short PLAB paper.

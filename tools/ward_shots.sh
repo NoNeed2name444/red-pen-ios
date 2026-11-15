@@ -44,7 +44,7 @@ case "$plan" in
 esac
 mkdir -p "$SHOTS"
 SE=(-uiPreviewWidth 375 -uiPreviewHeight 647)
-SECTIONS="anki book cases osce narrate home-ideas"
+SECTIONS="anki book cases osce narrate"
 
 # Whether a picture is still the launch screen: flat above and below the
 # logo (or flat throughout, in a build without the private launch mark).
@@ -250,8 +250,8 @@ if [ "$plan" = phone ]; then
       shoot "$look" "$screen" "$screen-$look"
       if [ "$screen" = library ]; then fit "library-$look"; fi
     done
-    # each section in its hue: Cards, Textbook, Cases, OSCE, Audio and
-    # Ideas (Questions is the quiz above)
+    # each section in its hue: Cards, Textbook, Cases, OSCE and Audio
+    # (Questions is the quiz above)
     for screen in $SECTIONS; do
       shoot "$look" "$screen" "section-$screen-$look"
     done
@@ -259,7 +259,7 @@ if [ "$plan" = phone ]; then
   system_switch
 elif [ "$plan" = states ]; then
   for look in light dark; do
-    for section in questions cards textbook cases osce audio ideas; do
+    for section in questions cards textbook cases osce audio; do
       shoot "$look" states "states/$section-$look" -uiPreviewSection "$section"
     done
   done

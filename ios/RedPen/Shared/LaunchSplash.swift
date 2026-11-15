@@ -94,7 +94,6 @@ struct LaunchSplash: View {
         if !shown && args.contains("-uiPreviewSplash") { return true }
         return !shown
             && PreviewLaunch.screen == nil
-            && !GraphPreview.isOn
             && !args.contains("-noSplash")
     }
 

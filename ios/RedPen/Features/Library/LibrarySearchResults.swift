@@ -1,12 +1,12 @@
 import SwiftUI
 
-/// The library search's results: the scopes, then the questions, cards,
-/// notes and lecture pages that matched, each with the matched phrase marked
+/// The library search's results: the scopes, then the questions, cards and
+/// lecture pages that matched, each with the matched phrase marked
 /// and a tap that opens it where it lives. The sets that matched are listed
 /// by the library's own rows above these (LibraryView.setsSections).
 extension LibraryView {
 
-    /// All · Questions · Cards · Notes · Lectures, as filter chips.
+    /// All · Questions · Cards · Lectures, as filter chips.
     var searchScopeSection: some View {
         Section {
             ScrollView(.horizontal, showsIndicators: false) {
@@ -56,7 +56,7 @@ extension LibraryView {
                     .listRowBackground(Color.clear)
             }
         }
-        if !hits.isEmpty && search.scope != .notes && search.scope != .lectures {
+        if !hits.isEmpty && search.scope != .lectures {
             Section {
                 buildSessionButton(from: query)
             }
@@ -69,7 +69,6 @@ extension LibraryView {
         case .all: return "Questions & cards"
         case .questions: return "Questions"
         case .cards: return "Cards"
-        case .notes: return "Notes"
         case .lectures: return "Lectures"
         }
     }
@@ -156,16 +155,13 @@ extension LibraryView {
         case .lecture:
             let page: String = hit.page.map { ", p. \($0)" } ?? ""
             return hit.kind.label + dot + hit.sourceName + page
-        case .note:
-            return hit.kind.label + dot + "Ideas"
         default:
             return hit.kind.label + dot + hit.setName
         }
     }
 
     /// A result opened where it lives: a question at its place in its set,
-    /// a card on its own with its deck a tap away, a note in its editor, a
-    /// lecture at the page.
+    /// a card on its own with its deck a tap away, a lecture at the page.
     func openHit(_ hit: LibrarySearch.Hit) {
         switch hit.kind {
         case .set:
@@ -180,8 +176,6 @@ extension LibraryView {
             } else {
                 opened.append(set)
             }
-        case .note:
-            if let id = hit.itemID { foundNote = FoundNote(id: id) }
         case .lecture:
             guard let set = librarySet(hit.setID) else { return }
             guard let source = set.sources.first(where: { $0.id == hit.itemID }) else { return }
@@ -208,7 +202,8 @@ struct FoundCard: Identifiable {
     var id: UUID { card.id }
 }
 
-/// A note a search found, for its editor.
+/// A note, once a search could find one. Search no longer does (T0274);
+/// the type stays while LibrarySavedIdeas still holds one, and goes with it.
 struct FoundNote: Identifiable {
     let id: UUID
 }

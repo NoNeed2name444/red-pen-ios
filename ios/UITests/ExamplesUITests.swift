@@ -3,7 +3,7 @@ import XCTest
 /// The personal build's "Try every feature" page: every row opens its worked
 /// example without crashing, with a screenshot of each for a person to look at.
 final class ExamplesUITests: XCTestCase {
-    private let rows = ["ideas", "reasoning", "howToReach", "progress", "analytics", "rules", "coverage",
+    private let rows = ["reasoning", "howToReach", "progress", "analytics", "rules", "coverage",
                         "commute", "explain", "explain-live", "osce-bbn", "osce-history", "draw"]
 
     func testEveryExampleOpens() {
@@ -64,7 +64,7 @@ final class ExamplesUITests: XCTestCase {
                 if back.exists { back.tap() }
             }
             XCTAssertTrue(hub.waitForExistence(timeout: 10), "\(id) didn't come back to the examples")
-            while app.buttons["example-ideas"].exists && !app.buttons["example-ideas"].isHittable { app.swipeDown() }
+            while app.buttons["example-reasoning"].exists && !app.buttons["example-reasoning"].isHittable { app.swipeDown() }
         }
     }
 

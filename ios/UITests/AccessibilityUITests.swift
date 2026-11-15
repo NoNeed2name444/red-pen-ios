@@ -56,8 +56,8 @@ final class AccessibilityUITests: XCTestCase {
         assertInWindow(list, "the sections button")
         snap("library")
 
-        // every section, and Ideas, from the list
-        for place in ["questions", "cards", "cases", "osce", "audio", "ideas"] {
+        // every section, from the list
+        for place in ["questions", "cards", "cases", "osce", "audio"] {
             XCTAssertTrue(choose(place), "could not choose \(place) from the sections list")
             snap("section-\(place)")
         }

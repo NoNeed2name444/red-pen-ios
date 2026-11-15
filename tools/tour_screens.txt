@@ -113,18 +113,6 @@ narrate-empty	97	Nothing to read yet
 commute	98	Commute mode
 explain-back	99	Explain it back
 explain-result	99	Explain it back: result
-ideas	100	Ideas list
-home-ideas	101	Ideas empty
-ideas-board	102	Board
-ideas-map	103	Brain map
-ideas-million	104	Million-note demo
-ideas-map-neurons	103	Brain map: Neurons
-ideas-map-performance	103	Brain map: Performance
-ideas-legend-neurons	105	Legend: Neurons
-ideas-legend-performance	105	Legend: Performance
-note-editor	106	Note editor
-link-picker	107	Link picker
-idea-name	108	Name a new idea
 vitals	109	Vitals (and its empty sections, 110)
 insight-questions	111	Insight question list
 rules	113	Rule sheet

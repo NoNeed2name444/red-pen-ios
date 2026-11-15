@@ -4,17 +4,16 @@ import SwiftUI
 /// Everything behind the account menu: the pages that belong to no one
 /// category.
 ///
-/// The studying itself is in the library's dock - Questions, Cards, OSCE,
-/// Audio, and Ideas beside them. What is left is visited now and then
+/// The studying itself is in the library's dock - Questions, Cards, Cases,
+/// OSCE and Audio. What is left is visited now and then
 /// rather than worked in: how it is going, the lectures, the tour of
 /// examples, and the account, settings and help. They push onto the
 /// library's stack. One definition, one way in.
 enum SupportPage: String, CaseIterable, Identifiable, Hashable {
-    case notes, analytics, progress, sources, examples, account, settings, help, faq
+    case analytics, progress, sources, examples, account, settings, help, faq
 
     /// What the menu lists, in the order it lists them. Every page is kept,
-    /// but three are no longer listed, because each already has a home:
-    /// Ideas is a place in the dock (LibraryView routes `.notes` there), By
+    /// but two are no longer listed, because each already has a home: By
     /// subject is the Questions › Tools tile and a link in Vitals, and the
     /// common questions are the end of How it works.
     static var shown: [SupportPage] { allCases.filter { $0.isListed } }
@@ -30,7 +29,7 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
     /// for everyone.
     var isListed: Bool {
         switch self {
-        case .notes, .progress, .faq: return false
+        case .progress, .faq: return false
         case .examples: return true
         case .analytics, .sources, .account, .settings, .help: return true
         }
@@ -43,14 +42,13 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
     /// a flat list is a wall to read through every time.
     var section: SupportSection {
         switch self {
-        case .notes, .analytics, .progress, .sources, .examples: return .study
+        case .analytics, .progress, .sources, .examples: return .study
         case .account, .settings, .help, .faq: return .account
         }
     }
 
     var title: String {
         switch self {
-        case .notes: return "Ideas"
         case .analytics: return "Progress"
         case .progress: return "By subject"
         case .sources: return "Your lectures"
@@ -64,7 +62,6 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
 
     var symbol: String {
         switch self {
-        case .notes: return "lightbulb"
         case .analytics: return "waveform.path.ecg"
         case .progress: return "chart.bar.xaxis"
         case .sources: return "doc.richtext"
@@ -79,7 +76,6 @@ enum SupportPage: String, CaseIterable, Identifiable, Hashable {
     @ViewBuilder
     var page: some View {
         switch self {
-        case .notes: IdeasView()
         case .analytics: AnalyticsView()
         case .progress: StatsView()
         case .sources: SourcesLibraryView()
@@ -153,12 +149,6 @@ struct SettingsPage: View {
     @AppStorage(LaunchSplash.soundKey) private var launchHeartbeat = true
     /// "Graphics": Automatic, High quality or Smooth (GraphicsQuality.swift).
     @AppStorage(SpaceSettings.graphicsKey) private var graphicsRaw: String = GraphicsChoice.automatic.rawValue
-    /// "Link length": how far apart linked bodies stand in the Ideas map
-    /// (GraphLinkLength), Shorter 0.6 to Longer 1.8.
-    @AppStorage(SpaceSettings.linkLengthKey) private var linkLength: Double = GraphLinkLength.standard
-    /// "Lines": Curved (false) or Straight (true) links in the Ideas map and
-    /// on the board (GraphLineStyle).
-    @AppStorage(SpaceSettings.straightLinesKey) private var straightLines: Bool = false
     /// Seconds since 1970; 0 for no date. The library counts down to it.
     @AppStorage(ExamTrack.dateKey) private var examDate: Double = 0
 
@@ -259,35 +249,6 @@ struct SettingsPage: View {
                 Toggle("Heartbeat when the app opens", isOn: $launchHeartbeat)
                     .accessibilityIdentifier("launchHeartbeatToggle")
                 graphicsRow
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text("Link length")
-                        Spacer()
-                        Text(GraphLinkLength.word(linkLength))
-                            .foregroundStyle(Color.wardInkSecondary)
-                    }
-                    Slider(value: linkLengthBinding, in: GraphLinkLength.shortest...GraphLinkLength.longest,
-                           step: GraphLinkLength.step) {
-                        Text("Link length")
-                    } minimumValueLabel: {
-                        Text("Shorter").font(WardType.caption)
-                    } maximumValueLabel: {
-                        Text("Longer").font(WardType.caption)
-                    }
-                    .accessibilityValue(GraphLinkLength.spoken(linkLength))
-                    .accessibilityIdentifier("linkLengthSlider")
-                }
-                HStack {
-                    Text("Lines")
-                    Spacer()
-                    WardSegmented(selection: $straightLines, options: [false, true]) { straight in
-                        Text(GraphLineStyle.stored(straight).title)
-                    }
-                    .fixedSize()
-                    .accessibilityElement(children: .contain)
-                    .accessibilityLabel("Lines")
-                    .accessibilityIdentifier("lineStylePicker")
-                }
                 if let note = lookNote {
                     Text(note)
                         .font(WardType.caption)
@@ -365,14 +326,6 @@ struct SettingsPage: View {
             parts.append("Reduce Transparency, Increase Contrast or a warm device has turned the tilt off; the sky still drifts slowly.")
         }
         return parts.isEmpty ? nil : parts.joined(separator: " ")
-    }
-
-    /// The stored link length, read clamped and written snapped.
-    private var linkLengthBinding: Binding<Double> {
-        Binding<Double>(
-            get: { GraphLinkLength.stored(linkLength) },
-            set: { linkLength = GraphLinkLength.clamped($0) }
-        )
     }
 
     /// Turning face tracking on asks for the camera; a refusal turns the

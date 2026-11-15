@@ -4,8 +4,8 @@ import SwiftUI
 // §1). Every category's page opens with the date, the app's name and a
 // greeting, in place of a large title. On Questions, the page the app opens
 // on, today's ward round follows: a card of beds (BedPlan), each a tap into
-// what it holds, and one button that starts the first; then two tiles, Vitals
-// and the brain map. The round also stands on Cards while cards are due, where
+// what it holds, and one button that starts the first; then the Vitals tile.
+// The round also stands on Cards while cards are due, where
 // the Today card stood. The sets come after, each with how far into it the
 // student is.
 //
@@ -140,11 +140,8 @@ extension LibraryView {
         // (StudyVitals): the log's own streak missed answers synced from
         // another phone, and read "No streak yet" beside a full strip
         let vitals: StudyVitals.Reading = StudyVitals.read(days: days, minutes: studyLog.minutes, now: Date())
-        let map: (ideas: Int, links: Int) = BrainMapCount.counts(noteStore)
         return HomeTiles(readiness: readiness, streak: vitals.streak.streak, rhythm: vitals.rhythm,
-                         ideas: map.ideas, links: map.links,
                          onVitals: { support = .analytics },
-                         onIdeas: { goToIdeas() },
                          // at rest only, as Start's: the frame moves with every scroll step
                          onFrame: { noteTilesFrame($0) })
     }
@@ -843,45 +840,25 @@ struct HomeRoundCard: View {
     }
 }
 
-// MARK: - Vitals and the brain map
+// MARK: - Vitals
 
-/// The two tiles under the round, side by side (one above the other at the
-/// largest text sizes): Vitals opens the Vitals screen, the brain map Ideas.
+/// The tile under the round: Vitals, at the full width of the row, opens the
+/// Vitals screen. (The brain map tile beside it left with Ideas, T0274.)
 struct HomeTiles: View {
     let readiness: ReadinessEstimate?
     let streak: Int
     let rhythm: RhythmReading.Reading
-    let ideas: Int
-    let links: Int
     let onVitals: () -> Void
-    let onIdeas: () -> Void
-    /// Where the tiles are, in global points, as they are laid out
+    /// Where the tile is, in global points, as it is laid out
     /// (HomeFit.tilesTrim).
     var onFrame: (CGRect) -> Void = { _ in }
-    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View { measured }
 
-    @ViewBuilder
-    private var tiles: some View {
-        if typeSize.isAccessibilitySize {
-            VStack(spacing: WardSpace.m) {
-                vitals
-                brainMap
-            }
-        } else {
-            HStack(alignment: .top, spacing: WardSpace.m) {
-                vitals
-                brainMap
-            }
-            .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    /// Where the tiles were laid out, for the preview's fit check: no
-    /// sliver of them may peek over the page's cut (HomeFit).
+    /// Where the tile was laid out, for the preview's fit check: no
+    /// sliver of it may peek over the page's cut (HomeFit).
     private var measured: some View {
-        tiles.launchEntrance(inOpening: true).wardPart("the tiles").onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
+        vitals.launchEntrance(inOpening: true).wardPart("the tiles").onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
             HomeFitProbe.shared.tiles = $0
             onFrame($0)
         }
@@ -900,19 +877,6 @@ struct HomeTiles: View {
         .accessibilityIdentifier("homeVitals")
     }
 
-    private var brainMap: some View {
-        Button(action: onIdeas) {
-            BrainMapTileFace(line: brainLine)
-        }
-        .buttonStyle(PopTileStyle(cornerRadius: WardRadius.card, lift: .low))
-        // PopTileStyle draws no pointer highlight of its own
-        .contentShape(.hoverEffect, RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous))
-        .hoverEffect(.highlight)
-        .accessibilityLabel("Brain map. " + brainLine)
-        .accessibilityHint("Opens Ideas: the idea dump, its board and the 3D map")
-        .accessibilityIdentifier("homeBrainMap")
-    }
-
     private var vitalsSpoken: String {
         var parts: [String] = ["Progress"]
         if let readiness {
@@ -923,14 +887,6 @@ struct HomeTiles: View {
         parts.append(VitalsTileFace.streakText(streak))
         parts.append(rhythm.spoken)
         return parts.joined(separator: ". ")
-    }
-
-    /// "128 ideas · 6 links", or what the map is while it is empty.
-    private var brainLine: String {
-        guard ideas > 0 else { return "Your ideas, joined up on a map" }
-        var line: String = BedPlan.counted(ideas, "idea")
-        if links > 0 { line += " \u{00B7} " + BedPlan.counted(links, "link") }
-        return line
     }
 }
 
@@ -1001,43 +957,6 @@ private struct VitalsTileFace: View {
     }
 }
 
-/// The brain map tile: a small node graph and the count of ideas.
-private struct BrainMapTileFace: View {
-    let line: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: WardSpace.s) {
-            Text("Brain map").homeSmallCaps()
-            NodeGlyph()
-                .frame(width: 72, height: 48)
-                .accessibilityHidden(true)
-            Text(line)
-                .font(WardType.face(.caption, weight: .semibold))
-                .foregroundStyle(Color.wardInk)
-                .multilineTextAlignment(.leading)
-                .homeWordFit("the brain map's line", line, font: WardType.face(.caption, weight: .semibold))
-        }
-        .homeTile()
-    }
-}
-
-/// The brain map tile's numbers: the notes, and the links between them,
-/// counted again only when the notes change rather than on every redraw.
-@MainActor
-enum BrainMapCount {
-    private static var memo: (key: String, ideas: Int, links: Int)?
-
-    static func counts(_ notes: NoteStore) -> (ideas: Int, links: Int) {
-        let all: [Note] = notes.notes
-        let latest: Double = all.map { $0.updatedAt.timeIntervalSince1970 }.max() ?? 0
-        let key: String = "\(all.count)-\(latest)"
-        if let saved = memo, saved.key == key { return (ideas: saved.ideas, links: saved.links) }
-        let links: Int = notes.allEdges().count
-        memo = (key: key, ideas: all.count, links: links)
-        return (ideas: all.count, links: links)
-    }
-}
-
 /// The days studied as the Vitals screen counts them (RhythmReading.merged:
 /// the study log with the dated answers), worked out again only when either
 /// changes rather than on every redraw of the home.
@@ -1057,9 +976,9 @@ enum StudyDays {
 }
 
 extension View {
-    /// A tile on the home, filling its share of the row, so two side by side
-    /// stand the same height. Its face is its button's: a soft tile raised
-    /// low off the base, pressed in under the finger (PopTileStyle).
+    /// A tile on the home, filling the row. Its face is its button's: a soft
+    /// tile raised low off the base, pressed in under the finger
+    /// (PopTileStyle).
     func homeTile() -> some View {
         let shape = RoundedRectangle(cornerRadius: WardRadius.card, style: .continuous)
         return self
@@ -1099,33 +1018,6 @@ struct RhythmTrace: Shape {
             path.addLine(to: CGPoint(x: start + step, y: mid))
         }
         return path
-    }
-}
-
-/// A small node graph: five ideas and the links between them, the middle
-/// one in Pager Amber.
-struct NodeGlyph: View {
-    var body: some View {
-        Canvas { context, size in
-            // the ideas, as fractions of the glyph, and which are joined
-            let nodes: [(CGFloat, CGFloat)] = [(0.46, 0.52), (0.10, 0.20), (0.14, 0.84), (0.86, 0.16), (0.90, 0.80)]
-            let links: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (3, 4), (1, 2)]
-            let points: [CGPoint] = nodes.map { node in
-                CGPoint(x: node.0 * size.width, y: node.1 * size.height)
-            }
-            var lines = Path()
-            for link in links {
-                lines.move(to: points[link.0])
-                lines.addLine(to: points[link.1])
-            }
-            context.stroke(lines, with: .color(Color.wardPrimaryInk.opacity(0.45)), lineWidth: 1.5)
-            for (index, point) in points.enumerated() {
-                let radius: CGFloat = index == 0 ? 6 : 4
-                let rect = CGRect(x: point.x - radius, y: point.y - radius, width: radius * 2, height: radius * 2)
-                let colour: Color = Color.wardPrimaryInk
-                context.fill(Path(ellipseIn: rect), with: .color(colour))
-            }
-        }
     }
 }
 

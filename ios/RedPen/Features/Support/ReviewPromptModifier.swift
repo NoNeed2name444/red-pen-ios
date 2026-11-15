@@ -29,7 +29,7 @@ private struct ReviewPromptModifier: ViewModifier {
 
     private static var automated: Bool {
         let args: [String] = ProcessInfo.processInfo.arguments
-        let marks: [String] = ["-uiPreviewScreen", "-stillSky", "-graphPreview", "-personalBuild"]
+        let marks: [String] = ["-uiPreviewScreen", "-stillSky", "-personalBuild"]
         return args.contains { marks.contains($0) }
     }
 

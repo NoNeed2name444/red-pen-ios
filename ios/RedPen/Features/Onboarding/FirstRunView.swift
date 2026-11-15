@@ -384,7 +384,7 @@ final class FirstRunStore: ObservableObject {
     /// Whether this launch shows the pages at all.
     static let allowed: Bool = FirstRun.allowed(
         arguments: arguments,
-        preview: PreviewLaunch.screen != nil || GraphPreview.isOn,
+        preview: PreviewLaunch.screen != nil,
         simulator: simulator)
 
     /// Whether the account still has the pages to see: new to this device

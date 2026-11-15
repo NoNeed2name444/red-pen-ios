@@ -718,7 +718,7 @@ do {
     let library = (try? String(contentsOfFile: "ios/RedPen/Features/Library/LibraryView.swift", encoding: .utf8)) ?? ""
     check("home opens on WardSection.opening: Questions, the dock's first category",
           WardSection.opening == .questions && library.contains("@State var category: StudyCategory = .questions")
-          && library.contains(".wardSection(inIdeas ? .ideas : WardSection(rawValue: category.rawValue) ?? .questions)"))
+          && library.contains(".wardSection(WardSection(rawValue: category.rawValue) ?? .questions)"))
     for section in WardSection.allCases {
         for dark in [false, true] {
             let mode = dark ? "dark" : "light"

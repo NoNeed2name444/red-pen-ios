@@ -2,14 +2,14 @@ import Combine
 import Foundation
 
 /// The library search's moving parts: the index, rebuilt off the main thread
-/// when the library or the notes change, and the search itself, run 250 ms
+/// when the library changes, and the search itself, run 250 ms
 /// after the last keystroke, also off the main thread.
 ///
 /// The index is only built once something is typed, and only rebuilt while a
 /// search is showing, so a student who never searches never pays for it.
 @MainActor
 final class LibrarySearchModel: ObservableObject {
-    /// All, Questions, Cards, Notes or Lectures. Changing it searches again
+    /// All, Questions, Cards or Lectures. Changing it searches again
     /// at once.
     @Published var scope: LibrarySearch.Scope = .all {
         didSet { if oldValue != scope { schedule(after: .zero) } }
@@ -22,7 +22,6 @@ final class LibrarySearchModel: ObservableObject {
 
     private var query: String = ""
     private var sets: [StudySet] = []
-    private var notes: [LibrarySearch.NoteText] = []
     private var index: LibrarySearch.Index?
     /// Moves on every change to what is indexed, so a build that finishes
     /// after the library changed again is not kept as current.
@@ -43,14 +42,6 @@ final class LibrarySearchModel: ObservableObject {
     /// is on screen, when the results are brought up to date.
     func libraryChanged(_ library: [StudySet]) {
         sets = library
-        generation &+= 1
-        if isSearching { schedule(after: Self.debounce) }
-    }
-
-    func notesChanged(_ all: [Note]) {
-        notes = all.map { note in
-            LibrarySearch.NoteText(id: note.id, title: note.title, body: note.body, tags: note.tags)
-        }
         generation &+= 1
         if isSearching { schedule(after: Self.debounce) }
     }
@@ -84,9 +75,8 @@ final class LibrarySearchModel: ObservableObject {
         if let index, builtGeneration == generation { return index }
         let at: Int = generation
         let library: [StudySet] = sets
-        let written: [LibrarySearch.NoteText] = notes
         let built: LibrarySearch.Index = await Task.detached(priority: .userInitiated) {
-            LibrarySearch.build(sets: library, notes: written)
+            LibrarySearch.build(sets: library)
         }.value
         // a change while it was building: still the best there is for this
         // search, but the next one builds again

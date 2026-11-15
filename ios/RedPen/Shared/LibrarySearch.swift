@@ -4,7 +4,7 @@ import Foundation
 ///
 /// The library's search used to list the sets whose questions or cards held
 /// the words, and leave the student to find the question inside. This keeps
-/// an index of every question, card, note and set - built once, off the main
+/// an index of every question, card and set - built once, off the main
 /// thread, whenever the library changes - so a search can list the matching
 /// items themselves, each with the phrase that matched marked, and a tap can
 /// go straight to it.
@@ -16,7 +16,7 @@ enum LibrarySearch {
 
     /// What the search looks through: everything, or one kind of thing.
     enum Scope: String, CaseIterable, Identifiable, Sendable {
-        case all, questions, cards, notes, lectures
+        case all, questions, cards, lectures
 
         var id: String { rawValue }
 
@@ -25,7 +25,6 @@ enum LibrarySearch {
             case .all: return "All"
             case .questions: return "Questions"
             case .cards: return "Cards"
-            case .notes: return "Notes"
             case .lectures: return "Lectures"
             }
         }
@@ -35,21 +34,19 @@ enum LibrarySearch {
             case .all: return true
             case .questions: return kind == .question
             case .cards: return kind == .card
-            case .notes: return kind == .note
             case .lectures: return kind == .lecture
             }
         }
     }
 
     enum Kind: String, Sendable {
-        case set, question, card, note, lecture
+        case set, question, card, lecture
 
         var label: String {
             switch self {
             case .set: return "Set"
             case .question: return "Question"
             case .card: return "Card"
-            case .note: return "Note"
             case .lecture: return "Lecture"
             }
         }
@@ -59,19 +56,9 @@ enum LibrarySearch {
             case .set: return "square.stack"
             case .question: return "list.bullet.rectangle"
             case .card: return "rectangle.on.rectangle"
-            case .note: return "lightbulb"
             case .lecture: return "doc.richtext"
             }
         }
-    }
-
-    /// A note as the index reads it. The notes store is not touched here -
-    /// the caller copies out what is needed - so this file stays free of it.
-    struct NoteText: Sendable {
-        var id: UUID
-        var title: String
-        var body: String
-        var tags: [String] = []
     }
 
     /// One searchable thing.
@@ -79,11 +66,11 @@ enum LibrarySearch {
         var kind: Kind
         var setID: UUID?
         var itemID: UUID?
-        /// What the result shows first: a stem, a card's front, a note's
-        /// title, a set's name.
+        /// What the result shows first: a stem, a card's front, a set's
+        /// name.
         var title: String
         /// The rest of what can match: options, answers, the reasoning, a
-        /// note's body, a set's subject.
+        /// set's subject.
         var detail: String
         var setName: String
         /// Folded once when the index is built, so a keystroke compares
@@ -137,7 +124,7 @@ enum LibrarySearch {
         /// Sets, in order: the ones whose name or subject matched first, then
         /// those that only hold a matching item.
         var sets: [UUID] = []
-        /// Questions, cards, notes and lecture pages, capped.
+        /// Questions, cards and lecture pages, capped.
         var items: [Hit] = []
         /// True when there were more items than the cap.
         var more: Bool = false
@@ -152,19 +139,13 @@ enum LibrarySearch {
 
     // MARK: building
 
-    static func build(sets: [StudySet], notes: [NoteText]) -> Index {
+    static func build(sets: [StudySet]) -> Index {
         var index = Index()
         for set in sets {
             appendEntries(of: set, to: &index.entries)
             for source in set.sources where !source.pages.isEmpty {
                 index.lectures.append(Lecture(setID: set.id, setName: set.name, source: source))
             }
-        }
-        for note in notes {
-            let tags: String = note.tags.joined(separator: " ")
-            let detail: String = note.body + "\n" + tags
-            index.entries.append(entry(.note, set: nil, item: note.id, title: note.title,
-                                       detail: detail, setName: "Ideas", tags: note.tags))
         }
         return index
     }

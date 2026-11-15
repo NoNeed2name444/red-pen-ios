@@ -101,7 +101,7 @@ for (card, what) in [(box(204, 527), "the card fitting, the tiles under it"),
 }
 let broken = HomeFit.faults(card: box(204, 527), start: box(460, 510), bar: box(557, 647), newSet: nil,
                             words: [HomeFit.Words(name: "the Vitals tile's streak", width: 46, widest: 52),
-                                    HomeFit.Words(name: "the brain map's line", width: 120, widest: 48)])
+                                    HomeFit.Words(name: "the Vitals tile's heading", width: 120, widest: 48)])
 check("a text narrower than its widest word is caught, and only that one",
       broken.count == 1 && broken[0].hasPrefix("the Vitals tile's streak breaks inside a word"),
       broken.joined(separator: "; "))

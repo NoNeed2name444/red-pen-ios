@@ -492,8 +492,8 @@ private struct WardItemButtonFace<S: InsettableShape>: View {
     }
 }
 
-/// A button that is a raised panel of its own (the Ideas pill, the list
-/// button at the accessibility sizes): raised at rest; pressed in when
+/// A button that is a raised panel of its own (the dock's list button at
+/// the accessibility sizes): raised at rest; pressed in when
 /// chosen, with the 2-point accent edge; held, it sinks.
 struct WardPanelButtonStyle<S: InsettableShape>: ButtonStyle {
     var chosen = false

@@ -2,11 +2,10 @@ import XCTest
 
 /// A picture tour of the redesigned app, for the owner to look through before
 /// installing it: the library on each of the dock's categories, a category
-/// scrolled down to its tiles, New set, a quiz and a card, Ideas in each of
-/// its views with the floating switcher open and folded, the account and
-/// settings menu, Settings and Progress; Mission Control, the mock paper,
-/// the exam plan, symptom blocks and Settings' Look and feel - and on an iPad
-/// the library and Ideas turned on their side as well.
+/// scrolled down to its tiles, New set, a quiz and a card, the examples page,
+/// the account and settings menu, Settings and Progress; Mission Control, the
+/// mock paper, the exam plan, symptom blocks and Settings' Look and feel - and
+/// on an iPad the library turned on its side as well.
 ///
 /// Run by the "Design preview" workflow on an iPhone and on an iPad; the
 /// pictures land on the design-preview branch, named after the step.
@@ -18,11 +17,10 @@ import XCTest
 /// and the app is opened again for the rest of the tour.
 ///
 /// Everything is found by the accessibility identifiers in the app's sources:
-/// localSignIn, acceptRecordingTerms, dockCategory-<category>,
-/// dockCategory-ideas (on the dock's full row: LibraryDock), feature-mixed, feature-mock, feature-examPlan,
+/// localSignIn, acceptRecordingTerms, dockCategory-<category> (on the dock's
+/// full row: LibraryDock), feature-mixed, feature-mock, feature-examPlan,
 /// feature-symptomBlocks, morePractise, more-analytics, newSetButton,
-/// newSetNext, setRow-mcq, setRow-anki, ideasMode-list/board/space,
-/// ideasSwitcherToggle, graph3D, examplesBanner, example-ideas,
+/// newSetNext, setRow-mcq, setRow-anki, examplesBanner, example-reasoning,
 /// missionPlan, mockStart, learnDone, alwaysNightToggle, soundsToggle and
 /// libraryMenu.
 ///
@@ -75,8 +73,6 @@ final class DesignTourUITests: XCTestCase {
         check("quiz")
         ankiCard()
         check("cards")
-        ideas()
-        check("ideas")
         examplesHub()
         check("examples")
         menuAndSettings()
@@ -221,31 +217,6 @@ final class DesignTourUITests: XCTestCase {
         goHome()
     }
 
-    /// 14-19: Ideas as a list, a board and a space with the switcher open;
-    /// folded on the space, folded on the list, and opened again.
-    private func ideas() {
-        goHome()
-        guard choose("ideas") else { return }
-        openSwitcher()
-        showIdeas("list", as: "14-ideas-list")
-        showIdeas("board", as: "15-ideas-board")
-        showIdeas("space", as: "16-ideas-space")
-        if foldSwitcher() {
-            snap("17-ideas-space-switcher-collapsed")
-        }
-        // back to the list (as it was), folded there too, then open again
-        if openSwitcher() {
-            showIdeas("list", as: nil)
-        }
-        if foldSwitcher() {
-            snap("18-ideas-list-switcher-collapsed")
-        }
-        if openSwitcher() {
-            snap("19-ideas-list-switcher-expanded")
-        }
-        choose("questions")
-    }
-
     /// 20: the personal build's "Try every feature" page.
     private func examplesHub() {
         goHome()
@@ -256,7 +227,7 @@ final class DesignTourUITests: XCTestCase {
             return
         }
         banner.tap()
-        let row = element("example-ideas")
+        let row = element("example-reasoning")
         if row.waitForExistence(timeout: 8) {
             sleep(1)
             snap("20-examples-hub")
@@ -427,7 +398,7 @@ final class DesignTourUITests: XCTestCase {
         goHome()
     }
 
-    /// 26-27: an iPad on its side - the library with the rail, and Ideas.
+    /// 26: an iPad on its side - the library with the rail.
     private func landscape() {
         goHome()
         XCUIDevice.shared.orientation = .landscapeLeft
@@ -435,10 +406,6 @@ final class DesignTourUITests: XCTestCase {
         if chooseFresh("questions") {
             snap("26-ipad-landscape-questions")
         }
-        if choose("ideas") {
-            snap("27-ipad-landscape-ideas")
-        }
-        choose("questions")
         XCUIDevice.shared.orientation = .portrait
         sleep(2)
     }
@@ -483,7 +450,7 @@ final class DesignTourUITests: XCTestCase {
 
     // MARK: - Moving about
 
-    /// Taps a dock item - a category, or Ideas - on the dock's row. False,
+    /// Taps a dock item - a category - on the dock's row. False,
     /// with a "missing" picture, when it is not there.
     @discardableResult
     private func choose(_ place: String) -> Bool {
@@ -580,67 +547,6 @@ final class DesignTourUITests: XCTestCase {
         let shown = dock.row
         if app.buttons["learnDone"].exists { return false }
         return shown.exists && shown.isHittable
-    }
-
-    // MARK: - Ideas' switcher
-
-    private func showIdeas(_ mode: String, as name: String?) {
-        let segment = element("ideasMode-\(mode)")
-        guard segment.exists || segment.waitForExistence(timeout: 4), press(segment) else {
-            missing("ideasMode-\(mode)")
-            return
-        }
-        if mode == "space" {
-            // the space is there once its layout and (once a launch) the
-            // shader check are done: over 12 seconds on a slow simulator,
-            // so as long as the graph tests give it
-            if !element("graph3D").waitForExistence(timeout: 30) {
-                missing("graph3D")
-            }
-            sleep(3)
-        } else {
-            sleep(2)
-        }
-        if let name {
-            snap(name)
-        }
-    }
-
-    /// The switcher's strip open. The chevron that folds it and the circle it
-    /// folds into share one identifier; the strip is open when its segments
-    /// are there.
-    @discardableResult
-    private func openSwitcher() -> Bool {
-        let list = element("ideasMode-list")
-        if list.exists { return true }
-        let toggle = element("ideasSwitcherToggle")
-        guard toggle.exists || toggle.waitForExistence(timeout: 4), press(toggle) else {
-            missing("ideasSwitcherToggle")
-            return false
-        }
-        if list.waitForExistence(timeout: 4) {
-            sleep(1)
-            return true
-        }
-        missing("switcher-expanded")
-        return false
-    }
-
-    /// The switcher folded into its circle.
-    private func foldSwitcher() -> Bool {
-        let list = element("ideasMode-list")
-        if !list.exists { return true }
-        let toggle = element("ideasSwitcherToggle")
-        guard toggle.exists, press(toggle) else {
-            missing("switcher-collapse-button")
-            return false
-        }
-        sleep(1)
-        if list.exists {
-            missing("switcher-collapsed")
-            return false
-        }
-        return true
     }
 
     // MARK: - The menu

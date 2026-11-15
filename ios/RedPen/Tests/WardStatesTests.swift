@@ -380,9 +380,9 @@ check("the chosen tab is the panel's radius less the inset, continuous, in the b
 check("the insets are WardDock's",
       dock.contains(".padding(CGFloat(WardDock.barInset))") && dock.contains(".padding(CGFloat(WardDock.railInset))"))
 check("every tab keeps its name's room, and the rail is as wide as its widest name needs",
-      dock.components(separatedBy: ".padding(.horizontal, CGFloat(WardDock.labelSide))").count == 3
-      && dock.components(separatedBy: ".padding(.vertical, CGFloat(WardDock.labelVertical))").count == 3
-      && dock.components(separatedBy: "minHeight: CGFloat(WardDock.tabMinHeight)").count == 3
+      dock.components(separatedBy: ".padding(.horizontal, CGFloat(WardDock.labelSide))").count == 2
+      && dock.components(separatedBy: ".padding(.vertical, CGFloat(WardDock.labelVertical))").count == 2
+      && dock.components(separatedBy: "minHeight: CGFloat(WardDock.tabMinHeight)").count == 2
       && dock.contains(".frame(minWidth: 76)\n        .fixedSize(horizontal: true, vertical: false)"))
 
 // The row or the fold (owner 22 Oct: the tabs folded into one "Questions"
@@ -398,16 +398,14 @@ func row(_ form: WardDock.Form) -> (tabs: [Double], scale: Double)? {
     return nil
 }
 check("the bar's sizes are WardDock's",
-      dock.contains("HStack(spacing: CGFloat(WardDock.barSpacing))")
-      && dock.contains(".frame(maxWidth: CGFloat(WardDock.barMaxWidth))")
-      && dock.contains(".padding(.horizontal, CGFloat(WardDock.barSide))")
-      && dock.contains(".frame(width: CGFloat(WardDock.ideasWidth))"))
+      dock.contains(".frame(maxWidth: CGFloat(WardDock.barMaxWidth))")
+      && dock.contains(".padding(.horizontal, CGFloat(WardDock.barSide))"))
 let skyRoot = (try? String(contentsOfFile: "ios/RedPen/Shared/Space/SpaceQuality.swift", encoding: .utf8)) ?? ""
 check("the dock sits inside the page's inset, as tabsRoom counts it (or wider, under the sky)",
       skyRoot.contains(".padding(.horizontal, center.skyCovered ? 0 : WardPaper.sideInset)"))
-check("the room for the tabs on a 17 Pro is 402 less the page, bar, pill and panel",
+check("the room for the tabs on a 17 Pro is 402 less the page, bar and panel",
       WardDock.tabsRoom(width: 402) == 402 - 2 * WardPaper.sideInset - 2 * WardDock.barSide
-        - WardDock.ideasWidth - WardDock.barSpacing - 2 * WardDock.barInset,
+        - 2 * WardDock.barInset,
       f(WardDock.tabsRoom(width: 402)))
 for (phone, width, least) in [("iPhone 17 Pro", 402.0, 0.9), ("iPhone 17 Pro Max", 440.0, 1.0)] {
     let form = WardDock.form(width: width, names: names(atSize: 3), accessibilitySize: false)

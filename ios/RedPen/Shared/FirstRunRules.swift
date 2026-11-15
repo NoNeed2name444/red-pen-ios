@@ -79,7 +79,7 @@ enum FirstRun {
     }
 }
 
-/// The five pages the TipKit tips (StudyTips) wait for. A tip is about a
+/// The four screens the TipKit tips (StudyTips) wait for. A tip is about a
 /// screen, so it waits until that screen is familiar - opened twice already -
 /// and is then shown once.
 enum TipScreen: String, CaseIterable {
@@ -91,8 +91,6 @@ enum TipScreen: String, CaseIterable {
     case review
     /// Study Lens: scanning a photo or PDF.
     case lens
-    /// Ideas: the map's theme picker.
-    case ideas
 }
 
 enum TipSightings {

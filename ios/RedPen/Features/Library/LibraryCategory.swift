@@ -117,8 +117,7 @@ extension LibraryView {
     }
 
     /// The pages about the whole app rather than one category - also in the
-    /// account menu, and here so they can be found without it. (Ideas has
-    /// its own place in the dock.)
+    /// account menu, and here so they can be found without it.
     var moreSection: some View {
         let pages: [SupportPage] = [.analytics, .sources]
         return Section {
@@ -218,8 +217,7 @@ extension LibraryView {
             let straightToNew: Bool = feature.shelfSets(store).isEmpty && feature != .pictures
             if straightToNew { newSetKind = kind } else { featurePage = feature }
         case .support(let page):
-            // Ideas is a place in the dock, not a pushed page
-            if page == .notes { goToIdeas() } else { support = page }
+            support = page
         case .addMaterial:
             addingKind = category.mainKind
         case .audioLecture:

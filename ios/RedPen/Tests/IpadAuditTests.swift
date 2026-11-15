@@ -296,7 +296,7 @@ check("ipad-preview: all four orientations",
       ipadPreview.contains("ORIENTS=\"portrait portraitUpsideDown landscapeLeft landscapeRight\""))
 check("ipad-preview: light and dark", ipadPreview.contains("for scheme in light dark"))
 for screen in ["library", "name-sheet", "new-make", "quiz-checked", "mock-sitting", "anki-revealed", "book",
-               "draw-recall", "osce-revealed", "cases", "ideas", "settings", "import-preview"] {
+               "draw-recall", "osce-revealed", "cases", "settings", "import-preview"] {
     check("ipad-preview: \(screen)", ipadPreview.contains(" \(screen) ") || ipadPreview.contains(" \(screen)\"")
           || ipadPreview.contains("\"\(screen) "))
 }
