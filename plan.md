@@ -3446,6 +3446,16 @@ with the marks on the screens last.
     shift is Night mode; the Arabic for Done, Today's revision, Focus session,
     Block, Part, the Health permission and the new words; "Item 1" stays
     (the glossary's default; the owner did not object). iOS and Android.
+  - [ ] Ideas leaves Stethoscore (the owner, 15 Nov: "take it out"; Ideas is
+    Sorta now). Keep: the stored notes, ideas and folders, and the library backup
+    that carries them (iOS notes.json in the .stethoscorebackup file, Android's
+    notes and noteFolders in the export), because Sorta imports from there. Take
+    out: the dock's Ideas button, the Brain map tile, the Ideas section and its
+    board, the 3D maps (Space, Neurons, Performance), their Settings rows,
+    previews, tours and tests of them. Slices, each buildable: hide every entry
+    point; delete the code; delete the tests, tools and strings. First a read-only
+    map of the surface (what is Ideas-only, what is shared, what the backup needs).
+    iOS and Android together. The overhaul's proposal is drawn without Ideas.
   - [ ] App overhaul, simpler without losing a function (the owner, 15 Nov; a
     major scope change he asked for). Phases: (a) inventory of the app as it is
     (iOS shell and home, Settings and menus, Android), read-only, counts and
