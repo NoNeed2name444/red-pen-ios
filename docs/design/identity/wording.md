@@ -135,7 +135,7 @@ Paths are relative to the repository root. **Test** names the Swift test that as
 | 60 | `ios/StethoscoreWidgets/WardRoundLiveActivity.swift:56` | Ward round done | Focus session done | Live Activity. |  |
 | 61 | `ios/StethoscoreWidgets/WardRoundLiveActivity.swift:57` | Round 1 of 4 | Block 1 of 4 | Live Activity. |  |
 | 62 | `ios/project.yml:232` | Stethoscore saves your finished focus rounds as mindful minutes in Health, if you turn this on. | Stethoscore saves your finished focus blocks as mindful minutes in Health, if you turn this on. | Health permission text (Info.plist via project.yml). **Built 15 Nov (T0272), English only.** |  |
-| 63 | `ios/AppResources/Localized/ar.lproj/InfoPlist.strings:9` | جولات التركيز (“focus rounds”), in the Arabic Health permission text | The owner’s chosen word in Arabic (for “focus sessions”, جلسات التركيز) | The Arabic twin of the row above; it follows whatever word the owner picks for the timer. **Not built (T0272):** the file is outside that task’s scope. The Arabic to put there, with the catalogue’s فترة for “block”: يحفظ Stethoscore فترات التركيز التي تُنهيها كدقائق يقظة ذهنية في تطبيق «صحتي»، إذا فعّلت ذلك. |  |
+| 63 | `ios/AppResources/Localized/ar.lproj/InfoPlist.strings:9` | جولات التركيز (“focus rounds”), in the Arabic Health permission text | The owner’s chosen word in Arabic (for “focus sessions”, جلسات التركيز) | The Arabic twin of the row above, with the catalogue’s فترة for “block” and Apple’s Arabic terms (the Health app «صحتي», Mindful Minutes دقائق الانتباه الذهني). **Built 15 Nov (T0272, repair 2):** يحفظ Stethoscore فترات التركيز التي تُنهيها كدقائق الانتباه الذهني في تطبيق «صحتي»، إذا فعّلت ذلك. |  |
 
 ### Onboarding, making a set, and the clinical reference
 
