@@ -151,7 +151,7 @@ class WardFrameClearTest {
             barCorners.bottomLeft == expected && barCorners.bottomRight == expected && expected > 0, "$barCorners, expected $expected")
         check("the study bar's top corners stay square", barCorners.topLeft == 0.0 && barCorners.topRight == 0.0)
         // home's dock: WardDock's panel, barSide in and 10 dp over the gesture bar
-        val dock = WardRect(WardDock.barSide, h - safe.bottom - 10.0 - 72.0, w - 2 * WardDock.barSide - WardDock.ideasWidth - WardDock.barSpacing, 72.0)
+        val dock = WardRect(WardDock.barSide, h - safe.bottom - 10.0 - 72.0, w - 2 * WardDock.barSide, 72.0)
         check("the dock keeps WardDock's radius here", WardCorner.radii(dock, screen, WardDock.panelRadius) == WardCornerRadii.all(WardDock.panelRadius))
         // a card a page's padding in from the content edge sits beyond a gutter: its own radius
         val card = WardRect(left + WardSpace.gutter, top + 60.0, w - 2 * (left + WardSpace.gutter), 120.0)
@@ -173,8 +173,8 @@ class WardFrameClearTest {
         fun source(path: String) = File(path).takeIf { it.exists() }?.readText() ?: ""
         val app = source("src/main/java/com/stethoscore/app/ui/StethoscoreApp.kt")
         check("the window's root gives the frame", app.contains("WardCornerScope(framed=!onGround)"))
-        check("the dock's panel and Ideas pill follow the corner", app.contains("rememberWardCorners(WardDock.panelRadius)") &&
-            app.contains(".wardChosenEdge(ideasShape,ideas)"))
+        check("the dock's panel follows the corner, and no Ideas pill is left beside it", app.contains("rememberWardCorners(WardDock.panelRadius)") &&
+            !app.contains("ideasShape"))
         check("the library's study bar follows the ring",
             source("src/main/java/com/stethoscore/app/ui/library/LibraryParts.kt").contains("rememberWardCorners(own = 0.0)"))
         // the review's study deck (WardDeck) joins the ring's line, so it solves on the very opening the frame strokes

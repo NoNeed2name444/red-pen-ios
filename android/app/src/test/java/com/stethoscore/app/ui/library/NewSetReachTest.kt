@@ -279,7 +279,7 @@ class NewSetReachTest {
         val store = StudyStore(folder.newFolder("tile"))
         val asked = mutableListOf<String>()
         fun actions(addMaterial: (() -> Unit)?) = LibraryActions(open = {}, quiz = {}, review = {}, newSet = { asked += "newSet:${it.rawValue}" },
-            shelf = {}, stats = {}, due = {}, ideas = {}, exportPdf = {}, shareJson = {}, change = { it() }, addMaterial = addMaterial)
+            shelf = {}, stats = {}, due = {}, exportPdf = {}, shareJson = {}, change = { it() }, addMaterial = addMaterial)
         start(CategoryFeature.ADD, store, LibraryState(), actions { asked += "addMaterial" })
         assertEquals(listOf("addMaterial"), asked)
         asked.clear()

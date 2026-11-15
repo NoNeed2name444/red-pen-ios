@@ -12,7 +12,6 @@ import androidx.compose.material.icons.rounded.Cancel
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Group
-import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material.icons.rounded.LibraryAdd
 import androidx.compose.material.icons.rounded.PersonAdd
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
@@ -73,16 +72,15 @@ internal object CaseAnother {
  * with their source. The score is shown with its parts, never as a rank.
  * Port of iOS CaseDebriefView.
  *
- * Three things to do with it: cards from what was missed, a note in the
- * Ideas map, and another patient like this one, written by the writer chosen
- * the writer route (blocked, it says so, in CaseMaker's words).
+ * Two things to do with it: cards from what was missed, and another patient
+ * like this one, written by the writer chosen the writer route (blocked, it
+ * says so, in CaseMaker's words).
  */
 @Composable
 internal fun CaseDebriefScreen(file: CaseFile, setID: String, run: CaseRun, store: StudyStore, title: String, onBack: () -> Unit, again: () -> Unit) {
     val debrief = remember(file, run) { CaseDebrief(file, run) }
     val view = LocalView.current
     var cardsNote by rememberSaveable(file.id, run.finished) { mutableStateOf<String?>(null) }
-    var ideaNote by rememberSaveable(file.id, run.finished) { mutableStateOf<String?>(null) }
     var anotherNote by rememberSaveable(file.id, run.finished) { mutableStateOf<String?>(null) }
     var writing by remember { mutableStateOf<Job?>(null) }
     val scope = rememberCoroutineScope()
@@ -106,16 +104,6 @@ internal fun CaseDebriefScreen(file: CaseFile, setID: String, run: CaseRun, stor
             "${made.size} card${if (made.size == 1) "" else "s"} in a new deck, “$deckName”."
         }
         view.announce(cardsNote ?: "")
-    }
-
-    fun addIdea() {
-        val title = debrief.ideaTitle
-        val body = debrief.ideaText
-        ideaNote = if (store.notes.any { it.title == title && it.body == body }) "Already in Ideas" else {
-            store.saveNote(Note(title = title, body = body, tags = listOf(set?.subject ?: file.specialty).filter { it.isNotBlank() }))
-            "Saved to Ideas"
-        }
-        view.announce(ideaNote ?: "")
     }
 
     /** A new patient, the same diagnosis or the runner-up's, into this set's list. */
@@ -292,8 +280,6 @@ internal fun CaseDebriefScreen(file: CaseFile, setID: String, run: CaseRun, stor
                 },
                 enabled = debrief.missed.isNotEmpty(), icon = Icons.Rounded.LibraryAdd)
             cardsNote?.let { NoteLine(it) }
-            CaseButton("Add to the Ideas map", ::addIdea, Modifier.fillMaxWidth(), icon = Icons.Rounded.Lightbulb)
-            ideaNote?.let { NoteLine(it) }
 
             CaseLabel("Another patient like this")
             CaseButton("Same diagnosis, a new presentation", { another(true) },

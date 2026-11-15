@@ -154,7 +154,8 @@ import kotlinx.coroutines.withContext
             { a ->
                 LibraryState().apply {
                     selecting = a.getOrNull(0) == "true"
-                    scope = runCatching { LibrarySearch.Scope.valueOf(a[1]) }.getOrDefault(LibrarySearch.Scope.ALL)
+                    // a scope that is no longer offered (Notes, once saved by an earlier build) opens as All
+                    scope = runCatching { LibrarySearch.Scope.valueOf(a[1]) }.getOrNull()?.takeIf { it in searchScopes } ?: LibrarySearch.Scope.ALL
                     session = a.getOrNull(2)?.takeIf { it != "\u0000" }
                     naming = when (a.getOrNull(3)) {
                         "set" -> Naming.RenameSet(a[4], a[5])
@@ -188,7 +189,6 @@ class LibraryActions(
     val stats: () -> Unit,
     /** Cards due today (iOS showingDue). */
     val due: () -> Unit,
-    val ideas: () -> Unit,
     val exportPdf: (StudySet) -> Unit,
     val shareJson: (StudySet) -> Unit,
     /** A library change: a failed save is shown, never a crash. */
@@ -210,10 +210,9 @@ data class LibrarySearchState(val results: LibrarySearch.Results = LibrarySearch
 
 @Composable fun rememberLibrarySearch(store: StudyStore, revision: Int, query: String, scope: LibrarySearch.Scope): LibrarySearchState {
     val trimmed = query.trim()
-    val index by produceState(LibrarySearch.Index(), revision, store.library, store.notes) {
-        value = withContext(Dispatchers.Default) {
-            LibrarySearch.build(store.library, store.notes.map { LibrarySearch.NoteText(it.id, it.title, it.body, it.tags) })
-        }
+    // sets, questions, cards and lecture pages: the notes stay in the library file but are not searched here
+    val index by produceState(LibrarySearch.Index(), revision, store.library) {
+        value = withContext(Dispatchers.Default) { LibrarySearch.build(store.library, emptyList()) }
     }
     val state by produceState(LibrarySearchState(), trimmed, scope, index) {
         if (trimmed.isEmpty()) { value = LibrarySearchState(); return@produceState }
@@ -557,10 +556,13 @@ internal fun rowFigures(set: StudySet, store: StudyStore): RowFigures =
 
 // MARK: - Search
 
+/** The scopes the chips offer: everything the search can look through here. Notes are not one of them (Ideas has left Stethoscore). */
+internal val searchScopes: List<LibrarySearch.Scope> = LibrarySearch.Scope.entries.filter { it != LibrarySearch.Scope.NOTES }
+
 @Composable private fun SearchScopeChips(state: LibraryState) {
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).semantics { contentDescription = "Search in" },
         horizontalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
-        LibrarySearch.Scope.entries.forEach { scope ->
+        searchScopes.forEach { scope ->
             WardChipButton(scope.title, { state.scope = scope }, on = state.scope == scope)
         }
     }
@@ -594,12 +596,11 @@ fun itemsHeading(scope: LibrarySearch.Scope): String = when (scope) {
     LibrarySearch.Scope.LECTURES -> "Lectures"
 }
 
-/** Where a hit was found: "Question · Heart", "Note · Ideas", "Lecture · Slides.pdf, p. 3" (iOS whereFound). */
+/** Where a hit was found: "Question · Heart", "Lecture · Slides.pdf, p. 3" (iOS whereFound). */
 fun whereFound(hit: LibrarySearch.Hit): String {
     val dot = " · "
     return when (hit.kind) {
         LibrarySearch.Kind.LECTURE -> hit.kind.label + dot + hit.sourceName + (hit.page?.let { ", p. $it" } ?: "")
-        LibrarySearch.Kind.NOTE -> hit.kind.label + dot + "Ideas"
         else -> hit.kind.label + dot + hit.setName
     }
 }
@@ -634,7 +635,7 @@ private fun hitIcon(kind: LibrarySearch.Kind) = when (kind) {
     }
 }
 
-/** Opens a hit where it is (iOS openHit): a question as a quiz from it on, a card in a sheet, a note in Ideas. */
+/** Opens a hit where it is (iOS openHit): a question as a quiz from it on, a card in a sheet, a lecture page's set. */
 fun openHit(hit: LibrarySearch.Hit, store: StudyStore, state: LibraryState, actions: LibraryActions) {
     val set = hit.setId?.let { id -> store.library.firstOrNull { it.id == id } }
     when (hit.kind) {
@@ -649,7 +650,8 @@ fun openHit(hit: LibrarySearch.Hit, store: StudyStore, state: LibraryState, acti
             val card = set.cards.firstOrNull { it.id == hit.itemId }
             if (card != null) state.foundCard = set to card else actions.open(set)
         }
-        LibrarySearch.Kind.NOTE -> actions.ideas()
+        // no note is indexed here, so a note hit never comes up
+        LibrarySearch.Kind.NOTE -> Unit
         // the source reader comes with batch 9; until then the lecture's set
         LibrarySearch.Kind.LECTURE -> set?.let(actions.open)
     }

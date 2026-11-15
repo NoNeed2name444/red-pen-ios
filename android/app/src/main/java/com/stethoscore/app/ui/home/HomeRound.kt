@@ -170,12 +170,6 @@ object HomeRound {
     fun streak(days: Map<String, Int>, now: Instant = Instant.now(), zone: ZoneId = ZoneId.systemDefault()): Int =
         StudyStreak.summary(days.filter { it.value > 0 }.keys, now, zone).streak
 
-    /** The brain map's numbers: the notes, and the links between them (as the Ideas page counts them). */
-    fun brainMap(store: StudyStore): Pair<Int, Int> {
-        val ids = store.notes.map { it.id }.toSet()
-        return store.notes.size to store.notes.sumOf { note -> note.links.count { it in ids && it != note.id } }
-    }
-
     /**
      * Up to [limit] questions from one subject, the ones being missed first:
      * those got wrong while sure, then those whose last answer was wrong,

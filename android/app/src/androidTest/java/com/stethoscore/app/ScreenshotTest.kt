@@ -107,40 +107,6 @@ class ScreenshotTest {
     @Test fun osce() { val store=store();val set=store.library.first {it.kind==StudySetKind.OSCE};compose.setContent {StethoscoreTheme {Surface(Modifier.fillMaxSize()) {Box(Modifier.fillMaxSize().safeDrawingPadding()) {ClinicalScreen(set,store,{})}}}};shot("07-osce") }
     @Test fun cases() { val store=store();val set=store.library.first {it.kind==StudySetKind.CASES};compose.setContent {StethoscoreTheme {Surface(Modifier.fillMaxSize()) {Box(Modifier.fillMaxSize().safeDrawingPadding()) {ClinicalScreen(set,store,{})}}}};shot("08-cases") }
     @Test fun narrate() { val store=store();val set=store.library.first {it.kind==StudySetKind.NARRATE};compose.setContent {StethoscoreTheme {Surface(Modifier.fillMaxSize()) {Box(Modifier.fillMaxSize().safeDrawingPadding()) {ClinicalScreen(set,store,{})}}}};compose.onNodeWithText("Line 1 of ${set.narrateSegments.size}").assertIsDisplayed();shot("13-narrate") }
-    @Test fun ideas() {
-        val store=store()
-        // Linked ideas so the screenshot shows the list and the map, not the empty state.
-        val heart=Note(title="Heart failure",tags=listOf("cardio"))
-        val bnp=Note(title="BNP",body="Rises with ventricular stretch.",links=listOf(heart.id),tags=listOf("labs"))
-        val edema=Note(title="Pulmonary oedema",links=listOf(heart.id,bnp.id),tags=listOf("cardio"))
-        val diuretics=Note(title="Loop diuretics",links=listOf(edema.id),tags=listOf("drugs"))
-        listOf(heart,bnp,edema,diuretics).forEach(store::saveNote)
-        ideasPrefs {}
-        compose.setContent {StethoscoreApp(store,initialScreen="ideas")}
-        compose.onNodeWithText("Loop diuretics").assertIsDisplayed()
-        shot("09-ideas")
-        compose.onNodeWithTag("ideasMode-space").performClick()
-        compose.waitUntil(30_000) { compose.onAllNodesWithContentDescription("Space of ideas: 4 notes, 4 links",substring=true).fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithContentDescription("Space of ideas: 4 notes, 4 links",substring=true).assertIsDisplayed()
-        // until the map says its bodies are drawn: a fifth of a second on a phone, seconds on the CI
-        // emulator's software GL, where the 3 s pause that stood here sampled the frame before them
-        awaitMapFrames("Space of ideas: 4 notes, 4 links",bodies=true)
-        shot("11-ideas-map") // kept even when the check below fails, to see why
-        try { requireMapDrawn("Space of ideas: 4 notes, 4 links",bodies=true) } finally { ideasPrefs {} }
-    }
-    @Test fun millionNodeDemo() {
-        val store=store()
-        // Ideas' Space, in the Performance theme, showing the million-note demo map
-        ideasPrefs { putString("vignette.ideas.mode","space"); putString("vignette.space.theme","performance"); putInt("vignette.space.perfDemo",1_000_000) }
-        compose.setContent {StethoscoreApp(store,initialScreen="ideas")}
-        // building a million nodes and their octree takes a few seconds on a CI emulator
-        // the map itself, not the debug readout (a debug build's tool, not always shown)
-        compose.waitUntil(120_000) { compose.onAllNodesWithContentDescription("demo of 1,000,000 synthetic notes",substring=true).fetchSemanticsNodes().isNotEmpty() }
-        SystemClock.sleep(6_000) // the adaptive budget settles on what this emulator can draw at its refresh rate
-        awaitMapFrames("demo of 1,000,000 synthetic notes",bodies=false)
-        shot("12-ideas-million") // kept even when the check below fails, to see why
-        try { requireMapDrawn("demo of 1,000,000 synthetic notes",bodies=false) } finally { ideasPrefs {} }
-    }
     /** Ideas' remembered choices (the "ideas" preferences), cleared, then set as [block] says. */
     private fun ideasPrefs(block: android.content.SharedPreferences.Editor.() -> Unit) {
         val context=InstrumentationRegistry.getInstrumentation().targetContext

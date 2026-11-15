@@ -30,7 +30,7 @@ class LibraryItemsTest {
         }
     }
 
-    private val actions = LibraryActions(open = {}, quiz = {}, review = {}, newSet = {}, shelf = {}, stats = {}, due = {}, ideas = {},
+    private val actions = LibraryActions(open = {}, quiz = {}, review = {}, newSet = {}, shelf = {}, stats = {}, due = {},
         exportPdf = {}, shareJson = {}, change = { it() })
 
     private fun listed(
@@ -79,7 +79,7 @@ class LibraryItemsTest {
         for (n in 0 until 3) assertEquals(LibraryContent.hit, searching.first { it.first == "hit-" + hit(n).id }.second)
         assertEquals(LibraryContent.note, searching.first { it.first == "hits-more" }.second)
         assertEquals(LibraryContent.tile, searching.first { it.first == "hits-session" }.second)
-        val none = listed(store, StudyCategory.QUESTIONS, query = "set", state = LibraryState().apply { scope = LibrarySearch.Scope.NOTES })
+        val none = listed(store, StudyCategory.QUESTIONS, query = "set", state = LibraryState().apply { scope = LibrarySearch.Scope.LECTURES })
         assertEquals(LibraryContent.empty, none.first { it.first == "hits-none" }.second)
     }
 

@@ -99,7 +99,7 @@ class WardDockTest {
         check("home draws the dock, not Material's NavigationBar", app.contains("CategoryDock(category,") && !app.contains("NavigationBar("))
         // WardDock's radius, concentric with the display's only where a corner meets a screen corner (WardCorner.radii)
         check("the panel is WardDock's radius", dock.contains("val (panelAt,panelCorners)=rememberWardCorners(WardDock.panelRadius)") &&
-            dock.contains("val (ideasAt,ideasCorners)=rememberWardCorners(WardDock.panelRadius)"))
+            !dock.contains("ideasCorners"))
         // iOS (StudyCategory.swift): the panel raised high on its rim, the chosen
         // tab in a low hollow with the chosen edge (WardDock.ringWidth is
         // WardControlStates.chosenEdgeWidth, the width wardChosenEdge draws)
@@ -112,7 +112,7 @@ class WardDockTest {
         check("one hollow travels between the tabs, never one per tab shown and hidden",
             dock.contains("WardDock.hollow(") && !dock.contains(".wardChosenEdge(tab,selected)") &&
                 dock.contains("if(held && !selected) Modifier.wardInset(tab,WardLift.low)"))
-        check("it travels on the travel token, and with animations off or back from Ideas it is simply there",
+        check("it travels on the travel token, and with animations off or when no tab was chosen before it is simply there",
             dock.contains("wardSpring(com.stethoscore.app.ui.ward.WardMotion.travel,reduce)") &&
                 dock.contains("if(reduce || from<0) hollow.snapTo(") && dock.contains("val reduce=com.stethoscore.app.ui.ward.wardReduceMotion()"))
         check("only the dock's layout reads where the hollow is, never the bar's sizing",
@@ -123,12 +123,12 @@ class WardDockTest {
             dock.contains(".wardRaised(panelCorners,WardLift.high,control=true)"))
         check("no flat panel, border, Material colours or ripple",
             !dock.contains(".border(") && !dock.contains("colorScheme") && dock.contains("indication=null") && !dock.contains(".clip("))
-        check("the bar as iOS's: the five on the panel, Ideas on its own pill, at most barMaxWidth wide",
+        // Ideas has left Stethoscore (the owner, 15 Nov): the five on the one panel, no pill beside it, no sixth item, in the bar or the rail
+        check("the bar: the five on the panel, at most barMaxWidth wide, no Ideas pill or item",
             dock.contains("Row(Modifier.widthIn(max=WardDock.barMaxWidth.toFloat().dp)") &&
-                dock.contains("horizontalArrangement=Arrangement.spacedBy(WardDock.barSpacing.toFloat().dp)") &&
                 dock.contains("padding(horizontal=WardDock.barSide.toFloat().dp)") &&
-                dock.contains("Column(Modifier.width(WardDock.ideasWidth.toFloat().dp)") &&
-                !dock.contains("\"Audio\" to Icons.Outlined.GraphicEq,\"Ideas\""))
+                !dock.contains("Ideas") && !dock.contains("ideas") && !dock.contains("Lightbulb") &&
+                !dock.contains("spacedBy(WardDock.barSpacing") && !dock.contains("\"Audio\" to Icons.Outlined.GraphicEq,\"Ideas\""))
         check("the slots are WardDock's, and the names shrink alike to WardDock's least",
             dock.contains("WardDock.tabWidths(ideals,room)") && dock.contains("maxOf(WardDock.leastTab,") &&
                 // the name is caption2, 11 as before, read from the type role (T0154f)
@@ -151,7 +151,7 @@ class WardDockTest {
             WardDock.nameScale(listOf(80.0, 40.0, 40.0), 110.0) == 0.5)
         check("with room to spare, the narrower tabs share it", WardDock.tabWidths(listOf(80.0, 40.0, 40.0), 200.0) == listOf(80.0, 60.0, 60.0) &&
             WardDock.nameScale(listOf(80.0, 40.0, 40.0), 200.0) == 1.0)
-        check("the bar's numbers are iOS's", WardDock.barSide == 10.0 && WardDock.ideasWidth == 56.0 && WardDock.barSpacing == 6.0 &&
+        check("the bar's numbers are iOS's", WardDock.barSide == 10.0 &&
             WardDock.barMaxWidth == 560.0 && WardDock.leastNameScale == 0.5)
         check("a tab is never narrower than the least target, 48 on Android (iOS 44)", WardDock.leastTab == WardControlSize.target)
     }

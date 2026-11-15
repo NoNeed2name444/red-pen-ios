@@ -74,7 +74,6 @@ import kotlinx.coroutines.withContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.semantics.Role
-import com.stethoscore.app.ui.library.LibraryEtch
 
 @Composable fun StethoscoreApp(store:StudyStore, initialScreen:String="home", forceDark:Boolean?=null) {
     val context=LocalContext.current
@@ -172,7 +171,6 @@ import com.stethoscore.app.ui.library.LibraryEtch
         shelf={ shelf=it.rawValue;screen="shelf" },
         stats={ screen="stats" },
         due={ if(store.dueAcross().isNotEmpty()) screen="due" else nothingDue=true },
-        ideas={ screen="ideas" },
         sources={ sourcesFrom="home";screen="sources" },
         exportPdf={ set -> printing=set.id;printed.launch(com.stethoscore.app.export.DeckPdf.fileName(set)) },
         shareJson={ set -> sharing=set.id;shared.launch(set.name.replace(Regex("[^A-Za-z0-9 _-]"),"").trim().ifEmpty { "set" }+".json") },
@@ -203,10 +201,9 @@ import com.stethoscore.app.ui.library.LibraryEtch
     BackHandler(screen=="home" && lib.selecting) { lib.stopSelecting() }
     BackHandler(screen!="home") { when(screen) { "sources" -> if(sourcesFrom=="home") goHome() else screen="settings"; "exam" -> screen="settings"; "licences" -> screen=licencesFrom; else -> goHome() } }
     // Each part of the app wears its section's colours (WardSection): a set
-    // takes its kind's, the brain map Ideas', everywhere else the outside look.
+    // takes its kind's, everywhere else the outside look.
     val section = com.stethoscore.app.ui.learn.LearnRouter.section(store) ?: when(screen) {
         "study" -> store.library.firstOrNull { it.id==selectedId }?.let { WardSection.fromKindRaw(it.kind.rawValue) } ?: WardSection.outside
-        "ideas" -> WardSection.ideas
         "due" -> WardSection.cards
         "quick" -> WardSection.fromKindRaw(StudySetKind.MCQ.rawValue)
         "mock" -> WardSection.fromKindRaw(StudySetKind.MCQ.rawValue)
@@ -242,8 +239,8 @@ import com.stethoscore.app.ui.library.LibraryEtch
         androidx.compose.runtime.CompositionLocalProvider(com.stethoscore.app.ui.ward.LocalWardModeWash provides
             if(washed) com.stethoscore.app.ui.ward.WardModeWashOn(section,washMesh,washView) else null) { WardCornerScope(framed=!onGround) {
             // a page in the paper's opening sits inside its ring (wardFrameClearance); home has
-            // no frame, and the map (ui/map) keeps its own full-bleed layout
-            val inFrame=!onGround && screen!="ideas"
+            // no frame
+            val inFrame=!onGround
             // a fold that splits the window: the page keeps to one side of it, nothing in the hinge,
             // and is laid out by that side's size (WindowShape.pagePane), not the whole window's
             WardHingePane(currentWindowShape(),if(inFrame) Modifier.fillMaxSize().wardFrameClearance() else Modifier.fillMaxSize().safeDrawingPadding()) {
@@ -262,7 +259,6 @@ import com.stethoscore.app.ui.library.LibraryEtch
                     "new" -> newPreset?.let { p -> key(p) { com.stethoscore.app.ui.library.LibraryNewSetScreen(store,p.kind,::goHome,::goHome,preset=p) } }
                         ?: NewSetScreen({ set -> runCatching { store.addSet(set) }.onSuccess { newPreset=null;refresh();open(set) }.onFailure { notice=it.message } },::goHome,null)
                     "quick" -> quick?.let { q -> QuizScreen(q,store,{ quick=null;goHome() },onOpen={ refresh();open(it) },keepsProgress=false) } ?: LaunchedEffect(Unit) { goHome() }
-                    "ideas" -> IdeasScreen(store,::goHome)
                     "vitals" -> VitalsScreen(store,::goHome) { newPreset=it;screen="new" }
                     "mock" -> com.stethoscore.app.ui.mock.MockPaperScreen(store) { goHome() }
                     "due" -> DueTodayScreen(store,::goHome)
@@ -304,9 +300,8 @@ import com.stethoscore.app.ui.library.LibraryEtch
                             val input=HomeRound.input(store,due.size,HomeRound.dueSubjects(store,due),situation=situation,track=QuizPrefs.track(context))
                             val all=com.stethoscore.app.data.BedPlan.beds(input)
                             val days=HomeRound.studyDays(store)
-                            val (ideas,links)=HomeRound.brainMap(store)
                             due.size to HomeRoundModel(all.take(HomeFit.shownBeds(all.size,shortWindow,bedsTrimmed)),if(input.phase.holdsNewMaterial) input.phase.headline else null,
-                                HomeRound.streak(days),com.stethoscore.app.data.RhythmReading.read(days,java.time.Instant.now(),java.time.ZoneId.systemDefault()),ideas,links,
+                                HomeRound.streak(days),com.stethoscore.app.data.RhythmReading.read(days,java.time.Instant.now(),java.time.ZoneId.systemDefault()),
                                 com.stethoscore.app.ui.vitals.StoreInsight.readiness(store,due.size,QuizPrefs.track(context)))
                         } }
                         fun openBed(bed:com.stethoscore.app.data.BedPlan.Bed) { when(val kind=bed.kind) {
@@ -369,7 +364,7 @@ import com.stethoscore.app.ui.library.LibraryEtch
                                 // an empty library: the library's own empty card (LibraryEmpty, iOS emptyState), from libraryItems below
                                 if(home!=null && query.isBlank() && (category=="Questions" || (category=="Cards" && home.first>0))) {
                                     // the round on Questions, and on Cards while cards are due; the tiles on Questions
-                                    homeRoundItems(home.second,category=="Questions",book,::openBed,{ screen="vitals" },{ screen="ideas" },
+                                    homeRoundItems(home.second,category=="Questions",book,::openBed,{ screen="vitals" },
                                         onPlan={ com.stethoscore.app.ui.learn.LearnRouter.open(com.stethoscore.app.ui.learn.LearnRoute.ExamPlan) })
                                     // the exam's card is not on home (as iOS): the header's button sets the exam up, and the card stands on the exam plan
                                     if(category=="Questions") item { com.stethoscore.app.ui.mock.MockPaperTile({ screen="mock" }) }
@@ -405,9 +400,9 @@ import com.stethoscore.app.ui.library.LibraryEtch
                             }
                         }
                         if(lib.selecting) com.stethoscore.app.ui.library.LibrarySelectionBar(store,lib,libActions)
-                        else if(!railed) CategoryDock(category,{ name -> if(name=="Ideas") screen="ideas" else {category=name;query="";lib.stopSelecting()} })
+                        else if(!railed) CategoryDock(category,{ name -> category=name;query="";lib.stopSelecting() })
                         } }
-                        if(railed && !typing) CategoryRail(category,{ name -> if(name=="Ideas") screen="ideas" else {category=name;query="";lib.stopSelecting()} },Modifier.align(Alignment.CenterStart))
+                        if(railed && !typing) CategoryRail(category,{ name -> category=name;query="";lib.stopSelecting() },Modifier.align(Alignment.CenterStart))
                     }
                 }
                 if(screen=="home") {
@@ -438,7 +433,7 @@ import com.stethoscore.app.ui.library.LibraryEtch
 /**
  * The screens that stand on their mode's wash (iOS modeScreen and the Cases screens): a set
  * open in its mode, a quick or library quiz or review, the mock paper and the cards due.
- * Not home, sheets, settings, Sources or Ideas.
+ * Not home, sheets, settings or Sources.
  */
 internal val modeWashScreens = setOf("study", "quick", "mock", "due", "libquiz", "libreview")
 
@@ -446,7 +441,7 @@ internal val modeWashScreens = setOf("study", "quick", "mock", "due", "libquiz",
 @Composable internal fun HomeSearchRow(query:String,onQuery:(String)->Unit,onSources:()->Unit,onSettings:()->Unit) {
     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(WardSpace.m.wardDp),verticalAlignment=Alignment.CenterVertically) {
         com.stethoscore.app.ui.ward.WardTextField(query,onQuery,Modifier.weight(1f).semantics { contentDescription="Search" },
-            placeholder="Search questions, cards, notes",leadingIcon=Icons.Rounded.Search)
+            placeholder="Search questions and cards",leadingIcon=Icons.Rounded.Search)
         HomeAccountMenu(onSources,onSettings)
     }
 }
@@ -500,8 +495,7 @@ fun homeSection(category:String):WardSection = when(category) {
 
 /**
  * Home's dock along the bottom (iOS CategoryDock): the five categories on a
- * panel of WardDock's radius, and Ideas on a pill of its own beside it, the
- * bar at most WardDock.barMaxWidth wide. The chosen tab's hollow and ring are
+ * panel of WardDock's radius, the bar at most WardDock.barMaxWidth wide. The chosen tab's hollow and ring are
  * concentric with the panel, their radius the panel's less the inset between
  * them, so the two corners run parallel. Each tab keeps WardDock's room round
  * its symbol and name, so the name always sits inside the ring, clear of its
@@ -513,8 +507,8 @@ fun homeSection(category:String):WardSection = when(category) {
     val tab=RoundedCornerShape(WardDock.tabRadius(inset).toFloat().dp)
     val categories=listOf("Questions" to Icons.Outlined.FactCheck,"Cards" to Icons.Outlined.Style,"Cases" to Icons.Outlined.MedicalServices,"OSCE" to Icons.Outlined.Assignment,"Audio" to Icons.Outlined.GraphicEq)
     // One hollow travels between the five with the choice, never past the tab it goes to (iOS StudyCategory.swift:748:
-    // .snappy(duration: 0.3)), and with animations off it is simply there. On Ideas there is none; back from Ideas it
-    // is simply there, as iOS's appears.
+    // .snappy(duration: 0.3)), and with animations off it is simply there. With no tab chosen there is none; when
+    // one is chosen again it is simply there, as iOS's appears.
     val at=categories.indexOfFirst { it.first==chosen }
     val reduce=com.stethoscore.app.ui.ward.wardReduceMotion()
     val hollow=remember { androidx.compose.animation.core.Animatable(maxOf(at,0).toFloat()) }
@@ -526,12 +520,10 @@ fun homeSection(category:String):WardSection = when(category) {
         if(reduce || from<0) hollow.snapTo(at.toFloat())
         else hollow.animateTo(at.toFloat(),com.stethoscore.app.ui.ward.wardSpring(com.stethoscore.app.ui.ward.WardMotion.travel,reduce))
     }
-    // the panel and the Ideas pill sit at the screen's bottom corners: concentric with the display's (WardCorner.radii)
+    // the panel sits at the screen's bottom corners: concentric with the display's (WardCorner.radii)
     val (panelAt,panelCorners)=rememberWardCorners(WardDock.panelRadius)
-    val (ideasAt,ideasCorners)=rememberWardCorners(WardDock.panelRadius)
     Box(Modifier.fillMaxWidth().padding(horizontal=WardDock.barSide.toFloat().dp).padding(bottom=10.dp).testTag("dockBar"),contentAlignment=Alignment.Center) {
-        Row(Modifier.widthIn(max=WardDock.barMaxWidth.toFloat().dp).fillMaxWidth().height(IntrinsicSize.Min),
-            horizontalArrangement=Arrangement.spacedBy(WardDock.barSpacing.toFloat().dp)) {
+        Row(Modifier.widthIn(max=WardDock.barMaxWidth.toFloat().dp).fillMaxWidth().height(IntrinsicSize.Min)) {
             // raised high on its rim with the ink edge, as iOS's panel (wardRaised lift high, control)
             DockSlots(Modifier.weight(1f).then(panelAt)
                 .wardRaised(panelCorners,WardLift.high,control=true)
@@ -554,18 +546,6 @@ fun homeSection(category:String):WardSection = when(category) {
                     }
                 }
             }
-            // Ideas, on a panel of its own beside the categories: pressed in with the accent edge when chosen, sinking when held
-            val source=remember { MutableInteractionSource() }
-            val held by source.collectIsPressedAsState()
-            val ideas=chosen=="Ideas"
-            val ideasShape=ideasCorners.shape()
-            Column(Modifier.width(WardDock.ideasWidth.toFloat().dp).fillMaxHeight().heightIn(min=56.dp).then(ideasAt)
-                .wardChosenEdge(ideasShape,ideas)
-                .wardPressFace(ideasShape,WardLift.high,com.stethoscore.app.ui.ward.wardDepth(ideas || held))
-                .selectable(selected=ideas,interactionSource=source,indication=null,role=Role.Tab,onClick={ choose("Ideas") }),
-                horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center) {
-                DockItemFace(if(ideas) Icons.Rounded.Lightbulb else Icons.Outlined.Lightbulb,"Ideas",ideas)
-            }
         }
     }
 }
@@ -573,8 +553,7 @@ fun homeSection(category:String):WardSection = when(category) {
 /**
  * Home's dock on end, in a broad window (iOS CategoryDock's rail,
  * StudyCategory.swift:702): the same panel stood up at the leading edge, the
- * five categories one under another, a groove, then Ideas as an item like
- * the others. The chosen tab's hollow and ring are concentric with the panel
+ * five categories one under another. The chosen tab's hollow and ring are concentric with the panel
  * (WardDock.railTabRadius); a held one sinks; no ripple. The rail is never
  * narrower than WardDock.railMinWidth, so the ring holds every name.
  */
@@ -603,8 +582,6 @@ fun homeSection(category:String):WardSection = when(category) {
             .padding(WardDock.railInset.toFloat().dp).selectableGroup(),
             verticalArrangement=Arrangement.spacedBy(WardDock.railSpacing.toFloat().dp)) {
             categories.forEach { (name,icon) -> item(name,icon,"dockRail-$name") }
-            LibraryEtch(Modifier.padding(horizontal=WardDock.railGrooveSide.toFloat().dp,vertical=WardDock.railGrooveVertical.toFloat().dp))
-            item("Ideas",if(chosen=="Ideas") Icons.Rounded.Lightbulb else Icons.Outlined.Lightbulb,"dockRail-Ideas")
         }
     }
 }

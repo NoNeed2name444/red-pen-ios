@@ -121,8 +121,8 @@ import java.util.Locale
 // the app's name and a greeting, in place of a large title, and the
 // countdown to the exam when there is a date. On Questions today's ward
 // round follows: a card of beds (BedPlan), each a tap into what it holds,
-// and one button that starts the first; then two tiles, Vitals and the
-// brain map. The round also stands on Cards while cards are due. The page
+// and one button that starts the first; then the Vitals tile, alone at the
+// full width. The round also stands on Cards while cards are due. The page
 // ends at a clean cut above the dock (HomeFit), which moves up past any row
 // that would show a sliver over it (WardPartLedger). Nothing here is stored.
 
@@ -285,22 +285,20 @@ data class HomeRoundModel(
     val note: String?,
     val streak: Int,
     val rhythm: RhythmReading.Reading,
-    val ideas: Int,
-    val links: Int,
     /** The readiness estimate the Vitals tile's ring shows (StoreInsight.readiness), null until there is one. */
     val readiness: com.stethoscore.app.data.ReadinessEstimate? = null,
 )
 
 /**
- * Today's ward round, and on Questions the two tiles under it (iOS
+ * Today's ward round, and on Questions the Vitals tile under it (iOS
  * homeRoundSections), as rows of home's list.
  */
 fun LazyListScope.homeRoundItems(model: HomeRoundModel, tiles: Boolean, book: HomePartBook?,
-                                 onOpen: (BedPlan.Bed) -> Unit, onVitals: () -> Unit, onIdeas: () -> Unit,
+                                 onOpen: (BedPlan.Bed) -> Unit, onVitals: () -> Unit,
                                  onPlan: () -> Unit = {}) {
     item(key = "home-round") { HomeRoundCard(model.beds, model.note, onOpen, book, onPlan = onPlan) }
     if (tiles) item(key = "home-tiles") {
-        HomeTiles(model.streak, model.rhythm, model.ideas, model.links, onVitals, onIdeas, book, model.readiness)
+        HomeTiles(model.streak, model.rhythm, onVitals, book, model.readiness)
     }
 }
 
@@ -474,36 +472,21 @@ fun homeBedChip(bed: BedPlan.Bed): Pair<String, WardTone>? {
     }
 }
 
-// MARK: - Vitals and the brain map
+// MARK: - Vitals
 
 /**
- * The two tiles under the round, side by side (one above the other at the
- * accessibility sizes): Vitals opens the Vitals screen, the brain map Ideas.
+ * The tile under the round: Vitals, which opens the Vitals screen. It stands
+ * alone at the full width of the tiles' row, at every text size.
  */
-@Composable fun HomeTiles(streak: Int, rhythm: RhythmReading.Reading, ideas: Int, links: Int,
-                          onVitals: () -> Unit, onIdeas: () -> Unit, book: HomePartBook? = null,
+@Composable fun HomeTiles(streak: Int, rhythm: RhythmReading.Reading,
+                          onVitals: () -> Unit, book: HomePartBook? = null,
                           readiness: com.stethoscore.app.data.ReadinessEstimate? = null) {
-    val brainLine = if (ideas <= 0) "Your ideas, joined up on a map" else {
-        var line = BedPlan.counted(ideas, "idea")
-        if (links > 0) line += " · " + BedPlan.counted(links, "link")
-        line
-    }
     val vitalsSpoken = listOf("Progress", if (readiness != null) "Readiness ${Math.round(readiness.center * 100)} percent" else "Readiness not estimated yet",
         streakText(streak), rhythm.spoken).joinToString(". ")
     val reach = WardRelief.rimOffset(WardLift.low) + WardRelief.rimBlur(WardLift.low)
-    val vitals: @Composable (Modifier) -> Unit = { m ->
-        HomeTile(onVitals, "$vitalsSpoken. Opens Progress", m) { VitalsTileFace(readiness, streak, rhythm) }
-    }
-    val brain: @Composable (Modifier) -> Unit = { m ->
-        HomeTile(onIdeas, "Brain map. $brainLine. Opens Ideas: the idea dump, its board and the 3D map", m) { BrainMapTileFace(brainLine) }
-    }
     val tiles = Modifier.homePart(book, "tiles", "the tiles", reach)
-    if (wardAccessibilitySize()) Column(tiles, verticalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
-        vitals(Modifier.fillMaxWidth())
-        brain(Modifier.fillMaxWidth())
-    } else Row(tiles.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(WardSpace.m.wardDp)) {
-        vitals(Modifier.weight(1f).fillMaxHeight())
-        brain(Modifier.weight(1f).fillMaxHeight())
+    Column(tiles) {
+        HomeTile(onVitals, "$vitalsSpoken. Opens Progress", Modifier.fillMaxWidth()) { VitalsTileFace(readiness, streak, rhythm) }
     }
 }
 
@@ -556,20 +539,11 @@ fun streakText(streak: Int): String = if (streak > 0) "$streak-day streak" else 
     }
 }
 
-/** The brain map tile: a small node graph and the count of ideas. */
-@Composable private fun BrainMapTileFace(line: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(WardSpace.s.wardDp)) {
-        HomeSmallCaps("Brain map")
-        NodeGlyph(Modifier.size(72.dp, 48.dp))
-        Text(line, style = WardTextStyle.caption.textStyle(WardWeight.semibold), color = wardColor(WardToken.ink))
-    }
-}
-
 /**
  * The first of two layouts that fits the width whole (ViewThatFits): the
  * first is used when its own width (its widest intrinsic width) fits the
  * room, the second when it is wider. A plain Layout, not a SubcomposeLayout,
- * so it answers intrinsic measurements: the tiles' row asks them
+ * so it answers intrinsic measurements: the tiles' row once asked them
  * (IntrinsicSize.Min), and a SubcomposeLayout there crashed the app ("Asking
  * for intrinsic measurements of SubcomposeLayout layouts is not supported",
  * the screenshots run 39646961250).
@@ -618,17 +592,5 @@ private object ThatFitsPolicy : MultiContentMeasurePolicy {
             path.lineTo(start + step, mid)
         }
         drawPath(path, ink, style = Stroke(1.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
-    }
-}
-
-/** A small node graph: five ideas and the links between them, in the accent. */
-@Composable fun NodeGlyph(modifier: Modifier = Modifier) {
-    val ink = wardColor(WardToken.primaryInk)
-    Canvas(modifier) {
-        val nodes = listOf(0.46 to 0.52, 0.10 to 0.20, 0.14 to 0.84, 0.86 to 0.16, 0.90 to 0.80)
-        val links = listOf(0 to 1, 0 to 2, 0 to 3, 0 to 4, 3 to 4, 1 to 2)
-        val points = nodes.map { Offset((it.first * size.width).toFloat(), (it.second * size.height).toFloat()) }
-        for ((a, b) in links) drawLine(ink.copy(alpha = 0.45f), points[a], points[b], 1.5.dp.toPx())
-        points.forEachIndexed { i, p -> drawCircle(ink, (if (i == 0) 6 else 4).dp.toPx(), p) }
     }
 }

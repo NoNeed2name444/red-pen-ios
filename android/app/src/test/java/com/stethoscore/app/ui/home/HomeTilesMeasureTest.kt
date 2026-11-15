@@ -42,10 +42,11 @@ class HomeTilesMeasureTest {
         compose.setContent { StethoscoreApp(store, forceDark = false) }
         compose.waitForIdle()
         compose.onNodeWithContentDescription("Account and settings").assertExists()
-        // the tiles' row, side by side (not the accessibility sizes' column)
+        // the Vitals tile, alone in the tiles' row at its full width; the Brain map tile and its link to Ideas are gone
         compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasContentDescription("Opens Progress", substring = true))
         compose.onNode(hasContentDescription("Opens Progress", substring = true)).assertExists()
-        compose.onNode(hasContentDescription("Opens Ideas", substring = true)).assertExists()
+        compose.onNode(hasContentDescription("Opens Ideas", substring = true)).assertDoesNotExist()
+        compose.onNode(hasContentDescription("Brain map.", substring = true)).assertDoesNotExist()
         compose.onNode(hasText("Cards") and hasClickAction()).performClick()
         compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(set.name))
         // home's list runs on behind New set and the dock (T0112): bring the

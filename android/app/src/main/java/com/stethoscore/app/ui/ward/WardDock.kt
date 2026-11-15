@@ -43,10 +43,8 @@ object WardDock {
     // The row along the bottom, on every phone (iOS T0112: the full row at
     // every text size short of the accessibility ones).
 
-    /** The bar: room at its sides, the Ideas pill's width, the gap between the panel and the pill, and the widest the bar grows. */
+    /** The bar: room at its sides, and the widest the bar grows. The panel takes the whole of it. */
     const val barSide = 10.0
-    const val ideasWidth = 56.0
-    const val barSpacing = 6.0
     const val barMaxWidth = 560.0
     /** A tab is never narrower than a finger: the least target (48 on Android, iOS 44). */
     const val leastTab = WardControlSize.target
@@ -59,9 +57,6 @@ object WardDock {
     const val railLead = 12.0
     /** The page's room for the rail: the rail at its least, its lead, and a gutter after it. */
     const val railRoom = railMinWidth + railLead + 12.0
-    /** The groove between the rail's sections and Ideas: in from the rail's sides, and room above and below (iOS StudyCategory.swift:708). */
-    const val railGrooveSide = 12.0
-    const val railGrooveVertical = 4.0
 
     /** How small a name may get (all five by the same amount) so the row still fits: never its side room, so it stays clear of the ring. */
     const val leastNameScale = 0.5

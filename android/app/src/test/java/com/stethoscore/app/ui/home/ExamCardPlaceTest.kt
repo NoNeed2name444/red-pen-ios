@@ -97,11 +97,10 @@ class ExamCardPlaceTest {
     @Test fun theMockTileFollowsTheTilesWithNoGapWhereTheCardStood() {
         chooseExam()
         home()
-        val brain = compose.onAllNodes(hasContentDescription("Brain map.", substring = true)).onFirst().getUnclippedBoundsInRoot()
         val vitals = compose.onAllNodes(hasContentDescription("Opens Progress", substring = true)).onFirst().getUnclippedBoundsInRoot()
         val mock = compose.onNodeWithContentDescription(mockTile).getUnclippedBoundsInRoot()
-        val gap = mock.top.value - maxOf(brain.bottom.value, vitals.bottom.value)
-        println("T0219 A1: tiles end ${maxOf(brain.bottom.value, vitals.bottom.value)}, mock tile from ${mock.top.value}, gap $gap dp")
+        val gap = mock.top.value - vitals.bottom.value
+        println("T0219 A1: tiles end ${vitals.bottom.value}, mock tile from ${mock.top.value}, gap $gap dp")
         assertEquals("only the list's own gap (${WardSpace.section} dp) stands between the tiles and the mock tile", WardSpace.section.toFloat(), gap, 1f)
     }
 

@@ -6,6 +6,8 @@ Paths below drop the common prefixes: iOS files are under `upstream/ios/RedPen/`
 
 Verdicts: **same** (ported value for value, with tests), **differs** (exists on Android, but not as iOS has it), **missing** (nothing on Android yet), **check** (iOS changed; Android not yet looked at).
 
+Ideas has left Stethoscore (the owner, 15 Nov 2026): it is the separate app Sorta. Android no longer opens it from the dock, home, search or the case debrief; the Ideas rows below describe code that stays until it is deleted, and the stored notes and folders are untouched.
+
 ## Features
 
 One row per folder in `Features/`.

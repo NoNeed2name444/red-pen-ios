@@ -65,7 +65,7 @@ class LibraryRowFiguresTest {
         return StudySet(id = name, name = name, kind = StudySetKind.ANKI, cards = list) to list
     }
 
-    private val actions = LibraryActions(open = {}, quiz = {}, review = {}, newSet = {}, shelf = {}, stats = {}, due = {}, ideas = {},
+    private val actions = LibraryActions(open = {}, quiz = {}, review = {}, newSet = {}, shelf = {}, stats = {}, due = {},
         exportPdf = {}, shareJson = {}, change = { it() })
 
     private fun store() = StudyStore(folder.newFolder())
