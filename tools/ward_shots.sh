@@ -13,10 +13,11 @@
 # switch, home stepping through its sections, the system's switch), then
 # home, home scrolled to its end (library-end), a study screen, New set,
 # Settings, a sheet and each section in both modes.
-# small: home, home scrolled to its end (library-end-se) and each section
-# at the iPhone SE's size (375 x 647, the app's own frame inside this
-# phone); and Dynamic Type at XXL (the largest standard size), AX1 (the
-# first accessibility size) and AX5 (the largest).
+# small: home and each section at the iPhone SE's size (375 x 647, the
+# app's own frame inside this phone); and Dynamic Type at XXL (the largest
+# standard size), AX1 (the first accessibility size) and AX5 (the largest).
+# library-end is drawn by PreviewExtras, which does not give it the SE
+# frame (PreviewRoot does), so it is shot in the phone plan only.
 # device: home and each section in both modes, and home at XXL and AX1
 # (Pro Max, iPad).
 # states: the states gallery (every Ward control at rest, held, disabled
@@ -266,7 +267,6 @@ elif [ "$plan" = small ]; then
     # the iPhone SE: 375 points wide, 647 under its status bar
     shoot "$look" library "library-se-$look" "${SE[@]}"
     fit "library-se-$look"
-    shoot "$look" library-end "library-end-se-$look" "${SE[@]}"
     for screen in $SECTIONS; do
       shoot "$look" "$screen" "se/section-$screen-$look" "${SE[@]}"
     done

@@ -25,8 +25,9 @@
 # line (barRoom above New set), the round giving up beds to get there; at
 # large text Start is not sliced by the line; at any size nothing sits on
 # the card, no button is sliced, no sliver peeks and no word of home's text
-# is broken). Home is also shot scrolled to its end (library-end-*), for a
-# person to read; the run does not check it.
+# is broken). Home is also shot scrolled to its end on the phone
+# (library-end-light, library-end-dark), for a person to read; the run does
+# not check it.
 #
 # A push to a preview/ward-<name> branch runs it (design-preview.yml leaves
 # those branches alone); the pictures land on the shots/ward-<name> branch.
