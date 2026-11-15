@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The opt-in study reminders, as one Form section: the question of the day
+/// The opt-in study reminders, as one Form section, one card: the question of the day
 /// (answered A to E from the notification), bedtime lock-in and the morning
 /// check. All off until turned on; turning one on asks for notification
 /// permission if it has not been given.
@@ -17,7 +17,8 @@ struct StudyReminderSettings: View {
     @State private var denied = false
 
     var body: some View {
-        Section {
+        SettingsGroupCard(anchor: "settings.reminders", heading: Text(l10n: "Study reminders"),
+                          note: Text("A question from your weakest subject each day, answered right on the notification. In the evening, a calm re-read of the day\u{2019}s misses; the next morning, two minutes on the same ones. Nothing leaves your phone.")) {
             Toggle(isOn: $questionOn) {
                 Label { Text("Question of the day") } icon: { icon("questionmark.bubble") }
             }
@@ -34,12 +35,7 @@ struct StudyReminderSettings: View {
                 WardBanner(tone: .danger, symbol: "exclamationmark.triangle.fill",
                            text: "Notifications are off for this app. Turn them on in Settings \u{2192} Notifications.")
             }
-        } header: {
-            Text(l10n: "Study reminders")
-        } footer: {
-            Text("A question from your weakest subject each day, answered right on the notification. In the evening, a calm re-read of the day\u{2019}s misses; the next morning, two minutes on the same ones. Nothing leaves your phone.")
         }
-        .wardRowBackground()
         .onChange(of: questionOn) { _, on in changed(on) }
         .onChange(of: bedtimeOn) { _, on in changed(on) }
         .onChange(of: morningOn) { _, on in changed(on) }

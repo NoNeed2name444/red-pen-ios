@@ -172,11 +172,20 @@ struct SettingsPage: View {
     /// whole card's tap.
     @State private var pickingExam = false
     @State private var showingDiagnostics = false
+    /// Sources and licences, pushed from its row in About: a button for the
+    /// same reason.
+    @State private var showingLicences = false
+
+    /// The ids the preview scrolls to (PreviewExtras): the Study group and the
+    /// last one, About.
+    static let studyAnchor = "settings.study"
+    static let aboutAnchor = "settings.about"
 
     var body: some View {
         // Android's groups first, in its order (the owner, 23 Oct): Look and
-        // feel, Your exam, Stethoscore Cloud, Review, each one card under its
-        // small-caps heading. The groups only iOS has follow.
+        // feel, Your exam, Stethoscore Cloud, Review. The groups only iOS has
+        // follow. Every group is one card under its small-caps heading, with
+        // its note at the foot of the card (the owner, 15 Nov).
         Form {
             lookSection
             examSection
@@ -197,6 +206,7 @@ struct SettingsPage: View {
             ExamPickerView()
         }
         .navigationDestination(isPresented: $showingDiagnostics) { DiagnosticsSettingsView() }
+        .navigationDestination(isPresented: $showingLicences) { ContentLicencesView() }
         .navigationTitle(L10n.string("Settings"))
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: popOut) { _, _ in PopOutMotion.shared.refresh() }
@@ -438,18 +448,14 @@ struct SettingsPage: View {
     // MARK: The rest
 
     private var studySection: some View {
-        Section {
+        SettingsGroupCard(anchor: Self.studyAnchor, heading: Text(l10n: "Study"),
+                          note: Text("Nothing here changes what is in your sets \u{2014} only how the app behaves around them.")) {
             Toggle("Ask before deleting a set", isOn: $confirmDelete)
             Toggle("Open the last set on launch", isOn: $openLastSet)
             Stepper("Daily goal: \(dailyGoal) a day", value: $dailyGoal, in: DailyGoal.range, step: 10)
                 .monospacedDigit()
                 .accessibilityIdentifier("dailyGoalStepper")
-        } header: {
-            Text(l10n: "Study")
-        } footer: {
-            Text("Nothing here changes what is in your sets \u{2014} only how the app behaves around them.")
         }
-        .wardRowBackground()
     }
 
     /// The app's writing, as Android's Stethoscore Cloud group (the owner,
@@ -495,20 +501,65 @@ struct SettingsPage: View {
     }
 
     private var versionSection: some View {
-        Section {
-            NavigationLink {
-                ContentLicencesView()
-            } label: {
-                Label("Sources and licences", systemImage: "books.vertical")
+        SettingsGroupCard(anchor: Self.aboutAnchor, heading: Text("About"), note: Text(Brand.line)) {
+            // a button, not a link: a link would take the whole card's tap
+            Button { showingLicences = true } label: {
+                HStack {
+                    Label("Sources and licences", systemImage: "books.vertical")
+                    Spacer()
+                    Image(systemName: "chevron.forward")
+                        .font(WardType.face(.footnote, weight: .semibold))
+                        .foregroundStyle(Color.wardPrimaryInk)
+                        .accessibilityHidden(true)
+                }
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            // outside a list row's own highlight now (IpadAuditTests: every core button has one)
+            .hoverEffect(.highlight)
             .accessibilityIdentifier("contentLicences")
             LabeledContent("Version", value: Bundle.main.shortVersion)
-        } header: {
-            Text("About")
-        } footer: {
-            Text(Brand.line)
         }
-        .wardRowBackground()
+    }
+}
+
+/// One Settings group as one card: its name in small caps over its rows, and
+/// its note at the foot, the way Look and feel, Your exam, Stethoscore Cloud
+/// and Review are built by hand above. The groups after Review use this, so
+/// they all stand the same (the owner, 15 Nov: "make them consistent").
+///
+/// `anchor` is a stable id on the card, which the Ward preview scrolls to
+/// (PreviewExtras). A row that is a button takes `.buttonStyle(.plain)` or
+/// `.borderless` and a 44 pt height, so it has its own tap, never the card's.
+struct SettingsGroupCard<Rows: View>: View {
+    let anchor: String
+    let heading: Text
+    let note: Text
+    private let rows: Rows
+
+    init(anchor: String, heading: Text, note: Text, @ViewBuilder rows: () -> Rows) {
+        self.anchor = anchor
+        self.heading = heading
+        self.note = note
+        self.rows = rows()
+    }
+
+    var body: some View {
+        Section {
+            VStack(alignment: .leading, spacing: WardSpace.m) {
+                heading
+                    .wardSmallCaps()
+                    .accessibilityAddTraits(.isHeader)
+                rows
+                note
+                    .font(WardType.caption)
+                    .foregroundStyle(Color.wardInkSecondary)
+            }
+            .wardCard(lift: .low)
+            .wardCardRow()
+            .id(anchor)
+        }
     }
 }
 
@@ -521,7 +572,8 @@ struct AccuracyEngineSection: View {
 
     var body: some View {
         let checked: Int = accuracy.ledger.records.values.filter { !$0.votes.isEmpty }.count
-        Section {
+        SettingsGroupCard(anchor: "settings.accuracy", heading: Text("Accuracy engine"),
+                          note: Text("New and edited content is checked straight away; the rest of your library slowly, newest and most-studied first, within the free daily limits. Each item is checked against its lecture and current literature (PubMed reviews, MedlinePlus, FDA labels) by two or three free models voting, never only by the model that wrote it, plus rule checks for doses, lab values and contradictions. An item is checked again only when it changes. Needs \(Brand.name) Cloud; rule checks work everywhere.")) {
             Toggle("Check my whole library in the background", isOn: $accuracy.background)
             LabeledContent {
                 Text("\(checked)").font(WardType.obs).monospacedDigit()
@@ -533,12 +585,7 @@ struct AccuracyEngineSection: View {
             if let reason = accuracy.pausedReason {
                 Text(reason).font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             }
-        } header: {
-            Text("Accuracy engine")
-        } footer: {
-            Text("New and edited content is checked straight away; the rest of your library slowly, newest and most-studied first, within the free daily limits. Each item is checked against its lecture and current literature (PubMed reviews, MedlinePlus, FDA labels) by two or three free models voting, never only by the model that wrote it, plus rule checks for doses, lab values and contradictions. An item is checked again only when it changes. Needs \(Brand.name) Cloud; rule checks work everywhere.")
         }
-        .wardRowBackground()
     }
 }
 

@@ -13,7 +13,8 @@ enum PreviewExtras {
 
     static let screens = ["anki-quizable", "quiz-from-cards", "narrate-fixing", "occlusion-example",
                           "quiz-folded", "quiz-scrolled", "library-end", "library-loading", "signin", "account-deleted",
-                          "settings", "sheet", "mode-switch", "section-switch", "home-ideas", "mode-switch-quiz", "lens", "a11y-probe"]
+                          "settings", "settings-study", "settings-data", "settings-end",
+                          "sheet", "mode-switch", "section-switch", "home-ideas", "mode-switch-quiz", "lens", "a11y-probe"]
                           + tourScreens
 
     /// Posted by the "section-switch" preview: home moves one place along
@@ -57,6 +58,10 @@ enum PreviewExtras {
         case "settings":
             // Settings, for the Ward design pass's light and dark pairs
             NavigationStack { SettingsPage() }
+        case "settings-study", "settings-data", "settings-end":
+            // the lower half of Settings, scrolled to its Study group, its
+            // Your data group or its end (About), for the same pairs
+            SettingsScrollPreview(screen: screen)
         case "sheet":
             // a sheet over home: New set, as the dock's writing modes open it
             LibraryView().sheet(isPresented: .constant(true)) { NewSetView() }
@@ -93,6 +98,42 @@ enum PreviewExtras {
     }
 
     static func handles(_ screen: String) -> Bool { screens.contains(screen) }
+}
+
+/// Settings scrolled to one of its groups, so the lower half of the page can
+/// be seen on a Ward preview (T0273): "settings-study" to the Study group,
+/// "settings-data" to Your data, "settings-end" to the foot of About.
+///
+/// The reader stands above the page, which holds the list. As library-end
+/// does for home, the scroll is made again for three seconds, since a list
+/// has not always laid out its rows when it first shows; the capture waits
+/// longer.
+private struct SettingsScrollPreview: View {
+    let screen: String
+
+    /// The group's id (a stable id on its card) and where to put it.
+    private var target: (id: String, anchor: UnitPoint) {
+        switch screen {
+        case "settings-study": return (SettingsPage.studyAnchor, .top)
+        case "settings-data": return (LibraryDataSettingsSection.anchor, .top)
+        default: return (SettingsPage.aboutAnchor, .bottom)
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollViewReader { proxy in
+                SettingsPage()
+                    .task {
+                        for _ in 0..<12 {
+                            do { try await Task.sleep(for: .milliseconds(250)) } catch { return }
+                            guard !Task.isCancelled else { return }
+                            proxy.scrollTo(target.id, anchor: target.anchor)
+                        }
+                    }
+            }
+        }
+    }
 }
 
 /// The sign-in screen on an account store of its own, signed out, with the

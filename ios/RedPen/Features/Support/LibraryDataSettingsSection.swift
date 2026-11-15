@@ -30,6 +30,9 @@ struct LibraryDataSettingsSection: View {
     @State private var recovery: [URL] = []
     @State private var sharingRecovery = false
 
+    /// The id the preview scrolls to (PreviewExtras): the Your data group.
+    static let anchor = "settings.data"
+
     enum Work: String {
         case backup = "Backing up\u{2026}"
         case restore = "Restoring\u{2026}"
@@ -49,40 +52,56 @@ struct LibraryDataSettingsSection: View {
     /// copies sat in folders the Files app does not show.
     private var recoverySection: some View {
         Section {
-            Button {
-                sharingRecovery = true
-            } label: {
-                Label(recovery.count == 1 ? "Share the recovery copy" : "Share the \(recovery.count) recovery copies",
-                      systemImage: "lifepreserver")
+            VStack(alignment: .leading, spacing: WardSpace.m) {
+                Text("Recovery copies")
+                    .wardSmallCaps()
+                    .accessibilityAddTraits(.isHeader)
+                Button {
+                    sharingRecovery = true
+                } label: {
+                    Label(recovery.count == 1 ? "Share the recovery copy" : "Share the \(recovery.count) recovery copies",
+                          systemImage: "lifepreserver")
+                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                        .contentShape(Rectangle())
+                }
+                // its own tap, not the whole card's
+                .buttonStyle(.borderless)
+                .accessibilityIdentifier("shareRecoveryCopies")
+                Text("Copies of files this version of the app couldn\u{2019}t fully read, kept before anything was saved over them. Save them to Files, or send them with a message from Help, so nothing in them is lost.")
+                    .font(WardType.caption)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
-            .accessibilityIdentifier("shareRecoveryCopies")
-        } header: {
-            Text("Recovery copies")
-        } footer: {
-            Text("Copies of files this version of the app couldn\u{2019}t fully read, kept before anything was saved over them. Save them to Files, or send them with a message from Help, so nothing in them is lost.")
+            .wardCard(lift: .low)
+            .wardCardRow()
+            .id("settings.recovery")
         }
-        .wardRowBackground()
     }
 
     private var dataSection: some View {
         Section {
-            lastBackupRow
-            Toggle(isOn: $includeFiles) {
-                Label("Include lecture files and recordings", systemImage: "waveform.and.magnifyingglass")
+            VStack(alignment: .leading, spacing: WardSpace.m) {
+                Text(l10n: "Your data")
+                    .wardSmallCaps()
+                    .accessibilityAddTraits(.isHeader)
+                lastBackupRow
+                Toggle(isOn: $includeFiles) {
+                    Label("Include lecture files and recordings", systemImage: "waveform.and.magnifyingglass")
+                }
+                actionRow("Back up everything", symbol: "externaldrive.badge.icloud", work: .backup) { backUp() }
+                    .accessibilityIdentifier("backupEverything")
+                actionRow("Restore from a backup", symbol: "arrow.counterclockwise.icloud", work: .restore) { restoring = true }
+                    .accessibilityIdentifier("restoreBackup")
+                actionRow("Export all cards as Anki", symbol: "rectangle.stack.badge.plus", work: .anki) { exportAnki() }
+                    .disabled(!hasCards)
+                    .accessibilityIdentifier("exportAllAnki")
+                Text("One file with every set, your review schedule, progress, notes, study log and settings. Save it to Files or iCloud Drive. Restoring adds what this phone doesn\u{2019}t have \u{2014} nothing here is replaced or deleted.")
+                    .font(WardType.caption)
+                    .foregroundStyle(Color.wardInkSecondary)
             }
-            actionRow("Back up everything", symbol: "externaldrive.badge.icloud", work: .backup) { backUp() }
-                .accessibilityIdentifier("backupEverything")
-            actionRow("Restore from a backup", symbol: "arrow.counterclockwise.icloud", work: .restore) { restoring = true }
-                .accessibilityIdentifier("restoreBackup")
-            actionRow("Export all cards as Anki", symbol: "rectangle.stack.badge.plus", work: .anki) { exportAnki() }
-                .disabled(!hasCards)
-                .accessibilityIdentifier("exportAllAnki")
-        } header: {
-            Text(l10n: "Your data")
-        } footer: {
-            Text("One file with every set, your review schedule, progress, notes, study log and settings. Save it to Files or iCloud Drive. Restoring adds what this phone doesn\u{2019}t have \u{2014} nothing here is replaced or deleted.")
+            .wardCard(lift: .low)
+            .wardCardRow()
+            .id(Self.anchor)
         }
-        .wardRowBackground()
         .fileImporter(isPresented: $restoring, allowedContentTypes: [.zip, .data]) { result in
             if case .success(let url) = result { pendingRestore = url }
         }
@@ -129,7 +148,11 @@ struct LibraryDataSettingsSection: View {
                 Spacer(minLength: 8)
                 if working == work { EcgLoader() }
             }
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
         }
+        // its own tap, not the whole card's
+        .buttonStyle(.borderless)
         .disabled(working != nil)
     }
 

@@ -1,9 +1,9 @@
 import AppIntents
 import SwiftUI
 
-/// Settings > "iPhone and iPad", as Form sections: Siri and Spotlight, the
-/// widgets' shared file and the exam-day Live Activity, Face ID lock and
-/// mindful minutes in Health.
+/// Settings > "iPhone and iPad", as Form sections, one card each: Siri and
+/// Spotlight, the widgets' shared file and the exam-day Live Activity, Face ID
+/// lock and mindful minutes in Health.
 ///
 /// Drop into the settings Form: `PlatformSettingsSection()`. Needs the Store
 /// in the environment (the Spotlight toggle re-indexes the library).
@@ -30,7 +30,8 @@ struct PlatformSettingsSection: View {
     }
 
     var body: some View {
-        Section {
+        SettingsGroupCard(anchor: "settings.siri", heading: Text(l10n: "Siri and Spotlight"),
+                          note: Text(siriFooter)) {
             Toggle("Show sets in Spotlight", isOn: $spotlight)
                 .accessibilityIdentifier("platformSpotlight")
                 .onChange(of: spotlight) { _, on in
@@ -41,38 +42,29 @@ struct PlatformSettingsSection: View {
                     }
                 }
             if !Self.isPlaygrounds {
-                // the tip draws its own platter: on the base, not on a tile
+                // the tip draws its own platter, now inside the group's card
                 SiriTipView(intent: ReviewDueIntent())
-                    .listRowBackground(Color.clear)
                 ShortcutsLink()
                     .shortcutsLinkStyle(.automaticOutline)
             }
-        } header: {
-            Text(l10n: "Siri and Spotlight")
-        } footer: {
-            Text(siriFooter)
         }
-        .wardRowBackground()
 
         if !Self.isPlaygrounds {
-            Section {
+            SettingsGroupCard(anchor: "settings.widgets", heading: Text(l10n: "Widgets"),
+                              note: Text(widgetsFooter)) {
                 if let shelf {
                     widgetDataRow(shelf)
                 }
                 Toggle("Exam-day Live Activity", isOn: $liveActivity)
                     .accessibilityIdentifier("platformLiveActivity")
-            } header: {
-                Text(l10n: "Widgets")
-            } footer: {
-                Text(widgetsFooter)
             }
-            .wardRowBackground()
             // read where a widget reads, each time the page shows
             .onAppear { shelf = GlanceShelf.check() }
         }
 
         if AppLock.supported || MindfulMinutes.available {
-            Section {
+            SettingsGroupCard(anchor: "settings.privacy", heading: Text(l10n: "Privacy and Health"),
+                              note: Text(privacyFooter)) {
                 if AppLock.supported {
                     Toggle("Lock with \(AppLock.biometryName)", isOn: $appLock)
                         .accessibilityIdentifier("platformAppLock")
@@ -91,12 +83,7 @@ struct PlatformSettingsSection: View {
                             }
                         }
                 }
-            } header: {
-                Text(l10n: "Privacy and Health")
-            } footer: {
-                Text(privacyFooter)
             }
-            .wardRowBackground()
         }
     }
 
