@@ -237,6 +237,18 @@
         }
       }
     },
+    "Block" : {
+      "comment" : "The focus session's parts: \"Block 1 of 4\" (StudySession.roundWords). The word alone; the sentences are built in code. Not the mock exam's word (see Part).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "فترة"
+          }
+        }
+      }
+    },
     "By subject" : {
       "comment" : "Account menu, a page's name. ",
       "extractionState" : "manual",
@@ -309,6 +321,18 @@
         }
       }
     },
+    "Consistent" : {
+      "comment" : "Study rhythm reading on Progress and the home tile, after \"Study rhythm ·\" (RhythmReading.Reading.words); spoken as \"Study rhythm, consistent.\" Owner's word, 15 Nov.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "منتظم"
+          }
+        }
+      }
+    },
     "Contact us" : {
       "comment" : "Settings screen, section heading. ",
       "extractionState" : "manual",
@@ -358,8 +382,16 @@
       }
     },
     "Done" : {
-      "comment" : "Alert button that only closes the alert (it replaced OK, 22 Oct). No Arabic yet.",
-      "extractionState" : "manual"
+      "comment" : "Alert button that only closes the alert (it replaced OK, 22 Oct). Arabic as Android's recorder_done.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم"
+          }
+        }
+      }
     },
     "Everything stays on this device" : {
       "comment" : "Sign-in screen (SignInView). VoiceOver hint on Start without an account.",
@@ -369,6 +401,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "يبقى كل شيء على هذا الجهاز"
+          }
+        }
+      }
+    },
+    "Focus session" : {
+      "comment" : "The focus timer's name (WardRoundView panel title, the floating chip's VoiceOver label, the session's alarm and status lines). Owner's word, 15 Oct.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جلسة تركيز"
           }
         }
       }
@@ -493,6 +537,18 @@
         }
       }
     },
+    "Night mode" : {
+      "comment" : "Settings, Look and feel: the toggle for the dark appearance (SupportCenter, alwaysNight). Replaced \"Night shift\" on 15 Nov. Android's twin is settings_night_mode.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الوضع الليلي"
+          }
+        }
+      }
+    },
     "No account needed to start — you can link an iPad or another phone later in Account. Nothing is shared with anyone else." : {
       "comment" : "Sign-in screen (SignInView). Small print. iPad stays in Latin script.",
       "extractionState" : "manual",
@@ -577,6 +633,18 @@
         }
       }
     },
+    "Part" : {
+      "comment" : "The mock exam's timed parts: \"Part 1\", \"Part 2 of 3\" (MockFormat.partWord). The word alone; the sentences are built in code. Owner's word, 22 Oct.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جزء"
+          }
+        }
+      }
+    },
     "Privacy and Health" : {
       "comment" : "Settings screen, section heading. ",
       "extractionState" : "manual",
@@ -645,6 +713,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "قد يكون تسجيل أي شخص دون إذنه مخالفًا للقانون. لا تسجّل محاضرةً أو حديثًا أو محادثةً، ولا ترفعها ولا تفرّغها نصيًا، إلا بعد موافقة المحاضر وكل من يُسمَع صوته، وبما تسمح به أنظمة جامعتك والقانون. أنت وحدك المسؤول عن تسجيلاتك ونصوصها."
+          }
+        }
+      }
+    },
+    "Resting" : {
+      "comment" : "Study rhythm reading, as Consistent (a week with nothing in it). Owner's word, 15 Nov.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "راحة"
           }
         }
       }
@@ -781,6 +861,18 @@
         }
       }
     },
+    "Today’s revision" : {
+      "comment" : "Home (WardHome): the daily plan's card header, and the start of its spoken summary. Owner's word for the daily plan, 15 Oct. The count follows it in code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مراجعة اليوم"
+          }
+        }
+      }
+    },
     "Try every feature" : {
       "comment" : "Account menu, a page's name. Tour of examples.",
       "extractionState" : "manual",
@@ -801,6 +893,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حوّل محاضراتك إلى أسئلة وبطاقات تعليمية."
+          }
+        }
+      }
+    },
+    "Uneven" : {
+      "comment" : "Study rhythm reading, as Consistent (the irregular case). Owner's word, 15 Nov.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "متفاوت"
           }
         }
       }

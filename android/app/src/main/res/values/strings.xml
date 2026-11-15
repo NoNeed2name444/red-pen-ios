@@ -45,4 +45,15 @@
     <string name="widget_countdown_description">Days until your exam.</string>
     <string name="widget_today_label">Done today</string>
     <string name="widget_today_description">Today’s count against your daily goal.</string>
+
+    <!-- Study words, the owner's 15 Nov answers (T0272); Arabic in values-ar. Settings reads settings_night_mode; the rest
+         wait for their screens to read them: "Done" is recorder_done above -->
+    <string name="settings_night_mode">Night mode</string>
+    <string name="study_revision_today">Today’s revision</string>
+    <string name="study_focus_session">Focus session</string>
+    <string name="study_focus_block">Block</string>
+    <string name="study_mock_part">Part</string>
+    <string name="study_rhythm_consistent">Consistent</string>
+    <string name="study_rhythm_uneven">Uneven</string>
+    <string name="study_rhythm_resting">Resting</string>
 </resources>

@@ -8,7 +8,16 @@ This reverses `docs/design/targets-2026-10-01.md` §1, which kept “beds, chart
 
 Written 15 Oct 2026 against `personal` at bc611221, and checked again at 2b7ef11e, which changes nothing under `ios/`. Every file:line below is checked with `git show origin/personal:<path>` each time this file is generated; line numbers move as code changes, so search for the quoted text. No app code changes in this phase; this is the list a later phase applies.
 
-**Built, 22 Oct 2026 (T0125).** The rows marked “Built 22 Oct” are in the app on iOS, with their Android twins in the same change set. The rows not marked wait: rows 27-31, the rhythm words, on the owner’s answer to the copy deck’s question 3 (“Steady” is already the trend label); rows 58-61 (the Live Activity, `ios/StethoscoreWidgets`), row 62 (the Health permission text, `ios/project.yml`) and rows 72-77 (the iPad build’s stand-ins, `tools/playgrounds_stubs`) because those files were outside that change; and row 63 on the owner’s Arabic words (question 4). The spoken “Item 1” is built as the glossary has it; the copy deck’s question 5 still asks the owner to confirm it.
+**Built, 22 Oct 2026 (T0125).** The rows marked “Built 22 Oct” are in the app on iOS, with their Android twins in the same change set. The rows not marked waited: rows 27-31, the rhythm words, on the owner’s answer to the copy deck’s question 3 (“Steady” is already the trend label; answered 15 Nov, below); rows 58-61 (the Live Activity, `ios/StethoscoreWidgets`), row 62 (the Health permission text, `ios/project.yml`) and rows 72-77 (the iPad build’s stand-ins, `tools/playgrounds_stubs`) because those files were outside that change; and row 63 on the owner’s Arabic words (question 4). The spoken “Item 1” is built as the glossary has it; the copy deck’s question 5 still asks the owner to confirm it.
+
+**Owner’s answers, 15 Nov 2026 (built as T0272).** Asked for the words that waited on a copy deck the repository does not hold, the owner said “change them for a study centered alternative” and “start with arabic too”. What that settled, on iOS and Android:
+
+- The rhythm words (rows 27-31) are **Consistent, Uneven, Resting**, spoken “Study rhythm, consistent.”, “uneven.” and “resting.” “Steady” clashed with the trend label and “Patchy” read as a verdict.
+- “Night shift” is **Night mode** on both: each toggle holds the app dark (iOS’s is the “always night” setting that also darkens the Ideas sky; Android’s is its dark switch), so one plain name fits both. The note under it stays.
+- Android’s “YOUR STUDY WARD” label is already gone (removed 23 Oct; `HomeOwnerPicksTest` asserts it is absent), so nothing changed there.
+- The three shorter overlines the deck offered, “ONE BEST ANSWER”, “WEAKEST FIRST” and “BIGGEST GAIN”, are not needed: the app already shows study words where they would go, “Single best answer” (the label over the stem), “Weak topics” (the Progress section) and “Focus next” (its first section, ranked by marks each is likely worth). They stay.
+- Arabic, in Modern Standard Arabic and the catalogues’ own terms: Done تم (Android already had it as `recorder_done`), Today’s revision مراجعة اليوم, Focus session جلسة تركيز, Block (the timer’s part) فترة, Part (the mock’s part) جزء, Consistent منتظم, Uneven متفاوت, Resting راحة, Night mode الوضع الليلي. They sit in `Localizable.xcstrings` and Android’s `values-ar`. Screens that write the word as a plain literal already read them (iOS’s “Done”, “Focus session” and “Night mode”; Android’s Settings toggle). The others are built in code from plain English (the rhythm words, “Block 1 of 4”, “Part 2 of 3”, the plan’s header and count), so they show in Arabic once those screens read the catalogue.
+- Still open: row 63, the Health permission’s Arabic (`ios/AppResources/Localized/ar.lproj/InfoPlist.strings`, outside T0272’s scope; it still says جولات التركيز), and rows 58-61 and 72-77. Row 62 (the English) is built.
 
 ## The rule
 
@@ -34,7 +43,7 @@ Written 15 Oct 2026 against `personal` at bc611221, and checked again at 2b7ef11
 | Patient chart (label over the stem) | Single best answer | The header already says "Question 7 of 20", so the label names the kind of question; the "Best answer" chip then shows only on a retest ("Second try"). |
 | Vitals (the progress screen) | Progress | Not “Results”: that is already the name of the screen “See results” opens at the end of a paper (MCQSummaryView.swift:183). Vitals are a patient’s, not a student’s. |
 | Needs a consult | Weak topics | The exam phrase for what to revise next; it also names the list on the boards. |
-| Sinus · regular, irregular, resting | Steady, Patchy, Resting | "Study rhythm" stays as plain English, and the ECG stays as the brand’s picture; the jargon "Sinus" goes. |
+| Sinus · regular, irregular, resting | **Owner’s choice (15 Nov 2026: “a study centered alternative”):** Consistent, Uneven, Resting; spoken “Study rhythm, consistent.” (Steady and Patchy were proposed on 15 Oct) | "Study rhythm" stays as plain English, and the ECG stays as the brand’s picture; the jargon "Sinus" goes. "Steady" is already the trend label, and "Patchy" reads as a verdict. |
 | Ward pocket | Clinical reference | It holds three tabs, Lab values, Calculators and Scores, so the name covers all three; “Clinical scores” would give “Clinical scores › Scores” and a third meaning for “score”. |
 | New admission (making a set) | (no label) | The screen is already titled “New set”, so the small-caps label goes. |
 | Missed points, new patients (twins) | Missed points, asked again | Says what a twin is: the same point, asked again in a new stem. |
@@ -85,11 +94,11 @@ Paths are relative to the repository root. **Test** names the Swift test that as
 | 24 | `ios/RedPen/Features/Library/LibraryCategory.swift:134` | Readiness, study rhythm and what needs a consult | Readiness, study rhythm and weak topics | Subtitle of the Progress entry. **Built 22 Oct.** |  |
 | 25 | `ios/RedPen/Features/Examples/ExamplesHubView.swift:128` | Vitals: rhythm, rings, what needs a consult, trends | Progress: rhythm, rings, weak topics, trends | Examples hub row. **Built 22 Oct.** |  |
 | 26 | `ios/RedPen/Features/Support/ReviewSettingsSection.swift:69` | … “How sure are you?” feeds Vitals. | … “How sure are you?” feeds Progress. | Settings footnote. **Built 22 Oct.** |  |
-| 27 | `ios/RedPen/Shared/Learn/RhythmReading.swift:53` | Sinus · regular | Steady | The rhythm reading of your study days. "Study rhythm" stays: plain English, and the ECG stays the brand’s picture. "Sinus" is ECG jargon used as a joke. | **BedPlanTests.swift:257** |
-| 28 | `ios/RedPen/Shared/Learn/RhythmReading.swift:54` | Sinus · irregular | Patchy | As above. |  |
-| 29 | `ios/RedPen/Shared/Learn/RhythmReading.swift:55` | Sinus · resting | Resting | As above. |  |
-| 30 | `ios/RedPen/Shared/Learn/RhythmReading.swift:77` | Study rhythm, regular. … | Study rhythm, steady. … | The spoken word; :82 joins it into the sentence. | **BedPlanTests.swift:286** |
-| 31 | `ios/RedPen/Shared/Learn/RhythmReading.swift:78` | Study rhythm, irregular. … | Study rhythm, patchy. … | As above. |  |
+| 27 | `ios/RedPen/Shared/Learn/RhythmReading.swift:53` | Sinus · regular | Consistent | The rhythm reading of your study days. "Study rhythm" stays: plain English, and the ECG stays the brand’s picture. "Sinus" is ECG jargon used as a joke. The owner’s word (15 Nov), in place of "Steady". Android twin: data/RhythmReading.kt:37. **Built 15 Nov (T0272).** | **BedPlanTests.swift:257** (Android BedPlanTest.kt:207) |
+| 28 | `ios/RedPen/Shared/Learn/RhythmReading.swift:54` | Sinus · irregular | Uneven | As above, in place of "Patchy". Android twin: data/RhythmReading.kt:38. **Built 15 Nov (T0272).** |  |
+| 29 | `ios/RedPen/Shared/Learn/RhythmReading.swift:55` | Sinus · resting | Resting | As above. Android twin: data/RhythmReading.kt:39. **Built 15 Nov (T0272).** |  |
+| 30 | `ios/RedPen/Shared/Learn/RhythmReading.swift:77` | Study rhythm, regular. … | Study rhythm, consistent. … | The spoken word; :82 joins it into the sentence. Android twin: data/RhythmReading.kt:56. **Built 15 Nov (T0272).** | **BedPlanTests.swift:286** (Android BedPlanTest.kt:236) |
+| 31 | `ios/RedPen/Shared/Learn/RhythmReading.swift:78` | Study rhythm, irregular. … | Study rhythm, uneven. … | As above. Android twin: data/RhythmReading.kt:57. **Built 15 Nov (T0272).** |  |
 
 ### The focus timer (today “ward round”)
 
@@ -125,8 +134,8 @@ Paths are relative to the repository root. **Test** names the Swift test that as
 | 59 | `ios/StethoscoreWidgets/WardRoundLiveActivity.swift:55` | Round 2 of 4 next | Block 2 of 4 next | Live Activity. |  |
 | 60 | `ios/StethoscoreWidgets/WardRoundLiveActivity.swift:56` | Ward round done | Focus session done | Live Activity. |  |
 | 61 | `ios/StethoscoreWidgets/WardRoundLiveActivity.swift:57` | Round 1 of 4 | Block 1 of 4 | Live Activity. |  |
-| 62 | `ios/project.yml:232` | Stethoscore saves your finished focus rounds as mindful minutes in Health, if you turn this on. | Stethoscore saves your finished focus blocks as mindful minutes in Health, if you turn this on. | Health permission text (Info.plist via project.yml). |  |
-| 63 | `ios/AppResources/Localized/ar.lproj/InfoPlist.strings:9` | جولات التركيز (“focus rounds”), in the Arabic Health permission text | The owner’s chosen word in Arabic (for “focus sessions”, جلسات التركيز) | The Arabic twin of the row above; it follows whatever word the owner picks for the timer. |  |
+| 62 | `ios/project.yml:232` | Stethoscore saves your finished focus rounds as mindful minutes in Health, if you turn this on. | Stethoscore saves your finished focus blocks as mindful minutes in Health, if you turn this on. | Health permission text (Info.plist via project.yml). **Built 15 Nov (T0272), English only.** |  |
+| 63 | `ios/AppResources/Localized/ar.lproj/InfoPlist.strings:9` | جولات التركيز (“focus rounds”), in the Arabic Health permission text | The owner’s chosen word in Arabic (for “focus sessions”, جلسات التركيز) | The Arabic twin of the row above; it follows whatever word the owner picks for the timer. **Not built (T0272):** the file is outside that task’s scope. The Arabic to put there, with the catalogue’s فترة for “block”: يحفظ Stethoscore فترات التركيز التي تُنهيها كدقائق يقظة ذهنية في تطبيق «صحتي»، إذا فعّلت ذلك. |  |
 
 ### Onboarding, making a set, and the clinical reference
 
@@ -186,8 +195,9 @@ Change these with their tests in one commit. The test files are in `ios/RedPen/T
 | ChartQuizTests.swift:31 | The chip: kindChip(retest: false) == "Best answer", kindChip(retest: true) == "Second try" (ChartQuiz.swift:32) | No chip on a first try; "Second try" on a retest | `ios/RedPen/Features/MCQ/MCQQuizView.swift:606` |
 | DesignTourUITests.swift:291 | Vitals | Progress | `ios/RedPen/Features/Analytics/AnalyticsView.swift:104` |
 | DesignTourUITests.swift:291 | Vitals | Progress | `ios/RedPen/Features/Support/SupportCenter.swift:54` |
-| BedPlanTests.swift:257 | Sinus · regular | Steady | `ios/RedPen/Shared/Learn/RhythmReading.swift:53` |
-| BedPlanTests.swift:286 | Study rhythm, regular. … | Study rhythm, steady. … | `ios/RedPen/Shared/Learn/RhythmReading.swift:77` |
+| BedPlanTests.swift:257 (Android BedPlanTest.kt:207) | Sinus · regular | Consistent | `ios/RedPen/Shared/Learn/RhythmReading.swift:53` |
+| BedPlanTests.swift:286 (Android BedPlanTest.kt:236) | Study rhythm, regular. … | Study rhythm, consistent. … | `ios/RedPen/Shared/Learn/RhythmReading.swift:77` |
+| Android HomeOwnerPicksTest.kt:69 | Night shift | Night mode | `android/app/src/main/java/com/stethoscore/app/ui/EditorSettings.kt:99` (iOS: SupportCenter.swift:230) |
 | WardRoundTests.swift:41, :124 | Round 1 of 4 | Block 1 of 4 | `ios/RedPen/Shared/StudySession.swift:224` |
 | WardRoundTests.swift:56 | Round 2 of 4 when you’re ready · … | Block 2 of 4 when you’re ready · … | `ios/RedPen/Shared/StudySession.swift:238` |
 | WardRoundTests.swift:93 | Ward round done · 85 min · 3 cards | Focus session done · 85 min · 3 cards | `ios/RedPen/Shared/StudySession.swift:240` |

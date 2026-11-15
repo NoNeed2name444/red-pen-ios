@@ -10,10 +10,10 @@ import java.util.Locale
 // rhythm strip: the last fourteen days, each a beat (something studied that
 // day) or a flat line (a day off), and a word for the pattern. Pure Kotlin.
 //
-// - Regular: something on at least 70% of the days the strip covers, and no
-//   more than two days off in a row.
+// - Regular (read "Consistent"): something on at least 70% of the days the
+//   strip covers, and no more than two days off in a row.
 // - Resting: nothing in the last seven days of the strip.
-// - Irregular: anything else with a beat in the last week.
+// - Irregular (read "Uneven"): anything else with a beat in the last week.
 //
 // A day with nothing yet today does not count against the strip until it is
 // over. Days are `yyyy-MM-dd` in the phone's own time zone.
@@ -32,11 +32,11 @@ object RhythmReading {
         val activeDays: Int,
         val span: Int,
     ) {
-        /** "Sinus · regular". */
+        /** "Consistent". */
         val words: String get() = when (rhythm) {
-            Rhythm.regular -> "Sinus · regular"
-            Rhythm.irregular -> "Sinus · irregular"
-            Rhythm.resting -> "Sinus · resting"
+            Rhythm.regular -> "Consistent"
+            Rhythm.irregular -> "Uneven"
+            Rhythm.resting -> "Resting"
             Rhythm.noTrace -> "No trace yet"
         }
 
@@ -53,8 +53,8 @@ object RhythmReading {
         /** What TalkBack reads for the strip. */
         val spoken: String get() {
             val word = when (rhythm) {
-                Rhythm.regular -> "regular"
-                Rhythm.irregular -> "irregular"
+                Rhythm.regular -> "consistent"
+                Rhythm.irregular -> "uneven"
                 Rhythm.resting -> "resting"
                 Rhythm.noTrace -> "no trace yet"
             }

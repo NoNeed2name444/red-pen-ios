@@ -254,7 +254,7 @@ check("a strip is always fourteen days", none.beats.count == RhythmReading.windo
 check("zero counts are no history", RhythmReading.read(days: ["2026-09-23": 0], now: now, calendar: calendar).rhythm == .noTrace)
 
 let steady = RhythmReading.read(days: days(Array(0..<14).filter { $0 % 7 != 3 }), now: now, calendar: calendar)
-check("most days, short gaps: regular", steady.rhythm == .regular && steady.words == "Sinus \u{00B7} regular",
+check("most days, short gaps: regular", steady.rhythm == .regular && steady.words == "Consistent",
       "\(steady.rhythm) \(steady.activeDays)/\(steady.span)")
 check("its line counts the days", steady.line == "Studied 12 of the last 14 days.", steady.line)
 check("today is the last beat", steady.beats.last == true)
@@ -283,7 +283,7 @@ check("three days in, three days studied: regular over three days",
       "\(newcomer.span) \(newcomer.line)")
 let first = RhythmReading.read(days: days([0]), now: now, calendar: calendar)
 check("the first day says day, not 1 days", first.line == "Studied 1 of the last day.", first.line)
-check("VoiceOver hears the rhythm", steady.spoken.hasPrefix("Study rhythm, regular."), steady.spoken)
+check("VoiceOver hears the rhythm", steady.spoken.hasPrefix("Study rhythm, consistent."), steady.spoken)
 
 // the study log and the dated answers, together
 let answersOn: [Date] = [now, now, now.addingTimeInterval(-3 * day)]

@@ -96,7 +96,7 @@ fun parseStudySet(name:String,subject:String,kind:StudySetKind,content:String):S
         WardCard(Modifier.fillMaxWidth()) {
             SectionLabel("Look and feel")
             // a Ward switch, the whole row toggling it (iOS's Toggle in wardForm), its note under it
-            WardToggle(dark,onDark,label="Night shift")
+            WardToggle(dark,onDark,label=stringResource(com.stethoscore.app.R.string.settings_night_mode))
             Text("Stethoscore's dark palette",style=WardType.caption.textStyle(),color=MaterialTheme.colorScheme.onSurfaceVariant)
         }
         // iOS: Settings, "Your exam" (ExamPickerView)

@@ -4,15 +4,15 @@ import Foundation
 /// rhythm strip: the last fourteen days, each one a beat (something studied
 /// that day) or a flat line (a day off), and a word for the pattern.
 ///
-/// The words are a ward's, never a verdict: a steady habit is "regular", an
-/// uneven one "irregular" (sinus arrhythmia is harmless), a week with nothing
-/// in it "resting", and before the first day of study there is "no trace
+/// The words are plain study words, never a verdict (the owner, 15 Nov): a
+/// steady habit is "Consistent", an unsteady one "Uneven", a week with nothing
+/// in it "Resting", and before the first day of study there is "No trace
 /// yet". None of them is red; none of them scolds.
 ///
-/// - Regular: something on at least 70% of the days the strip covers, and no
-///   more than two days off in a row.
+/// - Regular (read "Consistent"): something on at least 70% of the days the
+///   strip covers, and no more than two days off in a row.
 /// - Resting: nothing in the last seven days of the strip.
-/// - Irregular: anything else with a beat in the last week.
+/// - Irregular (read "Uneven"): anything else with a beat in the last week.
 ///
 /// The strip covers the days since studying began, at most fourteen. A day
 /// with nothing yet today does not count against the strip until it is over,
@@ -47,12 +47,12 @@ enum RhythmReading {
         var span: Int
 
         /// After "Study rhythm ·" on the monitor, in the source's own case:
-        /// "Sinus · regular".
+        /// "Consistent".
         var words: String {
             switch rhythm {
-            case .regular: return "Sinus \u{00B7} regular"
-            case .irregular: return "Sinus \u{00B7} irregular"
-            case .resting: return "Sinus \u{00B7} resting"
+            case .regular: return "Consistent"
+            case .irregular: return "Uneven"
+            case .resting: return "Resting"
             case .noTrace: return "No trace yet"
             }
         }
@@ -74,8 +74,8 @@ enum RhythmReading {
         var spoken: String {
             let word: String
             switch rhythm {
-            case .regular: word = "regular"
-            case .irregular: word = "irregular"
+            case .regular: word = "consistent"
+            case .irregular: word = "uneven"
             case .resting: word = "resting"
             case .noTrace: word = "no trace yet"
             }

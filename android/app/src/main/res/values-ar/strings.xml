@@ -35,4 +35,14 @@
     <string name="recorder_recover_body">أُغلق Stethoscore أثناء التسجيل. يمكنك الاحتفاظ بما سجّله حتى تلك اللحظة.</string>
     <string name="recorder_keep">احتفظ</string>
     <string name="recorder_discard">احذف</string>
+
+    <!-- Study words, the owner's 15 Nov answers (T0272). -->
+    <string name="settings_night_mode">الوضع الليلي</string>
+    <string name="study_revision_today">مراجعة اليوم</string>
+    <string name="study_focus_session">جلسة تركيز</string>
+    <string name="study_focus_block">فترة</string>
+    <string name="study_mock_part">جزء</string>
+    <string name="study_rhythm_consistent">منتظم</string>
+    <string name="study_rhythm_uneven">متفاوت</string>
+    <string name="study_rhythm_resting">راحة</string>
 </resources>

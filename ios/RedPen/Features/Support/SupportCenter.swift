@@ -227,7 +227,7 @@ struct SettingsPage: View {
                     .accessibilityAddTraits(.isHeader)
                 // the dark look, named as Android names it, its note under it
                 VStack(alignment: .leading, spacing: WardSpace.xs) {
-                    Toggle("Night shift", isOn: $alwaysNight)
+                    Toggle("Night mode", isOn: $alwaysNight)
                         .accessibilityIdentifier("alwaysNightToggle")
                     Text("\(Brand.name)'s dark palette")
                         .font(WardType.caption)

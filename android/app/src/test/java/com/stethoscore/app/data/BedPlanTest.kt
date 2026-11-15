@@ -204,7 +204,7 @@ class BedPlanTest {
         check("zero counts are no history", read(mapOf("2026-09-23" to 0)).rhythm == RhythmReading.Rhythm.noTrace)
 
         val steady = read(days((0 until 14).filter { it % 7 != 3 }))
-        check("most days, short gaps: regular", steady.rhythm == RhythmReading.Rhythm.regular && steady.words == "Sinus · regular",
+        check("most days, short gaps: regular", steady.rhythm == RhythmReading.Rhythm.regular && steady.words == "Consistent",
             "${steady.rhythm} ${steady.activeDays}/${steady.span}")
         check("its line counts the days", steady.line == "Studied 12 of the last 14 days.", steady.line)
         check("today is the last beat", steady.beats.last())
@@ -233,7 +233,7 @@ class BedPlanTest {
             "${newcomer.span} ${newcomer.line}")
         val first = read(days(listOf(0)))
         check("the first day says day, not 1 days", first.line == "Studied 1 of the last day.", first.line)
-        check("VoiceOver hears the rhythm", steady.spoken.startsWith("Study rhythm, regular."), steady.spoken)
+        check("VoiceOver hears the rhythm", steady.spoken.startsWith("Study rhythm, consistent."), steady.spoken)
 
         // the study log and the dated answers, together
         val answersOn = listOf(now, now, now.minusMillis(3 * day))

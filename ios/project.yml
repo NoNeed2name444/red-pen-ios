@@ -239,8 +239,8 @@ targets:
         # Settings > "Lock with Face ID" (AppLock). Without this string iOS
         # ends the app the moment Face ID is asked for.
         NSFaceIDUsageDescription: Stethoscore uses Face ID to unlock the app when you have turned on the app lock.
-        # Settings > "Log focus rounds to Health" (MindfulMinutes).
-        NSHealthUpdateUsageDescription: Stethoscore saves your finished focus rounds as mindful minutes in Health, if you turn this on.
+        # Settings > "Log focus blocks to Health" (MindfulMinutes).
+        NSHealthUpdateUsageDescription: Stethoscore saves your finished focus blocks as mindful minutes in Health, if you turn this on.
         NSHealthShareUsageDescription: Stethoscore does not read anything from Health.
         # The widgets' shared container, read by GlanceShelf (never spelled in
         # Swift, so a fork's team can change it here alone).

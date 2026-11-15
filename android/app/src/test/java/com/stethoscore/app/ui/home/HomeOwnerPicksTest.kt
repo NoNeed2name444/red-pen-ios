@@ -66,6 +66,6 @@ class HomeOwnerPicksTest {
         compose.onAllNodesWithTag("chooseExam").assertCountEquals(1)
         compose.onAllNodesWithText("Choose your exam").assertCountEquals(0)
         compose.onAllNodesWithText("Change exam").assertCountEquals(0)
-        compose.onAllNodesWithText("Night shift").assertCountEquals(1)
+        compose.onAllNodesWithText("Night mode").assertCountEquals(1)
     }
 }
