@@ -353,16 +353,13 @@ extension View {
     }
 }
 
-/// "Reasoning practice…" in a library row's menu. A view of its own rather
-/// than a plain button, so it can pick up the Ideas store from the library's
-/// environment and hand it to the sheet, which is presented outside it.
+/// "Reasoning practice…" in a library row's menu.
 struct ReasoningMenuItem: View {
     let set: StudySet
-    @EnvironmentObject private var notes: NoteStore
 
     var body: some View {
         Button("Reasoning practice\u{2026}", systemImage: "brain.head.profile") {
-            ReasoningPresenter.present(set, notes: notes)
+            ReasoningPresenter.present(set)
         }
     }
 }
@@ -371,7 +368,7 @@ struct ReasoningMenuItem: View {
 /// library's row menu gets there without a sheet of its own.
 @MainActor
 enum ReasoningPresenter {
-    static func present(_ set: StudySet, notes: NoteStore) {
+    static func present(_ set: StudySet) {
         // the row's menu is still closing when its button runs; presenting
         // over it at once can be refused
         Task { @MainActor in
@@ -382,7 +379,7 @@ enum ReasoningPresenter {
             while let next = top.presentedViewController { top = next }
             let holder = ReasoningSheetHolder()
             let host = UIHostingController(rootView: AnyView(
-                ReasoningSheet(set: set, holder: holder).environmentObject(notes)))
+                ReasoningSheet(set: set, holder: holder)))
             holder.controller = host
             top.present(host, animated: true)
         }

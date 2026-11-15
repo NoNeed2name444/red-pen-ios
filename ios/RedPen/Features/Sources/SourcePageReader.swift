@@ -99,7 +99,6 @@ struct SourcePDFPage: UIViewRepresentable {
 
     func makeUIView(context: Context) -> IdeaPDFView {
         let view = IdeaPDFView()
-        view.onSaveSelection = IdeaPDFView.saver(context.environment.ideaPassage)
         view.autoScales = true
         view.displayMode = .singlePage
         view.displaysPageBreaks = false
@@ -110,7 +109,6 @@ struct SourcePDFPage: UIViewRepresentable {
     }
 
     func updateUIView(_ view: IdeaPDFView, context: Context) {
-        view.onSaveSelection = IdeaPDFView.saver(context.environment.ideaPassage)
         if view.document == nil { view.document = PDFDocument(url: url) }
         go(view)
     }

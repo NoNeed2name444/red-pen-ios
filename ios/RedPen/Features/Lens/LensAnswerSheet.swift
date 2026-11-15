@@ -15,7 +15,6 @@ struct LensAnswerSheet: View {
     let question: DetectedQuestion
     @ObservedObject var model: LensModel
     @EnvironmentObject private var store: Store
-    @EnvironmentObject private var notes: NoteStore
     @Environment(\.dismiss) private var dismiss
     @State private var adding = false
     @State private var showPaywall = false
@@ -56,7 +55,6 @@ struct LensAnswerSheet: View {
             if let answer {
                 LensAddSheet(question: question, answer: answer)
                     .environmentObject(store)
-                    .environmentObject(notes)
             }
         }
         .sheet(isPresented: $showPaywall) { PaywallView() }
@@ -149,7 +147,7 @@ struct LensAnswerSheet: View {
             }
             .buttonStyle(.wardPrimary)
             .disabled(answer == nil)
-            .accessibilityHint("Keeps this question in Questions, Cards, OSCE, Ideas or Audio")
+            .accessibilityHint("Keeps this question in Questions, Cards, OSCE or Audio")
             Button {
                 model.answer(question, again: true)
             } label: {

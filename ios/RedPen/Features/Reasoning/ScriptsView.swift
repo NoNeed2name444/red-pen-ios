@@ -2,26 +2,19 @@ import SwiftUI
 import UIKit
 
 /// A set's disease scripts: one card per disease with who gets it, how it
-/// runs, what to look for, what settles it and what to do - and a way to keep
-/// them in Ideas, where their lookalikes join them up in the graph.
+/// runs, what to look for, what settles it and what to do.
 ///
-/// Writing more and Save all to Ideas sit in the slab at the bottom; Delete
-/// is in the More menu at the top, away from them.
+/// Writing more sits in the slab at the bottom; Delete is in the More menu at
+/// the top, away from it.
 struct ScriptsView: View {
     let set: StudySet
     @ObservedObject private var reasoning = ReasoningStore.shared
-    @EnvironmentObject private var notes: NoteStore
     @State private var confirmClear = false
-    @State private var savedMessage: String?
-
-    /// The folder in Ideas that saved scripts go into.
-    static let folderName = "Disease scripts"
 
     private var isExample: Bool { self.set.id == ReasoningExamples.setId }
 
     var body: some View {
         let scripts = reasoning.pack(for: set.id).scripts
-        let titles = notes.titleIndex()
         let here = Set(scripts.map { $0.disease.lowercased() })
         ScrollViewReader { reader in
             ScrollView {
@@ -32,12 +25,9 @@ struct ScriptsView: View {
                             .padding(.top, 30)
                     }
                     ForEach(scripts) { script in
-                        let key: String = script.disease.trimmingCharacters(in: .whitespaces).lowercased()
                         ScriptCard(
                             script: script,
-                            saved: titles[key] != nil,
                             jumpable: here,
-                            onSave: { save([script]) },
                             onJump: { name in
                                 guard let target = scripts.first(where: { $0.disease.lowercased() == name.lowercased() })
                                 else { return }
@@ -52,37 +42,14 @@ struct ScriptsView: View {
             }
         }
         .wardScreen()
-        .overlay(alignment: .top) {
-            if let savedMessage {
-                // the one slip after a save (SaveToIdeasUI), with nothing to undo
-                SavedIdeaToast(toast: IdeaToast(host: nil, title: "Saved to Ideas",
-                                                message: savedMessage, undo: nil),
-                               onUndo: {}, onDismiss: { self.savedMessage = nil })
-                    .wardUnlit()
-                    .padding(.top, 8)
-                    .padding(.horizontal, WardSpace.gutter)
-                    .transition(.slideIn(.top))
-            }
-        }
-        .animation(Motion.gentle(.snappy(duration: 0.25)), value: savedMessage)
-        .task(id: savedMessage) {
-            // non-modal: it says what happened and goes by itself, as long
-            // as every save's slip stays
-            guard savedMessage != nil else { return }
-            try? await Task.sleep(for: SavedIdeaToast.showFor)
-            guard !Task.isCancelled else { return }
-            savedMessage = nil
-        }
         .navigationTitle("Disease scripts")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            if !scripts.isEmpty {
+            // the ready-made examples cannot be deleted, so the menu would be empty
+            if !scripts.isEmpty && !isExample {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        Button("Save all to Ideas", systemImage: "lightbulb") { save(scripts) }
-                        if !isExample {
-                            Button("Delete scripts", systemImage: "trash", role: .destructive) { confirmClear = true }
-                        }
+                        Button("Delete scripts", systemImage: "trash", role: .destructive) { confirmClear = true }
                     } label: {
                         Label("More", systemImage: "ellipsis")
                             .labelStyle(.iconOnly)
@@ -95,76 +62,18 @@ struct ScriptsView: View {
         }
         .confirmationDialog("Delete these scripts?", isPresented: $confirmClear, titleVisibility: .visible) {
             Button("Delete scripts", role: .destructive) { reasoning.clear(.scripts, for: set.id) }
-        } message: {
-            Text("Scripts already saved to Ideas stay there.")
         }
-        .studyBar { bar(scripts) }
-    }
-
-    /// Write more, and Save all to Ideas once there is something to save.
-    private func bar(_ scripts: [IllnessScript]) -> some View {
-        VStack(spacing: 12) {
-            if !isExample {
-                ReasoningWriteBar(tool: .scripts, set: set)
-            }
-            if !scripts.isEmpty {
-                Button {
-                    save(scripts)
-                } label: {
-                    Label("Save all to Ideas", systemImage: "lightbulb")
-                }
-                .buttonStyle(.wardSecondary)
-                .accessibilityHint("Keeps every script here as a page in Ideas, with lookalikes linked")
-            }
-        }
-    }
-
-    /// Saves scripts to Ideas as pages in the "Disease scripts" folder, each
-    /// lookalike written as a `[[link]]`. A script already there under the
-    /// same title is brought up to date rather than saved twice.
-    private func save(_ scripts: [IllnessScript]) {
-        let folder = notes.subfolders(of: nil).first { $0.name == Self.folderName }
-            ?? notes.createFolder(name: Self.folderName)
-        var added = 0, updated = 0
-        for script in scripts {
-            let index = notes.titleIndex()
-            let key = script.disease.trimmingCharacters(in: .whitespaces).lowercased()
-            if let id = index[key], var existing = notes.note(id) {
-                existing.body = script.notePage
-                existing.kind = .page
-                if !existing.tags.contains("disease script") { existing.tags.append("disease script") }
-                notes.update(existing)
-                updated += 1
-            } else {
-                var made = notes.create(title: script.disease, body: script.notePage, kind: .page, folderId: folder.id)
-                made.tags = ["disease script"]
-                notes.update(made)
-                added += 1
-            }
-        }
-        var parts: [String] = []
-        if added > 0 {
-            let plural: String = added == 1 ? "" : "s"
-            parts.append("\(added) new page\(plural)")
-        }
-        if updated > 0 { parts.append("\(updated) updated") }
-        let counts: String = parts.joined(separator: ", ")
-        let message: String = "\(counts) in \u{201C}\(Self.folderName)\u{201D}, lookalikes linked"
-        savedMessage = message
-        let spoken: String = "Saved to Ideas: " + message
-        UIAccessibility.post(notification: .announcement, argument: spoken)
+        // the ready-made examples have nothing to write
+        .studyBar(shown: !isExample) { ReasoningWriteBar(tool: .scripts, set: set) }
     }
 }
 
 /// One disease on one card.
 struct ScriptCard: View {
     let script: IllnessScript
-    /// Already a page in Ideas.
-    let saved: Bool
     /// Diseases with a card of their own on this screen, lowercased: their
     /// lookalike chips jump to that card.
     let jumpable: Set<String>
-    let onSave: () -> Void
     let onJump: (String) -> Void
 
     var body: some View {
@@ -172,7 +81,6 @@ struct ScriptCard: View {
             HStack(alignment: .center) {
                 Text(script.disease).font(WardType.title).foregroundStyle(Color.wardInk)
                 Spacer(minLength: 8)
-                saveButton
             }
             line("person.2", "Who gets it", script.who)
             line("clock", "Time course", script.timeCourse)
@@ -199,25 +107,6 @@ struct ScriptCard: View {
             }
         }
         .wardCard()
-    }
-
-    /// Save to Ideas as a 44-point icon on a soft disc raised off the card,
-    /// pressed in under the finger: a lightbulb, or a tick once it is there.
-    private var saveButton: some View {
-        let symbol: String = saved ? "checkmark.circle.fill" : "lightbulb"
-        let title: String = saved ? "In Ideas \u{2014} save again" : "Save to Ideas"
-        let colour: Color = saved ? Color.wardSuccess : Color.wardPrimaryInk
-        return Button(action: onSave) {
-            Image(systemName: symbol)
-                .font(WardType.face(.title3, weight: .regular))
-                .foregroundStyle(colour)
-                .contentTransition(.identity)
-                .frame(width: 44, height: 44)
-                .contentShape(Circle())
-        }
-        .buttonStyle(.wardCircle)
-        .help(title)
-        .accessibilityLabel(title)
     }
 
     /// A lookalike with a card on this screen is a chip in the section's

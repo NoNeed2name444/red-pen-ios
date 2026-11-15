@@ -4,8 +4,7 @@ import Foundation
 // what was missed that could kill, whether the diagnosis was right and what
 // separates it from the runner-up, the key findings found, the turning point
 // against when the student's ladder actually moved, the time and the
-// low-yield steps, and the teaching. Also the cards made from what was missed
-// and the note for Ideas.
+// low-yield steps, and the teaching. Also the cards made from what was missed.
 //
 // Feedback on the reasoning, not only the answer (Bowen 2006): the turning
 // point shows where the case should have tipped, beside where the student's
@@ -141,42 +140,4 @@ struct CaseDebrief {
             return card
         }
     }
-
-    /// The note for Ideas, in Markdown: the patient, the diagnosis and what
-    /// separates it, the red flags, and the teaching with its source.
-    var ideaText: String {
-        var lines: [String] = []
-        lines.append("**\(file.patient.ageSex)** \u{00B7} \(file.setting.label) \u{00B7} \u{201C}\(file.complaint)\u{201D}")
-        lines.append("")
-        lines.append("**Diagnosis:** \(file.diagnosis.name)")
-        if let other = file.runnerUp {
-            lines.append("**Runner-up:** \(other.name)")
-        }
-        let telling: [Item] = separating
-        if !telling.isEmpty {
-            lines.append("")
-            lines.append("What tells them apart:")
-            for item in telling { lines.append("- \(item.step.label): \(item.step.finding)") }
-        }
-        let flags: [CaseStep] = file.redFlagSteps
-        if !flags.isEmpty {
-            lines.append("")
-            lines.append("Red flags:")
-            for step in flags { lines.append("- \(step.label): \(step.finding)") }
-        }
-        if !rightNextStep.isEmpty {
-            lines.append("")
-            lines.append("**Next step:** \(rightNextStep). \(file.nextStep.why)")
-        }
-        if !file.teaching.isEmpty {
-            lines.append("")
-            for point in file.teaching { lines.append("- \(point)") }
-            let cited: String = file.source.cited
-            if !cited.isEmpty { lines.append("") ; lines.append("_Source: \(cited)_") }
-        }
-        return lines.joined(separator: "\n")
-    }
-
-    /// The idea's title: "Case: <diagnosis>".
-    var ideaTitle: String { "Case: " + (file.diagnosis.name.isEmpty ? file.title : file.diagnosis.name) }
 }

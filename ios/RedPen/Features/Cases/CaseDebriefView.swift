@@ -6,8 +6,8 @@ import SwiftUI
 /// ladder moved, the time and the low-yield steps, and three teaching points
 /// with their source. The score is shown with its parts, never as a rank.
 ///
-/// Three things to do with it: cards from what was missed, a note in the
-/// Ideas map, and another patient like this one.
+/// Two things to do with it: cards from what was missed, and another patient
+/// like this one.
 struct CaseDebriefView: View {
     let file: CaseFile
     let setID: UUID
@@ -16,13 +16,11 @@ struct CaseDebriefView: View {
 
     @EnvironmentObject private var store: Store
     @EnvironmentObject private var llm: LocalLLMService
-    @ObservedObject private var saver = IdeaSaver.shared
 
     @State private var cardsNote: String?
     @State private var anotherNote: String?
     @State private var writing = false
     @State private var writingTask: Task<Void, Never>?
-    @State private var ideaHost = UUID()
     @State private var owner = UUID()
 
     private var debrief: CaseDebrief { CaseDebrief(file: file, run: run) }
@@ -46,7 +44,6 @@ struct CaseDebriefView: View {
             .readableColumn()
         }
         .wardScreen(wash: .cases)
-        .saveToIdeasHost(ideaHost)
         .onDisappear { GenerationCenter.shared.cancel(startedBy: owner) }
     }
 
@@ -300,13 +297,6 @@ struct CaseDebriefView: View {
             .accessibilityHint(debrief.missed.isEmpty ? "Nothing was missed" : "One card for each missed key finding or red flag, into your review")
             if let cardsNote { note(cardsNote) }
 
-            Button { addIdea() } label: {
-                Label("Add to the Ideas map", systemImage: "lightbulb")
-                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-            }
-            .buttonStyle(.wardSecondary)
-            .disabled(!saver.isReady)
-
             CaseLabel("Another patient like this")
             Button { another(sameDiagnosis: true) } label: {
                 HStack {
@@ -363,13 +353,6 @@ struct CaseDebriefView: View {
             cardsNote = "\(made.count) card\(made.count == 1 ? "" : "s") in a new deck, \u{201C}\(deckName)\u{201D}."
         }
         UIAccessibility.post(notification: .announcement, argument: cardsNote ?? "")
-    }
-
-    private func addIdea() {
-        let source = NoteSource(kind: .patientCase, setID: setID, itemID: file.id, setName: set?.name ?? "")
-        let clip = IdeaClip(title: debrief.ideaTitle, text: debrief.ideaText, source: source,
-                            subject: set?.subject ?? file.specialty)
-        saver.save(clip, host: ideaHost)
     }
 
     /// A new patient: the same diagnosis presented differently, or the

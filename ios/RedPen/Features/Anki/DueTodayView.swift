@@ -101,19 +101,8 @@ struct DueTodayView: View {
                         .reviewCardActions(onBury: { bury(due) }, onSuspend: { suspend(due) })
                         .padding(.horizontal, WardSpace.gutter)
                         .padding(.top, 8)
-                        .padding(.bottom, revealed ? 8 : 24)
+                        .padding(.bottom, 24)
                         .readableColumn()
-                        // turned over: the back kept as a note in Ideas
-                        if revealed, let set = store.library.first(where: { $0.id == due.setID }) {
-                            HStack {
-                                Spacer()
-                                SaveToIdeasButton(clip: SaveToIdeas.clip(card: due.card, in: set,
-                                                                         library: store.library))
-                            }
-                            .padding(.horizontal, WardSpace.gutter)
-                            .padding(.bottom, 24)
-                            .readableColumn()
-                        }
                         // the deck in the page at the accessibility sizes (decksInline)
                         if decksInline {
                             footer(due)
@@ -126,7 +115,6 @@ struct DueTodayView: View {
             }
             .reviewUndoChip(until: $undoUntil, action: undo)
             .studyBar(shown: !decksInline) { footer(due) }
-            .saveToIdeasHost()
             // rated at the accessibility sizes, the page is left at the deck;
             // the next card, or the same card coming back after Again, opens at its header (a no-op below them)
             .onChange(of: due.id) { _, _ in proxy.scrollTo(Self.cardTop, anchor: .top) }

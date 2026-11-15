@@ -364,8 +364,6 @@ if let mcqA {
     let deck = LensConversion.cards(mcqQ, mcqA)
     check("into Cards: one card with the right answer", deck.count == 1 && deck.first?.bullets == ["Intramuscular adrenaline"])
     check("into Cards: tagged", deck.first?.tags == ["Lens"])
-    let note = LensConversion.note(mcqQ, mcqA)
-    check("into Ideas: linked to the hub note", note.body.contains("[[Lens captures]]") && note.body.contains("**Answer:** Intramuscular adrenaline"))
     let script = LensConversion.narration(mcqQ, mcqA)
     check("into Audio: question, options, answer", script.count >= 7 && script.contains { $0.text == "The answer is Intramuscular adrenaline." })
     check("into OSCE: too little to make a station", LensConversion.station(mcqQ, mcqA) == nil)

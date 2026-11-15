@@ -1,8 +1,8 @@
 import Foundation
 
 // Study Lens: turning a captured question and its answer into something to
-// study - a question in a set, a flashcard, an OSCE station, an idea note,
-// or a narration script.
+// study - a question in a set, a flashcard, an OSCE station, or a narration
+// script.
 //
 // Where the app already knows how to turn one mode into another
 // (ModeConversion), that is used, so a Lens capture becomes a card exactly as
@@ -15,7 +15,7 @@ import Foundation
 
 /// Where a capture can go.
 enum LensDestination: String, CaseIterable, Identifiable, Hashable {
-    case questions, cards, osce, ideas, audio
+    case questions, cards, osce, audio
 
     var id: String { rawValue }
 
@@ -24,7 +24,6 @@ enum LensDestination: String, CaseIterable, Identifiable, Hashable {
         case .questions: return "Questions"
         case .cards: return "Cards"
         case .osce: return "OSCE"
-        case .ideas: return "Ideas"
         case .audio: return "Audio"
         }
     }
@@ -34,7 +33,6 @@ enum LensDestination: String, CaseIterable, Identifiable, Hashable {
         case .questions: return "A multiple-choice question in a set"
         case .cards: return "A flashcard, or a cloze card"
         case .osce: return "A station checklist"
-        case .ideas: return "A note with the question and why"
         case .audio: return "A script read aloud in Audio"
         }
     }
@@ -44,19 +42,17 @@ enum LensDestination: String, CaseIterable, Identifiable, Hashable {
         case .questions: return "checklist.checked"
         case .cards: return "rectangle.on.rectangle.angled"
         case .osce: return "list.clipboard"
-        case .ideas: return "lightbulb"
         case .audio: return "waveform"
         }
     }
 
-    /// The kind of set it goes into; nil for Ideas, which are notes.
-    var kind: StudySetKind? {
+    /// The kind of set it goes into.
+    var kind: StudySetKind {
         switch self {
         case .questions: return .mcq
         case .cards: return .anki
         case .osce: return .osce
         case .audio: return .narrate
-        case .ideas: return nil
         }
     }
 
@@ -74,15 +70,14 @@ enum LensConversion {
 
     static let tag: String = "Lens"
     static let source: String = "Study Lens"
-    /// The set, folder and hub note captures go to unless another is chosen.
+    /// The set captures go to unless another is chosen.
     static let defaultName: String = "Lens captures"
 
     // MARK: into a set
 
     /// A new, empty set for a destination: "Lens captures", tagged.
     static func newSet(for destination: LensDestination, name: String = defaultName) -> StudySet? {
-        guard let kind = destination.kind else { return nil }
-        var set = StudySet(name: name, subject: "General", kind: kind)
+        var set = StudySet(name: name, subject: "General", kind: destination.kind)
         set.tags = [tag]
         return set
     }
@@ -122,7 +117,6 @@ enum LensConversion {
         case .questions: return question(q, a) != nil
         case .cards: return !cards(q, a).isEmpty
         case .osce: return station(q, a) != nil
-        case .ideas: return true
         case .audio: return !narration(q, a).isEmpty
         }
     }
@@ -297,42 +291,6 @@ enum LensConversion {
         }
         let rest: String = current.trimmingCharacters(in: .whitespacesAndNewlines)
         if !rest.isEmpty { out.append(rest) }
-        return out
-    }
-
-    // MARK: Ideas
-
-    /// A note for the idea dump: the question, the answer and why, linked to
-    /// the "Lens captures" hub note by `[[...]]` so every capture sits
-    /// together on the board.
-    static func note(_ q: DetectedQuestion, _ a: LensAnswer) -> (title: String, body: String) {
-        let title: String = LensHash.firstWords(q.stem, count: 10)
-        var lines: [String] = ["**" + q.type.title + "** \u{00B7} from [[" + defaultName + "]]", "", q.fullText, ""]
-        let answer: String = a.answer.isEmpty ? (a.verdict.map { $0 ? "True" : "False" } ?? "") : a.answer
-        if !answer.isEmpty { lines.append("**Answer:** " + answer) }
-        if !a.filled.isEmpty { lines.append(a.filled) }
-        if !a.correction.isEmpty { lines.append("Correctly: " + a.correction) }
-        if !a.nextStep.isEmpty { lines.append("**Next step:** " + a.nextStep) }
-        if !a.explanation.isEmpty { lines.append(""); lines.append(a.explanation) }
-        if !a.steps.isEmpty {
-            lines.append("")
-            for (i, step) in a.steps.enumerated() { lines.append("\(i + 1). " + step) }
-        }
-        let notes: [String] = optionLines(q, a)
-        if !notes.isEmpty { lines.append(""); lines.append(contentsOf: notes) }
-        if !a.keyPoints.isEmpty {
-            lines.append("")
-            lines.append(contentsOf: a.keyPoints.map { "- " + $0 })
-        }
-        return (title, lines.joined(separator: "\n"))
-    }
-
-    private static func optionLines(_ q: DetectedQuestion, _ a: LensAnswer) -> [String] {
-        var out: [String] = []
-        for (i, note) in a.optionNotes.enumerated() where !note.isEmpty && q.options.indices.contains(i) {
-            let mark: String = i == a.correctIndex ? "\u{2713} " : "\u{2717} "
-            out.append("- " + mark + LensHash.letter(i) + ". " + q.options[i].text + ": " + note)
-        }
         return out
     }
 

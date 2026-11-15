@@ -176,7 +176,6 @@ struct MCQSummaryView: View {
             .readableColumn()
         }
         .studyBar(folds: true) { barButtons }
-        .saveToIdeasHost()
         .reviewPromptAfterStreak(true)
         .modeScreen(.mcq)
         .navigationTitle("Results")
@@ -290,11 +289,10 @@ struct MCQSummaryView: View {
         .contentCard()
     }
 
-    /// A question's mark and stem, read as one; beside it, Save to Ideas.
+    /// A question's mark and stem, read as one.
     private func reviewRow(_ i: Int) -> some View {
         let q = studySet.questions[i]
         let correct = isRight(i)
-        let idea: IdeaClip = SaveToIdeas.clip(question: q, in: studySet, library: store.library)
         return HStack(alignment: .top, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
@@ -312,7 +310,6 @@ struct MCQSummaryView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityElement(children: .combine)
-            SaveToIdeasButton(clip: idea, compact: true)
         }
         .padding(.vertical, 12)
     }

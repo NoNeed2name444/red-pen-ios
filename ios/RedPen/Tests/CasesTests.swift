@@ -210,7 +210,6 @@ check("one card per missed key finding or red flag", cards.count == 1 && cards[0
 check("cards are basic and tagged", cards.allSatisfy { $0.type == .qa && ($0.tags ?? []).contains("Cases") }
       && cards[0].why.hasPrefix("Must not miss"))
 check("nothing missed, no cards", CaseDebrief(file: pe, run: slow).cards.isEmpty)
-check("the Ideas note names the diagnosis", lateLead.ideaText.contains("Pulmonary embolism") && lateLead.ideaTitle == "Case: Pulmonary embolism")
 
 // MARK: saved and read back
 

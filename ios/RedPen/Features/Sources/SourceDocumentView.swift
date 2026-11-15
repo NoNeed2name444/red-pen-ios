@@ -82,9 +82,7 @@ struct PDFDocumentView: UIViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(page: $page) }
 
     func makeUIView(context: Context) -> IdeaPDFView {
-        // "Save to Ideas" in the menu over a selection, when the reader can
         let view = IdeaPDFView()
-        view.onSaveSelection = IdeaPDFView.saver(context.environment.ideaPassage)
         view.autoScales = true
         view.backgroundColor = UIColor(Color.wardWash)
         view.document = PDFDocument(url: url)
@@ -97,7 +95,6 @@ struct PDFDocumentView: UIViewRepresentable {
     }
 
     func updateUIView(_ view: IdeaPDFView, context: Context) {
-        view.onSaveSelection = IdeaPDFView.saver(context.environment.ideaPassage)
         context.coordinator.page = $page
         if view.document?.documentURL != url { view.document = PDFDocument(url: url) }
         go(view, to: page)

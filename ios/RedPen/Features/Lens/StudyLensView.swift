@@ -13,7 +13,6 @@ import UniformTypeIdentifiers
 /// words of a question the student taps are sent to answer it.
 struct StudyLensView: View {
     @EnvironmentObject private var store: Store
-    @EnvironmentObject private var notes: NoteStore
     @Environment(\.graphics) private var graphics
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -52,7 +51,6 @@ struct StudyLensView: View {
         .sheet(item: $selected) { question in
             LensAnswerSheet(question: question, model: model)
                 .environmentObject(store)
-                .environmentObject(notes)
         }
         .photosPicker(isPresented: $choosingPhoto, selection: $photoItem, matching: .images)
         .fileImporter(isPresented: $choosingFile, allowedContentTypes: [.pdf, .image]) { result in
@@ -476,7 +474,6 @@ enum LensStyle {
     }
 
     static func tint(_ destination: LensDestination) -> Color {
-        guard let kind = destination.kind else { return Color.wardBeam }
-        return kind.tint
+        destination.kind.tint
     }
 }

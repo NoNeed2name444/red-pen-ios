@@ -121,22 +121,6 @@ struct IllnessScript: Identifiable, Codable, Hashable {
     var firstLine: String
     /// The conditions it is most often mistaken for, by name.
     var lookalikes: [String]
-
-    /// The script as a Markdown page for Ideas. Each lookalike is written as
-    /// a `[[Title]]` link, so the idea graph joins scripts that name each other.
-    var notePage: String {
-        var lines: [String] = []
-        if !who.isEmpty { lines += ["**Who gets it:** " + who, ""] }
-        if !timeCourse.isEmpty { lines += ["**Time course:** " + timeCourse, ""] }
-        if !keyFeatures.isEmpty { lines += ["### Key features"] + keyFeatures.map { "- " + $0 } + [""] }
-        if !examSigns.isEmpty { lines += ["### Examination"] + examSigns.map { "- " + $0 } + [""] }
-        if !decisiveTest.isEmpty { lines += ["**Decisive investigation:** " + decisiveTest, ""] }
-        if !firstLine.isEmpty { lines += ["**First-line management:** " + firstLine, ""] }
-        if !lookalikes.isEmpty {
-            lines += ["### Lookalikes"] + lookalikes.map { "- [[\($0)]]" }
-        }
-        return lines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
-    }
 }
 
 /// Everything written for one set.
