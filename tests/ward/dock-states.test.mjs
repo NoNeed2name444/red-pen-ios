@@ -1,4 +1,4 @@
-// The dock, the wide iPad's rail, the Ideas pill, the list button at the
+// The dock, the wide iPad's rail, the list button at the
 // accessibility sizes and Ideas' floating switcher follow the same states
 // as every other Ward control (the review's B2; WardControlStates): chosen
 // keeps the pressed-in hollow and adds the 2-point accent edge, an unchosen
@@ -31,13 +31,13 @@ for (const [name, source] of [['the dock, rail, pill and list button', dock], ['
 }
 
 check('every dock button is a Ward item or panel button',
-      (dock.match(/\.buttonStyle\(/g) || []).length === 4
-      && (dock.match(/\.buttonStyle\(Ward(Item|Panel)ButtonStyle\(/g) || []).length === 4,
+      (dock.match(/\.buttonStyle\(/g) || []).length === 2
+      && (dock.match(/\.buttonStyle\(Ward(Item|Panel)ButtonStyle\(/g) || []).length === 2,
       String((dock.match(/\.buttonStyle\([^\n]*/g) || []).join(' | ')));
-check('the dock item and the rail item draw the accent edge on the chosen hollow',
-      (dock.match(/\.wardChosenEdge\(segment, true\)\s*\.matchedGeometryEffect\(id: "chosen"/g) || []).length === 2);
-check('the Ideas pill is a panel button that is chosen when Ideas is',
-      /WardPanelButtonStyle\(chosen: chosen, lift: \.high, shape: shape\)/.test(dock));
+check('the dock item (the rail uses the same item) draws the accent edge on the chosen hollow',
+      (dock.match(/\.wardChosenEdge\(segment, true\)\s*\.matchedGeometryEffect\(id: "chosen"/g) || []).length === 1);
+check('the dock has no Ideas pill, rail item or chooser left',
+      !/ideasPill|chooseIdeas|ideasRailItem/.test(dock));
 check('the face reads the state: Chart Ink, accent when chosen, Biro Grey when disabled',
       /if !enabled \{ return \.wardDisabledInk \}\s*return chosen \? \.wardPrimaryInk : \.wardInk/.test(category));
 check('the list button\'s chevron is in Chart Ink',
