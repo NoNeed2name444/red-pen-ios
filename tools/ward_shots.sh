@@ -11,11 +11,12 @@
 #
 # phone: the recordings of the colour shift (the app's own light/dark
 # switch, home stepping through its sections, the system's switch), then
-# home, a study screen, New set, Settings, a sheet and each section in both
-# modes.
-# small: home and each section at the iPhone SE's size (375 x 647, the
-# app's own frame inside this phone); and Dynamic Type at XXL (the largest
-# standard size), AX1 (the first accessibility size) and AX5 (the largest).
+# home, home scrolled to its end (library-end), a study screen, New set,
+# Settings, a sheet and each section in both modes.
+# small: home, home scrolled to its end (library-end-se) and each section
+# at the iPhone SE's size (375 x 647, the app's own frame inside this
+# phone); and Dynamic Type at XXL (the largest standard size), AX1 (the
+# first accessibility size) and AX5 (the largest).
 # device: home and each section in both modes, and home at XXL and AX1
 # (Pro Max, iPad).
 # states: the states gallery (every Ward control at rest, held, disabled
@@ -243,7 +244,7 @@ if [ "$plan" = phone ]; then
   record mode-switch-quiz mode-switch-quiz.mp4 6 11
   record section-switch section-switch.mp4 5 13
   for look in light dark; do
-    for screen in library quiz quiz-folded quiz-scrolled quiz-checked new settings sheet lens; do
+    for screen in library library-end quiz quiz-folded quiz-scrolled quiz-checked new settings sheet lens; do
       shoot "$look" "$screen" "$screen-$look"
       if [ "$screen" = library ]; then fit "library-$look"; fi
     done
@@ -265,6 +266,7 @@ elif [ "$plan" = small ]; then
     # the iPhone SE: 375 points wide, 647 under its status bar
     shoot "$look" library "library-se-$look" "${SE[@]}"
     fit "library-se-$look"
+    shoot "$look" library-end "library-end-se-$look" "${SE[@]}"
     for screen in $SECTIONS; do
       shoot "$look" "$screen" "se/section-$screen-$look" "${SE[@]}"
     done
