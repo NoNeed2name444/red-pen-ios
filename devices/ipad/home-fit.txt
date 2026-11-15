@@ -1,0 +1,40 @@
+== ipad library-light
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 15, kept 0 (cut none), book 15 parts before the push, 0 at its last look
+card 320-676, start 604-660, new set 1118-1174, tiles 708-846 (spare 152), bar 1118-1190, bar's line 1106, not cut, large text false
+15 parts measured: the round card 321-677, bed 1 367-441, the Due chip 392-415, bed 2 443-517, the New chip 468-491, bed 3 519-593, the tiles 709-846, the Your sets heading 894-910, a set row 936-1010, Build a session 1048-1120, the Practise heading 1158-1173, the flagged tile 1187-1303, the mistakes tile 1187-1303, the mixed tile 1187-1303, the timed tile 1187-1303
+words: the Vitals tile's streak 73/34, the brain map's line 166/33
+== ipad library-dark
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 15, kept 0 (cut none), book 15 parts before the push, 0 at its last look
+card 320-676, start 604-660, new set 1118-1174, tiles 708-846 (spare 152), bar 1118-1190, bar's line 1106, not cut, large text false
+15 parts measured: the round card 321-677, bed 1 367-441, the Due chip 392-415, bed 2 443-517, the New chip 468-491, bed 3 519-593, the tiles 709-846, the Your sets heading 894-910, a set row 936-1010, Build a session 1048-1120, the Practise heading 1158-1173, the flagged tile 1187-1303, the mistakes tile 1187-1303, the mixed tile 1187-1303, the timed tile 1187-1303
+words: the Vitals tile's streak 73/34, the brain map's line 166/33
+== ipad xxl-library-light
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 10, kept 0 (cut none), book 10 parts before the push, 0 at its last look
+card 345-756, start 684-740, new set 1118-1174, tiles 788-934 (spare 185), bar 1118-1190, bar's line 1106, not cut, large text true
+10 parts measured: the round card 346-757, bed 1 397-488, the Due chip 427-458, bed 2 490-580, the New chip 519-551, bed 3 582-673, the tiles 789-934, the Your sets heading 978-1002, a set row 1024-1115, Build a session 1153-1235
+words: the Vitals tile's streak 97/45, the brain map's line 221/44
+== ipad xxl-library-dark
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 10, kept 0 (cut none), book 10 parts before the push, 0 at its last look
+card 345-756, start 684-740, new set 1118-1174, tiles 788-934 (spare 185), bar 1118-1190, bar's line 1106, not cut, large text true
+10 parts measured: the round card 346-757, bed 1 397-488, the Due chip 427-458, bed 2 490-580, the New chip 519-551, bed 3 582-673, the tiles 789-934, the Your sets heading 978-1002, a set row 1024-1115, Build a session 1153-1235
+words: the Vitals tile's streak 97/45, the brain map's line 221/44
+== ipad ax1-library-light
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 6, kept 0 (cut none), book 6 parts before the push, 0 at its last look
+card 432-1200, start 1128-1184, new set 1032-1089, tiles none (spare 364), bar 1032-1188, bar's line 1020, not cut, large text true
+6 parts measured: the round card 432-1201, bed 1 550-753, the Due chip 708-745, bed 2 755-957, the New chip 912-949, bed 3 959-1117
+words: 
