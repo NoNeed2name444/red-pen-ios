@@ -3442,10 +3442,20 @@ with the marks on the screens last.
   "ok make them consistent": all groups as cards (T0273, see the Settings item). (4) the old route/words items: "fix"; closed above. (5) "start with
   arabic too". (6) "the app is A LOT and SOOOO CONFUSING to manage through it make
   it simpler without losing function (this is an app overhaul)".
-  - [ ] Words and Arabic (T0272): rhythm Consistent / Uneven / Resting; Night
-    shift is Night mode; the Arabic for Done, Today's revision, Focus session,
-    Block, Part, the Health permission and the new words; "Item 1" stays
-    (the glossary's default; the owner did not object). iOS and Android.
+  - [x] Words and Arabic (T0272, landed 15 Nov on design/integration at 1291f1be,
+    two commits): rhythm Consistent / Uneven / Resting; Night shift is Night
+    mode; the Arabic for Done, Today's revision, Focus session, Block, Part, the
+    Health permission (reviewer's terms: «صحتي», دقائق الانتباه الذهني) and the new
+    words; "Item 1" stays (the glossary's default; the owner did not object). iOS and
+    Android. Checked by a separate checker (ACCEPT) and an Arabic reviewer (nine
+    strings accepted, one term corrected). Land check: preflight OK, 104/104
+    Linux suites, l10n clean, catalogue baseline now 0 (was 1). Android: no test run.
+    Still owed, needs code, not strings: the rhythm words, Block, Part and the plan
+    header are built from English in code and show in Arabic only once those screens
+    read the catalogue; the reviewer asks for sentence keys with plural forms for
+    "Block 1 of 4" and "Part 2 of 3" and a "Study rhythm" key (إيقاع الدراسة), not the
+    bare words concatenated. Mac run to read: Progress strip "STUDY RHYTHM ·
+    CONSISTENT", Settings toggle "Night mode", Arabic Night mode / Focus session / Done.
   - [ ] Ideas leaves Stethoscore (the owner, 15 Nov: "take it out"; Ideas is
     Sorta now). Keep: the stored notes, ideas and folders, and the library backup
     that carries them (iOS notes.json in the .stethoscorebackup file, Android's
@@ -3456,6 +3466,18 @@ with the marks on the screens last.
     point; delete the code; delete the tests, tools and strings. First a read-only
     map of the surface (what is Ideas-only, what is shared, what the backup needs).
     iOS and Android together. The overhaul's proposal is drawn without Ideas.
+    The owner, 15 Nov, later: "i don't want hide i want removal from the app."
+    So hiding is only the order of work inside one change: nothing is pushed
+    until the code is deleted. Map: scratchpad INV-ideas-removal.md (21 entry
+    points, about 40,000 lines of iOS code in 84 files and 26 test suites; Android
+    25 files and 7 test files). Packets: T0274 iOS entry points (dock, home, Settings,
+    search, tips, launch), T0275 iOS "Save to Ideas" buttons and Lens's Ideas
+    destination, T0276 Android entry points, T0277 iOS relocate what must survive
+    (NoteSource, SplitMix64, GraphArt, GraphLineStyle, IdeaPDFView), T0278 iOS delete
+    (Features/Notes, Shared/Ideas, Earth, 26 suites, workflows, Playgrounds stubs),
+    T0279 iOS Ideas section, palette rows, strings, T0280 Android relocate
+    NoteFolder and delete. Data rule: NoteStore, NoteSource, the backup code and
+    DataIOTests stay.
   - [ ] App overhaul, simpler without losing a function (the owner, 15 Nov; a
     major scope change he asked for). Phases: (a) inventory of the app as it is
     (iOS shell and home, Settings and menus, Android), read-only, counts and
@@ -3465,6 +3487,16 @@ with the marks on the screens last.
     (c) slices, iOS and Android together, each proved on a Mac run; looks last.
     The Ward design language and the 1 Oct targets stay unless the proposal
     says otherwise and the owner agrees.
+    Phase (a) done (three inventories). Phase (b) published 15 Nov as one page:
+    https://claude.ai/artifact/8tBrFMRJduFTwNvz18eZQp (source scratchpad
+    overhaul/index.html, checked by a separate checker for coverage and counts;
+    corrected: 4 routes to Progress, 3 to Your lectures, about 18 quiz buttons after
+    a wrong answer). Proposal: four tabs by job (Today, Practise, Library, Progress)
+    instead of five by set type; Settings 12 groups to 7; first run 7 screens to 5;
+    one home per function. ONE open question: A four tabs (recommended), B keep the
+    five type tabs and prune, C something else. Nothing is built for the tabs until
+    the owner answers. Steps 1 (Settings to 7) and 2 (first run to 5) lose no function
+    and go ahead.
 - [ ] Home's name as the owner's logo, and smaller text on home (the owner,
   on the first IPA): BrandLogo (Foundation-only, tested in brandlogo) picks
   stethoscore-logo-dark.png at night if present, else stethoscore-logo.png,
