@@ -3435,6 +3435,26 @@ with the marks on the screens last.
   same rule at every size and is tested in HomeFitTests. If a picture is wanted,
   PreviewExtras.view needs the window frame PreviewRoot gives, and that is an
   ios/ change (a full App build).
+- [ ] Owner's answers, 15 Nov (to the list of what needs him): (1) the "message
+  sent first": none, nothing is missing. (2) the ward-flavoured words that waited
+  on the copy deck: "change them for a study centered alternative". (3) the
+  Settings cards question: "I don't understand"; folded into the overhaul, no
+  answer owed. (4) the old route/words items: "fix"; closed above. (5) "start with
+  arabic too". (6) "the app is A LOT and SOOOO CONFUSING to manage through it make
+  it simpler without losing function (this is an app overhaul)".
+  - [ ] Words and Arabic (T0272): rhythm Consistent / Uneven / Resting; Night
+    shift is Night mode; the Arabic for Done, Today's revision, Focus session,
+    Block, Part, the Health permission and the new words; "Item 1" stays
+    (the glossary's default; the owner did not object). iOS and Android.
+  - [ ] App overhaul, simpler without losing a function (the owner, 15 Nov; a
+    major scope change he asked for). Phases: (a) inventory of the app as it is
+    (iOS shell and home, Settings and menus, Android), read-only, counts and
+    where each function lives; (b) a proposal: fewer places, one way to start,
+    Settings in fewer groups, with a coverage table that puts every function of
+    the inventory somewhere; shown to the owner as one page before any code;
+    (c) slices, iOS and Android together, each proved on a Mac run; looks last.
+    The Ward design language and the 1 Oct targets stay unless the proposal
+    says otherwise and the owner agrees.
 - [ ] Home's name as the owner's logo, and smaller text on home (the owner,
   on the first IPA): BrandLogo (Foundation-only, tested in brandlogo) picks
   stethoscore-logo-dark.png at night if present, else stethoscore-logo.png,
@@ -3562,9 +3582,14 @@ docs/design/identity/; the route boards are images kept out of the repo.
   the clear-space line) and nits (C keeps the letter on its correct and
   wrong rows; the lab flag is ink). Checked at 1:1; all three boards are
   5640 x 8964.
-- [ ] A fresh board review, round 3.
-- [ ] The owner picks a route, and the words for the timer's parts and the
-  plan's count; then a separate phase applies it.
+- [x] A fresh board review, round 3. (Closed 15 Nov: the boards were overtaken
+  by the Ward design the owner chose on 1 Oct and by T0125; no review is owed.)
+- [x] The owner picks a route, and the words for the timer's parts and the
+  plan's count; then a separate phase applies it. (Settled: the owner chose
+  "3 to do" and "make it block" on 15 Oct and "Part" for the mock on 22 Oct,
+  wording.md's glossary; the phase that applied them is T0125, built 22 Oct.
+  The route: the app has run on the Ward look since 1 Oct. Closed 15 Nov at the
+  owner's "fix".)
 
 ### The exam wording, built (22 Oct, T0125)
 
