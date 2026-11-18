@@ -3478,6 +3478,36 @@ with the marks on the screens last.
     T0279 iOS Ideas section, palette rows, strings, T0280 Android relocate
     NoteFolder and delete. Data rule: NoteStore, NoteSource, the backup code and
     DataIOTests stay.
+    DONE 18 Nov, pushed as one change (nothing was pushed as hide-only). All
+    packets were checked by a separate checker and land-checked (79/79 Linux
+    suites, down from 104: 25 Ideas-only suites went; saveideas and graphics
+    trimmed, not dropped). T0274/T0275/T0276 entry points, T0277 relocated
+    NoteSource, SplitMix64, GraphArt colours, GraphLineStyle, the PDF/text viewers;
+    T0278 deleted Features/Notes (79 files), Shared/Ideas, LibrarySavedIdeas,
+    Resources/Earth, 2 UI tests, the Ideas parts of 5 workflows and the
+    Playgrounds stubs; T0279 removed WardSection.ideas (six sections), the
+    Electric Indigo and Bubblegum Pink palette rows (ten colours became eight; the
+    page keeps a dated note), two orphan strings, dead tools; T0280 deleted the
+    Android feature (25 files, 7 tests, Earth assets; NoteFolder moved to
+    data/Models.kt with identical fields). Data kept: NoteStore, NoteSource, the
+    backup (notes.json, vignette-notes.json) and DataIOTests/PlatformTests.
+    UNPROVEN until the Mac build and an Android CI run: nothing Apple-only or
+    Android was compiled here. Watch first: the GraphArt split (colours in
+    Shared/Space/PhotonRing.swift, textures were in the deleted GraphLook), the
+    NoteStore `#if canImport(Combine)` fence, the Widgets target's NoteSource
+    path, LibraryView after the removals. Mac run should show: five-category dock
+    with no pill or rail divider, home with Vitals alone, Settings without Link
+    length and Lines, search prompt "Search questions, cards, lectures".
+    Still owed: MCQ explanation lost text selection (add .textSelection(.enabled));
+    Android search prompt lacks "lectures"; Android OwnerPaletteTest still lists ten
+    colours; docs/design/colour-roles.md:74 names NoteTone; android tour
+    (TourTest) rows were removed with the tests.
+  - [ ] Red App build on 1291f1be (T0272), 15 Nov, run 43727382235: four UI
+    tests failed, all launch infrastructure (ArabicUITests = first launch of the
+    run, 'Timed out while launching application via Xcode'; three Graph tests: no
+    process ID / failed to terminate); no crash report, accessibility 9/9 green.
+    Not shown to come from T0272; unconfirmed until ArabicUITests passes on the
+    next full build.
   - [ ] App overhaul, simpler without losing a function (the owner, 15 Nov; a
     major scope change he asked for). Phases: (a) inventory of the app as it is
     (iOS shell and home, Settings and menus, Android), read-only, counts and
