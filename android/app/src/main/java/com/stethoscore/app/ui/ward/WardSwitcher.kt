@@ -32,8 +32,7 @@ import com.stethoscore.app.ui.sources.wardRowTile
 import com.stethoscore.app.ui.wardColor
 
 // The collapsible floating switcher (iOS Shared/Ward FloatingSwitcher, fed0105),
-// shared by the lecture reader's bar (Document / Page) and Ideas' bottom
-// container (List / Board / Space).
+// used by the lecture reader's bar (Document / Page; ReaderBar.kt).
 
 /** One choice on the switcher: its value, word, glyph and test tag (the accessibility identifier). */
 data class SwitcherItem<T>(val value: T, val title: String, val icon: ImageVector, val identifier: String)

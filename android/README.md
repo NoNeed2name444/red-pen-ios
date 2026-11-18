@@ -22,8 +22,6 @@ The [Android workflow](https://github.com/NoNeed2name444/red-pen-ios/actions/wor
 - PDF export of any non-Anki set as a printable flashcard deck: cover, contents index, then each question on its own page with its answer on the next.
 - OSCE recall chains, textbook reading, transcript playback with Android text-to-speech.
 - Source-derived Cases with findings, investigation time costs, diagnosis and debrief.
-- Editable linked notes with a list view and a 3D map (OpenGL ES 3.0): octree chunks, frustum culling, continuous level of detail by on-screen size, summary points and link bundles for far chunks, changes by morphing (never fading), all nodes resident on the GPU, an LRU link cache with a guard band ahead of the motion, and an adaptive frame budget at the display's highest refresh rate (Surface.setFrameRate, display modes, Choreographer).
-- A 1,000,000-node demo of the map with a live readout (fps, display max Hz, frame ms, drawn nodes, chunks).
 - Practice metrics, light/dark Ward design.
 - Backend transport and encrypted credential storage, preserved server source and regression tests.
 
