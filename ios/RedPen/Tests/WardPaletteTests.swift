@@ -315,7 +315,7 @@ check("a cloze gap's words are ink (D16)", cardFace.contains("gap.foregroundColo
 check("no cloze gap sets underlineColor, which Text ignores", !cardFace.contains("underlineColor"))
 
 // T0211 A1: by day, Due's amber words read 1.42:1, New's, Open plan's and the
-// chosen dock tab's coral 2.36:1, and the Ideas switcher's pink 2.25:1. Each
+// chosen dock tab's coral 2.36:1, and the switcher's pink (Ideas', since removed) 2.25:1. Each
 // site's words are read from its source and measured, in every section, light
 // and dark, with and without Increase Contrast, on what is behind them: the
 // base (one tone: the page, a card, the dock's panel) and, for a chip, a pill
@@ -334,7 +334,7 @@ let wordSites: [WordSite] = [
     WordSite(file: "Features/Library/StudyCategory.swift", from: "private struct DockItemFace: View {", to: "\n}\n",
              name: "the dock's tab names", pressedIn: true),
     WordSite(file: "Shared/FloatingSwitcher.swift", from: "private struct SwitcherSegment<Value: Hashable>: View {", to: "\n}\n",
-             name: "the Ideas switcher's segments", pressedIn: true),
+             name: "the floating switcher's segments", pressedIn: true),
 ]
 /// The colour given to each line of words in `region`: the first
 /// `.foregroundStyle(...)` after each `Text(` or `Label(`, as written.

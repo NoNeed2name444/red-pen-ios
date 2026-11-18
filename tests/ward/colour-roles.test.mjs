@@ -46,17 +46,14 @@ const read = rel => readFileSync(join(app, rel), 'utf8');
 const MODE_OF_FOLDER = {
   'Features/MCQ/': 'questions', 'Features/Anki/': 'cards', 'Features/Book/': 'textbook',
   'Features/Cases/': 'cases', 'Features/OSCE/': 'osce', 'Features/Narrate/': 'audio',
-  'Features/Notes/': 'ideas',
 };
-// a mode's own glyph shown outside it: Ideas' glyph beside home's dock
-const NAMED_ELSEWHERE = { 'Features/Library/StudyCategory.swift': ['ideas'] };
-const SECTIONS = ['questions', 'cards', 'textbook', 'cases', 'osce', 'audio', 'ideas'];
-const named = /(?:\.wardSection\(|wardAccent\(|wardEdgeInk\(|WardTone\.accent\(|\.accent\(|WardSection)\s*\.?(questions|cards|textbook|cases|osce|audio|ideas)\b/g;
+const SECTIONS = ['questions', 'cards', 'textbook', 'cases', 'osce', 'audio'];
+const named = /(?:\.wardSection\(|wardAccent\(|wardEdgeInk\(|WardTone\.accent\(|\.accent\(|WardSection)\s*\.?(questions|cards|textbook|cases|osce|audio)\b/g;
 const strayModes = [];
 for (const rel of sources) {
   const text = read(rel).replace(/\/\/.*$/gm, '');
   const own = Object.entries(MODE_OF_FOLDER).find(([dir]) => rel.startsWith(dir))?.[1];
-  const allowed = new Set([...(own ? [own] : []), ...(NAMED_ELSEWHERE[rel] ?? [])]);
+  const allowed = new Set(own ? [own] : []);
   for (const m of text.matchAll(named)) {
     if (SECTIONS.includes(m[1]) && !allowed.has(m[1])) strayModes.push(`${rel}: ${m[0]}`);
   }
@@ -69,10 +66,10 @@ check('every screen names only its own mode\'s colour', strayModes.length === 0,
 // scenes, the space backdrop, decks and PDFs, the occlusion covers, the
 // example pictures, the brand mark, the sign-in providers' own marks)
 const ART = [
-  /^Features\/Notes\/Graph/, /^Shared\/Space\//, /^Shared\/Deck/, /^Shared\/PDF/, /^Shared\/PhotoOcclusionReader\.swift$/,
+  /^Shared\/Space\//, /^Shared\/Deck/, /^Shared\/PDF/, /^Shared\/PhotoOcclusionReader\.swift$/,
   /^Features\/Examples\/OcclusionExample\.swift$/, /^Features\/Recall\/RecallExamples\.swift$/,
   /^Shared\/AppBackdrop\.swift$/, /^Shared\/Brand\.swift$/, /^Shared\/LaunchSplash\.swift$/,
-  /^Features\/Auth\/SignInView\.swift$/, /^Features\/Notes\/NotesShared\.swift$/,
+  /^Features\/Auth\/SignInView\.swift$/,
 ];
 const literal = /\b(?:Color|UIColor)\((?:red|hex|white):|\b(?:Color|UIColor)\.(?:red|blue|green|orange|pink|purple|yellow|mint|teal|indigo|cyan|brown)\b|(?:foregroundStyle|foregroundColor|tint|fill|stroke|background)\(\.(?:red|blue|green|orange|pink|purple|yellow|mint|teal|indigo|cyan|brown)\)/;
 const literals = [];
@@ -198,7 +195,7 @@ check('a section mark is held while its screen lives, not dropped when covered',
 
 const page = readFileSync(join(repo, 'docs/design/colour-roles.md'), 'utf8');
 for (const [mode, hex] of [['Questions', '#FF6B6B'], ['Cards', '#3B82F6'], ['Textbook', '#14B8A6'], ['Cases', '#FF9F7A'],
-                           ['OSCE', '#A3E635'], ['Audio', '#A78BFA'], ['Ideas', '#F472B6']]) {
+                           ['OSCE', '#A3E635'], ['Audio', '#A78BFA']]) {
   check(`the roles page gives ${mode} ${hex}`, new RegExp(`\\| ${mode} \\| [A-Za-z ]+ \\| ${hex} \\|`).test(page));
 }
 

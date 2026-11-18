@@ -1292,7 +1292,7 @@ final class WardEdgeReachView: UIView {
     }
 }
 
-/// A trace for the UI tests only (GraphPreviewUITests' testIslandPushAndBack),
+/// A trace for the UI tests only (the island push-and-back test),
 /// under -uiPreviewScreen: each state of the stack's back pans, where the
 /// finger is and how fast UIKit reads it, then whether the pop finished, so
 /// a cancelled back that pops anyway shows which of them decided it. The

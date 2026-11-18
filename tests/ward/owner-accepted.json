@@ -31,11 +31,6 @@
     "light audio: the on-fill words read 4.5:1 on its fill": 2.721,
     "light audio: its ink reads 3:1 as a control's edge on the background": 2.016,
     "light audio: its ink reads 3:1 as a control's edge on the surface": 2.016,
-    "light ideas: its words read 4.5:1 on every tier (AA body text) [well]": 2.253,
-    "light ideas: as large text or an icon, 3:1 on every tier [well]": 2.253,
-    "light ideas: the on-fill words read 4.5:1 on its fill": 2.648,
-    "light ideas: its ink reads 3:1 as a control's edge on the background": 2.023,
-    "light ideas: its ink reads 3:1 as a control's edge on the surface": 2.023,
     "dark questions: the on-fill words read 4.5:1 on its fill": 2.775,
     "dark questions: told apart from what means something [danger]": 0.0,
     "dark cards: the on-fill words read 4.5:1 on its fill": 3.678,
@@ -44,8 +39,7 @@
     "dark textbook: the on-fill words read 4.5:1 on its fill": 2.489,
     "dark cases: the on-fill words read 4.5:1 on its fill": 2.001,
     "dark osce: the on-fill words read 4.5:1 on its fill": 1.508,
-    "dark audio: the on-fill words read 4.5:1 on its fill": 2.721,
-    "dark ideas: the on-fill words read 4.5:1 on its fill": 2.648
+    "dark audio: the on-fill words read 4.5:1 on its fill": 2.721
   },
   "tools/ward_accents.py --check": {
     "questions light fill: the on-fill words on it": 2.775,
@@ -77,11 +71,6 @@
     "audio light accent: words on the well": 2.315,
     "audio light ink: a control's edge on the background": 2.016,
     "audio dark fill: the on-fill words on it": 2.721,
-    "audio dark ink: a control's edge on the background": 3.768,
-    "ideas light fill: the on-fill words on it": 2.648,
-    "ideas light accent: words on the well": 2.253,
-    "ideas light ink: a control's edge on the background": 2.023,
-    "ideas dark fill: the on-fill words on it": 2.648,
-    "ideas dark ink: a control's edge on the background": 3.791
+    "audio dark ink: a control's edge on the background": 3.768
   }
 }

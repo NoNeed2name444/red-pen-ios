@@ -1,5 +1,8 @@
 # Depth fade in the 3D map, in every theme
 
+
+> 15 Nov 2026: Ideas left Stethoscore for the separate app Sorta. Where this page describes Ideas, its board or the 3D map, it is a record of the design as it was.
+
 The owner, 15 Oct (about 8:35 am Cairo): "u know how deep see videos or
 cell 3d high quality videos have fade for far objects ? that's how i want
 performance mode to be and also all other modes too to run smoother."
@@ -98,8 +101,7 @@ colour, until they are gone. Nothing pops in or out.
 - Stills near and far (70-* pose-matched pairs with -stillSky -graphFreeze -graphDepthMeter),
   a recording of a slow turn (the far side sharpening as it comes forward), and
   before and after at true proportions.
-- tools/depth_crops.py reads the 70-* pairs and 75-body-frames, verifying far and
-  near brightness ratios and background patch uniformity.
+- (tools/depth_crops.py, which read the 70-* pairs and 75-body-frames, went with the 3D map.)
 - An independent reviewer, in a fresh context and not the builder, passes
   them against this page before anything goes to the owner.
 

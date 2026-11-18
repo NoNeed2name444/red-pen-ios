@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# For finding what freezes the app now and then in the 3D map's UI tests (the
+# For finding what freezes the app now and then in the design preview's UI tests (the
 # screen stops changing, a query times out, the app cannot be ended), on the
 # Mac that runs the simulator:
 #   tools/hang_watch.sh watch <simulator udid> <dir> > /dev/null 2>&1 &
@@ -11,8 +11,7 @@
 #     came and went;
 #   tools/hang_watch.sh collect <simulator udid> <dir>
 #     stops the watch, then keeps the simulator's log for the app (with the
-#     app's own report of where it is stuck, GraphHangReporter, category
-#     "hang"), the Mac's GPU lines and any crash or hang reports.
+#     app's own report of where it is stuck, category "hang"), the Mac's GPU lines and any crash or hang reports.
 # It only looks: sampling the app held it still, so the tests could not end
 # it (plan.md step 6d). The design preview runs both and uploads <dir>
 # (design-preview.yml). What it found: the app never froze (it kept drawing

@@ -1,5 +1,8 @@
 # Brand platform
 
+
+> 15 Nov 2026: Ideas left Stethoscore for the separate app Sorta. Where this page describes Ideas, its board or the 3D map, it is a record of the design as it was.
+
 Written 15 Oct 2026. This is what the identity stands on, whichever route the owner picks ([routes.md](routes.md)). The audit behind it is in [audit.md](audit.md), and the words follow [wording.md](wording.md).
 
 ## The idea in one line

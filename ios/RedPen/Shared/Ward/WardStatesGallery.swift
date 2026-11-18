@@ -159,7 +159,6 @@ private extension WardSection {
         case .cases: return "Cases"
         case .osce: return "OSCE"
         case .audio: return "Audio"
-        case .ideas: return "Ideas"
         }
     }
 
@@ -172,7 +171,6 @@ private extension WardSection {
         case .cases: return "stethoscope"
         case .osce: return "list.clipboard"
         case .audio: return "waveform"
-        case .ideas: return "lightbulb"
         }
     }
 }

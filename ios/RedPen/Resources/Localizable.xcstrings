@@ -465,18 +465,6 @@
         }
       }
     },
-    "Ideas" : {
-      "comment" : "Dock at the bottom of the library: one word under a symbol, about 52 points wide. The idea dump, its board and 3D map.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "الأفكار"
-          }
-        }
-      }
-    },
     "In an emergency, call your local emergency number." : {
       "comment" : "Recording terms screen (RecordingTermsView), shown once before first use. Red warning box, last line.",
       "extractionState" : "manual",
@@ -989,18 +977,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "امتحانك"
-          }
-        }
-      }
-    },
-    "Your idea dump, board and 3D map" : {
-      "comment" : "Dock at the bottom of the library: one word under a symbol, about 52 points wide. VoiceOver hint on Ideas.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "مستودع أفكارك ولوحتها وخريطتها ثلاثية الأبعاد"
           }
         }
       }

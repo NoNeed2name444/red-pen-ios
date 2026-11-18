@@ -9,7 +9,7 @@
                            container (SourceFiles, NarrateVoice, SyncEngine,
                            CloudTranscriber)
     Boot time      35F9.1  CACurrentMediaTime for intervals within the app
-                           (PopOutMotion, Graph3DView)
+                           (PopOutMotion)
     Disk space     7D9E.1  free space in a crash or failure report the student
                            agreed to send (DiagnosticsPlatform)
   Re-check when a new API from Apple's list is used anywhere in the app.

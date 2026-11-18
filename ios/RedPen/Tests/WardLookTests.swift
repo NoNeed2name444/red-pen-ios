@@ -160,7 +160,7 @@ check("somewhere new starts from where it was headed",
 // MARK: - Sections
 
 let sections = WardSection.allCases
-check("seven sections", sections.count == 7)
+check("six sections", sections.count == 6)
 // outside any section the look is Cards (not Questions, or every screen
 // without a section would turn red), and the default paper ink is its ink
 check("outside any section the look is Cards", WardSection.outside == .cards)
@@ -203,7 +203,7 @@ func apart(_ a: Double, _ b: Double) -> Double { let d = abs(a - b).truncatingRe
 
 // How far apart (OKLab) two sections, or a section and a colour that
 // means something, must sit to be told apart at a glance. 0.10 would be
-// clearly apart; with seven sections and six meanings all at text
+// clearly apart; with six sections and six meanings all at text
 // contrast, 0.076 is the most these hue families give (tools/ward_accents.py).
 let sectionsApart = 0.075
 
@@ -272,7 +272,7 @@ func inkOnBase(_ g: WardGlide, dark: Bool) -> Double {
 }
 var worstText = Double.infinity
 for (from, to) in [(day, night), (night, day), (day, WardLook(dark: false, section: .audio)),
-                   (night, WardLook(dark: true, section: .ideas)), (day, WardLook(dark: true, section: .cases))] {
+                   (night, WardLook(dark: true, section: .osce)), (day, WardLook(dark: true, section: .cases))] {
     var g = WardGlide.toward(to, from: .rest(from))
     let floor = min(inkOnBase(.rest(from), dark: from.dark), inkOnBase(.rest(to), dark: to.dark))
     for i in 0...20 {
@@ -517,7 +517,7 @@ do {
 let plainGround: (light: UInt32, dark: UInt32) = (0xE9EDF2, 0x171C24)
 let pinnedWashes: [WardSection: (light: UInt32, dark: UInt32)] = [
     .questions: plainGround, .cards: plainGround, .textbook: plainGround, .cases: plainGround,
-    .osce: plainGround, .audio: plainGround, .ideas: plainGround,
+    .osce: plainGround, .audio: plainGround,
 ]
 check("every section's wash is pinned", Set(pinnedWashes.keys) == Set(sections))
 check("the plain ground is the palette's base",
@@ -587,15 +587,13 @@ do {
 // (WardGroundTest.eachModesWash pins these numbers too). Measured at the
 // strongest point a mesh can have, each mode's cap by day and at night,
 // since cards and wells are see-through over it (one tone): every pair that
-// reads on the plain base reads there too. Ideas has none, and home's
+// reads on the plain base reads there too. Home's
 // ground stays the base.
 let modeWashColours: [WardSection: UInt32] = [
     .questions: 0xC72929, .cards: 0x4F5CDB, .textbook: 0x1A8C80,
     .cases: 0xE67D21, .osce: 0x339E59, .audio: 0x8C52CC,
 ]
 check("each mode's wash colour is its earlier colour", WardModeWash.colour == modeWashColours)
-check("Ideas has no wash", WardModeWash.colours(.ideas, dark: false, mesh: WardModeWash.mesh(seed: 1)) == nil
-      && WardModeWash.strongest(.ideas, dark: true) == nil)
 check("the wash's rule: the earlier mesh's strengths, turned, mirrored, moved 0.12 and 0.12, a quarter stronger to 0.40, 35% to grey",
       WardModeWash.strengths == [0.30, 0.18, 0.26, 0.16, 0.05, 0.18, 0.24, 0.16, 0.30]
       && WardModeWash.strengthJitter == 0.12 && WardModeWash.pointJitter == 0.12 && WardModeWash.boost == 1.25
@@ -685,7 +683,7 @@ let washPairs: [(name: String, token: WardToken?, ratio: Double)] = [
 for dark in [false, true] {
     let mode = dark ? "dark" : "light"
     let base = WardPalette.hex(.background, dark: dark)
-    for s in sections where s != .ideas {
+    for s in sections {
         guard let strongest = WardModeWash.strongest(s, dark: dark) else {
             check("\(mode) \(s): has a mode wash", false); continue
         }

@@ -45,10 +45,10 @@ function owner(key, measured) {
   return true;
 }
 
-// Not Ward screens: the night sky and the 3D map draw their own scenes, and
+// Not Ward screens: the night sky draws its own scene, and
 // the PDF and occlusion exports print fixed colours onto paper.
-const skip = [/^Shared\/Space\//, /^Features\/Notes\/Graph/, /^Shared\/Deck/, /^Shared\/PDF/,
-              /^Features\/Examples\//, /^Tests\//, /GraphPerf/, /GraphicsQuality/, /LaunchSplash/];
+const skip = [/^Shared\/Space\//, /^Shared\/Deck/, /^Shared\/PDF/,
+              /^Features\/Examples\//, /^Tests\//, /GraphicsQuality/, /LaunchSplash/];
 
 function swiftFiles(dir) {
   const out = [];
@@ -148,7 +148,7 @@ for (const m of look.matchAll(row)) {
   sections[m[1]] = { hue: Number(m[2]), ink: hex(3), accent: hex(5), fill: hex(7) };
 }
 const names = Object.keys(sections);
-check('seven sections are read', names.length === 7, names.join(' '));
+check('six sections are read', names.length === 6, names.join(' '));
 check('Questions is in the table, at Vital Coral\'s hue 23', sections.questions?.hue === 23, String(sections.questions?.hue));
 check('the primary is Cards\' fill and accent (the look outside any section)',
       [0, 1].every(d => palette.primary[d] === sections.cards.fill[d] && palette.primaryInk[d] === sections.cards.accent[d]));

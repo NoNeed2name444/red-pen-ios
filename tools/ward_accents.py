@@ -33,7 +33,7 @@ strengths (WardRelief.swift) are read from the source, so a palette or
 route change is one edit there (or of the rows below) and a --write.
 
 The hues and fills are the owner's 2026-10-21 palette
-(docs/design/palette-2026-10-21.md): seven of its ten colours, one per
+(docs/design/palette-2026-10-21.md): six of its ten colours, one per
 section, each fill the owner's hex exactly in both modes and each hue the
 fill's own; Cards' Care Blue is also the primary (the look outside any
 section). Where the owner's colour reads 4.6:1 on every tier as it is (at
@@ -80,7 +80,6 @@ SECTIONS = [
     ("cases", 42, 0.47, 0.79, 0xFF9F7A, 0xFF9F7A),       # Peach Glow
     ("osce", 129, 0.36, 0.85, 0xA3E635, 0xA3E635),       # Lime Zest
     ("audio", 294, 0.47, 0.74, 0xA78BFA, 0xA78BFA),      # Soft Lilac
-    ("ideas", 350, 0.47, 0.75, 0xF472B6, 0xF472B6),      # Bubblegum Pink
 ]
 CAP = (0.19, 0.15)        # chroma in light and dark: vivid, not neon
 FLOOR = (0.07, 0.08)      # and at least this, so every colour reads as its hue.

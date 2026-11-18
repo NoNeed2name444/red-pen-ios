@@ -19,13 +19,11 @@ enum PreviewLaunch {
 
     /// The section the states gallery is drawn in (`-uiPreviewSection
     /// <questions|cards|textbook|cases|osce|audio>`); Questions when none,
-    /// or none known, is named. Ideas is not one any more (it left the app,
-    /// T0274), though its colours stay in WardSection for now.
+    /// or none known, is named.
     static var section: WardSection {
         let args = ProcessInfo.processInfo.arguments
         guard let i = args.firstIndex(of: "-uiPreviewSection"), i + 1 < args.count,
-              let section = WardSection(rawValue: args[i + 1].lowercased()),
-              section != .ideas else { return .questions }
+              let section = WardSection(rawValue: args[i + 1].lowercased()) else { return .questions }
         return section
     }
 

@@ -1,5 +1,8 @@
 # Ward Round design language: rollout plan
 
+
+> 15 Nov 2026: Ideas left Stethoscore for the separate app Sorta. Where this page describes Ideas, its board or the 3D map, it is a record of the design as it was.
+
 Written 1 October 2026 from an inventory of every screen (the screen-by-screen inventory is kept with the session; this is the plan). Target: docs/design/targets-2026-10-01.md §1.
 
 # Ward Round rollout plan for Stethoscore

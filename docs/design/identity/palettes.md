@@ -1,5 +1,8 @@
 # Identity palettes and their contrast
 
+
+> 15 Nov 2026: Ideas left Stethoscore for the separate app Sorta. Where this page describes Ideas, its board or the 3D map, it is a record of the design as it was.
+
 Written 15 Oct 2026 for the three identity routes in [routes.md](routes.md). Every number is a WCAG 2 contrast ratio, from the relative-luminance formula, measured against all four grounds of its theme:
 
 - **base**: the ECG paper itself;

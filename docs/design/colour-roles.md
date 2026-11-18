@@ -5,6 +5,9 @@ The ten hexes stay as they are (palette-2026-10-21.md). This page fixes which
 of them each role takes. iPhone and Android read the same table, and code
 picks an accent only through the tokens named here, never a literal.
 
+15 Nov 2026: Ideas left Stethoscore for the separate app Sorta, so its row
+and the rows for its screens are gone from the tables below.
+
 Owner decisions this follows:
 
 - D1 (23 Oct): words on the page are ink, and colour goes on icons, edges
@@ -38,7 +41,6 @@ Each mode's colour is the one its dock tile already carries.
 | Cases | Peach Glow | #FF9F7A |
 | OSCE | Lime Zest | #A3E635 |
 | Audio | Soft Lilac | #A78BFA |
-| Ideas | Bubblegum Pink | #F472B6 |
 | Outside any mode (settings, account, diagnostics, help, tools) | Care Blue | #3B82F6 |
 
 A screen pushed from a mode screen keeps that mode's colour (iOS
@@ -95,7 +97,6 @@ on the primary):
 | Cases | #FF9F7A | 9.67 |
 | OSCE | #A3E635 | 12.83 |
 | Audio | #A78BFA | 7.11 |
-| Ideas | #F472B6 | 7.31 |
 
 A toned chosen chip keeps its tone fill, with near-black words, the same
 in light and dark: Vital Coral (red, danger) 6.97, Fresh Mint (green)
@@ -167,16 +168,12 @@ counted under words.
 | words | Android | CoverageScreen | WardToken.primaryInk | Care Blue #3B82F6 (or the mode it is pushed from) | ink | 1 |
 | words | Android | ExamDayKitScreen | WardToken.primaryInk | Care Blue #3B82F6 (or the mode it is pushed from) | ink | 1 |
 | words | Android | FixWordSheet | WardToken.danger | Vital Coral #FF6B6B | ink | 1 |
-| words | Android | IdeaTools | WardToken.primaryInk | Ideas #F472B6 | ink | 1 |
-| words | Android | IdeasSpace | WardToken.primaryInk | Ideas #F472B6 | ink | 1 |
-| words | Android | IdeasView | WardToken.primaryInk | Ideas #F472B6 | ink | 1 |
 | words | Android | LectureWriterSection | WardToken.primaryInk | Care Blue #3B82F6 (or the mode it is pushed from) | ink | 1 |
 | words | Android | MCQExamTools | WardToken.primaryInk | Questions #FF6B6B | ink | 1 |
 | words | Android | MCQSummaryScreen | WardToken.success | Fresh Mint #6EE7B7 | ink | 1 |
 | words | Android | MockPaperScreen | WardToken.danger | Vital Coral #FF6B6B | ink | 1 |
 | words | Android | MockPaperScreen | WardToken.primaryInk | Questions #FF6B6B | ink | 1 |
 | words | Android | MockResultsScreen | WardToken.danger | Vital Coral #FF6B6B | ink | 1 |
-| words | Android | NoteEditor | WardToken.primaryInk | Ideas #F472B6 | ink | 3 |
 | words | Android | OsceGenerateSection | WardToken.primaryInk | OSCE #A3E635 | ink | 1 |
 | words | Android | PictureFromPhotoScreen | WardToken.primaryInk | Care Blue #3B82F6 (or the mode it is pushed from) | ink | 1 |
 | words | Android | ReviewCardActions | WardToken.danger | Vital Coral #FF6B6B | ink | 1 |
@@ -193,7 +190,6 @@ counted under words.
 | words | iOS | CaseWardView | wardPrimaryInk | Cases #FF9F7A | ink | 1 |
 | words | iOS | DuelView | wardPrimaryInk | Care Blue #3B82F6 (or the mode it is pushed from) | ink | 2 |
 | words | iOS | FixWordSheet | wardDanger | Vital Coral #FF6B6B | ink | 1 |
-| words | iOS | IdeaBoardView | wardPrimaryInk | Ideas #F472B6 | ink | 1 |
 | words | iOS | LensAnswerSheet | wardPrimaryInk | Care Blue #3B82F6 (or the mode it is pushed from) | ink | 1 |
 | words | iOS | MCQSummaryView | wardSuccess | Fresh Mint #6EE7B7 | ink | 1 |
 | words | iOS | MockPaperView | wardPrimaryInk | Questions #FF6B6B | ink | 1 |

@@ -3,13 +3,10 @@ import simd
 
 // MARK: - One sky everywhere
 //
-// The sky the 3D note map flies through (GraphSpace, in GraphLook.swift) and
-// the sky behind every other screen (AppBackdrop's star layers) are the SAME
-// sky: the same galactic band, the same nebula clouds and the same stars,
-// from the same seeds in the same order. The flat screens show it through a
-// fixed camera that matches the map's opening one (at +z looking down -z,
-// the map's vertical field of view), so opening the map looks like the flat
-// sky gaining depth rather than a jump to somewhere else.
+// The sky behind every screen (AppBackdrop's star layers) is ONE sky: the
+// same galactic band, the same nebula clouds and the same stars, from the
+// same seeds in the same order. The flat screens show it through a fixed
+// camera (at +z looking down -z, with the vertical field of view below).
 //
 // Pure values and pure functions, safe on any thread.
 
@@ -66,10 +63,10 @@ nonisolated enum SkyChart {
     static let starCount: Int = 14000
     static let glowCount: Int = 36
 
-    /// The map's vertical field of view, in degrees (GraphFraming).
+    /// The camera's vertical field of view, in degrees.
     static let fieldOfView: Float = 55
 
-    /// Every star, in the order the map makes them.
+    /// Every star, in the order the catalogue makes them.
     static let stars: [SkyStar] = makeStars()
 
     /// The nebula clouds, in the order the map makes them.

@@ -1,5 +1,5 @@
 // The dock, the wide iPad's rail, the list button at the
-// accessibility sizes and Ideas' floating switcher follow the same states
+// accessibility sizes and the floating switcher follow the same states
 // as every other Ward control (the review's B2; WardControlStates): chosen
 // keeps the pressed-in hollow and adds the 2-point accent edge, an unchosen
 // enabled item says its words in Chart Ink (not Biro Grey, which is what

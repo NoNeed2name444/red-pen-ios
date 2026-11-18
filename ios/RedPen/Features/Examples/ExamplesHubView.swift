@@ -14,8 +14,8 @@ struct ExamplesHubView: View {
     @Environment(\.windowSpan) private var span
     @Environment(\.dynamicTypeSize) private var typeSize
 
-    /// The personal build seeds example notes and ten days of answers
-    /// (NoteExamples, InsightExamples); everyone else has their own.
+    /// The personal build seeds ten days of answers
+    /// (InsightExamples); everyone else has their own.
     private var seeded: Bool { PersonalBuild.isOn }
 
     private var exampleSets: Int { store.library.filter { $0.name.hasPrefix("Example") }.count }

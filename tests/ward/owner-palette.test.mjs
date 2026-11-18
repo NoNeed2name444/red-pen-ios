@@ -1,4 +1,4 @@
-// The owner's ten colours, pinned in the roles docs/design/palette-2026-10-21.md
+// The owner's colours (ten, eight since Ideas left on 15 Nov 2026), pinned in the roles docs/design/palette-2026-10-21.md
 // gives them. The owner, 22 Oct 2026, about 3:44 AM Cairo, shown that the
 // exact colours fail the readability checks: "STOP IMPROVISING DONT CHANGE
 // THE COLORS I GAVE U". So every iPhone source that carries one of these
@@ -22,17 +22,15 @@ const TEN = [
   ['Pulse Teal', '#14B8A6', 'Textbook; a folder'],
   ['Fresh Mint', '#6EE7B7', 'a right answer (success)'],
   ['Care Blue', '#3B82F6', 'Cards and the primary (the look outside any section); the brand mark (was Theatre Blue); a folder'],
-  ['Electric Indigo', '#6366F1', 'a folder (the Space cluster that was slate blue)'],
   ['Soft Lilac', '#A78BFA', 'Audio; a folder'],
   ['Vital Coral', '#FF6B6B', 'Questions; a wrong answer (danger); the ECG red; the red pen'],
   ['Peach Glow', '#FF9F7A', 'Cases; a folder; the occlusion cover'],
   ['Optimistic Amber', '#FBBF24', 'due and warnings; the progress beam; the brand signal'],
-  ['Bubblegum Pink', '#F472B6', 'Ideas; a folder'],
   ['Lime Zest', '#A3E635', 'OSCE; a folder'],
 ];
 const hexOf = Object.fromEntries(TEN.map(([name, hex]) => [name, hex]));
 const pinned = new Set();
-// a role held to one of the ten: every value found must be its hex
+// a role held to one of the eight: every value found must be its hex
 function role(label, name, found) {
   pinned.add(name);
   const list = [].concat(found);
@@ -46,20 +44,20 @@ const bytes = (r, g, b) => '#' + [r, g, b].map(x => Math.round(Number(x)).toStri
 const page = read('docs/design/palette-2026-10-21.md');
 const table = /\| Name \| Hex \| Role \|\n\|---\|---\|---\|\n((?:\|.*\|\n)+)/.exec(page);
 const rows = table ? table[1].trim().split('\n').map(r => r.split('|').slice(1, -1).map(c => c.trim())) : [];
-check('the page has its table of ten', rows.length === 10, String(rows.length));
+check('the page has its table of eight', rows.length === 8, String(rows.length));
 const differ = TEN.filter((t, i) => JSON.stringify(rows[i]) !== JSON.stringify(t)).map(t => t[0]);
-check('the page\'s ten are these, in this order, in these roles', differ.length === 0, differ.join(', '));
+check('the page\'s eight are these, in this order, in these roles', differ.length === 0, differ.join(', '));
 
 // --- the sections: ink, accent and fill, by day and at night ---------------
 
 const look = read('ios/RedPen/Shared/Ward/WardLook.swift');
 const SECTIONS = { questions: 'Vital Coral', cards: 'Care Blue', textbook: 'Pulse Teal', cases: 'Peach Glow',
-                   osce: 'Lime Zest', audio: 'Soft Lilac', ideas: 'Bubblegum Pink' };
+                   osce: 'Lime Zest', audio: 'Soft Lilac' };
 const pair = '\\(0x([0-9A-Fa-f]{6}), 0x([0-9A-Fa-f]{6})\\)';
 const sectionRow = new RegExp(`\\.(\\w+): WardSectionColours\\(hue: \\d+, ink: ${pair}, accent: ${pair}, fill: ${pair}\\)`, 'g');
 const sections = {};
 for (const m of look.matchAll(sectionRow)) sections[m[1]] = m.slice(2, 8).map(hex6);
-check('WardLook\'s table has the seven sections', Object.keys(sections).sort().join() === Object.keys(SECTIONS).sort().join(),
+check('WardLook\'s table has the six sections', Object.keys(sections).sort().join() === Object.keys(SECTIONS).sort().join(),
       Object.keys(sections).join(' '));
 for (const [section, name] of Object.entries(SECTIONS))
   role(`${section}'s ink, accent and fill, by day and at night`, name, sections[section] ?? []);
@@ -131,13 +129,9 @@ const glance = read('ios/StethoscoreWidgets/GlanceTimeline.swift');
 role('the widget\'s pen (the red pen)', 'Vital Coral', colour(glance, 'pen'));
 role('the widget\'s star', 'Care Blue', colour(glance, 'star'));
 
-// Electric Indigo's only carrier was the folder palette of the Ideas notes
-// board (NoteTone), removed with Ideas (T0278): the page still lists it, and
-// no source carries it any more, so there is nothing left to pin it to.
-const NO_CARRIER_LEFT = new Set(['Electric Indigo']);
-check('every one of the ten is pinned in a role here, bar those left with no carrier',
-      TEN.every(([name]) => pinned.has(name) || NO_CARRIER_LEFT.has(name)),
-      TEN.filter(([name]) => !pinned.has(name) && !NO_CARRIER_LEFT.has(name)).map(t => t[0]).join(', '));
+check('every one of the eight is pinned in a role here',
+      TEN.every(([name]) => pinned.has(name)),
+      TEN.filter(([name]) => !pinned.has(name)).map(t => t[0]).join(', '));
 
 if (failed) { console.log(`${failed} failed`); process.exit(1); }
 console.log('all passed');

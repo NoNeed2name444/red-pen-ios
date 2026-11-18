@@ -3,7 +3,7 @@ import Foundation
 /// The parts of the app, each with a colour of its own (the owner, 14 Oct:
 /// "colour difference for each mode"; 15 Oct: the buttons, links and
 /// other accents were still blue in every section; 16 Oct: palette
-/// direction 3, seven section colours; 22 Oct: the ten-colour palette's
+/// direction 3, a colour per section; 22 Oct: the ten-colour palette's
 /// hexes exactly, no shades). Each section has a hue and one colour, the
 /// owner's hex, in every role and both modes: the paper's grid and the
 /// controls' edges (`ink`), the words and glyphs of buttons, links, the
@@ -15,7 +15,7 @@ import Foundation
 /// from each other (at least 0.075 in OKLab, both modes) and says where
 /// the owner's colours fall short.
 enum WardSection: String, CaseIterable, Sendable {
-    case questions, cards, textbook, cases, osce, audio, ideas
+    case questions, cards, textbook, cases, osce, audio
 
     /// The look outside any section (a screen that sets none, and home
     /// before a section is asked for): Cards' Care Blue, which is also the
@@ -78,7 +78,6 @@ enum WardSection: String, CaseIterable, Sendable {
         .cases: WardSectionColours(hue: 42, ink: (0xFF9F7A, 0xFF9F7A), accent: (0xFF9F7A, 0xFF9F7A), fill: (0xFF9F7A, 0xFF9F7A)),
         .osce: WardSectionColours(hue: 129, ink: (0xA3E635, 0xA3E635), accent: (0xA3E635, 0xA3E635), fill: (0xA3E635, 0xA3E635)),
         .audio: WardSectionColours(hue: 294, ink: (0xA78BFA, 0xA78BFA), accent: (0xA78BFA, 0xA78BFA), fill: (0xA78BFA, 0xA78BFA)),
-        .ideas: WardSectionColours(hue: 350, ink: (0xF472B6, 0xF472B6), accent: (0xF472B6, 0xF472B6), fill: (0xF472B6, 0xF472B6)),
     ]
     // ward_accents.py: end
 
@@ -123,7 +122,7 @@ enum WardWash {
 /// quarter stronger, to `top`. A mode's colour is pulled toward grey first,
 /// and the mesh is scaled so its strongest possible point is that mode's
 /// cap, by day and at night: as strong as it can be while every colour that
-/// reads on the plain base still reads on it. Ideas has none. Mixed in plain
+/// reads on the plain base still reads on it. Mixed in plain
 /// sRGB components, as the earlier backdrop mixed it.
 enum WardModeWash {
     /// Each mode's earlier colour, 0xRRGGBB.
