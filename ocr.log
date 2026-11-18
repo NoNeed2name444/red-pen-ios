@@ -1,0 +1,18 @@
+
+compile rc=0
+ok   a mixed line is put back in the order it was written
+ok   every word survives, only the order changes
+ok   an English run inside it keeps its own reading order
+ok   a mixed line written with tatweels is put right too
+ok   the tatweels themselves are kept
+ok   a token that is only a tatweel counts as Arabic
+ok   a pure English line is unchanged
+ok   a pure Arabic line is unchanged (Vision reads it in order)
+ok   a single word is unchanged
+ok   an empty line is unchanged
+ok   numbers and punctuation alone are not Arabic
+ok   Arabic and English are both asked for
+
+ALL OCR TESTS PASS
+
+run rc=0
