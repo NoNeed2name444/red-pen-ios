@@ -61,7 +61,7 @@ class Lump:
         return np.where(g > 1e-6, (k0 - 1.0) / np.maximum(g, 1e-6), -float(self.r.min())).astype(np.float32)
 
 
-def _patch(F, poly, soft=0.7):
+def _patch(F, poly, soft=0.5):
     """0 to 1 inside an outline drawn on the plan (x, z), its edge eased over `soft` mm: as a block (nx, 1, nz)."""
     from PIL import Image, ImageDraw
     from scipy import ndimage
@@ -121,7 +121,7 @@ def calcaneus(h=0.4, log=print):
     xl = (tab(Zq, XL) - 3.6 * np.exp(-(((Zq - 54.0) / 4.4) ** 2 + ((Y - 21.0 - 0.45 * (Zq - 54.0)) / 2.5) ** 2))
           + 1.6 * np.exp(-(((Zq - 52.0) / 7.0) ** 2 + ((Y - 14.5 - 0.45 * (Zq - 52.0)) / 2.6) ** 2)))
     # medial wall: "deeply concave" below, and above carried out as the sustentaculum tali (flat above, buttressed below)
-    xm = (tab(Zq, XM) - 3.5 * _bump(Zq, 26.0, 38.0, 56.0, 68.0) * np.exp(-((Y - 16.0) / 8.0) ** 2)
+    xm = (tab(Zq, XM) - 5.0 * _bump(Zq, 20.0, 34.0, 56.0, 68.0) * np.exp(-((Y - 19.0) / 9.0) ** 2)
           + 4.5 * _bump(Zq, 42.0, 52.0, 66.0, 75.0) * np.exp(-((Y - 37.0) / 7.5) ** 2))
     yc = 0.5 * (yb + yt); b = np.maximum(0.5 * (yt - yb), 0.3)
     u = (Y - yc) / b
@@ -147,14 +147,17 @@ def calcaneus(h=0.4, log=print):
     # the upper surface is a ridge, rounded from side to side
     top = top + 5.5 * _ss((X2 + 2.0) / 12.0) * _bump(Z2, 53.0, 57.0, 61.0, 66.0)
     top = top - 5.0 * ((X2 - 0.5) / 14.0) ** 2 * (1.0 - _ss((Z2 - 36.0) / 12.0))
-    top = top + (44.0 - top) * _ss((X2 - 14.0) / 5.0) * _bump(Z2, 41.0, 47.0, 66.0, 73.0)
+    top = top + (np.clip(45.5 - 0.32 * (Z2 - 47.0), 38.5, 45.5) - top) * _ss((X2 - 14.0) / 5.0) * _bump(Z2, 41.0, 47.0, 66.0, 73.0)
+    # the anterior process ends above and medially in a small beak that carries the anterior facet (Fig. 267)
+    top = top + 3.5 * _ss((X2 - 5.0) / 8.0) * _bump(Z2, 65.0, 71.0, 79.0, 82.0)
     top = ndimage.gaussian_filter(top, (1.2 / h, 0, 1.2 / h))
     gx, gz = np.gradient(top[:, 0, :], h); slope = np.sqrt(1.0 + gx ** 2 + gz ** 2)[:, None, :]
     F.D = sdf.smax(D, (Y - top) / slope, 4.0).astype(np.float32)
     # the sustentaculum itself: a thick shelf with a blunt edge, grown out of the swell the wall already makes for it
-    F.add(Lump((20.5, 38.4, 57.5), (9.5, 5.6, 11.5), 2.8, rot((0, 1, 0), 24.0) @ rot((0, 0, 1), -6.0)), 7.0, keep=10)
+    # (Fig. 267, the medial surface: it slopes down and forward, about a third of a right angle, and is some 8 mm thick)
+    F.add(Lump((20.5, 37.6, 56.5), (9.5, 4.6, 12.0), 2.8, rot((0, 1, 0), -20.0) @ rot((1, 0, 0), 32.0)), 6.0, keep=10)
     # under the shelf, the groove for the tendon of the Flexor hallucis longus (Fig. 268 names it)
-    F.cut(Tube(np.array([(21.0, 31.0, 42.0), (25.5, 30.5, 56.0), (26.5, 28.5, 72.0)]), 3.0, 4.4, up=(0, 1, 0)), 3.0)
+    F.cut(Tube(np.array([(21.0, 36.5, 43.0), (25.5, 30.5, 57.0), (25.5, 24.5, 70.0)]), 3.0, 4.2, up=(0, 1, 0.6)), 3.0)
     # sulcus calcanei: in front of the posterior facet and medial to it, between it and the shelf; wider laterally
     F.cut(Tube(np.array([(18.5, 46.0, 47.0), (18.0, 43.5, 58.5), (8.0, 39.0, 62.0), (-9.0, 38.0, 62.0)]), [(0, 1.5), (0.4, 2.0), (1, 3.6)],
                [(0, 1.6), (0.4, 2.2), (1, 4.0)], up=(0, 1, 0)), 2.5)
@@ -163,7 +166,7 @@ def calcaneus(h=0.4, log=print):
     # the joint surfaces stand a hair proud of the rough bone round them, each with its own edge (Fig. 264): posterior,
     # middle (on the shelf), anterior; they are smooth, so the grain is held off them
     m = np.maximum.reduce([_patch(F, p) for p in CALC_FACETS]) * _ss((Y - 33.0) / 3.0)
-    F.D = (F.D - 0.3 * m).astype(np.float32); F.smooth = m.astype(np.float32)
+    F.D = (F.D - 0.5 * m).astype(np.float32); F.smooth = m.astype(np.float32)
     log("calcaneus: built in its own frame, %.0f mm long" % (z1 - z0))
     return F
 
