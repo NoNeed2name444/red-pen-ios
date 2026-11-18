@@ -360,20 +360,20 @@ def occipital(G, cav, inion_y, log=print):
         inside = lambda *d: np.clip(-np.log(sum(np.exp(-np.clip(x, -30.0, 60.0) / 5.0) for x in d)) * 5.0 + wob, 0.0, None)   # mm inside all of a fossa's bounds at once: its outline is rounded, no four-cornered pane
         # the cerebellum's fossae: from the crest outward, under the transverse line, behind the sigmoid groove, clear of the great opening
         # (a bound counted more than once is a shorter slope: the transverse line stands as a ridge, the outer bounds fade)
-        wb = smoothstep(inside(50.0 - ax, 1.3 * (yt - 4.0 - Y), (e - 1.0) * 16.0 - 2.5, behind - 15.0) / 15.0)
+        wb = smoothstep(inside(50.0 - ax, 0.6 * (yt - 1.0 - Y), (e - 1.0) * 16.0 - 2.5, behind - 15.0) / 15.0)
         # the crest between them: no slab of the wall's whole thickness but a narrow ridge on the thinned plate, a little
         # off the middle line, which forks near the great opening and runs out round its hind margin (p. 131)
         q = np.sqrt((Y + 14.0) ** 2 + (Z + 34.5) ** 2)                                   # mm from the opening's hind margin
         fork = 5.5 * (1.0 - smoothstep(q / 16.0)); xc = -0.8 + 1.1 * np.sin((Y - Z) / 11.0)
-        crest = (3.6 - 1.4 * (1.0 - smoothstep(q / 12.0))) * np.maximum(np.exp(-((X - xc - fork) / 2.5) ** 2), np.exp(-((X - xc + fork) / 2.5) ** 2))
+        crest = (2.6 - 1.0 * (1.0 - smoothstep(q / 12.0))) * np.maximum(np.exp(-((X - xc - fork) / 2.5) ** 2), np.exp(-((X - xc + fork) / 2.5) ** 2))
         # the occipital lobes' fossae: above it, either side of the sagittal groove, fading toward the lambda
         mid = -4.6 * (1.0 - smoothstep((Y - y0) / 55.0))                                 # the sagittal groove's middle: right of the middle line by the protuberance, on it higher up (sagittal())
-        wc = smoothstep(inside(1.6 * (np.abs(X - mid) - 5.5), 0.5 * (64.0 - ax), 1.3 * (Y - yt - 4.5), 0.4 * (98.0 - Y), 0.6 * (-30.0 - Z)) / 14.0)
+        wc = smoothstep(inside(1.6 * (np.abs(X - mid) - 5.5), 0.5 * (64.0 - ax), 0.6 * (Y - yt - 1.5), 0.4 * (98.0 - Y), 0.6 * (-30.0 - Z)) / 14.0)
         # the whole hind wall besides: it stood 9 to 12 mm thick all round. Measured on dry skulls at the level of the
         # outer protuberance (Gupta et al. 2025, doi 10.7759/cureus.98489) the wall is 10.6 to 11.3 mm by the middle line
         # behind and falls to about 3 mm at the side; so the thickness is kept only about the protuberance
         wall = smoothstep((-30.0 - Z) / 14.0) * smoothstep((behind - 10.0) / 12.0) * smoothstep(((e - 1.0) * 16.0 - 2.0) / 6.0)
-        tb = 6.0 + 5.0 * np.exp(-(ax / 20.0) ** 2) * np.exp(-((Y - yt) / 15.0) ** 2)
+        tb = 5.4 + 4.2 * np.exp(-(ax / 16.0) ** 2) * np.exp(-((Y - yt) / 13.0) ** 2)      # (the band between the fossae is a low swell, no shelf: the owner marked the shelf as wrong)
         t = tb - wb * (tb - (2.3 + crest)) - wc * (tb - 4.6)
         return np.maximum(wall, np.maximum(wb, wc)), t + (0.5 - 0.25 * wb) * uneven(X, Y, Z, 91, 1.0, 16.0)
     thin(G, cav, (-70.0, -44.0, -100.0), (70.0, 102.0, -4.0), want, log, "occipital fossae")
@@ -381,10 +381,10 @@ def occipital(G, cav, inion_y, log=print):
     back = lambda y, deg, R=100.0: ax(y) + R * np.array([np.sin(np.radians(deg)), 0.0, -np.cos(np.radians(deg))])
     iop = hit(G, ax(y0), back(y0, 0.0)); n0 = normal(G, iop)[0]
     G.add(Ellipsoid(iop - n0 * 2.0, (6.5, 5.5, 4.6), frame(n0)), 3.0, keep=4)           # the protuberance, where the four meet
-    for sgn, wid, dep in ((1.0, 8.5, 2.4), (-1.0, 11.0, 3.1)):
+    for sgn, wid, dep in ((1.0, 8.5, 1.5), (-1.0, 10.5, 2.0)):
         sd = 41 if sgn > 0 else 42
         P, N = line(G, [(ax(transverse_height(y0, a)), back(transverse_height(y0, a), sgn * a)) for a in np.linspace(4.0, 78.0, 13)], wave=1.5, seed=sd)
-        groove(G, P, N, varied(P, [(0, wid - 1.0), (0.5, wid), (1, wid + 0.5)], sd + 100), varied(P, [(0, 0.6 * dep), (0.25, dep), (1, dep)], sd + 200, 0.18), k=3.0)
+        groove(G, P, N, varied(P, [(0, wid - 1.0), (0.5, wid), (1, wid + 0.5)], sd + 100), varied(P, [(0, 0.6 * dep), (0.25, dep), (1, dep)], sd + 200, 0.18), k=5.0)
         E = P[-1]; o = np.array([sgn * 12.0, 2.0, -22.0])
         way = [E, (54.5, 6.0, -27.5), (54.0, -1.5, -25.5), (51.0, -7.5, -23.0), (46.0, -11.5, -20.5), (40.0, -13.5, -17.5), (34.0, -14.0, -13.5), (29.0, -12.5, -9.0), (25.5, -9.5, -4.5)]
         P, N = line(G, [(o, E)] + [(o, np.array(w) * (sgn, 1.0, 1.0)) for w in way[1:]], wave=1.0, seed=43 if sgn > 0 else 44)
