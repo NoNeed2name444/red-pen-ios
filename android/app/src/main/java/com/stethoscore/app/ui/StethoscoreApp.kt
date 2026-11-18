@@ -440,7 +440,7 @@ internal val modeWashScreens = setOf("study", "quick", "mock", "due", "libquiz",
 /** Home's first row (iOS LibraryView's searchField and accountMenu): the search well, then the account circle. */
 @Composable internal fun HomeSearchRow(query:String,onQuery:(String)->Unit,onSources:()->Unit,onSettings:()->Unit) {
     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(WardSpace.m.wardDp),verticalAlignment=Alignment.CenterVertically) {
-        com.stethoscore.app.ui.ward.WardTextField(query,onQuery,Modifier.weight(1f).semantics { contentDescription="Search" },
+        com.stethoscore.app.ui.ward.WardTextField(query,onQuery,Modifier.weight(1f).heightIn(min=com.stethoscore.app.ui.ward.WardControlSize.target.wardDp).semantics { contentDescription="Search" },
             placeholder="Search questions and cards",leadingIcon=Icons.Rounded.Search)
         HomeAccountMenu(onSources,onSettings)
     }
