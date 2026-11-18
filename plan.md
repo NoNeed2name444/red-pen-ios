@@ -3664,16 +3664,42 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
   Nov, "make bones compact - cancellous - spongy in each place each one
   should be and in each part of each bone. some bones also combine multiple
   types."). tools/scratch_body/structure.py and STRUCTURE.md: every bone's
-  parts with Gray's own words on what each is made of (44 rows, the whole
+  parts with Gray's own words on what each is made of (48 rows, the whole
   skeleton). Built in the skull and the lower jaw: a compact shell and the
   two tables with diploe between, thin plates compact all through, the
   petrous part dense, the mastoid's air cells (large high and forward, small
   at the tip, the antrum the largest), the jaw's thick lower border. It is
   the bone's inside, seen when a bone is sawn (dev/cut_open.py --inside,
-  dev/try_structure.py); the outside is unchanged. Left: the jaw's canal,
-  the inner ear, bars that follow the lines of load, the bars' true fineness
-  (they are half a millimetre here, a fifth of that in life), carrying it
-  into the app's parts, and every bone below the head (their rows say "no").
+  dev/try_structure.py); the outside is unchanged. Then (14 Nov, evening):
+  the lower jaw's canal, found in the bone itself (the shortest way from the
+  mandibular foramen to the mental foramen that keeps under the roots and
+  3 mm inside the bone, 86 mm long, with the two small canals to the
+  incisors); and a rule for every class of bone below the head
+  (structure.Bone and PLANS: long bones with a marrow canal, short bones,
+  flat bones, vertebrae). The from-scratch model has no bone below the head,
+  so tools/anatomy_inside.py applies the rules to the atlas's bones and
+  draws them in section; the app shows none of it. Left: the drum's cavity
+  and the inner ear, which wait on the petrous part being built up inside
+  the skull (it is a low slope there now, with no room for them); bars that
+  follow the lines of load; the bars' true fineness (they are half a
+  millimetre here, a fifth of that in life); a cut-open view in the app.
+- [x] F9. 15 to 18 Nov, the skull's inside (the owner's rings on the sawn skull:
+  "add the internal skull details and grooves", "this is too thick"): the
+  cranial cavity's own surface (tools/scratch_body/inner.py): the four
+  occipital fossae and the cross between them, the crest forking at the great
+  opening, transverse, sigmoid, sagittal and inferior petrosal grooves, the
+  petrous pyramids with the meatus, jugular tubercles, crista galli, the
+  meningeal vessels' grooves, granulation pits, the convolutions' impressions.
+  The hind wall is thinned to measured figures (Gray p. 132; Gupta et al. 2025,
+  doi 10.7759/cureus.98489): 11 mm at the protuberance only, 2.3 mm compact in
+  the cerebellar fossae. dev/inner_check.py finds no place broken through.
+  Not done: the drum's cavity and inner ear, foramen rotundum, the carotid
+  groove, the vault's own thickness map in front of the occipital. The owner
+  has said to leave the skull for now.
+- [ ] F10. 18 Nov, the owner: "ignore skull for now and start from foot
+  upward." The foot's bones from scratch, traced from Gray's plates (Fig. 264
+  to 291, pp. 262 to 277), compact and spongy inside by structure.py's rules;
+  then the ankle and leg, and on up.
 - [ ] F8. Mesh checks, the neck and down, the muscles, the woman, and where
   the from-scratch model goes in the app.
 

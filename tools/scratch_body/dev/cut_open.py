@@ -28,7 +28,16 @@ SETS = {
                ("sawn across through the ear holes: the front part from behind", (2, -8.0, 1), (0, 0.05, -1), (0, 12, -8), 216, ((-82, -104, -8), (82, 122, 70))),
                ("sawn across through the orbits and the molars: the hind part from in front", (2, 62.0, -1), (0, 0.05, 1), (0, -20, 62), 168, ((-70, -104, 12), (70, 62, 66))),
                ("sawn level above the ear holes: the lower part from above", (1, 5.0, -1), (0, 1, 0.08), (0, 5, 2), 196, ((-82, -40, -104), (82, 8, 112))),
-               ("the lower jaw sawn level through the sockets of its teeth (the teeth taken out): from above", (1, -60.0, -1), (0, 1, 0.08), (0, -60, 42), 124, ((-66, -84, -8), (66, -56, 102)))],
+               ("the lower jaw sawn level through the sockets of its teeth (the teeth taken out): from above", (1, -60.0, -1), (0, 1, 0.08), (0, -60, 42), 124, ((-66, -84, -8), (66, -56, 102))),
+               ("sawn level below the ear holes, through the cerebellum's fossae: the lower part from above", (1, -7.0, -1), (0, 1, 0.08), (0, -7, -22), 150, ((-82, -40, -104), (82, -4, 34)))],
+    # the cranial cavity's own surface (inner.py): the cap sawn off as in Gray's Fig. 193
+    "within": [("the skull cap sawn off: the base of the skull from above (the face at the top)", (1, 36.0, -1), (0, 1, 0.1), (0, 36, -2), 196, ((-82, -40, -104), (82, 38, 112))),
+               ("the same, the hind hollow close, from above and in front", (1, 36.0, -1), (0, 1, 0.75), (0, 4, -36), 128, ((-82, -40, -104), (82, 38, 40))),
+               ("the skull cap from below", (1, 36.0, 1), (0, -1, 0.1), (0, 36, -2), 196, ((-82, 34, -104), (82, 122, 112))),
+               ("sawn across through the ear holes: the hind part from in front", (2, -8.0, -1), (0, 0.12, 1), (0, 22, -8), 190, ((-82, -50, -104), (82, 122, -6))),
+               ("sawn down the middle, a little left of it: the left half from the right", (0, 4.6, 1), (-1, 0.05, 0.12), (4.6, 30, -6), 200, ((0, -50, -104), (82, 122, 112))),
+               ("the same, the right half from the left", (0, -4.6, -1), (1, 0.05, 0.12), (-4.6, 30, -6), 200, ((-82, -50, -104), (0, 122, 112))),
+               ("sawn across behind the great opening: the front of the hind hollow from behind and above", (2, -32.0, 1), (0, 0.5, -1), (0, 0, 4), 110, ((-62, -30, -32), (62, 40, 40)))],
 }
 
 
@@ -59,7 +68,7 @@ def pieces(name, zones, cut):
         A, l2 = block(D, lo, h, blo, bhi)
         return [] if A is None else [saw(A, l2, h, axis, level, keep)]
     if zones == "jaw":
-        zones = structure.Jaw.of(D, lo, h)
+        zones = structure.Jaw.of(D, lo, h, canals=I.get("canals"))
     out = []
     A, l2 = block(D, lo, h, blo, bhi)
     if A is not None:

@@ -279,6 +279,7 @@ def build(h=0.5, log=print, seat=True):
     # behind the ridge that bears the lingula
     p0, w0 = face(23.4, -30.0, False); p1, w1 = face(28.8, -40.5, False)
     F.cut(sdf.Tube(sdf.spline(np.array([p0 - 1.9 * w0, 0.5 * (p0 + p1) - 0.2 * w0 + np.array([0.0, 0.6, -0.6]), p1 + 1.9 * w1]), 0.6), [(0, 2.2), (0.5, 1.7), (1, 1.15)]), k=0.8)
+    canal_in = (p1 + 1.9 * w1, sdf.unit(p1 + 1.9 * w1 - (0.5 * (p0 + p1) - 0.2 * w0 + np.array([0.0, 0.6, -0.6]))))        # the funnel's bottom and the way it points: the canal goes on from here (structure.py)
     q0, v0 = face(29.3, -35.4, False); q1, v1 = face(27.7, -32.0, False)
     F.add(sdf.Tube(np.array([q0 + 0.2 * v0, 0.5 * (q0 + q1) - 0.35 * v0, q1 - 0.7 * v1]), [(0, 1.6), (0.6, 1.35), (1, 1.0)]), k=1.2)     # the lingula: a spine pointing up and back over the opening
 
@@ -319,7 +320,9 @@ def build(h=0.5, log=print, seat=True):
     F.ease(mf, 4.0, 0.6)
     log("jaw: mental foramen at %s, %.1f mm below the margin and %.1f above the lower border; joint head %.0f by %.0f mm at %s"
         % (np.round(mf, 1).tolist(), float(W["yt"](sm)) - ym, ym - float(W["yb"](sm)), 2 * c["half"][0], 2 * c["half"][2], list(c["centre"])))
-    return F, {"mental foramen": np.round(mf, 1).tolist(), "sockets": frames, "sheet": S, "maps": W}
+    canal = {"in": [np.round(canal_in[0], 2).tolist(), np.round(canal_in[1], 3).tolist()],                             # (left side; the right is its mirror)
+             "out": [np.round(mf - 2.5 * e - 2.6 * deep, 2).tolist(), np.round(deep, 3).tolist()]}                      # the mental foramen's inner end and the way it runs out
+    return F, {"mental foramen": np.round(mf, 1).tolist(), "sockets": frames, "sheet": S, "maps": W, "canal": canal}
 
 
 ZONES = [   # name, centre, radii, extra grain (mm), pits per mm2 (surface.py)

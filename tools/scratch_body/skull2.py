@@ -12,7 +12,7 @@ from scipy.sparse.linalg import spsolve
 
 import sdf, plates, relief
 import landmarks as L
-import teeth, base, occiput, foramina, palate, surface, nose, temporal, pterygoid, sinus
+import teeth, base, occiput, foramina, palate, surface, nose, temporal, pterygoid, sinus, inner
 from skull import arch, sockets, cut_sockets, groove
 from relief import Map, Slab, Prism, Funnel
 from sdf import Ellipsoid, Box, Tube, Field, spline, rot, unit, smin, smax
@@ -705,7 +705,7 @@ def build(h=1.0, log=print, box=None):
     return F, V
 
 
-def whole(F, log=print, rough=True, sinuses=True):
+def whole(F, log=print, rough=True, sinuses=True, inside=True):
     """The whole head's field from the built left half: mirrored; then what must not be the same on both sides: the
     midline's sutures, each with a wander of its own, and the bone's grain and pits (surface.py). Returns (D, lo)."""
     D = sdf.mirror_field(F.D); lo = np.array([-float(F.ax[0][-1]), float(F.lo[1]), float(F.lo[2])])
@@ -722,6 +722,8 @@ def whole(F, log=print, rough=True, sinuses=True):
                                                          (1 - np.clip((u - 0.6) / 0.14, 0, 1))) if sg else {}))
             whole.midlines[name] = Q
             G.cut(Tube(Q, r), 0.4)
+    if inside:
+        whole.inner = inner.build(G, log=log)                # the cavity's own surface: ridges, fossae, the sinuses' and the arteries' grooves (inner.py)
     if sinuses:
         whole.sinuses = sinus.air(G, log)                    # the air sinuses: hollowed in the whole head, the two sides not alike
     temporal.relief(G, log)                                   # the temporal bone's small relief, each side with its own unevenness

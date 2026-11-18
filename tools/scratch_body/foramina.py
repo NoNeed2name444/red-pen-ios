@@ -193,10 +193,10 @@ def cut(F, B, log=print):
     log("opening: great opening %.1f mm long, %.1f wide (widest at z %.1f), %.1f wide 6 mm behind its front" % (
         np.ptp(g[:, 1]), 2 * g[:, 0].max(), g[i, 1], 2 * np.abs(front[np.argmin(np.abs(front[:, 1] - (g[:, 1].max() - 6.0))), 0])))
     # the oval foramen: the plate's leaf, up through the greater wing
-    opening("oval foramen", fair(mm(OVALE)), 9.0, 0.6, lip=(0.6, 1.1))
+    opening("oval foramen", fair(mm(OVALE)), 17.0, 0.6, lip=(0.6, 1.1))        # (up through the middle hollow's floor: it opens in the cavity)
     # the spinous foramen behind and outside it
     c = mm([SPINOSUM])[0]
-    opening("spinous foramen", fair(c + 1.15 * np.array(ROUNDISH)), 8.0, 0.5, lip=(0.45, 0.8))
+    opening("spinous foramen", fair(c + 1.15 * np.array(ROUNDISH)), 18.0, 0.5, lip=(0.45, 0.8))
     # the ragged hole at the tip of the petrous part: the plate's own outline half as large again (a dried skull's is wider than the plate draws)
     L = mm(LACERUM); L = L.mean(0) + 1.5 * (L - L.mean(0))
     lac = opening("ragged hole (lacerum)", ragged(L, 187, 0.22), 13.0, 0.6, lip=(0.9, 1.5), taper=0.06)

@@ -32,6 +32,16 @@ down, the muscles, the woman, the place in the app.
 - What a bone is made of inside (`structure.py`, `STRUCTURE.md`) is kept apart from its outside: within the shell's
   thickness of any surface it is compact, deeper it is cancellous (a lattice of bars with marrow spaces), in the mastoid
   part it is air cells, and the petrous part is left dense. It shows when a bone is sawn (`dev/cut_open.py --inside`).
+- The lower jaw's canal (`structure.jaw_canals`) is found in the bone itself: from the bottom of the mandibular foramen's
+  funnel to the mental foramen it takes the shortest way that keeps 3 mm under every surface where the bone allows, the
+  tooth sockets' among them, so it runs under the roots and clear of them, then turns back up into the mental foramen;
+  two small canals go on to the incisors' sockets (Gray, p. 173).
+- The bones below the head have a rule each (`structure.Bone`, `structure.PLANS`): a long bone's body is a compact tube
+  round a marrow canal, its wall thinning toward the ends, the ends cancellous under a thin crust; a short bone is
+  cancellous under a crust; a flat bone is two compact layers with cancellous tissue between, compact all through where
+  it is thin; a vertebra's body has a thin coat and its arch and processes thick ones. The from-scratch model has no bone
+  below the head yet, so `tools/anatomy_inside.py` applies the rules to the bones of the app's atlas and
+  `dev/try_structure.py --auto` draws them in section. Nothing of it is in the app.
 
 | Module | What it holds | Plates (Gray 1918) |
 | --- | --- | --- |
@@ -41,7 +51,7 @@ down, the muscles, the woman, the place in the app.
 | `palate.py` | the roof of the mouth and the floor of the nose | Fig. 187 |
 | `nose.py` | the septum and the scrolls | Fig. 187, 190, 195, 196; p. 194 |
 | `sinus.py` | the air sinuses (maxillary, frontal, sphenoidal, ethmoidal cells), the orbit's inner wall, the sphenoid's saddle | pp. 998 to 1000, 147, 153, 155, 160 |
-| `structure.py` | compact, cancellous and air-celled bone, part by part (the table for the whole skeleton) | pp. 79, 80, 86, 132, 138, 142, 145 |
+| `structure.py` | compact, cancellous and air-celled bone, the marrow canal, the jaw's canal, part by part (the table and the rules for the whole skeleton) | pp. 79, 80, 86, 87, 97, 132, 138, 142, 145, 173 |
 | `pterygoid.py` | the two pterygoid plates, the hook, the pyramidal process | Fig. 189, 187, 147; pp. 151, 168 |
 | `teeth.py`, `teeth2.py` | every tooth, kind by kind, crowns and roots | Fig. 1002 |
 | `mandible4.py` (on `mandible.py`, `2`, `3`) | the lower jaw as one bone | Fig. 188, 176, 177, 190; pp. 172 to 174, 177 |
@@ -71,9 +81,11 @@ SCRATCH_SUPER=2 python3 dev/close.py skull30 face     # any picture drawn at twi
 python3 dev/ledger.py --book all.txt                  # write LEDGER.md again (the book's text, one page a form feed, for the page numbers)
 python3 dev/try_sinus.py f05d 2:66:-45,45,-40,40:z66  # the sinuses cut into a kept field built with --nosinus, in 3 seconds, with flat sections
 python3 dev/cut_open.py f05d --set sinus              # the head sawn open four ways (sets: sinus, sinus2, inside)
-python3 dev/save_field.py 0.5 jawf --jaw              # the lower jaw's field kept, as the skull's is
+python3 dev/save_field.py 0.5 jawf --jaw              # the lower jaw's field kept, as the skull's is, with its canal's course
 python3 dev/cut_open.py f05d --jaw jawf --set inside --inside   # sawn open with the bone's make-up on the sawn face, at 0.25 mm: 3 minutes
 python3 dev/try_structure.py f05d --jaw jawf 2:62:-72,72,-102,56:face   # flat sections coloured by the kind of bone
+python3 -I ../anatomy_inside.py --bone "left femur" --name femur   # one of the atlas's bones kept as a field in its own frame, with its rule
+python3 dev/try_structure.py femur --auto             # that bone in section: two cuts lengthwise, five across
 python3 dev/structure_doc.py                          # write STRUCTURE.md again from structure.TABLE
 ```
 
@@ -119,7 +131,15 @@ whether the model has it as a shape of its own, only as part of a larger form, o
   over the nose's cleft is 3 mm thick without its holes and without the crista galli; there is no upper scroll; the cells
   of one group open into each other by plain round passages; the drum's cavity behind the ear canal is not built.
 - The bone's inside (`structure.py`): the lattice's bars are about half a millimetre thick, in life a fifth of that, and
-  run every way alike, where real ones follow the lines of load; the petrous part is simply dense, with no inner ear in
-  it; the mastoid's cells do not open into one another or into a drum's cavity; the jaw has no canal; the teeth are left
-  out of the sawn pictures. The app's parts do not carry any of it yet, and no bone below the head is built.
+  run every way alike (drawn out lengthwise in the long bones' ends and upright in the vertebrae's bodies), where real
+  ones follow the lines of load; the petrous part is simply dense, with no inner ear in it; the mastoid's cells do not
+  open into one another or into a drum's cavity; the jaw's canal has no small openings into the sockets and its bore
+  (2.4 mm narrowing to 2) is ours; the teeth are left out of the sawn pictures. The app's parts do not carry any of it.
+- The drum's cavity cannot be built yet: inside the skull the petrous part is a low slope and not the tall ridge it is in
+  life (at the ear canal's inner end only 1.5 to 6 mm of bone lie between the canal and the braincase), so there is no
+  room for the cavity or the inner ear. The petrous part has to be built up inside the skull first (F7).
+- The bones below the head: the rules are drawn on the atlas's bones, which are coarse (the femur has 2,900 faces) and
+  in places wrong (the shoulder blade has holes and a blade as thick as 5 mm, the wrist's eight bones are one lump), so
+  a thickness that is ours (a long bone's wall as a share of its width, the thinness under which a flat bone is compact
+  all through) is set to those shapes. No ruled thickness comes from Gray, who gives none.
 - Mesh checks (`check_mesh.py`, `check_parts.py`) have not been run on the current build.
