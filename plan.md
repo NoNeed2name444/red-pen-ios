@@ -3700,6 +3700,12 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
   upward." The foot's bones from scratch, traced from Gray's plates (Fig. 264
   to 291, pp. 262 to 277), compact and spongy inside by structure.py's rules;
   then the ankle and leg, and on up.
+  - [ ] Calcaneus (`tools/scratch_body/foot.py`, `dev/try_foot.py calcaneus`):
+    built from cross-sections set between the edges Fig. 264 and Fig. 266
+    draw, both retraced under a millimetre grid. Its side view follows the
+    plate. Not yet fit to show: the sulcus is a plain trench, the shelf a
+    plain block, the joint surfaces do not read. Nothing sent.
+  - [ ] Talus, the other tarsals, metatarsals, phalanges; the foot together.
 - [ ] F8. Mesh checks, the neck and down, the muscles, the woman, and where
   the from-scratch model goes in the app.
 
