@@ -27,6 +27,9 @@ CALC_FACETS = [[(-7.7, 57.8), (-0.2, 58.9), (6.6, 58.1), (12.6, 58.5), (16.0, 57
                 (10.0, 42.6), (5.1, 44.6), (1.4, 49.1), (-2.4, 52.1), (-6.2, 54.0), (-8.4, 56.3)],
                [(17.1, 65.8), (20.5, 66.4), (25.0, 63.6), (29.0, 60.2), (30.0, 57.4), (27.6, 56.2), (23.0, 58.4), (19.0, 61.0), (16.6, 63.6)],
                [(11.4, 77.0), (14.6, 75.6), (17.2, 71.0), (17.6, 66.6), (15.2, 67.0), (12.6, 70.6), (10.8, 74.4)]]
+# the sustentaculum's outline on the same plate, from its root on the body round its blunt edge, (x, z)
+CALC_SHELF = [(12.0, 44.5), (18.0, 46.0), (23.0, 47.4), (28.4, 49.9), (30.6, 52.4), (31.0, 55.6), (30.0, 60.4), (27.6, 62.4), (25.4, 63.8),
+              (20.9, 66.8), (17.0, 68.8), (12.0, 69.5)]
 # Fig. 266, its lateral surface, read the same way (0.238 mm a pixel), (z, y). Its upper edge here is the lateral one: the
 # crest behind the posterior facet, the facet's fall, the floor of the sinus tarsi, the top of the anterior process
 CALC_SIDE = [(0.0, 18.1), (1.4, 27.6), (3.1, 33.6), (5.5, 39.5), (7.9, 41.4), (11.4, 41.2), (16.2, 40.5), (21.0, 41.9), (25.7, 44.7),
@@ -70,6 +73,28 @@ def _patch(F, poly, soft=0.5):
     ImageDraw.Draw(im).polygon([((x - F.lo[0]) / F.h, (z - F.lo[2]) / F.h) for x, z in P], fill=255)
     m = ndimage.gaussian_filter(np.asarray(im, np.float32).T / 255.0, soft / F.h)
     return m[:, None, :]
+
+
+def _plan(F, poly):
+    """Signed distance, in mm, to an outline drawn on the plan (x, z), less than 0 inside: as a block (nx, 1, nz)."""
+    from PIL import Image, ImageDraw
+    from scipy import ndimage
+    P = sdf.spline(np.asarray(poly, float), 0.4, closed=True)
+    im = Image.new("L", (int(F.n[0]), int(F.n[2])), 0)
+    ImageDraw.Draw(im).polygon([((x - F.lo[0]) / F.h, (z - F.lo[2]) / F.h) for x, z in P], fill=255)
+    m = np.asarray(im).T > 0
+    d = (ndimage.distance_transform_edt(~m) - ndimage.distance_transform_edt(m)) * F.h
+    return ndimage.gaussian_filter(d, 0.6 / F.h).astype(np.float32)[:, None, :]
+
+
+def _near(X, Z, path):
+    """Distance on the plan from each point to a bent line (x, z), and how far along it (0 to 1) the nearest point is."""
+    P = sdf.spline(np.asarray(path, float), 0.5); n = len(P)
+    d = np.full(np.broadcast(X, Z).shape, 1e9, np.float32); t = np.zeros_like(d)
+    for i in range(n):
+        e = np.sqrt((X - P[i, 0]) ** 2 + (Z - P[i, 1]) ** 2).astype(np.float32)
+        t = np.where(e < d, i / (n - 1.0), t); d = np.minimum(d, e)
+    return d, t
 
 
 def _limits(outline, zcol, zt):
@@ -143,39 +168,47 @@ def calcaneus(h=0.4, log=print):
     zs = np.where(Z2 < 21.0, Z2, np.where(Z2 < zp, 21.0 + (Z2 - 21.0) / (zp - 21.0) * 10.4,
                   np.where(Z2 < 58.0, 31.4 + (Z2 - zp) / (58.0 - zp) * 23.1, 54.5 + (Z2 - 58.0) / 20.0 * 23.5)))
     top = tab(zs, YT)
-    # the floor in front of the facet is the sinus tarsi laterally and narrows to the sulcus medially; behind the facet
-    # the upper surface is a ridge, rounded from side to side
-    top = top + 5.5 * _ss((X2 + 2.0) / 12.0) * _bump(Z2, 53.0, 57.0, 61.0, 66.0)
+    # in front of the facet the deep floor (the sinus tarsi) is only the lateral third; medially the bone stands higher
+    # and is crossed by the sulcus calcanei, a groove that begins narrow between the facet and the shelf and runs
+    # forward and outward, widening, into the sinus (Fig. 264)
+    top = top + 5.5 * _ss((X2 + 7.0) / 7.0) * _bump(Z2, 53.0, 57.0, 62.0, 67.0)
+    d, t = _near(X2, Z2, [(18.6, 45.5), (18.8, 52.0), (17.5, 58.0), (12.0, 61.0), (4.0, 62.0), (-4.0, 62.5)])
+    top = top - (2.0 + 2.6 * t) * np.exp(-(d / (1.5 + 2.6 * t)) ** 2)
+    # behind the facet the upper surface is a ridge, rounded from side to side
     top = top - 5.0 * ((X2 - 0.5) / 14.0) ** 2 * (1.0 - _ss((Z2 - 36.0) / 12.0))
-    top = top + (np.clip(45.5 - 0.32 * (Z2 - 47.0), 38.5, 45.5) - top) * _ss((X2 - 14.0) / 5.0) * _bump(Z2, 41.0, 47.0, 66.0, 73.0)
+    shelf_top = np.clip(45.5 - 0.32 * (Z2 - 47.0), 38.5, 45.5)
+    top = top + (shelf_top - top) * _ss((X2 - 15.5) / 3.0) * _bump(Z2, 44.0, 49.0, 66.0, 71.0)
     # the anterior process ends above and medially in a small beak that carries the anterior facet (Fig. 267)
     top = top + 3.5 * _ss((X2 - 5.0) / 8.0) * _bump(Z2, 65.0, 71.0, 79.0, 82.0)
-    top = ndimage.gaussian_filter(top, (1.2 / h, 0, 1.2 / h))
+    top = ndimage.gaussian_filter(top, (1.0 / h, 0, 1.0 / h))
     gx, gz = np.gradient(top[:, 0, :], h); slope = np.sqrt(1.0 + gx ** 2 + gz ** 2)[:, None, :]
     F.D = sdf.smax(D, (Y - top) / slope, 4.0).astype(np.float32)
-    # the sustentaculum itself: a thick shelf with a blunt edge, grown out of the swell the wall already makes for it
-    # (Fig. 267, the medial surface: it slopes down and forward, about a third of a right angle, and is some 8 mm thick)
-    F.add(Lump((20.5, 37.6, 56.5), (9.5, 4.6, 12.0), 2.8, rot((0, 1, 0), -20.0) @ rot((1, 0, 0), 32.0)), 6.0, keep=10)
-    # under the shelf, the groove for the tendon of the Flexor hallucis longus (Fig. 268 names it)
-    F.cut(Tube(np.array([(21.0, 36.5, 43.0), (25.5, 30.5, 57.0), (25.5, 24.5, 70.0)]), 3.0, 4.2, up=(0, 1, 0.6)), 3.0)
-    # sulcus calcanei: in front of the posterior facet and medial to it, between it and the shelf; wider laterally
-    F.cut(Tube(np.array([(18.5, 46.0, 47.0), (18.0, 43.5, 58.5), (8.0, 39.0, 62.0), (-9.0, 38.0, 62.0)]), [(0, 1.5), (0.4, 2.0), (1, 3.6)],
-               [(0, 1.6), (0.4, 2.2), (1, 4.0)], up=(0, 1, 0)), 2.5)
+    # the sustentaculum itself, in the outline the plate from above gives it and the slope and thickness the medial
+    # plate gives it (Fig. 267: down and forward, some 8 mm thick at its edge, deeper where it springs from the wall)
+    dp = _plan(F, CALC_SHELF)
+    under = shelf_top - 9.0 - 6.0 * _ss((20.0 - X2) / 8.0)
+    F.D = sdf.smin(F.D, sdf.smax(dp + 0.0 * Y, sdf.smax(Y - shelf_top, under - Y, 3.0), 4.5), 4.0).astype(np.float32)
+    # under the shelf, the groove for the tendon of the Flexor hallucis longus (Fig. 267 names it)
+    F.cut(Tube(np.array([(20.0, 35.5, 42.0), (24.5, 34.0, 50.0), (25.5, 30.0, 61.0), (24.0, 25.5, 72.0)]), 3.2, 4.0, up=(0, 1, 0.5)), 3.0)
+    # a vessel's hole in the floor of the sinus tarsi (the plate has one)
+    F.cut(Ellipsoid((3.5, 39.5, 63.5), (0.9, 2.5, 0.75), rot((0, 0, 1), 20.0)), 0.5)
     # in front, the saddle for the cuboid: hollow from above down, facing forward and a little outward
     F.cut(Ellipsoid((-1.0, 29.0, 84.5), (16.0, 11.0, 7.0), rot((0, 1, 0), 8.0)), 2.5)
     # the joint surfaces stand a hair proud of the rough bone round them, each with its own edge (Fig. 264): posterior,
     # middle (on the shelf), anterior; they are smooth, so the grain is held off them
     m = np.maximum.reduce([_patch(F, p) for p in CALC_FACETS]) * _ss((Y - 33.0) / 3.0)
-    F.D = (F.D - 0.5 * m).astype(np.float32); F.smooth = m.astype(np.float32)
+    F.D = (F.D - 0.8 * m).astype(np.float32); F.smooth = np.maximum(m, _ss((Z - 75.0) / 2.0) + 0.0 * m).astype(np.float32)
     log("calcaneus: built in its own frame, %.0f mm long" % (z1 - z0))
     return F
 
 
-def grain(F, seed=264, amp=0.12):
-    """A bone's fine unevenness (no surface of it is polished): chance, smoothed over about a millimetre and over four."""
+def grain(F, seed=264, amp=0.12, fibre=0.04):
+    """A bone's fine unevenness (no surface of it is polished): chance, smoothed over about a millimetre and over four;
+    and the faint lengthwise fibre its rough surfaces show (Gray's plates draw it), chance drawn out along the bone."""
     from scipy import ndimage
     rng = np.random.default_rng(seed); n = F.D.shape
     a = ndimage.gaussian_filter(rng.normal(size=n).astype(np.float32), 1.0 / F.h); a /= a.std()
     b = ndimage.gaussian_filter(rng.normal(size=n).astype(np.float32), 3.5 / F.h); b /= b.std()
-    F.D += amp * (0.6 * a + 0.8 * b) * (1.0 - 0.85 * getattr(F, 'smooth', 0.0))
+    c = ndimage.gaussian_filter(rng.normal(size=n).astype(np.float32), (0.45 / F.h, 0.45 / F.h, 7.0 / F.h)); c /= c.std()
+    F.D += (amp * (0.6 * a + 0.8 * b) + fibre * c) * (1.0 - 0.85 * getattr(F, 'smooth', 0.0))
     return F
