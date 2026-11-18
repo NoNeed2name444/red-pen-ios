@@ -202,12 +202,6 @@ struct FoundCard: Identifiable {
     var id: UUID { card.id }
 }
 
-/// A note, once a search could find one. Search no longer does (T0274);
-/// the type stays while LibrarySavedIdeas still holds one, and goes with it.
-struct FoundNote: Identifiable {
-    let id: UUID
-}
-
 /// One card, found by a search: its front, the answer on a tap, and its deck
 /// a tap further.
 struct FoundCardSheet: View {

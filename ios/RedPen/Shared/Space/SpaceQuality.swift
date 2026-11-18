@@ -252,14 +252,6 @@ enum SpaceSettings {
     /// String (GraphicsChoice.rawValue), default "automatic": "Graphics" -
     /// Automatic, High quality or Smooth (GraphicsQuality.swift).
     static let graphicsKey: String = GraphQuality.key
-    /// Double, default 1: "Link length" - how far apart linked bodies stand
-    /// in the Ideas map, 0.6 (Shorter) to 1.8 (Longer) (GraphLinkLength,
-    /// GraphicsQuality.swift). The map's Look menu sets the same value.
-    static let linkLengthKey: String = GraphLinkLength.key
-    /// Bool, default false (Curved): "Lines" - Curved or Straight links in
-    /// both Ideas modes, the 3D map and the 2D board (GraphLineStyle,
-    /// GraphicsQuality.swift). Both Look menus set the same value.
-    static let straightLinesKey: String = GraphLineStyle.key
 
     static var alwaysNight: Bool {
         UserDefaults.standard.object(forKey: alwaysNightKey) as? Bool ?? false
@@ -267,14 +259,6 @@ enum SpaceSettings {
 
     static var sounds: Bool {
         UserDefaults.standard.object(forKey: soundsKey) as? Bool ?? false
-    }
-
-    static var linkLength: Double {
-        GraphLinkLength.stored(UserDefaults.standard.object(forKey: linkLengthKey) as? Double)
-    }
-
-    static var lineStyle: GraphLineStyle {
-        GraphLineStyle.stored(UserDefaults.standard.object(forKey: straightLinesKey) as? Bool)
     }
 }
 

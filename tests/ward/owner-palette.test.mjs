@@ -92,17 +92,6 @@ role('the AccentColor asset, in both appearances', 'Care Blue',
        .map(c => (c ? '#' + [c.red, c.green, c.blue].map(x => String(x).replace(/^0x/i, '').toUpperCase()).join('') : 'not found')));
 check('the AccentColor asset has a light and a dark entry', (accentAsset.colors ?? []).length === 2);
 
-// --- the folders (NoteTone), in their stored order: a folder is matched by index
-
-const notes = read('ios/RedPen/Features/Notes/NotesShared.swift');
-const toneBlock = /private static let palette: \[\(fill: UInt32, light: UInt32, dark: UInt32\)\] = \[([\s\S]*?)\n {4}\]/.exec(notes);
-const tones = toneBlock ? [...toneBlock[1].matchAll(/\(0x([0-9A-Fa-f]{6}), 0x([0-9A-Fa-f]{6}), 0x([0-9A-Fa-f]{6})\)/g)].map(m => m.slice(1, 4).map(hex6)) : [];
-const FOLDERS = ['Pulse Teal', 'Electric Indigo', 'Peach Glow', 'Soft Lilac', 'Lime Zest', 'Bubblegum Pink', 'Care Blue'];
-check('seven folder colours, the seven the page gives a folder',
-      tones.length === 7 && TEN.filter(t => /a folder/.test(t[2])).map(t => t[0]).sort().join() === [...FOLDERS].sort().join(),
-      String(tones.length));
-FOLDERS.forEach((name, i) => role(`folder ${i + 1}'s colour and its glyph, by day and at night`, name, tones[i] ?? []));
-
 // --- the brand, the occlusion cover, exported decks, the Anki pen, the widget
 
 const colour = (src, name) => {
@@ -142,8 +131,13 @@ const glance = read('ios/StethoscoreWidgets/GlanceTimeline.swift');
 role('the widget\'s pen (the red pen)', 'Vital Coral', colour(glance, 'pen'));
 role('the widget\'s star', 'Care Blue', colour(glance, 'star'));
 
-check('every one of the ten is pinned in a role here', TEN.every(([name]) => pinned.has(name)),
-      TEN.filter(([name]) => !pinned.has(name)).map(t => t[0]).join(', '));
+// Electric Indigo's only carrier was the folder palette of the Ideas notes
+// board (NoteTone), removed with Ideas (T0278): the page still lists it, and
+// no source carries it any more, so there is nothing left to pin it to.
+const NO_CARRIER_LEFT = new Set(['Electric Indigo']);
+check('every one of the ten is pinned in a role here, bar those left with no carrier',
+      TEN.every(([name]) => pinned.has(name) || NO_CARRIER_LEFT.has(name)),
+      TEN.filter(([name]) => !pinned.has(name) && !NO_CARRIER_LEFT.has(name)).map(t => t[0]).join(', '));
 
 if (failed) { console.log(`${failed} failed`); process.exit(1); }
 console.log('all passed');

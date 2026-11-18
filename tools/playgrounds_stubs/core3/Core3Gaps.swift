@@ -4,50 +4,12 @@ import SwiftUI
 // Only in the Playgrounds core3 build (make_swiftpm.py --without core3):
 // the full shell, sessions, stats, editors, sync and the Ward Round home's
 // learning pieces are the app's own. What this file stands in for is
-// everything that shell still opens which a later zip brings back: Ideas,
-// the sky and pop-out, diagnostics, the platform, reasoning, insight,
-// coverage, mock papers' neighbours, onboarding and the examples hub.
+// everything that shell still opens which a later zip brings back: the sky
+// and pop-out, diagnostics, the platform, reasoning, insight, coverage, mock
+// papers' neighbours, onboarding and the examples hub.
 // The full app never compiles this file.
 
-// MARK: - Ideas (Features/Notes): the map stays out
-
-struct IdeasView: View {
-    init(query: Binding<String>? = nil, dockClearance: CGFloat = 0) {}
-
-    var body: some View { NotInThisBuild(feature: "Ideas") }
-}
-
-struct NoteEditorView: View {
-    init(noteID: UUID) {}
-
-    var body: some View { NotInThisBuild(feature: "Ideas") }
-}
-
-/// Which of Ideas' views is open (NotesShared.swift): the library reads it
-/// to keep the sky only under the 3D map, which never opens here.
-enum IdeasMode: String {
-    case list, board, space
-}
-
-enum NoteExamples {
-    static func seedIfNeeded(into store: NoteStore) {}
-}
-
 extension View {
-    func noteSourceChip(noteID: UUID) -> some View { self }
-}
-
-extension LibraryView {
-    /// Save to Ideas is left out (LibrarySavedIdeas.swift).
-    func attachIdeaSaver() {}
-
-    /// A saved note's way back to its item: no notes are saved here.
-    func openSaved(_ source: NoteSource) {}
-}
-
-extension View {
-    func appLinksInPlace() -> some View { self }
-
     /// Files opened from other apps (IncomingImport.swift) wait for a later zip.
     func incomingImportPreview(busy: Bool = false) -> some View { self }
 }
@@ -63,8 +25,6 @@ enum SpaceSettings {
     static let alwaysNightKey = "vignette.space.alwaysNight"
     static let soundsKey = "vignette.space.sounds"
     static let graphicsKey = "vignette.space.graphics"
-    static let linkLengthKey = GraphLinkLength.key
-    static let straightLinesKey = GraphLineStyle.key
 }
 
 @MainActor
@@ -106,7 +66,6 @@ extension View {
     func skyZoomSource(_ id: String) -> some View { self }
     func skyZoomDestination(_ id: String) -> some View { self }
     func liftOffOnAppear() -> some View { self }
-    func ideasThemeTip(when: Bool = true) -> some View { self }
 }
 
 struct SkyRoot<Content: View>: View {

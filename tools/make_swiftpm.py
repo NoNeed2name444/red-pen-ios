@@ -40,7 +40,7 @@ samples = args[4:]  # lectures for this build only (never in the repository)
 # CoreLibrary's footer.
 CORE_DROP = [
     # whole features
-    "Features/Notes", "Persistence/NoteStore.swift",             # Ideas and the 3D map
+    "Persistence/NoteStore.swift",                                # the stored notes (kept for the backup)
     "Features/Lens", "Shared/Lens",                              # Study Lens
     "Features/Analytics",                                         # Progress analytics
     "Features/Voice", "Shared/Voice",                             # spoken OSCE, commute mode, explain-it-back
@@ -58,7 +58,6 @@ CORE_DROP = [
     "Shared/Exam/ExamFormats.swift",
     "Features/Exam/WardPocketView.swift", "Shared/WardPocket.swift", "Shared/WardPocketScores.swift",  # ward pocket
     "Features/Onboarding", "Shared/FirstRunRules.swift",          # first-run pages and the one-time tips
-    "Shared/Ideas/SaveToIdeasUI.swift", "Features/Library/LibrarySavedIdeas.swift",  # save to Ideas (what a note keeps of its source stays)
     "Shared/Space", "Shared/AppBackdrop.swift",                   # the living sky
     "Shared/PopOut.swift", "Shared/PopOutMotion.swift", "Shared/HeadTracker.swift",
     "Shared/Diagnostics", "Features/Support/DiagnosticsSettingsView.swift",
@@ -95,8 +94,8 @@ CORE_DROP = [
 ]
 CORE_KEEP = ["QuizFromCards.swift", "TurnIntoPicker.swift", "NewSetDock.swift", "LibraryChrome.swift",
              "ImageSpoiler.swift", "LectureAudio.swift", "ModeConversion.swift", "SyncDocuments.swift", "AppLink.swift",
-             # Foundation only, shared by Settings and the sky (the Ideas map stays out): the Graphics
-             # choice and, since the Ideas removal, GraphLineStyle and SplitMix64, which Shared/Space reads
+             # Foundation only, shared by Settings and the sky: the Graphics choice and
+             # SplitMix64, which Shared/Space reads
              "GraphicsQuality.swift",
              # Foundation only: the core home's countdown and greeting (CoreLibrary.swift)
              "WardWords.swift"]
@@ -114,7 +113,7 @@ STEP1_BACK = [
 assert all(p in CORE_DROP for p in STEP1_BACK), "STEP1_BACK names a path the core does not drop"
 CORE1_DROP = [p for p in CORE_DROP if p not in STEP1_BACK]
 # core2 = core1 plus step 2: Anki packages, PDF and set-file export, backups
-# (with the Ideas store they include and the data settings that run them),
+# (with the notes store they include and the data settings that run them),
 # occlusion and picture cards, the scanner. Siri's export shortcuts and
 # files opened from other apps stay with the platform parts (step 6).
 STEP2_BACK = [
@@ -159,21 +158,17 @@ STEP3_BACK = [
 assert all(p in CORE2_DROP for p in STEP3_BACK), "STEP3_BACK names a path core2 does not drop"
 CORE3_DROP = [p for p in CORE2_DROP if p not in STEP3_BACK]
 CHUNKS = {
-    # the 3D Ideas map, ~20,000 lines of SceneKit; GraphLineStyle.swift stays
-    # (Foundation only: the line shapes the 2D board draws; the Curved/Straight
-    # choice itself is in Shared/Space/GraphicsQuality.swift)
-    "graph3d": (["Features/Notes/Graph*.swift"], ["GraphLineStyle.swift"], ["graph3d.swift"]),
     "lens": (["Features/Lens", "Shared/Lens"], [], ["lens.swift"]),          # Study Lens (camera reads a question)
     "analytics": (["Features/Analytics"], [], ["analytics.swift"]),          # the Progress screen's rings and charts
     # the core shell (core/) plus the variant's own piece: stand-ins for the
     # step-1 parts (core-audio-out) or the ways into them (core-audio-in)
-    "core": (CORE_DROP, CORE_KEEP, ["graph3d.swift", "core", "core-shell-out", "core-audio-out", "core-exports-out"]),
-    "core1": (CORE1_DROP, CORE_KEEP, ["graph3d.swift", "core", "core-shell-out", "core-audio-in", "core-exports-out"]),
-    "core2": (CORE2_DROP, CORE_KEEP, ["graph3d.swift", "core", "core-shell-out", "core-audio-in", "core-exports-in"]),
+    "core": (CORE_DROP, CORE_KEEP, ["core", "core-shell-out", "core-audio-out", "core-exports-out"]),
+    "core1": (CORE1_DROP, CORE_KEEP, ["core", "core-shell-out", "core-audio-in", "core-exports-out"]),
+    "core2": (CORE2_DROP, CORE_KEEP, ["core", "core-shell-out", "core-audio-in", "core-exports-in"]),
     # the real shell replaces CoreApp and CoreLibrary, so only the shared
     # stand-ins are copied, plus the gaps the returning shell still names
-    "core3": (CORE3_DROP, CORE_KEEP, ["graph3d.swift", "lens.swift", "analytics.swift",
-                                      "core/CoreStandIns.swift", "core/CoreIdeas.swift", "core3"]),
+    "core3": (CORE3_DROP, CORE_KEEP, ["lens.swift", "analytics.swift",
+                                      "core/CoreStandIns.swift", "core3"]),
 }
 unknown = [w for w in without if w not in CHUNKS]
 assert not unknown, f"unknown chunk(s) {unknown}; known: {', '.join(CHUNKS)}"
@@ -254,15 +249,6 @@ if logo_dir is not None:
     for n in LOGO_FILES:
         shutil.copy(os.path.join(logo_dir, n), os.path.join(root, "Logo", n))
     listed.append('.copy("Logo")')
-# the Earth maps (Resources/Earth, NASA imagery, 4.5 MB) go with the 3D map
-# whose rocky planets wear them: a folder in the package's resources where
-# the map is kept, left out with it everywhere else
-earth = os.path.join(root, "Resources", "Earth")
-if os.path.isdir(earth):
-    if os.path.exists(os.path.join(root, "Features", "Notes", "GraphNodeFactory.swift")):
-        listed.append('.copy("Resources/Earth")')
-    else:
-        shutil.rmtree(earth)
 resources = ', resources: [' + ', '.join(listed) + ']'
 # (the catalog's folder, empty once the catalog is left out)
 leftover = os.path.join(root, "Resources")

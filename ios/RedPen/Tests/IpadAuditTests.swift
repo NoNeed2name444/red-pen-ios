@@ -31,7 +31,7 @@ let core: [String] = [
     "Library/WardHome.swift", "Library/StudyCategory.swift", "Library/NewSetDock.swift",
     "Library/NewSetView.swift", "MCQ/MCQQuizView.swift", "Mock/MockSittingView.swift",
     "Anki/AnkiReviewView.swift", "Book/BookReaderView.swift", "Recall/DrawRecallView.swift",
-    "OSCE/OsceReviewView.swift", "Cases/CaseListView.swift", "Notes/IdeasView.swift",
+    "OSCE/OsceReviewView.swift", "Cases/CaseListView.swift",
     "Support/SupportCenter.swift",
 ].map { features + $0 }
 

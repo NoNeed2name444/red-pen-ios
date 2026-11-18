@@ -21,7 +21,7 @@ struct LibraryDock {
         row.waitForExistence(timeout: timeout) && !element("dockList").exists
     }
 
-    /// Goes to a place (a category or "ideas") by its tab on the row.
+    /// Goes to a place (a category) by its tab on the row.
     /// `press` does the tapping, so a test can keep its own way of pressing
     /// raised glass. False when the tab is not on the row, or the dock is
     /// the list button.

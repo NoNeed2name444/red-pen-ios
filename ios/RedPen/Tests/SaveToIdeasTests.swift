@@ -1,10 +1,11 @@
-// Save to Ideas: the title a note gets from a question or a card, the key
-// that stops the same item being saved twice, the folder a subject's notes
-// go in, what a save writes and adds, and the backlink - as stored on the
-// note and as a link.
+// The backlink a note keeps to where it was saved from (NoteSource): the key
+// that stops the same item being saved twice, the chip's label, the link as
+// stored on the note and as a url, and a note whose source this version
+// cannot read still loading; and the board's links, each pair once
+// (IdeaEdges, in NoteStore.swift).
 //
-// Compiled with SaveToIdeas.swift, NoteSource.swift and NoteStore.swift (its
-// Combine half is fenced out on Linux).
+// Compiled with NoteSource.swift and NoteStore.swift (its Combine half is
+// fenced out on Linux).
 import Foundation
 
 var failures: [String] = []
@@ -18,38 +19,6 @@ let setA = UUID()
 let setB = UUID()
 let item = UUID()
 
-// MARK: titles
-
-let stem = "A 54-year-old man has crushing chest pain for 2 hours. His ECG shows ST elevation in II, III and aVF. Which artery is blocked?"
-check("title is the first sentence",
-      SaveToIdeas.title(from: stem) == "A 54-year-old man has crushing chest pain for 2 hours.",
-      SaveToIdeas.title(from: stem))
-check("a decimal does not end the sentence",
-      SaveToIdeas.title(from: "pH 7.1 and a bicarbonate of 12. What next?") == "pH 7.1 and a bicarbonate of 12.",
-      SaveToIdeas.title(from: "pH 7.1 and a bicarbonate of 12. What next?"))
-check("e.g. does not end the sentence",
-      SaveToIdeas.title(from: "Drugs e.g. digoxin cause it. More.") == "Drugs e.g. digoxin cause it.",
-      SaveToIdeas.title(from: "Drugs e.g. digoxin cause it. More."))
-check("a lone capital ends the sentence",
-      SaveToIdeas.title(from: "Serology shows hepatitis B. What is the next step?") == "Serology shows hepatitis B.",
-      SaveToIdeas.title(from: "Serology shows hepatitis B. What is the next step?"))
-check("St. does not end the sentence",
-      SaveToIdeas.title(from: "St. John's wort induces CYP3A4. Which drug fails?") == "St. John's wort induces CYP3A4.",
-      SaveToIdeas.title(from: "St. John's wort induces CYP3A4. Which drug fails?"))
-check("a question alone is kept whole",
-      SaveToIdeas.title(from: "What is the first-line drug for absence seizures?") == "What is the first-line drug for absence seizures?")
-check("bold markers come out", SaveToIdeas.title(from: "The **SA node** paces the heart") == "The SA node paces the heart")
-check("cloze shows its term",
-      SaveToIdeas.title(from: "The {{c1::phrenic::nerve}} nerve supplies the diaphragm") == "The phrenic nerve supplies the diaphragm",
-      SaveToIdeas.title(from: "The {{c1::phrenic::nerve}} nerve supplies the diaphragm"))
-check("lines are folded", SaveToIdeas.title(from: "Line one\n  and  two") == "Line one and two")
-check("empty text takes the fallback", SaveToIdeas.title(from: "  \n ", fallback: "Saved card") == "Saved card")
-check("wiki brackets are defused", !SaveToIdeas.title(from: "See [[Heart]] now").contains("[["))
-let long = String(repeating: "word ", count: 40)
-let cut = SaveToIdeas.title(from: long)
-check("a long title is cut at a word", cut.count <= SaveToIdeas.titleLimit + 1 && cut.hasSuffix("\u{2026}")
-      && !cut.contains("wor\u{2026}"), cut)
-
 // MARK: the dedupe key
 
 let q1 = NoteSource(kind: .question, setID: setA, itemID: item, setName: "Cardiology")
@@ -62,79 +31,6 @@ let lectureP9 = NoteSource(kind: .lecture, setID: setA, itemID: item, page: 9)
 check("a lecture is one note whatever the page", lectureP2.dedupeKey == lectureP9.dedupeKey)
 let whole = NoteSource(kind: .osce, setID: setA)
 check("no item: the set is the key", whole.dedupeKey.hasSuffix(setA.uuidString.lowercased()))
-
-// MARK: folders
-
-check("subject names the folder", SaveToIdeas.folderName(subject: "  Renal  medicine ") == "Renal medicine")
-check("no subject: General", SaveToIdeas.folderName(subject: " ") == "General")
-let top = SaveToIdeas.FolderRef(id: UUID(), name: "Cardiology", parentId: nil)
-let inner = SaveToIdeas.FolderRef(id: UUID(), name: "cardiology", parentId: UUID())
-let other = SaveToIdeas.FolderRef(id: UUID(), name: "Neurology", parentId: nil)
-check("top-level match wins", SaveToIdeas.folder(named: "CARDIOLOGY", in: [inner, other, top]) == top.id)
-check("a nested one is used when that is all there is",
-      SaveToIdeas.folder(named: "Cardiology", in: [inner, other]) == inner.id)
-check("accents and spacing are ignored",
-      SaveToIdeas.folder(named: "Neurología", in: [SaveToIdeas.FolderRef(id: other.id, name: " neurologia ", parentId: nil)]) == other.id)
-check("no match: make one", SaveToIdeas.folder(named: "Renal", in: [top, other]) == nil)
-
-// MARK: bodies
-
-let clip = SaveToIdeas.question(stem: stem, answer: "Right coronary artery",
-                                explanation: "Inferior leads mean the RCA.", source: q1, subject: "Cardiology")
-check("question clip title from stem", clip.title.hasPrefix("A 54-year-old man"))
-check("question clip has the answer", clip.text.contains("**Answer:** Right coronary artery"))
-let body = SaveToIdeas.body(for: clip)
-check("body starts with the idea, not the link", body.hasPrefix("**Answer:** Right coronary artery"), body)
-check("body ends saying where it came from", body.components(separatedBy: "\n\n").last.map(SaveToIdeas.isFromLine) == true, body)
-check("the from line names the set", body.contains("_From [a question in Cardiology]("), body)
-check("the from line links back to the question",
-      body.contains("(stethoscore://item/question/\(setA.uuidString)/\(item.uuidString))_"), body)
-let linkStart: String.Index = body.range(of: "](")?.upperBound ?? body.endIndex
-let linkText: String = String(body[linkStart...].prefix { $0 != ")" })
-check("the from link routes to the same item",
-      NoteSource(url: URL(string: linkText)!)?.dedupeKey == q1.dedupeKey, linkText)
-check("body holds the explanation", body.contains("Inferior leads mean the RCA.\n\n_From"), body)
-check("a hand-written line is not the from line", !SaveToIdeas.isFromLine("_From memory_"))
-check("saving the same again adds nothing", SaveToIdeas.appending(clip, to: body) == nil)
-
-let bit = SaveToIdeas.excerpt("Inferior leads\nmean the RCA.", of: clip)
-check("an excerpt is quoted line by line", SaveToIdeas.entry(for: bit) == "> Inferior leads\n> mean the RCA.",
-      SaveToIdeas.entry(for: bit))
-check("an excerpt keeps the note's title", bit.title == clip.title)
-check("an excerpt already in the note adds nothing", SaveToIdeas.appending(bit, to: body) == nil)
-let newBit = SaveToIdeas.excerpt("Posterior MI shows ST depression in V1-V3.", of: clip)
-let grown = SaveToIdeas.appending(newBit, to: body)
-let fromLine: String = SaveToIdeas.fromLine(q1)
-let expected: String = String(body.dropLast(fromLine.count)) + "> Posterior MI shows ST depression in V1-V3.\n\n" + fromLine
-check("a new passage goes above the from line", grown == expected, grown ?? "nil")
-let noFooter: String = "My own words about the RCA."
-check("a note whose from line was taken out grows at its end",
-      SaveToIdeas.appending(newBit, to: noFooter) == noFooter + "\n\n> Posterior MI shows ST depression in V1-V3.")
-check("an empty note takes just the entry",
-      SaveToIdeas.appending(newBit, to: "  ") == "> Posterior MI shows ST depression in V1-V3.")
-
-let page = SaveToIdeas.passage("Nephrotic: proteinuria > 3.5 g/day", lecture: "Glomerular disease",
-                               source: lectureP9, subject: "Renal")
-check("a passage names the lecture", page.title == "Glomerular disease")
-check("a passage carries its page", SaveToIdeas.entry(for: page).hasSuffix("\u{2014} p. 9"))
-check("a lecture is from a lecture", SaveToIdeas.body(for: page).hasSuffix(SaveToIdeas.fromLine(lectureP9)))
-check("a lecture note starts with the quote", SaveToIdeas.body(for: page).hasPrefix("> Nephrotic"))
-let samePage = SaveToIdeas.appending(page, to: SaveToIdeas.body(for: page))
-check("the same passage again adds nothing", samePage == nil)
-
-let card = SaveToIdeas.card(front: "", cloze: "The {{c1::phrenic}} nerve supplies the diaphragm",
-                            bullets: [], why: "C3, 4, 5 keeps the diaphragm alive.", source: c1, subject: "Anatomy")
-check("cloze card titled from its sentence", card.title == "The phrenic nerve supplies the diaphragm", card.title)
-check("cloze card body has the why", card.text.contains("C3, 4, 5"))
-let qa = SaveToIdeas.card(front: "Causes of clubbing?", cloze: "", bullets: ["Lung cancer", " ", "IBD"],
-                          why: "", source: c1, subject: "Resp")
-check("card bullets become a list", qa.text == "- Lung cancer\n- IBD", qa.text)
-
-let station = SaveToIdeas.osce(title: "Cardiovascular exam", steps: ["Wash hands", "Introduce yourself"],
-                               weak: [1], source: whole, subject: "OSCE")
-check("station steps are numbered", station.text.hasPrefix("1. Wash hands\n2. Introduce yourself"))
-check("a weak step is marked", station.text.contains("started over here"))
-check("an OSCE station takes an", SaveToIdeas.fromPhrase(whole) == "an OSCE station")
 
 // MARK: the backlink
 
@@ -195,7 +91,7 @@ check("no line to itself or to a note that is gone",
 check("each pair in id order", boardEdges.allSatisfy { $0.0.uuidString < $0.1.uuidString })
 
 if failures.isEmpty {
-    print("all save-to-ideas checks passed")
+    print("all note-source checks passed")
 } else {
     print("\(failures.count) FAILED")
     exit(1)

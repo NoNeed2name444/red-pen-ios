@@ -26,7 +26,7 @@ struct CoreLibraryExports: View {
 }
 
 /// Backups and restoring, with the library's other data settings. The full
-/// app keeps the Ideas store for the whole app; here it is made for this
+/// app keeps the notes store for the whole app; here it is made for this
 /// section, which only reads and restores it.
 struct CoreDataSection: View {
     @StateObject private var notes = NoteStore()

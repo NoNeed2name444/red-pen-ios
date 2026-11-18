@@ -267,8 +267,7 @@ extension View {
 }
 
 /// The map's colours, which the photon ring borrows (declared in
-/// Shared/Space/PhotonRing.swift, a folder the core leaves out; the textures
-/// made from them are in the dropped Features/Notes/GraphLook.swift).
+/// Shared/Space/PhotonRing.swift, a folder the core leaves out).
 nonisolated enum GraphArt {
     static let orange = SIMD3<Float>(1.0, 0.416, 0.0)
     static let gold = SIMD3<Float>(1.0, 0.753, 0.302)
@@ -369,11 +368,11 @@ struct WardUnitsPicker: View {
 
 /// The one-time tips (Features/Onboarding/StudyTips.swift): none in this build.
 enum StudyTip {
-    case turnInto, holdSet, undo, lens, ideasTheme
+    case turnInto, holdSet, undo, lens
 }
 
 enum TipScreen {
-    case study, library, review, lens, ideas
+    case study, library, review, lens
 }
 
 @MainActor

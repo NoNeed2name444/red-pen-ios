@@ -46,7 +46,7 @@ import SwiftUI
 ///   stays), `library-search` (the search row; in the test as a control;
 ///   answered, its omit took the flag to 0), `library-set-rows` (answered,
 ///   left the flag; not in the tree on this screen), `library-tab-bar` (the
-///   dock; answered, left the flag), `library-tiles` (Progress and Brain map;
+///   dock; answered, left the flag), `library-tiles` (the home tiles;
 ///   answered, left the flag);
 /// - library, rest: `library-rest-account-menu` (in the test as a control;
 ///   answered, its omit took the flag to 0), `library-rest-new-set` (answered,
@@ -88,8 +88,7 @@ import SwiftUI
 ///   (the button is enabled where the audit's quiz state has it disabled: Back
 ///   on question 0, Check with nothing picked);
 /// - revealed card: `card-top-bar` (the navigation bar), `card-progress-row`
-///   (cards left, done), `card-face`, `card-bottom-bar` (Accuracy and Save
-///   to Ideas), `card-rating-row` (Again to Easy).
+///   (cards left, done), `card-face`, `card-bottom-bar` (Accuracy), `card-rating-row` (Again to Easy).
 enum A11yProbeHide {
     /// The region hidden on the command line, or nil for a normal launch.
     /// Read once, into a static let, as LaunchStage reads its launch arguments.

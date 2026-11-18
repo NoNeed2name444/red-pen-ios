@@ -20,9 +20,6 @@ import UIKit
 struct LibraryView: View {
     @EnvironmentObject var store: Store
     @EnvironmentObject var reviews: ReviewStore
-    /// Handed to the study screens' Save to Ideas buttons (attachIdeaSaver,
-    /// LibrarySavedIdeas). Search and the home no longer read it.
-    @EnvironmentObject var noteStore: NoteStore
     /// Who is signed in, for the home's greeting.
     @EnvironmentObject var account: AccountStore
 
@@ -52,9 +49,6 @@ struct LibraryView: View {
     @StateObject var search = LibrarySearchModel()
     /// A card a search found, shown on its own.
     @State var foundCard: FoundCard?
-    /// Nothing sets this any more (a search no longer finds notes);
-    /// LibrarySavedIdeas still clears it, and goes with that file.
-    @State var foundNote: FoundNote?
     /// Whether "Build a session" is up, and the search it starts from.
     @State var buildingSession = false
     @State var sessionText = ""
@@ -85,9 +79,6 @@ struct LibraryView: View {
     /// Which category the dock has chosen. Questions first: it is where most
     /// of the studying is, and what the app opens on.
     @State var category: StudyCategory = .questions
-    /// Always false: Ideas has left the library (T0274). Kept only because
-    /// LibrarySavedIdeas reads and clears it; it goes with that file.
-    @State var inIdeas = false
     /// Whether the software keyboard is up. The dock steps aside while it
     /// is, so the field being typed in is not squeezed between the two.
     @State var keyboardUp = false
@@ -359,17 +350,9 @@ struct LibraryView: View {
         .onReceive(PlatformNotice.publisher(PlatformNotice.search)) { note in
             openSearch(note.userInfo?["text"] as? String)
         }
-        // Save to Ideas: the study screens' store, and a saved note's way
-        // back to where it came from (LibrarySavedIdeas; T0275 takes the
-        // buttons out)
         .onAppear {
             LaunchStage.shared.mark("home", once: true)
-            attachIdeaSaver()
         }
-        .onReceive(PlatformNotice.publisher(PlatformNotice.openItem)) { note in
-            if let source = note.userInfo?["source"] as? NoteSource { openSaved(source) }
-        }
-        .appLinksInPlace()
     }
 
     /// Whether one of the library's own sheets is up.
@@ -1277,7 +1260,7 @@ struct LibraryView: View {
     /// The search field: the magnifier, the field, and Clear once there is
     /// something to clear. Its prompt is drawn over it (SearchPrompt) rather
     /// than as its placeholder, which UIKit cut short on one line at every
-    /// size ("Search questions, cards, no..."); VoiceOver still hears the
+    /// size ("Search questions, cards, lec..."); VoiceOver still hears the
     /// field's own name.
     private var searchField: some View {
         HStack(spacing: WardSpace.s) {

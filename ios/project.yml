@@ -36,12 +36,6 @@ targets:
       # Views read it through L10n (Shared/L10n.swift) in both builds.
       - path: RedPen/Resources/Localizable.xcstrings
         buildPhase: resources
-      # The Earth maps the Space theme's rocky planets wear (NASA imagery;
-      # where each comes from and its licence: the folder's SOURCES.md), as
-      # a folder, so they sit in Earth/ in the app (GraphEarth.swift)
-      - path: RedPen/Resources/Earth
-        type: folder
-        buildPhase: resources
       # The app's type: Nunito, and Baloo Bhaijaan 2 for Arabic (owner D5),
       # variable fonts under the SIL OFL 1.1, with each licence beside its
       # font. A folder, so they sit in Fonts/ in the app, where UIAppFonts

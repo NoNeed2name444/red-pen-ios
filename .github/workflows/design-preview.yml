@@ -1,32 +1,21 @@
 # Screenshots for the owner to check the design before trying the app, on an
 # iPhone simulator and an iPad simulator:
-# - the 3D idea map at rest, a moment later, in landscape and mid-drag
-#   (GraphPreviewUITests), with a screen recording of the iPhone's run;
 # - a tour of the redesigned app (DesignTourUITests): the library on each of
-#   the dock's categories, a category's tiles, New set, a quiz, a card, Ideas
-#   in each view with its switcher open and folded, the menu, Settings and
-#   Progress;
+#   the dock's categories, a category's tiles, New set, a quiz, a card, the
+#   menu, Settings and Progress;
 # - the first Arabic screens, right to left (ArabicUITests): sign-in, the
 #   recording terms, the dock and Settings, named ar-*, after the tour on
 #   the same iPhone.
 # A push to a preview/<name> branch runs it; the pictures land on the
 # shots/<name> branch (preview/graph's on design-preview), in shots/iphone/
 # and shots/ipad/, with a README that shows them all on one page.
-# Three parts run side by side, each on its own runner and time limit (one
-# runner for all of it ran past two hours): the 3D map tests on the iPhone,
-# recorded; the tour on the iPhone; both on the iPad. A last job gathers
-# their pictures and pushes them. The run is red when a build fails (its
-# errors in the run's summary) or when a test fails (the pictures are still
-# pushed). The 3D map parts also keep, in a hang-<part> artifact for when
-# it freezes, the app's log (with its own report of where it was stuck,
-# GraphHangReporter) and a watch of its threads and the Mac's memory
+# Two parts run side by side, each on its own runner and time limit: the
+# tour on the iPhone, and the tour on the iPad. A last job gathers their
+# pictures and pushes them. The run is red when a build fails (its errors in
+# the run's summary) or when a test fails (the pictures are still pushed).
+# The iPad part also keeps, in a hang-ipad artifact for when it freezes, the
+# app's log and a watch of its threads and the Mac's memory
 # (tools/hang_watch.sh).
-# The million map's measured proof (GraphPerfProofUITests, plan 4f's depth
-# fade) runs only when started by hand for it: a pattern with PerfProof in
-# it adds an iPhone part and an iPad part, and one starting testPerfProof
-# runs those alone. Each flies the proof tour with the fade on and with it
-# off, keeping the stills and the numbers (in the run's summary too); the
-# iPhone also records a third tour, apart from the measured ones.
 name: Design preview
 on:
   push:
@@ -35,7 +24,7 @@ on:
   workflow_dispatch:
     inputs:
       only:
-        description: 'Only the tests whose names match this pattern (grep -E), e.g. testGraphAtRest|testEachStyle'
+        description: 'Only the tests whose names match this pattern (grep -E), e.g. testDesignTour|testRotationState'
         required: false
         default: ''
       repeat:
@@ -43,7 +32,7 @@ on:
         required: false
         default: ''
       parts:
-        description: 'Only these parts (comma-separated: iphone-graph, iphone-tour, ipad), so a quick check holds one Mac; empty: all three'
+        description: 'Only these parts (comma-separated: iphone-tour, ipad), so a quick check holds one Mac; empty: both'
         required: false
         default: ''
 permissions:
@@ -59,10 +48,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        part: [iphone-graph, iphone-tour, ipad]
-        # the million map's proof, only when a run started by hand asks for it
-        exclude: ${{ fromJSON(startsWith(inputs.only, 'testPerfProof') && '[{"part":"iphone-graph"},{"part":"iphone-tour"},{"part":"ipad"}]' || '[]') }}
-        include: ${{ fromJSON(contains(inputs.only, 'PerfProof') && '[{"part":"perf-proof-iphone"},{"part":"perf-proof-ipad"}]' || '[]') }}
+        part: [iphone-tour, ipad]
     steps:
       # a part not asked for (the parts input) ends here, freeing its Mac
       - name: Wanted
@@ -138,10 +124,6 @@ jobs:
             ipad) echo "udid=${{ steps.sim.outputs.ipad_udid }}" >> "$GITHUB_OUTPUT"
                   echo "name=${{ steps.sim.outputs.ipad_name }}" >> "$GITHUB_OUTPUT"
                   echo "device=ipad" >> "$GITHUB_OUTPUT" ;;
-            perf-proof-ipad)
-                  echo "udid=${{ steps.sim.outputs.ipad_udid }}" >> "$GITHUB_OUTPUT"
-                  echo "name=${{ steps.sim.outputs.ipad_name }}" >> "$GITHUB_OUTPUT"
-                  echo "device=ipad" >> "$GITHUB_OUTPUT" ;;
             *)    echo "udid=${{ steps.sim.outputs.iphone_udid }}" >> "$GITHUB_OUTPUT"
                   echo "name=${{ steps.sim.outputs.iphone_name }}" >> "$GITHUB_OUTPUT"
                   echo "device=iphone" >> "$GITHUB_OUTPUT" ;;
@@ -209,12 +191,10 @@ jobs:
               test-without-building > "../out/logs/$log" 2>&1 || true
             grep -E "error:|Test Case|TEST |\*\* " "../out/logs/$log" || true
           }
-          GRAPH_TESTS=$(grep -oE 'func test[A-Za-z0-9_]+' UITests/GraphPreviewUITests.swift | awk '{print $2}' | grep -E "${ONLY:-.}" || true)
           TOUR=""
           if echo testDesignTour | grep -qE "${ONLY:-.}"; then TOUR="-only-testing:RedPenUITests/DesignTourUITests"; fi
           ARABIC=""
           if echo testArabicRightToLeft | grep -qE "${ONLY:-.}"; then ARABIC="-only-testing:RedPenUITests/ArabicUITests"; fi
-          PROOF_TESTS=$(grep -oE 'func test[A-Za-z0-9_]+' UITests/GraphPerfProofUITests.swift 2>/dev/null | awk '{print $2}' | grep -E "${ONLY:-.}" || true)
 
           echo "$PART on $NAME ($UDID)"
           xcrun simctl boot "$UDID" || true
@@ -233,33 +213,20 @@ jobs:
             if [ "$load" -lt 40 ]; then break; fi
             sleep 10
           done
-          # now and then a 3D map test could not end the app (the app kept
-          # drawing; the Mac was out of memory): while the map's tests run,
-          # the state of its threads and the Mac's memory are noted, without
-          # touching the app (tools/hang_watch.sh)
+          # now and then a test could not end the app (the Mac was out of
+          # memory): while the iPad's tests run, the state of the app's
+          # threads and the Mac's memory are noted, without touching the app
+          # (tools/hang_watch.sh)
           case "$PART" in
-            iphone-graph|ipad) bash ../tools/hang_watch.sh watch "$UDID" "$RUNNER_TEMP/hang" > /dev/null 2>&1 & ;;
+            ipad) bash ../tools/hang_watch.sh watch "$UDID" "$RUNNER_TEMP/hang" > /dev/null 2>&1 & ;;
           esac
           case "$PART" in
-            iphone-graph)
-              # a screen recording of each 3D map test, for the owner to watch:
-              # one file per test, in HEVC, so none comes near GitHub's 100 MB
-              # limit on a single file (one recording of every test was 127 MB)
-              for t in $GRAPH_TESTS; do
-                xcrun simctl io "$UDID" recordVideo --codec=hevc --force "../graph-$t.mp4" &
-                REC=$!
-                sleep 2
-                run_tests "iphone-graph-$t.xcresult" "iphone-graph-$t.log" "-only-testing:RedPenUITests/GraphPreviewUITests/$t"
-                kill -INT $REC || true
-                wait $REC || true
-              done ;;
             iphone-tour)
               if [ -n "$TOUR" ]; then run_tests iphone-tour.xcresult iphone-tour.log "$TOUR"; fi
               # then the same phone in Arabic (launch arguments only)
               if [ -n "$ARABIC" ]; then run_tests iphone-arabic.xcresult iphone-arabic.log "$ARABIC"; fi ;;
             ipad)
               args=()
-              for t in $GRAPH_TESTS; do args+=("-only-testing:RedPenUITests/GraphPreviewUITests/$t"); done
               if [ -n "$TOUR" ]; then args+=("$TOUR"); fi
               if [ ${#args[@]} -gt 0 ]; then run_tests ipad.xcresult ipad.log "${args[@]}"; fi
               # T0140 item 7: the iPad's pass through all four orientations
@@ -268,24 +235,6 @@ jobs:
                 TEST_RUNNER_ROTATION_IPAD=1 run_tests ipad-rotation.xcresult ipad-rotation.log \
                   "-only-testing:RedPenUITests/RotationStateUITests"
               fi ;;
-            perf-proof-iphone|perf-proof-ipad)
-              # the million's proof tour, a test at a time, each with its own
-              # result and log, and no watch of the threads, so nothing else
-              # weighs on the numbers; only the iPhone's last tour is recorded,
-              # apart from the measured ones, and the iPad leaves that one out
-              for t in $PROOF_TESTS; do
-                if [ "$t" = testPerfProofRecorded ]; then
-                  [ "$PART" = perf-proof-iphone ] || continue
-                  xcrun simctl io "$UDID" recordVideo --codec=hevc --force "../graph-$t.mp4" &
-                  REC=$!
-                  sleep 2
-                  run_tests "$PART-$t.xcresult" "$PART-$t.log" "-only-testing:RedPenUITests/GraphPerfProofUITests/$t"
-                  kill -INT $REC || true
-                  wait $REC || true
-                else
-                  run_tests "$PART-$t.xcresult" "$PART-$t.log" "-only-testing:RedPenUITests/GraphPerfProofUITests/$t"
-                fi
-              done ;;
           esac
       # after the pictures, also when they timed out: the watch above stops
       # and the simulator's log for the app is kept, then the simulator ends
@@ -297,7 +246,7 @@ jobs:
           PART: ${{ matrix.part }}
         run: |
           case "$PART" in
-            iphone-graph|ipad) bash ../tools/hang_watch.sh collect "$UDID" "$RUNNER_TEMP/hang" || true ;;
+            ipad) bash ../tools/hang_watch.sh collect "$UDID" "$RUNNER_TEMP/hang" || true ;;
           esac
           xcrun simctl shutdown "$UDID" || true
       - name: Save the pictures
@@ -308,14 +257,12 @@ jobs:
         run: |
           mkdir -p "out/shots/iphone" "out/shots/ipad" out/logs
           [ -n "${{ steps.dev.outputs.udid }}" ] || echo "no simulator for $PART on this runner" > "out/logs/$PART.log"
-          # name each picture after its attachment; the 3D map's with graph-
-          # in front, so they sort apart from the tour's numbered steps
+          # name each picture after its attachment
           cat > "$RUNNER_TEMP/name_shots.py" <<'PY'
           import json, os, re, shutil, sys
           raw, dest = sys.argv[1], sys.argv[2]
           m = json.load(open(os.path.join(raw, 'manifest.json')))
           for test in m:
-              graph = 'GraphPreview' in (test.get('testIdentifier') or '')
               for a in test.get('attachments', []):
                   name = a.get('suggestedHumanReadableName') or a['exportedFileName']
                   base = name.split('_')[0] if '_' in name else name
@@ -323,8 +270,6 @@ jobs:
                   # the upload refuses " : < > | * ? and line breaks in a name, as
                   # in a failed query's 'Debug description for `"graph3D" Any`'
                   base = re.sub(r'[^\w .,()+-]+', '', base).strip() or 'attachment'
-                  if graph:
-                      base = 'graph-' + base
                   ext = os.path.splitext(a['exportedFileName'])[1] or '.png'
                   target = os.path.join(dest, base + ext)
                   n = 2
@@ -346,17 +291,6 @@ jobs:
           if [ -d ipad-rotation.xcresult ]; then
             ditto -c -k --keepParent ipad-rotation.xcresult out/logs/ipad-rotation.xcresult.zip || true
           fi
-          # the recordings; one that is still over 95 MB is left out (and
-          # said so in the log) rather than failing the push of everything
-          for v in graph-*.mp4; do
-            [ -f "$v" ] || continue
-            bytes=$(stat -f%z "$v")
-            if [ "$bytes" -lt 95000000 ]; then
-              cp "$v" "out/shots/iphone/$v"
-            else
-              echo "$v left out: $bytes bytes" >> out/logs/videos.txt
-            fi
-          done
           # the build log only matters when it failed; keep its errors, not all of it
           for b in out/logs/build-*.log; do
             [ -f "$b" ] || continue
@@ -365,38 +299,6 @@ jobs:
               mv "$b.short" "$b"
             fi
           done
-      # the million map's proof: each tour's numbers, as its test kept them,
-      # in the run's summary
-      - name: The proof's numbers
-        if: always() && startsWith(matrix.part, 'perf-proof')
-        env:
-          PART: ${{ matrix.part }}
-          DEVICE: ${{ steps.dev.outputs.device }}
-        run: |
-          {
-            echo "### The million map's proof ($PART)"
-            found=""
-            for f in out/shots/"$DEVICE"/proof*-summary*.txt; do
-              [ -f "$f" ] || continue
-              found=1
-              echo
-              echo "$(basename "$f" .txt):"
-              echo '```'
-              cat "$f"
-              echo
-              echo '```'
-            done
-            if [ -z "$found" ]; then
-              echo
-              echo "No tour's numbers were kept. The tests:"
-              echo '```'
-              for log in out/logs/"$PART"-*.log; do
-                [ -f "$log" ] || continue
-                grep -E "error:|Test Case .* (passed|failed)" "$log" | sed -E 's#^.*/ios/##' | head -20 || true
-              done
-              echo '```'
-            fi
-          } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -441,20 +343,14 @@ jobs:
             echo "== $log (the build failed)" >> log.txt
             cat "$log" >> log.txt
           done
-          for log in logs/iphone-graph-*.log logs/iphone-tour.log logs/iphone-arabic.log logs/ipad.log logs/videos.txt; do
+          for log in logs/iphone-tour.log logs/iphone-arabic.log logs/ipad.log logs/videos.txt; do
             [ -f "$log" ] || continue
             echo "== $log" >> log.txt
             grep -E "error:|Test Case|TEST (EXECUTE )?(SUCCEEDED|FAILED)|left out|no simulator" "$log" | tail -60 >> log.txt || true
           done
-          for log in logs/iphone-graph-*.log logs/iphone-tour.log logs/iphone-arabic.log logs/ipad.log; do
+          for log in logs/iphone-tour.log logs/iphone-arabic.log logs/ipad.log; do
             [ -f "$log" ] && grep -E "error:" "$log" | sed -E 's#^.*/ios/##'
           done | sort -u | head -40 >> log.txt || true
-          # the million map's proof, when it ran
-          for log in logs/perf-proof-*.log; do
-            [ -f "$log" ] || continue
-            echo "== $log" >> log.txt
-            grep -E "error:|Test Case|TEST (EXECUTE )?(SUCCEEDED|FAILED)" "$log" | tail -60 >> log.txt || true
-          done
           # every failed test, with how many devices it failed on
           # (the shell runs with pipefail: no match must not stop the push)
           failed=$(cat logs/*.log 2>/dev/null | grep -E "^Test Case .* failed" \

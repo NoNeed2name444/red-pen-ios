@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Measure a Playgrounds "core" cut of ios/RedPen.
 
-  cut.py --drop 'Features/Notes/Graph*.swift,Features/Lens,...' [--keep-file X.swift,...] [--surface]
+  cut.py --drop 'Features/Lens,Features/Analytics,...' [--keep-file X.swift,...] [--surface]
 
 Prints the lines kept, the kept lines per folder, and the boundary surface: every
 top-level name declared only in dropped files that a kept file still references,

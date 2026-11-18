@@ -24,13 +24,12 @@ a line count.
 
 | chunk | leaves out | stand-in |
 |---|---|---|
-| `graph3d` | the 3D Ideas map (`Features/Notes/Graph*.swift`), about 20,000 lines of SceneKit | `graph3d.swift` |
 | `lens` | Study Lens (`Features/Lens`, `Shared/Lens`) | `lens.swift` |
 | `analytics` | the Progress screen's rings and charts | `analytics.swift` |
-| `core` | everything but the core, see below | `graph3d.swift` + `core/` + `core-shell-out/` + `core-audio-out/` |
-| `core1` | the core's drops minus step 1 below (lecture audio, Voice, Recall, Narrate come back) | `graph3d.swift` + `core/` + `core-shell-out/` + `core-audio-in/` |
-| `core2` | core1's drops minus step 2 below (imports, exports, backups, picture cards come back) | `graph3d.swift` + `core/` + `core-shell-out/` + `core-audio-in/` + `core-exports-in/` |
-| `core3` | core2's drops minus step 3 below (the full shell, sessions, sync, and the Ward Round home's learning pieces come back) | `graph3d.swift` + `lens.swift` + `analytics.swift` + `CoreStandIns` + `CoreIdeas` + `core3/` |
+| `core` | everything but the core, see below | `core/` + `core-shell-out/` + `core-audio-out/` |
+| `core1` | the core's drops minus step 1 below (lecture audio, Voice, Recall, Narrate come back) | `core/` + `core-shell-out/` + `core-audio-in/` |
+| `core2` | core1's drops minus step 2 below (imports, exports, backups, picture cards come back) | `core/` + `core-shell-out/` + `core-audio-in/` + `core-exports-in/` |
+| `core3` | core2's drops minus step 3 below (the full shell, sessions, sync, and the Ward Round home's learning pieces come back) | `lens.swift` + `analytics.swift` + `CoreStandIns` + `core3/` |
 
 `_common.swift` (the "not in this build" screen) goes in whenever anything
 is left out.
@@ -44,7 +43,7 @@ textbook, OSCE), Sources, New set with the whole generation pipeline
 and the accuracy engine, sign-in, the recording terms, the exam question,
 and Settings for the account, the exam, reviews and help.
 
-It leaves out: the Ideas map (2D and 3D), Study Lens, analytics, audio
+It leaves out: Study Lens, analytics, audio
 lectures and the transcriber, spoken OSCE practice, commute mode and
 explain-it-back, the reasoning tools (duels, scripts), draw
 from memory, coverage, the exam plan and reminders, the examples hub, the
@@ -81,7 +80,7 @@ per step is in a folder of its own, copied in beside the shell:
   ways into the small shell. core3 does not copy it: `CategoryFeature`,
   `CategoryHeading` and `StudySetScreen` in that file are the real library's.
 - `core3/Core3Gaps.swift` (core3): the names the returning shell still uses
-  from Ideas, the sky, diagnostics, the platform, reasoning, insight,
+  from the sky, diagnostics, the platform, reasoning, insight,
   coverage and onboarding.
 
 When the full app changes, a kept file may start using a new name from a
@@ -107,9 +106,8 @@ four zips:
 | 2 | imports and exports: Anki packages, PDFs, backups, occlusion and picture cards, scanner | 9,585 | about 52,800 |
 | 3 | the full shell, sessions, stats and editors, sync, and Learn. Ward Round's home calls `BedPlan`, `ExamWeekPlanner`, `RhythmReading`, `WardWords` and `LearnRouter`, so `Shared/Learn` and `Features/Learn` come back with the shell rather than as an empty bed plan | about 12,900 | about 67,700 kept lines, before stand-ins |
 | 4 | Coverage, Examples, Insight, Mock and Reasoning. Learn already came back in step 3, so this step is not a chunk yet | | |
-| 5 | Study Lens (3,520), analytics (1,477), the 2D Ideas map (2,261) | 7,258 | about 78,200 |
+| 5 | Study Lens (3,520), analytics (1,477) | 4,997 | about 75,900 |
 | 6 | the living sky, pop-out, diagnostics, platform, App Intents | 6,920 | about 85,100 |
-| 7 | the 3D Ideas map | 20,433 | about 105,500 |
 
 Each step is its own chunk in `make_swiftpm.py` (`core1` is step 1, `core2`
 is step 2, `core3` is step 3), so the core itself stays as it was sent: the
@@ -124,7 +122,7 @@ compile.
 
 `GraphicsQuality.swift` stays in every core package (`CORE_KEEP`). It is
 Foundation only, and Settings in the full shell reads it. Since the Ideas
-removal it also holds `GraphLineStyle` and `SplitMix64`, which the sky
+removal it also holds `SplitMix64`, which the sky
 (`Shared/Space`) reads. `GraphArt`, the map's colours, is declared in
 `Shared/Space/PhotonRing.swift`, which the core leaves out, so
 `core/CoreStandIns.swift` declares it for them.
