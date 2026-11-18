@@ -95,8 +95,9 @@ CORE_DROP = [
 ]
 CORE_KEEP = ["QuizFromCards.swift", "TurnIntoPicker.swift", "NewSetDock.swift", "LibraryChrome.swift",
              "ImageSpoiler.swift", "LectureAudio.swift", "ModeConversion.swift", "SyncDocuments.swift", "AppLink.swift",
-             # Foundation only, shared by Settings and the Ideas map (the map itself stays out)
-             "GraphLineStyle.swift", "GraphicsQuality.swift",
+             # Foundation only, shared by Settings and the sky (the Ideas map stays out): the Graphics
+             # choice and, since the Ideas removal, GraphLineStyle and SplitMix64, which Shared/Space reads
+             "GraphicsQuality.swift",
              # Foundation only: the core home's countdown and greeting (CoreLibrary.swift)
              "WardWords.swift"]
 # The add-back order (playgrounds_stubs/README.md): each step puts one part of
@@ -159,7 +160,8 @@ assert all(p in CORE2_DROP for p in STEP3_BACK), "STEP3_BACK names a path core2 
 CORE3_DROP = [p for p in CORE2_DROP if p not in STEP3_BACK]
 CHUNKS = {
     # the 3D Ideas map, ~20,000 lines of SceneKit; GraphLineStyle.swift stays
-    # (Foundation only: the Curved/Straight setting the 2D board and Settings share)
+    # (Foundation only: the line shapes the 2D board draws; the Curved/Straight
+    # choice itself is in Shared/Space/GraphicsQuality.swift)
     "graph3d": (["Features/Notes/Graph*.swift"], ["GraphLineStyle.swift"], ["graph3d.swift"]),
     "lens": (["Features/Lens", "Shared/Lens"], [], ["lens.swift"]),          # Study Lens (camera reads a question)
     "analytics": (["Features/Analytics"], [], ["analytics.swift"]),          # the Progress screen's rings and charts

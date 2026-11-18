@@ -4,7 +4,7 @@ import SwiftUI
 // Only in the Swift Playgrounds core builds: Save to Ideas
 // (Shared/Ideas/SaveToIdeasUI.swift) is left out, so the study screens show
 // no save button and the lecture reader no "Save to Ideas" menu. What a note
-// remembers of where it came from (NoteSource, SaveToIdeas.swift) stays, so
+// remembers of where it came from (NoteSource, Persistence/NoteSource.swift) stays, so
 // links and the notes core2 brings back read the same as in the full app.
 
 @MainActor
@@ -47,23 +47,6 @@ extension EnvironmentValues {
     var ideaPassage: IdeaPassageSaver? {
         get { self[IdeaPassageKey.self] }
         set { self[IdeaPassageKey.self] = newValue }
-    }
-}
-
-final class IdeaPDFView: PDFView {
-    var onSaveSelection: ((String, Int) -> Void)?
-
-    static func saver(_ passage: IdeaPassageSaver?) -> ((String, Int) -> Void)? { nil }
-}
-
-struct LecturePassageText: View {
-    let text: String
-    let page: Int
-
-    var body: some View {
-        Text(text)
-            .font(.body)
-            .textSelection(.enabled)
     }
 }
 

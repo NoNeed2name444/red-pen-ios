@@ -13,6 +13,16 @@ import SwiftUI
 // without the glow; in light mode the palette stops at a deeper gold, as
 // white-gold vanishes on a pale page.
 
+/// The map's colours, which the photon ring borrows. The textures made from
+/// them (the map's glow, ring, disk and spark images) are in GraphLook.swift.
+nonisolated enum GraphArt {
+    static let orange = SIMD3<Float>(1.0, 0.416, 0.0)     // #FF6A00
+    static let gold = SIMD3<Float>(1.0, 0.753, 0.302)     // #FFC04D
+    static let ember = SIMD3<Float>(0.62, 0.08, 0.0)
+    static let whiteHot = SIMD3<Float>(1.0, 0.95, 0.84)
+    static let violet = SIMD3<Float>(0.42, 0.26, 1.0)
+}
+
 enum PhotonPalette {
     static func colour(_ c: SIMD3<Float>) -> Color {
         Color(red: Double(c.x), green: Double(c.y), blue: Double(c.z))

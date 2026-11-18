@@ -2,68 +2,10 @@ import Foundation
 
 // MARK: - Lines: Curved / Straight
 //
-// One choice for both Ideas modes: how a link between two ideas is drawn.
-// Curved (the standard, today's look) keeps each 3D theme's own shape -
-// the Space's arches and black-hole curls, the Neurons' axons - and bows
-// the 2D board's connectors gently. Straight
-// draws every link as one direct segment between its two trimmed ends, in
-// every theme and on the board.
-//
-// Set in Settings > Look and feel and in the Look menu of the 3D map and the
-// board; both read the same stored Bool (SpaceSettings.straightLinesKey).
+// The choice itself, GraphLineStyle, is declared in Shared/Space/GraphicsQuality.swift
+// (the sky's settings read it); what draws links from it is below.
 //
 // Foundation only: tested on Linux (Tests/LineStyleTests.swift).
-
-/// How links are drawn in the Ideas map and on the board.
-nonisolated enum GraphLineStyle: String, CaseIterable, Sendable, Identifiable {
-    case curved
-    case straight
-
-    var id: String { rawValue }
-
-    /// Where it is stored: a Bool, true for Straight.
-    static let key: String = "vignette.ideas.straightLines"
-    /// Until the owner chooses: Curved, today's look.
-    static let standard: GraphLineStyle = .curved
-
-    var title: String {
-        switch self {
-        case .curved: return "Curved"
-        case .straight: return "Straight"
-        }
-    }
-
-    var isStraight: Bool { self == .straight }
-
-    /// The stored Bool read back (nothing stored: the standard).
-    static func stored(_ straight: Bool?) -> GraphLineStyle {
-        guard let straight else { return standard }
-        return straight ? .straight : .curved
-    }
-
-    /// `-ideasLines straight` (or `curved`) at launch: that style for this
-    /// run whatever is stored, for the design preview's pictures (the
-    /// owner's stored choice is not read). Nil without it.
-    static let launchOverride: GraphLineStyle? = parse(arguments: ProcessInfo.processInfo.arguments)
-
-    static func parse(arguments: [String]) -> GraphLineStyle? {
-        guard let at = arguments.firstIndex(of: "-ideasLines"), at + 1 < arguments.count else { return nil }
-        return GraphLineStyle(rawValue: arguments[at + 1])
-    }
-
-    /// The style in force, given the stored Bool (as a view holds it).
-    static func inForce(_ stored: Bool) -> GraphLineStyle {
-        if let forced = launchOverride { return forced }
-        return stored ? .straight : .curved
-    }
-
-    /// The choice in force now, read from the defaults.
-    static var current: GraphLineStyle {
-        if let forced = launchOverride { return forced }
-        let raw: Any? = UserDefaults.standard.object(forKey: key)
-        return stored(raw as? Bool)
-    }
-}
 
 /// The choice as the render thread reads it, every frame, without touching
 /// UserDefaults: cached here and refreshed whenever the defaults change (a

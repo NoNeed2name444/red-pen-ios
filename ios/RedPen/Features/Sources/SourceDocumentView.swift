@@ -81,8 +81,8 @@ struct PDFDocumentView: UIViewRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator(page: $page) }
 
-    func makeUIView(context: Context) -> IdeaPDFView {
-        let view = IdeaPDFView()
+    func makeUIView(context: Context) -> PDFView {
+        let view = PDFView()
         view.autoScales = true
         view.backgroundColor = UIColor(Color.wardWash)
         view.document = PDFDocument(url: url)
@@ -94,7 +94,7 @@ struct PDFDocumentView: UIViewRepresentable {
         return view
     }
 
-    func updateUIView(_ view: IdeaPDFView, context: Context) {
+    func updateUIView(_ view: PDFView, context: Context) {
         context.coordinator.page = $page
         if view.document?.documentURL != url { view.document = PDFDocument(url: url) }
         go(view, to: page)
@@ -177,7 +177,9 @@ struct TextPagesView: View {
                 Label(blank, systemImage: "photo")
                     .font(WardType.face(.footnote, weight: .regular)).foregroundStyle(Color.wardInkSecondary)
             } else {
-                LecturePassageText(text: p.text, page: p.number)
+                Text(p.text)
+                    .font(WardType.body)
+                    .textSelection(.enabled)
                     .foregroundStyle(Color.wardInk)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }

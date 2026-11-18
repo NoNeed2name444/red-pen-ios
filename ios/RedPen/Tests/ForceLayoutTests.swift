@@ -4,8 +4,8 @@
 // layout the map no longer wants stops at once when its rebuild is cancelled,
 // instead of running all its rounds for nothing (Chat-me audit row 114).
 //
-// Compiled with Features/Notes/ForceLayout3D.swift, which imports only
-// Foundation.
+// Compiled with Features/Notes/ForceLayout3D.swift and Shared/Space/GraphicsQuality.swift
+// (which holds SplitMix64), which import only Foundation.
 import Foundation
 
 var failures: [String] = []

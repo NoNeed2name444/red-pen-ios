@@ -285,7 +285,7 @@ targets:
       # home's countdown sentence, "Step 1 in 90 days" (Foundation only)
       - path: RedPen/Shared/Learn/WardWords.swift
       # AppLink.openItem carries a NoteSource (Foundation only)
-      - path: RedPen/Shared/Ideas/SaveToIdeas.swift
+      - path: RedPen/Persistence/NoteSource.swift
       - path: RedPen/Shared/Platform/ExamDayAttributes.swift
       - path: RedPen/Shared/Platform/WardRoundAttributes.swift
       - path: RedPen/Shared/Platform/ReviewDueIntent.swift

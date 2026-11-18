@@ -407,17 +407,15 @@ nonisolated enum GraphShaderProbe {
 
 // MARK: - textures
 
+// The colours themselves, GraphArt's five lets, are declared in
+// Shared/Space/PhotonRing.swift (the Progress rings use them); the textures
+// are made here.
+
 /// The textures, generated in code once and shared.
 ///
 /// The glow textures are opaque: black where there is nothing, so that with
 /// additive blending black adds nothing and no alpha is involved at all.
-nonisolated enum GraphArt {
-    static let orange = SIMD3<Float>(1.0, 0.416, 0.0)     // #FF6A00
-    static let gold = SIMD3<Float>(1.0, 0.753, 0.302)     // #FFC04D
-    static let ember = SIMD3<Float>(0.62, 0.08, 0.0)
-    static let whiteHot = SIMD3<Float>(1.0, 0.95, 0.84)
-    static let violet = SIMD3<Float>(0.42, 0.26, 1.0)
-
+extension GraphArt {
     /// The photon ring, for a plane GraphShape.ringPlane radii across: a thin
     /// ring just outside the silhouette, brighter and whiter on the right;
     /// the lensed far side of the disk arching over the top and under the

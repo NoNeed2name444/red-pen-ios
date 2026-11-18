@@ -165,7 +165,7 @@ suite cosmic CosmicHierarchyTests.swift $F/Notes/GraphUniverse.swift $F/Notes/Gr
 suite graphics GraphicsTests.swift $S/Space/GraphicsQuality.swift $F/Notes/GraphLinkCurve.swift
 # the classic Space map's force layout: the same shape every time, and a
 # layout the map no longer wants stops when its rebuild is cancelled
-suite forcelayout ForceLayoutTests.swift $F/Notes/ForceLayout3D.swift
+suite forcelayout ForceLayoutTests.swift $F/Notes/ForceLayout3D.swift $S/Space/GraphicsQuality.swift
 # what the map's picture takes from the notes, as one number: it changes
 # with every name, folder, link and size step, not while typing inside a
 # step, and a note's words are counted again only when its text changes
@@ -216,7 +216,7 @@ suite labels GraphLabelTests.swift $F/Notes/GraphLabelContrast.swift
 # touching the map: tap, double tap, hold, drag, orbit, the peek card
 suite touch GraphTouchTests.swift $F/Notes/GraphTouchModel.swift
 # lines: Curved / Straight - the straight segment and the board's bow
-suite lines LineStyleTests.swift $F/Notes/GraphLineStyle.swift
+suite lines LineStyleTests.swift $F/Notes/GraphLineStyle.swift $S/Space/GraphicsQuality.swift
 # the themed hierarchy (plan §3d): each folder a cell with the same
 # seven parts, files and bullets, read from the notes; links as fibres
 # (strength, kind);
@@ -389,7 +389,7 @@ suite occlusionflow OcclusionFlowTests.swift $M/AnkiCard.swift $F/Anki/AnkiSched
 # what kind of file arrived, the widgets' digest, the exam-day
 # window and the age signal
 suite platform PlatformTests.swift $S/Platform/AppLink.swift $S/Platform/AppLockRule.swift $S/Platform/GlanceDigest.swift \
-      $S/Platform/AgeSignal.swift $S/Ideas/SaveToIdeas.swift
+      $S/Platform/AgeSignal.swift ios/RedPen/Persistence/NoteSource.swift
 # the ward round: rounds, breaks, pausing, a locked phone coming
 # back, stopping early; the daily goal; the streak's free rest day
 suite wardround WardRoundTests.swift $S/StudySession.swift $S/StudyStreak.swift $S/DailyGoal.swift
@@ -436,7 +436,8 @@ suite wardpocket WardPocketTests.swift $S/WardPocket.swift $S/WardPocketScores.s
 # Save to Ideas: the title a note gets from a question or a card, one
 # note per item, the subject's folder, what a save writes and adds,
 # and the backlink to the item, stored and as a link
-suite saveideas SaveToIdeasTests.swift $S/Ideas/SaveToIdeas.swift $S/Ideas/IdeaEdges.swift
+suite saveideas SaveToIdeasTests.swift $S/Ideas/SaveToIdeas.swift ios/RedPen/Persistence/NoteSource.swift \
+      ios/RedPen/Persistence/NoteStore.swift
 # the first run: who sees the first-run pages and when, the daily
 # goal's key and range, and tips that wait for a familiar screen
 suite firstrun FirstRunTests.swift $S/FirstRunRules.swift $S/DailyGoal.swift

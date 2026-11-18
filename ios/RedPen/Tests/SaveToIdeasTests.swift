@@ -2,6 +2,9 @@
 // that stops the same item being saved twice, the folder a subject's notes
 // go in, what a save writes and adds, and the backlink - as stored on the
 // note and as a link.
+//
+// Compiled with SaveToIdeas.swift, NoteSource.swift and NoteStore.swift (its
+// Combine half is fenced out on Linux).
 import Foundation
 
 var failures: [String] = []
@@ -180,7 +183,7 @@ let savedNote = ("{\"title\":\"Kept\",\"source\":" + sourceJSON + "}").data(usin
 check("a note's own source reads back", (try? JSONDecoder().decode(NoteLike.self, from: savedNote))?.source == q1,
       String(data: savedNote, encoding: .utf8) ?? "")
 
-// the board's links, each pair once (audit #106)
+// the board's links, each pair once (audit #106); IdeaEdges is in NoteStore.swift
 let ideaA = UUID(), ideaB = UUID(), ideaC = UUID(), gone = UUID()
 let boardEdges = IdeaEdges.pairs([(id: ideaA, to: [ideaB, ideaB, ideaA, gone]),
                                   (id: ideaB, to: [ideaA, ideaC]),

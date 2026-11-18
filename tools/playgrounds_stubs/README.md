@@ -122,9 +122,12 @@ provide; the extension methods it cannot see (`guessFirst`,
 `commuteModeSheet`, `picks`, `platformRoutes`, `skyScroll`) are found by the
 compile.
 
-`GraphLineStyle.swift` and `GraphicsQuality.swift` stay in every core
-package (`CORE_KEEP`). They are Foundation only, and Settings in the full
-shell reads them.
+`GraphicsQuality.swift` stays in every core package (`CORE_KEEP`). It is
+Foundation only, and Settings in the full shell reads it. Since the Ideas
+removal it also holds `GraphLineStyle` and `SplitMix64`, which the sky
+(`Shared/Space`) reads. `GraphArt`, the map's colours, is declared in
+`Shared/Space/PhotonRing.swift`, which the core leaves out, so
+`core/CoreStandIns.swift` declares it for them.
 
 Status: `core`, `core1` and `core2` are the chunks already on this ladder.
 `core3` is the next zip. Measured while assembling it: 67,699 lines of the

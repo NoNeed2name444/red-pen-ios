@@ -258,7 +258,7 @@ enum SpaceSettings {
     static let linkLengthKey: String = GraphLinkLength.key
     /// Bool, default false (Curved): "Lines" - Curved or Straight links in
     /// both Ideas modes, the 3D map and the 2D board (GraphLineStyle,
-    /// GraphLineStyle.swift). Both Look menus set the same value.
+    /// GraphicsQuality.swift). Both Look menus set the same value.
     static let straightLinesKey: String = GraphLineStyle.key
 
     static var alwaysNight: Bool {

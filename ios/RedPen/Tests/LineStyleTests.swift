@@ -5,7 +5,8 @@
 // fanned lanes never on top of one another, the arrowhead's direction and
 // the hit test following the shape chosen.
 //
-// Compiled with GraphLineStyle.swift alone (Foundation only).
+// Compiled with GraphLineStyle.swift and Shared/Space/GraphicsQuality.swift, which
+// holds the GraphLineStyle enum (Foundation only).
 import Foundation
 
 var failures: [String] = []

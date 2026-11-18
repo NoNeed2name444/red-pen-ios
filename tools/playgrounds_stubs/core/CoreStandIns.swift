@@ -266,6 +266,17 @@ extension View {
     func spaceSoundsHushed() -> some View { self }
 }
 
+/// The map's colours, which the photon ring borrows (declared in
+/// Shared/Space/PhotonRing.swift, a folder the core leaves out; the textures
+/// made from them are in the dropped Features/Notes/GraphLook.swift).
+nonisolated enum GraphArt {
+    static let orange = SIMD3<Float>(1.0, 0.416, 0.0)
+    static let gold = SIMD3<Float>(1.0, 0.753, 0.302)
+    static let ember = SIMD3<Float>(0.62, 0.08, 0.0)
+    static let whiteHot = SIMD3<Float>(1.0, 0.95, 0.84)
+    static let violet = SIMD3<Float>(0.42, 0.26, 1.0)
+}
+
 enum PhotonPalette {
     static func colour(_ c: SIMD3<Float>) -> Color {
         Color(red: Double(c.x), green: Double(c.y), blue: Double(c.z))

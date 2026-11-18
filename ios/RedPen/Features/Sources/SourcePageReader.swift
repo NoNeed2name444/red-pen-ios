@@ -57,7 +57,9 @@ struct SourcePageReader: View {
                         .font(WardType.caption)
                         .labelStyle(WardGlyphLabelStyle(glyph: Color.wardWarning)).foregroundStyle(Color.wardInk)
                 }
-                LecturePassageText(text: current.text, page: page)
+                Text(current.text)
+                    .font(WardType.body)
+                    .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
@@ -97,8 +99,8 @@ struct SourcePDFPage: UIViewRepresentable {
     let url: URL
     let page: Int
 
-    func makeUIView(context: Context) -> IdeaPDFView {
-        let view = IdeaPDFView()
+    func makeUIView(context: Context) -> PDFView {
+        let view = PDFView()
         view.autoScales = true
         view.displayMode = .singlePage
         view.displaysPageBreaks = false
@@ -108,7 +110,7 @@ struct SourcePDFPage: UIViewRepresentable {
         return view
     }
 
-    func updateUIView(_ view: IdeaPDFView, context: Context) {
+    func updateUIView(_ view: PDFView, context: Context) {
         if view.document == nil { view.document = PDFDocument(url: url) }
         go(view)
     }
