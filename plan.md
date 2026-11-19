@@ -3700,13 +3700,34 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
   upward." The foot's bones from scratch, traced from Gray's plates (Fig. 264
   to 291, pp. 262 to 277), compact and spongy inside by structure.py's rules;
   then the ankle and leg, and on up.
-  - [x] Calcaneus (`tools/scratch_body/foot.py`, `dev/try_foot.py calcaneus`):
-    cross-sections set between the edges Fig. 264 and Fig. 266 draw (both
-    retraced under a millimetre grid); the shelf in the outline Fig. 264
-    gives it and the slope Fig. 267 gives it; the sulcus as a groove that
-    widens into the sinus tarsi; the three talar surfaces traced and raised.
-    Sent 18 Nov. Still plain: the cuboid surface, the plantar relief of
-    Fig. 265, and the medial wall's finer relief.
+  - [ ] Calcaneus (`tools/scratch_body/foot.py`). The first one was sent 18
+    Nov and the owner turned it down twice on 19 Nov: "the heel looks no
+    where near similar as the images." and, of the rebuilt one, "bone surface
+    details are not similar". Nothing more is sent until it stands beside
+    the plates like for like. Rebuilt from the plates themselves:
+    - `platematch.py` finds each plate's outline, the bone is what lies
+      inside all four (Fig. 264 above, 265 below, 266 and 267 the sides),
+      and `dev/fit_plates.py` finds how each plate is drawn. Neither side
+      plate is a level side view: both are from about 14 degrees above, Fig.
+      267 also 13 degrees from behind. Outlines lie about 1 mm apart on the
+      mean (worst 3 to 5 mm).
+    - cut in by hand from the plates and Gray's text: the upper surface
+      (posterior facet, sulcus, sinus tarsi as a hollow, the shelf and its
+      underside), the trochlear process as a level ridge with the groove for
+      the peroneus longus under it, the lateral process, the tuberosity's
+      line, the three joint surfaces.
+    - `foot.emboss` turns each plate's shading into relief
+      (`platematch.shading_relief`: a face turned from the light is dark and
+      so is a hollow; first the broad run of tone, then what is finer than
+      4 mm; kept off the joint surfaces).
+    - check: `dev/match_plates.py calcaneus` (all four plates, outlines and
+      how alike the shading is) and `dev/zoom_plates.py calcaneus <fig>
+      --over` (one plate enlarged, the model's edges drawn on it).
+    Open, 19 Nov: the medial view (the shelf's thick free edge, the groove
+    under it, the hollowed medial surface, the tuberosity's rim) and the
+    sole (ridges, anterior tubercle, the two processes) are still mostly
+    bare; the joint surfaces' edges are soft at 0.4 mm a step; shading alike
+    0.4 to 0.7 bare, 0.6 to 0.8 with relief (1 would be the same picture).
   - [ ] Talus, the other tarsals, metatarsals, phalanges; the foot together.
 - [ ] F8. Mesh checks, the neck and down, the muscles, the woman, and where
   the from-scratch model goes in the app.
