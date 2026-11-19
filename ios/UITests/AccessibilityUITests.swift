@@ -982,6 +982,12 @@ final class AccessibilityUITests: XCTestCase {
         "library-vitals-figures", "library-vitals-strip",
     ]
     private static let libraryControlRegions: [String] = ["library-tiles"]
+    /// T0286: the numeral with one other piece each, a comma list.
+    private static let libraryPairRegions: [String] = [
+        "library-vitals-ring-numeral,library-vitals-strip",
+        "library-vitals-ring-numeral,library-vitals-ring",
+        "library-vitals-ring-numeral,library-vitals-title",
+    ]
     /// The quiz's regions (T0265), in the order they run: the four pieces of the
     /// two buttons (none answered), then the two buttons whole, as the controls
     /// (each took the issue to 0 in run 43479150475).
@@ -1037,13 +1043,18 @@ final class AccessibilityUITests: XCTestCase {
         return variants
     }
 
-    /// The library's variants (T0285), in the order they run: the baseline, each
-    /// of the Vitals tile's pieces omitted alone, `library-tiles` as the control,
-    /// and a second baseline. No `omit=all` or `omit=everything`: run
-    /// 44599719831 answered them. 8 launches, 1 + 5 + 1 + 1.
+    /// The library's variants (T0286), in the order they run: the baseline, the
+    /// control `library-tiles` FIRST (it did not run in run 44620290902, the
+    /// budget was spent), then the ring's numeral with each other piece of the
+    /// Vitals tile, omitted together, and a second baseline. Run 44620290902
+    /// showed the numeral alone accounts for one of the three flags and that a
+    /// single omit of a sibling moves the flags onto named elements, so the
+    /// pieces go in pairs with the numeral. 6 launches, 1 + 1 + 3 + 1; at the
+    /// 21 to 23 s a launch has cost that is 126 to 138 s, inside the 184 s.
     private static func libraryVariants() -> [BisectVariant] {
         var variants: [BisectVariant] = [BisectVariant.baseline]
-        variants += (libraryNewRegions + libraryControlRegions).map { BisectVariant.omit($0) }
+        variants += libraryControlRegions.map { BisectVariant.omit($0) }
+        variants += libraryPairRegions.map { BisectVariant.omit($0) }
         variants.append(BisectVariant.baseline)
         return variants
     }

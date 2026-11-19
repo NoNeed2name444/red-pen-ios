@@ -17,10 +17,17 @@ struct WardRing: View {
     /// The a11yProbeHide region of the centre numeral, set where a bisect
     /// names it (T0285); nil leaves the numeral as it was.
     var numeralRegion: String?
+    /// The text style the centre numeral is set in, so it scales with
+    /// Dynamic Type as that style does (T0286); the ring's frame is for the
+    /// caller to scale with the same style.
+    /// nil keeps the old 26 pt scaled numeral, so only the caller that asks changes.
+    var numeralStyle: Font.TextStyle? = nil
     @ScaledMetric(relativeTo: .title2) private var numeral: CGFloat = 26
 
     init(value: Double, tone: WardTone = .blue, label: String? = nil, lineWidth: CGFloat = 8,
-         centre: String? = nil, spoken: String? = nil, numeralRegion: String? = nil) {
+         centre: String? = nil, spoken: String? = nil, numeralRegion: String? = nil,
+         numeralStyle: Font.TextStyle? = nil) {
+        self.numeralStyle = numeralStyle
         self.value = value
         self.tone = tone
         self.label = label
@@ -46,7 +53,8 @@ struct WardRing: View {
             // fit it, so they never cross the arc (T0211 A5)
             VStack(spacing: 0) {
                 Text(shown)
-                    .font(.system(size: numeral, weight: .semibold, design: .monospaced))
+                    .font(numeralStyle.map { WardType.mono($0, weight: .semibold) }
+                          ?? .system(size: numeral, weight: .semibold, design: .monospaced))
                     .monospacedDigit()
                     .lineLimit(1)
                     .contentTransition(.numericText())

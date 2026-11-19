@@ -896,6 +896,14 @@ private struct VitalsTileFace: View {
     let readiness: ReadinessEstimate?
     let streak: Int
     let rhythm: RhythmReading.Reading
+    // T0286: the tile's fixed pieces scale with the text they hold, so the
+    // ring's numeral is never squeezed (minimumScaleFactor) into a square that
+    // stayed put while the type grew. One rule: a piece is its default size at
+    // Large, times the Dynamic Type scale of the style it holds. The ring is
+    // 64 at Large (numeral .subheadline, 15 pt: "68%" is about 27 pt wide in a
+    // 31 pt label square), the strip 18 (.caption).
+    @ScaledMetric(relativeTo: .subheadline) private var ringSide: CGFloat = 64
+    @ScaledMetric(relativeTo: .caption) private var stripHeight: CGFloat = 18
 
     var body: some View {
         VStack(alignment: .leading, spacing: WardSpace.s) {
@@ -917,7 +925,7 @@ private struct VitalsTileFace: View {
             }
             RhythmTrace(beats: rhythm.beats)
                 .stroke(Color.wardEcg, style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
-                .frame(height: 18)
+                .frame(height: stripHeight)
                 .accessibilityHidden(true)
                 .a11yProbeHide("library-vitals-strip")
         }
@@ -927,8 +935,8 @@ private struct VitalsTileFace: View {
     private var ring: some View {
         let centre: String? = readiness == nil ? "\u{2013}" : nil
         return WardRing(value: readiness?.center ?? 0, tone: .blue, lineWidth: 6, centre: centre,
-                        numeralRegion: "library-vitals-ring-numeral")
-            .frame(width: 56, height: 56)
+                        numeralRegion: "library-vitals-ring-numeral", numeralStyle: .subheadline)
+            .frame(width: ringSide, height: ringSide)
             .a11yProbeHide("library-vitals-ring")
     }
 
