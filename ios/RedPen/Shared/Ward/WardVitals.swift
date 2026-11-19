@@ -14,15 +14,19 @@ struct WardRing: View {
     var lineWidth: CGFloat = 8
     var centre: String?
     var spoken: String?
+    /// The a11yProbeHide region of the centre numeral, set where a bisect
+    /// names it (T0285); nil leaves the numeral as it was.
+    var numeralRegion: String?
     @ScaledMetric(relativeTo: .title2) private var numeral: CGFloat = 26
 
     init(value: Double, tone: WardTone = .blue, label: String? = nil, lineWidth: CGFloat = 8,
-         centre: String? = nil, spoken: String? = nil) {
+         centre: String? = nil, spoken: String? = nil, numeralRegion: String? = nil) {
         self.value = value
         self.tone = tone
         self.label = label
         self.lineWidth = lineWidth
         self.centre = centre
+        self.numeralRegion = numeralRegion
         self.spoken = spoken
     }
 
@@ -47,6 +51,7 @@ struct WardRing: View {
                     .lineLimit(1)
                     .contentTransition(.numericText())
                     .foregroundStyle(Color.wardInk)
+                    .a11yProbeHide(ifNamed: numeralRegion)
                 if let label { Text(label).font(WardType.face(.caption2, weight: .regular)).lineLimit(1).foregroundStyle(Color.wardInkSecondary) }
             }
             .minimumScaleFactor(0.5)

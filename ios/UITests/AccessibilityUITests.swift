@@ -972,10 +972,16 @@ final class AccessibilityUITests: XCTestCase {
     ///   has no description" and no clipped text (68 nodes), and `all` 7 issues
     ///   that were not the nil one. The library keeps them, as its other
     ///   variants are read against them; the quiz no longer launches them.
+    ///
+    /// T0285: run 44599719831 took the audit from 3 issues (Dynamic Type, no
+    /// element) to 0 with `library-tiles` omitted, so the library now omits the
+    /// five pieces of the Vitals tile, one at a time, with `library-tiles` as
+    /// the control.
     private static let libraryNewRegions: [String] = [
-        "library-set-rows", "library-rest-examples", "library-tiles", "library-tab-bar",
+        "library-vitals-title", "library-vitals-ring", "library-vitals-ring-numeral",
+        "library-vitals-figures", "library-vitals-strip",
     ]
-    private static let libraryControlRegions: [String] = ["library-search"]
+    private static let libraryControlRegions: [String] = ["library-tiles"]
     /// The quiz's regions (T0265), in the order they run: the four pieces of the
     /// two buttons (none answered), then the two buttons whole, as the controls
     /// (each took the issue to 0 in run 43479150475).
@@ -1031,6 +1037,17 @@ final class AccessibilityUITests: XCTestCase {
         return variants
     }
 
+    /// The library's variants (T0285), in the order they run: the baseline, each
+    /// of the Vitals tile's pieces omitted alone, `library-tiles` as the control,
+    /// and a second baseline. No `omit=all` or `omit=everything`: run
+    /// 44599719831 answered them. 8 launches, 1 + 5 + 1 + 1.
+    private static func libraryVariants() -> [BisectVariant] {
+        var variants: [BisectVariant] = [BisectVariant.baseline]
+        variants += (libraryNewRegions + libraryControlRegions).map { BisectVariant.omit($0) }
+        variants.append(BisectVariant.baseline)
+        return variants
+    }
+
     /// The quiz's variants (T0265), in the order they run: the baseline, each of
     /// `quizRegions` omitted alone, and a second baseline, to show the screen
     /// came out of the run as it went in. No `omit=all` or `omit=everything`:
@@ -1052,11 +1069,11 @@ final class AccessibilityUITests: XCTestCase {
     /// the baseline went from 0 issues to 4 with no element (3 Dynamic Type, 1
     /// Text clipped), which none of the search row's pieces or the account menu
     /// takes away any more. The set rows, the Examples row, the Vitals tile and
-    /// the dock are what this bisect omits, one at a time. 9 launches,
-    /// 3 + 5 + 1.
+    /// the dock are what T0283's bisect omitted; T0285 now omits the pieces of the
+    /// Vitals tile (libraryVariants). 8 launches.
     func testProbeBisectLibraryDiagnostic() {
         bisect("library", opening: "library", ready: ["libraryMenu", "librarySearch", "dockCategory-questions"],
-               variants: Self.omitVariants(regions: Self.libraryNewRegions + Self.libraryControlRegions),
+               variants: Self.libraryVariants(),
                budget: 184)
     }
 

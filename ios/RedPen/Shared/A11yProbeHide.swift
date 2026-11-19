@@ -87,6 +87,14 @@ import SwiftUI
 ///   symbol image), `quiz-rest-back-disabled` and `quiz-rest-check-disabled`
 ///   (the button is enabled where the audit's quiz state has it disabled: Back
 ///   on question 0, Check with nothing picked);
+/// - library, inside the Vitals tile (T0285, in the test; all are in
+///   `library-tiles`, and WardHome's HomeFitProbe also prints which
+///   ViewThatFits branch the tile chose and its size, in home-fit.txt):
+///   `library-vitals-title` (the "Progress" caps), `library-vitals-ring` (the
+///   ring, in both branches), `library-vitals-ring-numeral` (the Text inside
+///   the ring, set through WardRing's `numeralRegion`), `library-vitals-figures`
+///   ("Readiness" and the streak, in both branches) and `library-vitals-strip`
+///   (the rhythm trace). None is answered yet;
 /// - revealed card: `card-top-bar` (the navigation bar), `card-progress-row`
 ///   (cards left, done), `card-face`, `card-bottom-bar` (Accuracy), `card-rating-row` (Again to Easy).
 enum A11yProbeHide {
@@ -116,14 +124,21 @@ enum A11yProbeHide {
 }
 
 private struct A11yProbeHider: ViewModifier {
-    let name: String
+    let name: String?
     let navigationBar: Bool
 
     @ViewBuilder
     func body(content: Content) -> some View {
-        if A11yProbeHide.region != name && !A11yProbeHide.omits(name) {
+        if let name, A11yProbeHide.region == name || A11yProbeHide.omits(name) {
+            hidden(content, name)
+        } else {
             content
-        } else if navigationBar {
+        }
+    }
+
+    @ViewBuilder
+    private func hidden(_ content: Content, _ name: String) -> some View {
+        if navigationBar {
             content.toolbar(.hidden, for: .navigationBar)
         } else if A11yProbeHide.omits(name) {
             EmptyView()
@@ -141,5 +156,12 @@ extension View {
     /// view, for hide and omit alike.
     func a11yProbeHide(_ region: String, navigationBar: Bool = false) -> some View {
         modifier(A11yProbeHider(name: region, navigationBar: navigationBar))
+    }
+
+    /// As `a11yProbeHide`, for a view that is a probe region only where its
+    /// caller names one (T0285): with no name it is returned unchanged, even
+    /// for `-a11yProbeOmit everything`.
+    func a11yProbeHide(ifNamed region: String?) -> some View {
+        modifier(A11yProbeHider(name: region, navigationBar: false))
     }
 }

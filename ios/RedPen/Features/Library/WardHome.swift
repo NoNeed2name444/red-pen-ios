@@ -899,7 +899,7 @@ private struct VitalsTileFace: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: WardSpace.s) {
-            Text("Progress").homeSmallCaps()
+            Text("Progress").homeSmallCaps().a11yProbeHide("library-vitals-title")
             // the figures beside the ring only where they fit whole: squeezed
             // there, "No streak yet" broke inside its word ("No strea / k
             // yet"); otherwise under the ring, at the tile's full width
@@ -908,23 +908,28 @@ private struct VitalsTileFace: View {
                     ring
                     figures(besideRing: true)
                 }
+                .vitalsBranchProbe("beside the ring")
                 VStack(alignment: .leading, spacing: WardSpace.s) {
                     ring
                     figures(besideRing: false)
                 }
+                .vitalsBranchProbe("under the ring")
             }
             RhythmTrace(beats: rhythm.beats)
                 .stroke(Color.wardEcg, style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
                 .frame(height: 18)
                 .accessibilityHidden(true)
+                .a11yProbeHide("library-vitals-strip")
         }
         .homeTile()
     }
 
     private var ring: some View {
         let centre: String? = readiness == nil ? "\u{2013}" : nil
-        return WardRing(value: readiness?.center ?? 0, tone: .blue, lineWidth: 6, centre: centre)
+        return WardRing(value: readiness?.center ?? 0, tone: .blue, lineWidth: 6, centre: centre,
+                        numeralRegion: "library-vitals-ring-numeral")
             .frame(width: 56, height: 56)
+            .a11yProbeHide("library-vitals-ring")
     }
 
     /// Beside the ring the streak is one line at its own width, set on the
@@ -950,6 +955,7 @@ private struct VitalsTileFace: View {
             .font(WardType.face(.caption, weight: .semibold))
             .foregroundStyle(Color.wardInk)
         }
+        .a11yProbeHide("library-vitals-figures")
     }
 
     static func streakText(_ streak: Int) -> String {
@@ -1338,6 +1344,10 @@ final class HomeFitProbe {
     var pushLastKeptCut: Double?
     var pushBookCountBefore = 0
     var pushBookCountLastLook = 0
+    /// Which branch of the Vitals tile's ViewThatFits was laid out, and that
+    /// branch's size (T0285); empty until one is.
+    var vitalsBranch = ""
+    var vitalsBranchSize: CGSize = .zero
 
     private static func box(_ rect: CGRect?) -> HomeFit.Box? {
         guard let rect, !rect.isEmpty else { return nil }
@@ -1415,6 +1425,7 @@ final class HomeFitProbe {
         let line: String = bar.map { "\(Int(HomeFit.barLine(barTop: Double($0.minY))))" } ?? "none"
         lines.append("card \(edges(card)), start \(edges(start)), new set \(edges(newSet)), "
                      + "tiles \(edges(tiles)) (spare \(Int(spare))), bar \(edges(bar)), bar's line \(line), not cut, large text \(large)")
+        lines.append("vitals tile: \(vitalsBranch.isEmpty ? "no branch laid out" : vitalsBranch), branch \(Int(vitalsBranchSize.width))x\(Int(vitalsBranchSize.height)), tile frame \(tiles.map { "\(Int($0.width))x\(Int($0.height))" } ?? "none"), large text \(large)")
         lines.append("\(parts.count) parts measured: "
                      + parts.prefix(40).map { "\($0.name) \($0.box.text)" }.joined(separator: ", "))
         lines.append("words: " + words.map { "\($0.name) \(Int($0.width))/\(Int($0.widest))" }
@@ -1464,5 +1475,29 @@ extension View {
     /// The preview's word check on this text (HomeWordFit).
     fileprivate func homeWordFit(_ name: String, _ text: String, font: Font) -> some View {
         modifier(HomeWordFit(name: name, text: text, font: font))
+    }
+}
+
+/// For the preview's fit check (T0285): which branch of the Vitals tile's
+/// ViewThatFits was laid out, and its size. Only on the preview's "library"
+/// screen; elsewhere it adds nothing.
+private struct VitalsBranchProbe: ViewModifier {
+    let name: String
+
+    func body(content: Content) -> some View {
+        if PreviewLaunch.screen == "library" {
+            content.onGeometryChange(for: CGSize.self) { $0.size } action: {
+                HomeFitProbe.shared.vitalsBranch = name
+                HomeFitProbe.shared.vitalsBranchSize = $0
+            }
+        } else {
+            content
+        }
+    }
+}
+
+extension View {
+    fileprivate func vitalsBranchProbe(_ name: String) -> some View {
+        modifier(VitalsBranchProbe(name: name))
     }
 }
