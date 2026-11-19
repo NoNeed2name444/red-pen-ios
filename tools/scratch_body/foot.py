@@ -340,9 +340,12 @@ def calcaneus(h=0.4, log=print, relief=1.0, upto="all", poses=None, ink=INK):
     D = sdf.smax(D, out - xp3, 1.0); del out, zt
     D = sdf.smin(D, _tube(X, Y, Z, [(-14.0, 31.4, 44.5), (-15.1, 31.5, 48.5), (-15.4, 31.0, 53.0), (-15.2, 29.6, 56.6), (-14.7, 26.6, 57.8),
                                     (-13.6, 23.6, 58.0)], [1.4, 1.9, 2.1, 2.0, 1.8, 1.3]), 1.4)
-    D = sdf.smax(D, -Ellipsoid((-13.6, 25.8, 50.2), (3.6, 4.4, 4.8))(X, Y, Z), 1.0)
-    D = sdf.smax(D, -_tube(X, Y, Z, [(-13.8, 26.0, 51.5), (-13.9, 23.6, 54.5), (-14.0, 21.3, 58.0), (-11.0, 19.3, 64.0), (-7.5, 17.2, 70.0)],
-                           [2.4, 2.2, 2.0, 1.9, 1.6]), 1.5)
+    # (the pit under the crest is no round hole: Fig. 266 draws it flat-topped under the crest, widest behind, and
+    # narrowing downward and forward into the groove; two unequal hollows run together, and the groove begins wide)
+    D = sdf.smax(D, -Ellipsoid((-13.3, 27.0, 48.6), (3.1, 2.6, 3.6), rot((1, 0, 0), 18.0))(X, Y, Z), 1.6)
+    D = sdf.smax(D, -Ellipsoid((-13.4, 25.2, 51.6), (2.7, 3.0, 2.6), rot((1, 0, 0), -25.0))(X, Y, Z), 1.6)
+    D = sdf.smax(D, -_tube(X, Y, Z, [(-13.8, 25.2, 52.0), (-13.9, 23.4, 54.8), (-14.0, 21.3, 58.0), (-11.0, 19.3, 64.0), (-7.5, 17.2, 70.0)],
+                           [2.7, 2.4, 2.0, 1.9, 1.6]), 1.5)
     # (the lateral process of the tuberosity: Fig. 266 draws it a rounded knob at the lower hind corner of the lateral
     # surface, 22 mm from the back, with a shallow hollow between it and the hinder surface)
     D = sdf.smin(D, Ellipsoid((-10.2, 6.8, 23.5), (3.2, 4.2, 4.6))(X, Y, Z), 1.5)
