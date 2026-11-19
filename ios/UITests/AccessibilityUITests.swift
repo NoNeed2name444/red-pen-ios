@@ -973,9 +973,9 @@ final class AccessibilityUITests: XCTestCase {
     ///   that were not the nil one. The library keeps them, as its other
     ///   variants are read against them; the quiz no longer launches them.
     private static let libraryNewRegions: [String] = [
-        "library-rest-search-glyph", "library-rest-search-prompt", "library-rest-search-field",
+        "library-set-rows", "library-rest-examples", "library-tiles", "library-tab-bar",
     ]
-    private static let libraryControlRegions: [String] = ["library-rest-account-menu", "library-search"]
+    private static let libraryControlRegions: [String] = ["library-search"]
     /// The quiz's regions (T0265), in the order they run: the four pieces of the
     /// two buttons (none answered), then the two buttons whole, as the controls
     /// (each took the issue to 0 in run 43479150475).
@@ -1044,8 +1044,16 @@ final class AccessibilityUITests: XCTestCase {
     }
 
     /// The library, opened as the "library" preview (the bisect, below): the
-    /// search row's three pieces first, then the two controls. 9 launches,
-    /// 3 + 3 + 2 + 1.
+    /// regions the Ideas removal (T0274) moved, then the search row as the
+    /// control. T0283: with the brain map tile gone and Vitals full width, the
+    /// Examples row and the first set row rose 34 points (run 44386995426 against
+    /// 43727382235: 870 to 836), so the first row's title now straddles the
+    /// window's bottom edge (840 to 881 of 874) where it lay wholly below it, and
+    /// the baseline went from 0 issues to 4 with no element (3 Dynamic Type, 1
+    /// Text clipped), which none of the search row's pieces or the account menu
+    /// takes away any more. The set rows, the Examples row, the Vitals tile and
+    /// the dock are what this bisect omits, one at a time. 9 launches,
+    /// 3 + 5 + 1.
     func testProbeBisectLibraryDiagnostic() {
         bisect("library", opening: "library", ready: ["libraryMenu", "librarySearch", "dockCategory-questions"],
                variants: Self.omitVariants(regions: Self.libraryNewRegions + Self.libraryControlRegions),
