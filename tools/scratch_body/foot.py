@@ -133,6 +133,12 @@ def lay(F, views, poses, maps, shared=False, rough=False):
     return F
 
 
+def _cut(a, b, k):
+    """What of a lies outside b's cut (sdf.smax), the edge between rounded over k mm, k given point by point."""
+    h = np.clip(0.5 + 0.5 * (a - b) / k, 0.0, 1.0)
+    return (b + (a - b) * h + k * h * (1.0 - h)).astype(np.float32)
+
+
 def _tube(X, Y, Z, pts, r):
     """Distance to a bent rod through the points pts (x, y, z), r mm thick at each (round ends)."""
     pts = np.asarray(pts, float); r = np.broadcast_to(np.asarray(r, float), (len(pts),)); d = None
@@ -179,7 +185,7 @@ def _round_meet(a, b, R):
 
 
 INK = 0.25        # mm: how far the plates' fine drawing stands in and out of the surface (9 in 10 of it within this)
-RELIEF = dict(smooth=0.08, hold=0.002, cap=3.5, fine=(4.0, 0.012, 0.004, 1.5), rounds=140)      # how platematch.shading_relief is run
+RELIEF = dict(smooth=0.08, hold=0.002, cap=3.5, fine=(4.0, 0.03, 0.004, 1.0), rounds=140)      # how platematch.shading_relief is run
 PROCS = 1         # the plates' reliefs one after another (side by side in four processes was slower here: 156 s against 60)
 _JOB = {}
 
@@ -302,19 +308,26 @@ def calcaneus(h=0.4, log=print, relief=1.0, upto="all", poses=None, ink=INK):
     # between the raised lateral part of the anterior process and the two front facets, with a foramen in its floor)
     top = top - 2.6 * np.exp(-(((xp - 6.0) / 4.5) ** 2 + ((zp - 65.5) / 5.5) ** 2))
     top = ndi.gaussian_filter(top.astype(np.float32), 0.8 / h); gx, gz = np.gradient(top, h)
-    D = sdf.smax(D, (Y - top[:, None, :]) / np.sqrt(1.0 + gx ** 2 + gz ** 2)[:, None, :], 2.0)
+    # (the shelf's free border is a flat face with a clear edge above and below, as Fig. 267 draws it: the cuts that
+    # make its upper face and its underside meet that border all but sharp, everything else rounded over 2 mm)
+    xp3, zp3 = on264(X, Y, Z)
+    edge = 2.0 - 1.3 * _ss((xp3 - 19.0) / 4.0) * _bump(Z, 42.0, 46.0, 66.0, 70.0)
+    D = _cut(D, (Y - top[:, None, :]) / np.sqrt(1.0 + gx ** 2 + gz ** 2)[:, None, :], edge)
     # 2b. the sustentaculum is a shelf: under it the wall falls back into the groove for the flexor hallucis longus
     # (the shelf thinner toward its free edge, and never less than 5 mm of bone left under the upper surface)
-    xp3, zp3 = on264(X, Y, Z)
     wall = np.interp(zp3, [30.0, 38, 42, 46, 50, 58, 64, 70, 74, 80], [40.0, 40, 15.5, 17.0, 18.5, 18.0, 16.5, 17.0, 17.5, 40])
     # (Fig. 267 draws the shelf's free border as a face 6 to 7 mm tall that falls forward: under pixels (270, 135),
     # (285, 145) and (300, 152) its lower edge stands 36.7, 34.3 and 32.4 mm up; in front of z 60 the shelf is a
     # thinner ledge under the middle facet's fore end. The groove is deeper at the shelf's root.)
     under = np.interp(Z, [42.0, 45, 49, 52, 55, 58, 61, 66, 72], [42.5, 41.0, 38.3, 36.2, 33.8, 31.9, 32.5, 34.5, 36.5]) - 2.0 * (1.0 - _ss((xp3 - 19.0) / 9.0))
     under = np.minimum(under, top[:, None, :] - 5.0)
-    D = sdf.smax(D, sdf.smin(xp3 - wall, under - Y, 3.0), 2.0); del wall, under
+    D = _cut(D, sdf.smin(xp3 - wall, under - Y, 3.0), edge); del wall, under, edge
     # 2c. the medial surface is deeply hollowed below and behind the shelf; the trochlear process is a knob at mid height
     D = sdf.smax(D, -Ellipsoid((24.0, 25.0, 36.0), (13.5, 12.0, 24.0), rot((1, 0, 0), -12.0))(X, Y, Z), 5.0)
+    # (the groove for the flexor hallucis longus: Fig. 267 draws it the darkest band of the medial side, close under
+    # the shelf's free border and falling forward with it, some 6 mm wide)
+    D = sdf.smax(D, -_tube(X, Y, Z, [(17.0, 34.0, 50.5), (17.6, 31.6, 55.0), (18.0, 28.6, 61.0), (17.5, 26.5, 66.5)],
+                           [1.6, 3.0, 3.2, 2.2]), 1.6)
     # (the trochlear process. Fig. 264's outline has it as a bump 4 mm proud; drawn out as a prism that would be a
     # flute down the whole wall, so the bump is taken off to the wall's own line and the process set on as what Fig. 266
     # draws (read as from 14 degrees above): a ridge whose crest runs level, 31 to 32 mm up, from z 45 to z 57, where it
@@ -327,7 +340,7 @@ def calcaneus(h=0.4, log=print, relief=1.0, upto="all", poses=None, ink=INK):
     D = sdf.smax(D, out - xp3, 1.0); del out, zt
     D = sdf.smin(D, _tube(X, Y, Z, [(-14.0, 31.4, 44.5), (-15.1, 31.5, 48.5), (-15.4, 31.0, 53.0), (-15.2, 29.6, 56.6), (-14.7, 26.6, 57.8),
                                     (-13.6, 23.6, 58.0)], [1.4, 1.9, 2.1, 2.0, 1.8, 1.3]), 1.4)
-    D = sdf.smax(D, -Ellipsoid((-13.2, 26.6, 50.4), (3.0, 3.3, 4.2))(X, Y, Z), 1.2)
+    D = sdf.smax(D, -Ellipsoid((-13.6, 25.8, 50.2), (3.6, 4.4, 4.8))(X, Y, Z), 1.0)
     D = sdf.smax(D, -_tube(X, Y, Z, [(-13.8, 26.0, 51.5), (-13.9, 23.6, 54.5), (-14.0, 21.3, 58.0), (-11.0, 19.3, 64.0), (-7.5, 17.2, 70.0)],
                            [2.4, 2.2, 2.0, 1.9, 1.6]), 1.5)
     # (the lateral process of the tuberosity: Fig. 266 draws it a rounded knob at the lower hind corner of the lateral
@@ -340,7 +353,7 @@ def calcaneus(h=0.4, log=print, relief=1.0, upto="all", poses=None, ink=INK):
     sn = np.sin(np.arctan2(Y - 22.0, X - 2.0)); up = np.maximum(sn, 0.0) ** 1.5; down = np.maximum(-sn, 0.0) ** 1.5
     # (Fig. 265 has the two processes' front border 30 mm from the back, the notch between them a little behind it)
     line = 11.0 + 9.0 * up + (19.5 + 0.05 * (X - 2.0) - 3.0 * np.exp(-((X + 2.0) / 4.0) ** 2)) * down
-    D = D - (0.4 + 1.0 * down) * _ss((line - Z) / 1.5); del sn, up, down, line
+    D = D - (0.5 + 1.2 * down) * _ss((line - Z) / 1.5); del sn, up, down, line
     F.D = np.clip(D, -12.0, 12.0).astype(np.float32)
     # the three surfaces for the talus are smooth (no grain on them): their outlines, as Fig. 264 draws them
     from PIL import Image, ImageDraw
