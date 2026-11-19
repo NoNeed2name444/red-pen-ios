@@ -3720,14 +3720,28 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
       (`platematch.shading_relief`: a face turned from the light is dark and
       so is a hollow; first the broad run of tone, then what is finer than
       4 mm; kept off the joint surfaces).
+    - marks traced in a plate's own pixels (`CALC_MARKS`, laid by
+      `foot.lay`): the foramina each plate dots, the anterior tubercle and
+      the slit foramina of the sole, the medial process's border, the
+      tuberosity's rim, the sinus tarsi's lateral rim.
+    - the plates' fine drawing laid on as relief (`platematch.ink_of`, kept
+      in the traces): what is 0.4 to 2 mm across, run together along the
+      plate's own lines so it comes out as the streaks the plates draw, not
+      as pits; a quarter of a millimetre in and out.
+    - the shelf's free border falls forward and is 6 to 7 mm tall, as Fig.
+      267 draws it; the two processes' front border is 30 mm from the back
+      and a clear step, as Fig. 265 draws it.
     - check: `dev/match_plates.py calcaneus` (all four plates, outlines and
       how alike the shading is) and `dev/zoom_plates.py calcaneus <fig>
       --over` (one plate enlarged, the model's edges drawn on it).
-    Open, 19 Nov: the medial view (the shelf's thick free edge, the groove
-    under it, the hollowed medial surface, the tuberosity's rim) and the
-    sole (ridges, anterior tubercle, the two processes) are still mostly
-    bare; the joint surfaces' edges are soft at 0.4 mm a step; shading alike
-    0.4 to 0.7 bare, 0.6 to 0.8 with relief (1 would be the same picture).
+    Tried and taken out: a broad first stage of relief up to 8 mm (it tore
+    the shelf and the joint surfaces' edges).
+    Open, 19 Nov: beside the engravings it still reads as soft clay. The
+    medial view (the groove under the shelf as a deep shadowed channel, the
+    medial process), the sole (the cuboid surface's band, the underside of
+    the shelf) and the lateral view (the pocket under the trochlear process)
+    are the least like; shading alike 0.4 to 0.7 bare, 0.6 to 0.7 with
+    relief and ink (1 would be the same picture).
   - [ ] Talus, the other tarsals, metatarsals, phalanges; the foot together.
 - [ ] F8. Mesh checks, the neck and down, the muscles, the woman, and where
   the from-scratch model goes in the app.

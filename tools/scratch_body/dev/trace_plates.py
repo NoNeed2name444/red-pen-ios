@@ -1,7 +1,7 @@
 """trace_plates.py <bone>: what a bone's plates give its model, taken from the plates themselves and kept in
 traces/<bone>_plates.npz: each plate's outline as a signed distance (mm, in the plate's own pixels), its shading as
 tone with how far each pixel of it is to be trusted (platematch.tone_of: hatching run together, label lines painted
-over, the inked outline left out), and the angle, scale and place it is read at (platematch's, or
+over, the inked outline left out), its fine drawing (platematch.ink_of, 50 to the unit), and the angle, scale and place it is read at (platematch's, or
 sb/platefit_<bone>.json while a fit from fit_plates.py or match_plates.py --fit is being tried).
 Writes look/tone_<bone>.jpg (plate with the painted lines | tone | trust). The builder turns the tone into relief
 against the model's own faces (foot.emboss)."""
@@ -25,6 +25,7 @@ for v in pm.PLATES[name]:
     tone, ok, line = pm.tone_of(gray, mask, px)
     keep[v["fig"] + "_sdf"] = d.astype(np.float16); keep[v["fig"] + "_pose"] = np.array(pose, np.float32)
     keep[v["fig"] + "_tone"] = np.round(tone * 255).astype(np.uint8); keep[v["fig"] + "_ok"] = np.round(ok * 255).astype(np.uint8)
+    keep[v["fig"] + "_ink"] = np.round(pm.ink_of(gray, mask, px) * 50).astype(np.int8)
     print("%s: outline area %.0f mm2, %d px of label lines painted over" % (v["fig"], mask.sum() * px * px, line.sum()))
     a = np.concatenate([np.where(line, 0, gray), (np.clip(tone, 0, 1) * 255).astype(np.uint8), (ok * 255).astype(np.uint8)], 1)
     cells.append(Image.fromarray(a))

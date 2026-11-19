@@ -325,6 +325,33 @@ def tone_of(gray, mask, px, fine=0.9):
 
 
 
+def ink_of(gray, mask, px, lo=0.4, hi=2.0, along=2.0):
+    """A plate's fine drawing as relief to lay on the model: what of its tone lies between lo and hi mm across, light
+    for raised and dark for sunk, run together over `along` mm in the direction of the plate's own lines wherever
+    they keep one direction (an engraver's lines follow the fibre of the bone's surface: streaks, not pits) and left
+    as it is where they do not (pits, foramina, rough patches). 90 in 100 of it lie within -1 to 1; nothing within a
+    millimetre of the outline, whose ink is no relief."""
+    g = no_text(gray); line = upright_lines(g) & ndi.binary_dilation(mask, iterations=3); g = g.astype(np.float32)
+    wl = (~line).astype(np.float32); g = np.where(line, ndi.gaussian_filter(g * wl, 2.0) / np.maximum(ndi.gaussian_filter(wl, 2.0), 1e-3), g)
+    inside = ndi.binary_erosion(mask, iterations=3)
+    idx = ndi.distance_transform_edt(~inside, return_distances=False, return_indices=True)
+    t = g[tuple(idx)] / 255.0
+    band = ndi.gaussian_filter(t, lo / px) - ndi.gaussian_filter(t, hi / px)
+    gy, gx = np.gradient(ndi.gaussian_filter(t, 1.0))
+    jxx, jxy, jyy = (ndi.gaussian_filter(a, 1.0 / px) for a in (gx * gx, gx * gy, gy * gy))
+    th = 0.5 * np.arctan2(2 * jxy, jxx - jyy) + np.pi / 2                           # the lines' direction: across the steepest change
+    one = np.sqrt((jxx - jyy) ** 2 + 4 * jxy ** 2) / np.maximum(jxx + jyy, 1e-9)    # how far the lines keep one direction (0 to 1)
+    dx, dy = np.cos(th), np.sin(th); yy, xx = np.mgrid[0:t.shape[0], 0:t.shape[1]].astype(np.float32)
+    n = max(int(round(along / px)), 1); run = np.zeros_like(band); ws = 0.0
+    for k in range(-n, n + 1):
+        wk = np.exp(-0.5 * (2.0 * k / n) ** 2); ws += wk
+        run += wk * ndi.map_coordinates(band, [yy + k * dy, xx + k * dx], order=1, mode="nearest")
+    band = one * 1.6 * run / ws + (1.0 - one) * band
+    band = band / np.percentile(np.abs(band[inside]), 90)
+    ease = np.clip(ndi.distance_transform_edt(inside) * px / 1.2, 0.0, 1.0)
+    return (np.clip(band, -2.5, 2.5) * ease * ease * (3.0 - 2.0 * ease)).astype(np.float32)
+
+
 def in_tones(picture, tone, k):
     """The model's picture given the plate's own run of tones (its darkest as dark as the plate's darkest, its lightest
     as light, and so between), so the two are compared at one contrast. The order of its tones is kept: nothing is
