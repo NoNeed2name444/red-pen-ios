@@ -929,7 +929,7 @@ private struct VitalsTileFace: View {
     private var ring: some View {
         let centre: String? = readiness == nil ? "\u{2013}" : nil
         return WardRing(value: readiness?.center ?? 0, tone: .blue, lineWidth: 6, centre: centre,
-                        numeralRegion: "library-vitals-ring-numeral", numeralStyle: .subheadline)
+                        numeralRegion: "library-vitals-ring-numeral", numeralStyle: .subheadline, shrinksToFit: false)
             .frame(width: ringSide, height: ringSide)
             .a11yProbeHide("library-vitals-ring")
     }

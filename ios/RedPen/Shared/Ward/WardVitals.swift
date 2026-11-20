@@ -22,11 +22,18 @@ struct WardRing: View {
     /// caller to scale with the same style.
     /// nil keeps the old 26 pt scaled numeral, so only the caller that asks changes.
     var numeralStyle: Font.TextStyle? = nil
+    /// Whether the words shrink to fit the label square (the default). The
+    /// home tile's ring turns it off (T0288): a numeral squeezed by
+    /// minimumScaleFactor does not grow with the text size, which the library
+    /// audit read as "Dynamic Type font sizes are partially unsupported". The
+    /// ring's frame is scaled with the same style, so the words still fit.
+    var shrinksToFit: Bool = true
     @ScaledMetric(relativeTo: .title2) private var numeral: CGFloat = 26
 
     init(value: Double, tone: WardTone = .blue, label: String? = nil, lineWidth: CGFloat = 8,
          centre: String? = nil, spoken: String? = nil, numeralRegion: String? = nil,
-         numeralStyle: Font.TextStyle? = nil) {
+         numeralStyle: Font.TextStyle? = nil, shrinksToFit: Bool = true) {
+        self.shrinksToFit = shrinksToFit
         self.numeralStyle = numeralStyle
         self.value = value
         self.tone = tone
@@ -57,12 +64,13 @@ struct WardRing: View {
                           ?? .system(size: numeral, weight: .semibold, design: .monospaced))
                     .monospacedDigit()
                     .lineLimit(1)
+                    .fixedSize(horizontal: !shrinksToFit, vertical: false)
                     .contentTransition(.numericText())
                     .foregroundStyle(Color.wardInk)
                     .a11yProbeHide(ifNamed: numeralRegion)
                 if let label { Text(label).font(WardType.face(.caption2, weight: .regular)).lineLimit(1).foregroundStyle(Color.wardInkSecondary) }
             }
-            .minimumScaleFactor(0.5)
+            .shrinkingToFit(shrinksToFit)
         }
         .background {
             WardReliefFace(shape: WardAnnulus(width: lineWidth + 2 * clear), lift: .low, inset: true)
@@ -71,6 +79,13 @@ struct WardRing: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label ?? "Progress")
         .accessibilityValue(spoken ?? "\(percent) percent")
+    }
+}
+
+private extension View {
+    /// The words shrink to half to fit the ring's square, or hold their size.
+    @ViewBuilder func shrinkingToFit(_ on: Bool) -> some View {
+        if on { self.minimumScaleFactor(0.5) } else { self }
     }
 }
 
