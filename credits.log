@@ -1,0 +1,30 @@
+
+compile rc=0
+ok   a citation names its lecture
+ok   a lecture whose name has a comma in it
+ok   a citation with no lecture name names none
+ok   cites matches the lecture and no other
+ok   every lecture is listed, in the set's order
+ok   with how many questions and cards cite each
+ok   a lecture's detail says its kind, its pages and how many were read from pictures
+ok   slides are counted as slides
+ok   a cited lecture that is no longer kept is still named
+ok   the exam's style bank is credited
+ok   each public source is listed once, in the catalogue's order
+ok   an evidence page cited twice is listed once
+ok   evidence from a source with no known licence is kept apart, not dropped
+ok   a set with all this is not empty
+ok   a typed-in set with no exam has nothing recorded
+ok   an exam with no openly licensed bank credits none
+ok   MedMCQA's exams credit MedMCQA
+ok   every source names a licence with a link, a credit line and a home page
+ok   ids are unique
+ok   CC BY content says what was changed
+ok   MedlinePlus is credited the way it asks
+ok   the bundled exemplars name two banks
+ok   MedQA's line matches its credit
+ok   MedMCQA's line matches its credit
+
+ALL CREDITS TESTS PASS
+
+run rc=0

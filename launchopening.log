@@ -1,0 +1,167 @@
+
+compile rc=0
+ok   full: the mark starts at its launch-screen size
+ok   full: no ECG on the first frame
+ok   full: nothing of home is drawn before the hand-off
+ok   full: the title's letters wait at nothing
+ok   full: key times run from 0 to the end
+ok   full: the mark has shrunk to nothing when the splash goes
+ok   full: and only ever shrinks
+ok   reduced: the mark starts at its launch-screen size
+ok   reduced: no ECG on the first frame
+ok   reduced: nothing of home is drawn before the hand-off
+ok   reduced: the title's letters wait at nothing
+ok   reduced: key times run from 0 to the end
+ok   reduced: the mark has shrunk to nothing when the splash goes
+ok   reduced: and only ever shrinks
+ok   the hand-off moves for 0.6 to 0.8 s after the ECG
+ok   and all is still within a second of it
+ok   the opening, hand-off and all, is still within 1.7 s
+ok   Reduce Motion is done within 0.2 s
+ok   the lub swells to 1.06
+ok   the dub to 1.04
+ok   the lub peaks just after S1 is heard
+ok   the dub peaks just after S2
+ok   back to 1 between the two
+ok   back to 1 before the hand-off
+ok   no beat under Reduce Motion
+ok   the file's S1 is where HeartbeatSound says
+ok   the file's S2 is where HeartbeatSound says
+ok   the file is as long as it says
+ok   S1 to S2 is the master ECG's 0.36 s (EcgTrace), within 5 ms
+ok   the sound starts so that S1 lands on the R peak
+ok   and S2 on the end of the T wave
+ok   the R peak is the tallest point, on S1
+ok   P comes before QRS
+ok   the T wave rises between S1 and S2
+ok   the T wave has ended by S2
+ok   Q and S dip below the line
+ok   the baseline is flat where it starts
+ok   the head is on the R peak when S1 is heard
+ok   the head is at the T wave's end when S2 is heard
+ok   it appears as a baseline growing out from its centre
+ok   its head never goes back
+ok   the trace is drawn whole when the hand-off starts
+ok   no ECG under Reduce Motion
+ok   the trace runs the full width
+ok   its R peak is 30 pt high (drawn upward)
+ok   trim fractions only grow along the trace
+ok   trim fractions run 0 to 1
+ok   the hand-off starts once the trace is whole
+ok   the ECG starts its journey at the hand-off and lands when the splash goes
+ok   and never goes back
+ok   the mark is still whole when the hand-off starts
+ok   the page's opening, with all in it, arrives first, just into the hand-off
+ok   the wave goes up the screen: the higher a part, the later it arrives, never earlier
+ok   a part between the ECG's start and the title arrives as the ECG's middle passes it
+ok   what is above the title arrives after the ECG has landed, at most topLead after
+ok   easeInOut's inverse undoes it
+ok   every part arrives whole and nearly full size, never as a small copy
+ok   each part is nothing until it arrives, and exactly in place at rest
+ok   after the run-on the springs are within a tenth of a point of a 400 pt card
+ok   the last part to arrive is still by `settled`
+ok   a part in the opening is scaled about the opening's middle, not its own
+ok   after a held-up main thread home carries on from where it was
+ok   the spring starts at 0 and settles at 1
+ok   it rises past its place only a little (a few points of a 10 pt rise)
+ok   every letter is in place, at full size, once all is still
+ok   the letters grow from the middle out
+ok   the stethoscope perches on the title at about its letters' height
+ok   and the middle letters start to grow under it before it has gone into them
+ok   the title has the letters the timing allows for
+ok   under Reduce Motion home is simply there at the hand-off
+ok   full paper: warm-up and rest both draw the actual open mask
+ok   full paper: the heartbeat has a whole sheet, with no opening
+ok   full paper: the first revealed frame arrives with the content
+ok   full paper: every visible cut follows the same spring as its content
+ok   full paper: warm-up renders all the glyphs at their final positions
+ok   reduced paper: warm-up and rest both draw the actual open mask
+ok   reduced paper: the heartbeat has a whole sheet, with no opening
+ok   reduced paper: the first revealed frame arrives with the content
+ok   reduced paper: every visible cut follows the same spring as its content
+ok   reduced paper: warm-up renders all the glyphs at their final positions
+ok   every point of the trace is kept, in order
+ok   every corner of the squiggle is a point of the journey
+ok   and they run left to right at both ends
+ok   the R peak lands on the squiggle's R
+ok   it starts as the trace where it was drawn
+ok   and ends as the squiggle, in its frame
+ok   the squiggle is EcgSquiggle's own shape
+ok   home's title and squiggle tell the opening where they are
+ok   one paper renderer survives from warm-up through the final home frame
+ok   warm-up poses the real paper mask without hiding or discarding its layer
+ok   the moving cut is posed by transforms, drawing nothing per frame
+ok   neither a resting nor an animated paper outline draws the outer ring
+ok   the sheet uses the same picture, from the window's top left at its own size
+ok   the title draws one invisible box around all its letters can reach, at every moment, at rest too
+ok   the title warms and finishes with the same glyph renderer as the animation
+ok   the box is never seen: under half a level of 255 on any background
+ok   the box reaches past a letter at its overshoot (up to a 100-point letter) and its rise
+ok   the Xcode launch screen is the storyboard
+ok   it shows the launch art, at its own size, in the middle of the safe area
+ok   on home's paper, pinned to the screen's top left at its own size
+ok   the paper: iPhone at 2x and 3x, iPad at 2x, day and night
+ok   launch art: not in the source tree (added to the built app at download)
+ok   the opening looks up the night mark, then the day one, and draws nothing when neither is there
+ok   the mark is looked up night then day by night, day alone by day
+ok   sign-in's masthead draws the launch mark by its names, with a stand-in when the art is absent
+ok   chest piece inside the day image
+ok   chest piece inside the night image
+ok   the two modes' chest pieces are near the same place (no jump between modes)
+ok   the opening: its moments start at the launch screen and end with home at rest
+ok   the opening: its moments are in order and each named once
+ok   Reduce Motion: its moments start at the launch screen and end with home at rest
+ok   Reduce Motion: its moments are in order and each named once
+ok   a moment is found by name, or given in seconds
+ok   the Launch recording photographs every moment, in the storyboard's order
+ok   only gaps over 50 ms are listed, with the CPU time across each
+ok   the extra fields: gaps, interval and marks, led by a space
+ok   a load outside the hand-off-to-still window is left out
+ok   the gap_ms the judge reads is not in the extra fields
+ok   with nothing noted the fields say so
+ok   the marks are capped
+ok   ios/RedPen/Shared/LaunchStage.swift reads
+ok   ios/RedPen/Shared/LaunchStage.swift has no stand-in home data
+ok   ios/RedPen/Shared/Ward/WardSurfaces.swift reads
+ok   ios/RedPen/Shared/Ward/WardSurfaces.swift has no stand-in home data
+ok   ios/RedPen/Features/Library/WardHome.swift reads
+ok   ios/RedPen/Features/Library/WardHome.swift has no stand-in home data
+ok   ios/RedPen/Features/Library/LibraryView.swift reads
+ok   ios/RedPen/Features/Library/LibraryView.swift has no stand-in home data
+ok   .github/workflows/launch-recording.yml reads
+ok   .github/workflows/launch-recording.yml has no stand-in home data
+ok   the recording keeps three judged takes, the fixed 30 s pause and a snapshot after each take
+ok   a relief-off take follows each judged one, launched with the switch, read back to its own file
+ok   only the judged takes are gated: the gate reads handoff-$MODE.txt and never the control file
+ok   the switch sets every light to radius 0 as a 1-pt rim, and the faces draw live under it
+ok   the recording's gate is unchanged: every take has a readout, none holds over 100 ms
+ok   the readout keeps its gaps, cpu and marks fields
+ok   the readout ends with the relief count (WardReliefCensus)
+ok   WardLightImages reads
+ok   a style asked for in the hand-off is not made there
+ok   the styles asked for in the hand-off are made once it is over
+ok   a pressable face draws from its image only at rest
+ok   the entrance notes its frame in a plain object, not view state
+ok   the library does not put the entrance on a builder of several rows
+ok   row(_:) carries the entrance, so the opening still moves it
+ok   tileGrid carries the entrance, so the opening still moves it
+ok   the examples button carries the entrance, so the opening still moves it
+ok   buildSessionButton carries the entrance, so the opening still moves it
+ok   LaunchSplash.swift reads
+ok   the splash never uses .opacity
+ok   the splash never uses opacity =
+ok   the splash never uses "opacity"
+ok   the splash never uses .transition(.opacity
+ok   the splash never uses fadeIn
+ok   the splash never uses fadeOut
+ok   the splash draws home's ground live, for the section home opens on
+ok   the splash shows no picture of the ground and no neutral base
+ok   the ground's grid counts from the window's top left, as home's paper
+ok   no neutral base until the hand-off: the opening's ground is home's wash throughout
+ok   WardBackground draws home's wash, or a given section's at rest
+ok   the ground view is WardBackground with home's paper grid over it
+ok   home's paper stands on the same base with the wash
+
+ALL LAUNCH OPENING TESTS PASS
+
+run rc=0

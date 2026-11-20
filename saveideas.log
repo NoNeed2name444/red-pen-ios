@@ -1,0 +1,28 @@
+
+compile rc=0
+ok   same question, any set, same key
+ok   a card is not the question with the same id
+ok   a lecture is one note whatever the page
+ok   no item: the set is the key
+ok   chip label
+ok   chip label with page
+ok   link round trip question
+ok   link round trip card
+ok   link round trip osce
+ok   link round trip lecture
+ok   link uses the scheme people see
+ok   another host is not a source
+ok   an unknown kind is not a source
+ok   a bad page is dropped
+ok   stored source reads back
+ok   an old note has none
+ok   a kind from a newer version does not read
+ok   a note with a newer source still loads
+ok   a note with a damaged source still loads
+ok   a note's own source reads back
+ok   each pair once, both ways counted once
+ok   no line to itself or to a note that is gone
+ok   each pair in id order
+all note-source checks passed
+
+run rc=0

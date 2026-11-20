@@ -1,0 +1,95 @@
+/__w/red-pen-ios/red-pen-ios/build/llm/main.swift:218:25: warning: result of call to 'createFile(atPath:contents:attributes:)' is unused [#NoUsage]
+216 |     let models = RetiredModels.directory(in: docs)
+217 |     try? FileManager.default.createDirectory(at: models.appendingPathComponent("Medical"), withIntermediateDirectories: true)
+218 |     FileManager.default.createFile(atPath: models.appendingPathComponent("offline-writer.gguf.part").path, contents: Data("x".utf8))
+    |                         `- warning: result of call to 'createFile(atPath:contents:attributes:)' is unused [#NoUsage]
+219 |     FileManager.default.createFile(atPath: models.appendingPathComponent("Medical/writer.gguf").path, contents: Data("x".utf8))
+220 |     let keep = docs.appendingPathComponent("library.json")
+
+/__w/red-pen-ios/red-pen-ios/build/llm/main.swift:219:25: warning: result of call to 'createFile(atPath:contents:attributes:)' is unused [#NoUsage]
+217 |     try? FileManager.default.createDirectory(at: models.appendingPathComponent("Medical"), withIntermediateDirectories: true)
+218 |     FileManager.default.createFile(atPath: models.appendingPathComponent("offline-writer.gguf.part").path, contents: Data("x".utf8))
+219 |     FileManager.default.createFile(atPath: models.appendingPathComponent("Medical/writer.gguf").path, contents: Data("x".utf8))
+    |                         `- warning: result of call to 'createFile(atPath:contents:attributes:)' is unused [#NoUsage]
+220 |     let keep = docs.appendingPathComponent("library.json")
+221 |     FileManager.default.createFile(atPath: keep.path, contents: Data("{}".utf8))
+
+/__w/red-pen-ios/red-pen-ios/build/llm/main.swift:221:25: warning: result of call to 'createFile(atPath:contents:attributes:)' is unused [#NoUsage]
+219 |     FileManager.default.createFile(atPath: models.appendingPathComponent("Medical/writer.gguf").path, contents: Data("x".utf8))
+220 |     let keep = docs.appendingPathComponent("library.json")
+221 |     FileManager.default.createFile(atPath: keep.path, contents: Data("{}".utf8))
+    |                         `- warning: result of call to 'createFile(atPath:contents:attributes:)' is unused [#NoUsage]
+222 |     ok(RetiredModels.removeAll(in: docs) && !FileManager.default.fileExists(atPath: models.path)
+223 |        && FileManager.default.fileExists(atPath: keep.path),
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+
+compile rc=0
+ok   the <think> block is dropped
+ok   a reply cut off mid-thought has no answer in it
+ok   a reply with no thinking is kept, trimmed
+ok   only what follows the last </think> counts
+ok   a subscription refusal is shown as the server wrote it, not behind an HTTP code
+ok   the Pro refusal likewise
+ok   an unreadable body still says what failed
+ok   a server fault keeps its code
+ok   JSON inside a code fence and chatter is found
+ok   no object, no data
+ok   every item of a reply is read, whatever its fields
+ok   a key written 1, "2" or "C" is read as the option it names
+ok   a key that names no option is none
+ok   a key written as the option's own text is found
+ok   a reply cut off mid-array keeps every complete item (2)
+ok   braces inside strings do not confuse the reading
+ok   a reply with another list has none of these
+ok   the matching paragraph is chosen
+ok   a short source is used whole
+ok   no overlap falls back to the start, within the limit
+ok   the Word page really is bigger than the budget
+ok   a one-page Word lecture over the budget is still used, at the matching line
+ok   and stays within the budget
+ok   with its page named
+ok   nearest picks a line out of one long paragraph
+ok   the best page comes first
+ok   no shared word, no reference
+ok   a sixth option is F, and the key names it
+ok   no two options share a letter
+ok   five options read exactly as before
+ok   a key of -1 is said to be missing, not read out of range
+ok   and so is a key past the last option
+ok   asked for three pages, three slices
+ok   every paragraph lands in some page - the end of the lecture is not dropped
+ok   in order
+ok   nothing to slice, no pages
+ok   a short source is one page, not five empty ones
+ok   a long lecture becomes windows that each fit (20)
+ok   each window starts at a paragraph, not mid-sentence
+ok   every section is in some window: nothing past the first window is lost
+ok   a short source is one window, unchanged
+ok   batches take the windows in turn, round and round
+ok   text with no break is cut hard, and nothing is lost
+ok   every part is checked when there are few enough
+ok   a sample runs first to last, not the opening only: [0, 6, 13, 19]
+ok   edge counts
+ok   writer: the writer is the worker's chat route: https://worker.example/v1/chat/completions
+ok   writer: the model asked for is the worker's writer, whatever the role
+ok   writer: the bearer is the session (or the owner key), never a model's key
+ok   writer: the turns go as they are
+ok   one role: no checker or other model to choose
+ok   not Pro: the writer is blocked, and says why
+ok   Pro with no bearer: sign in, naming only the doors this build has
+ok   Pro and signed in: the writer is ready
+ok   the worker's reply is read from its first choice
+ok   a reply in any other shape is refused, not guessed at
+ok   questions: with no writer nothing is written, and the reason is the cloud's own (Stethoscore Cloud is part of Pro.)
+ok   questions: with the writer route, it alone writes, once
+ok   cases: with no writer nothing is written, and the reason is the cloud's own (Stethoscore Cloud is part of Pro.)
+ok   cases: with the writer route, it alone writes, once
+ok   stations: with no writer nothing is written, and the reason is the cloud's own (Stethoscore Cloud is part of Pro.)
+ok   stations: with the writer route, it alone writes, once
+ok   questions, cases and stations all go through the gate
+ok   a launch removes Documents/Models, finished and half-finished downloads, and nothing else
+ok   with nothing left, there is nothing to remove
+ALL LLM TESTS PASS
+
+run rc=0

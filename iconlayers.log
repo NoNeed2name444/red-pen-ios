@@ -1,0 +1,35 @@
+
+compile rc=0
+ok   design/icon/layers holds one PNG per layer and look, numbered back to front: ["0-background-dark.png", "0-background.png", "1-stethoscope-dark.png", "1-stethoscope.png"]
+ok   0-background.png is on the 1024 x 1024 canvas
+ok   0-background.png is 8-bit RGBA, so it has alpha
+ok   1-stethoscope.png is on the 1024 x 1024 canvas
+ok   1-stethoscope.png is 8-bit RGBA, so it has alpha
+ok   0-background-dark.png is on the 1024 x 1024 canvas
+ok   0-background-dark.png is 8-bit RGBA, so it has alpha
+ok   1-stethoscope-dark.png is on the 1024 x 1024 canvas
+ok   1-stethoscope-dark.png is 8-bit RGBA, so it has alpha
+ok   the layers stack back to front, base then stethoscope: ["background", "stethoscope"]
+ok   one PNG per layer and look, none twice: ["0-background.png", "1-stethoscope.png", "0-background-dark.png", "1-stethoscope-dark.png"]
+ok   the light look lists its layers back to front: ["0-background.png", "1-stethoscope.png"]
+ok   the light look's PNGs are numbered back to front from 0: ["0-background.png", "1-stethoscope.png"]
+ok   the dark look lists its layers back to front: ["0-background-dark.png", "1-stethoscope-dark.png"]
+ok   the dark look's PNGs are numbered back to front from 0: ["0-background-dark.png", "1-stethoscope-dark.png"]
+ok   tools/icon_layers.py writes the base as 0 and the stethoscope over it as 1
+ok   icon.json is a JSON object
+ok   one to four groups, as Icon Composer asks (1)
+ok   the icon has a fill behind its layers
+ok   the fill has a dark appearance
+ok   no color-space-for-untagged-svg-colors (actool on Xcode 26.4-26.6 crashes on it)
+ok   the picture has dark and tinted versions: ["dark", "tinted"]
+ok   icon.json names every asset in Assets, and no other: ["icon-dark.png", "icon-light.png", "icon-tinted.png"] vs ["icon-dark.png", "icon-light.png", "icon-tinted.png"]
+ok   Assets/icon-dark.png is 1024 x 1024
+ok   Assets/icon-light.png is 1024 x 1024
+ok   Assets/icon-tinted.png is 1024 x 1024
+ok   the icon set has dark and tinted appearances
+ok   IconLayers.swift shows each layer's PNG, light or dark, from the app's layers folder
+ok   IconLayersView stacks the layers in IconLayer's order, the first at the back
+ok   project.yml copies design/icon/layers into the app
+all icon layer checks passed
+
+run rc=0

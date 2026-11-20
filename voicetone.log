@@ -1,0 +1,51 @@
+
+compile rc=0
+ok   asking: pace within 10% of the voice's own
+ok   asking: pitch within 6% of the voice's own
+ok   asking: pauses under half a second
+ok   listing: pace within 10% of the voice's own
+ok   listing: pitch within 6% of the voice's own
+ok   listing: pauses under half a second
+ok   praise: pace within 10% of the voice's own
+ok   praise: pitch within 6% of the voice's own
+ok   praise: pauses under half a second
+ok   correcting: pace within 10% of the voice's own
+ok   correcting: pitch within 6% of the voice's own
+ok   correcting: pauses under half a second
+ok   explaining: pace within 10% of the voice's own
+ok   explaining: pitch within 6% of the voice's own
+ok   explaining: pauses under half a second
+ok   alert: pace within 10% of the voice's own
+ok   alert: pitch within 6% of the voice's own
+ok   alert: pauses under half a second
+ok   uneasy: pace within 10% of the voice's own
+ok   uneasy: pitch within 6% of the voice's own
+ok   uneasy: pauses under half a second
+ok   plain: pace within 10% of the voice's own
+ok   plain: pitch within 6% of the voice's own
+ok   plain: pauses under half a second
+ok   plain changes nothing
+ok   praise lifts
+ok   a correction is slower and lower than praise
+ok   a correction waits a moment first
+ok   an explanation is unhurried
+ok   a question leaves the longest room after it
+ok   a time warning starts at once and is brisk
+ok   pain is said uneasily
+ok   fear is said uneasily
+ok   a curly apostrophe still counts
+ok   capitals still count
+ok   a plain answer is plain
+ok   whole words only: painting is not pain
+ok   whole words only: soreness of words like 'sorely' does not count
+ok   every praise opener is used in turn
+ok   two right answers in a row are not praised the same way
+ok   the openers come round again
+ok   a negative turn still gives an opener
+ok   a right answer: the verdict lifts, then why, unhurried
+ok   a wrong answer names the right one, gently, and an empty why is left out
+ok   no answer text: just the opener
+
+ALL VOICE TONE TESTS PASS
+
+run rc=0

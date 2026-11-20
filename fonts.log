@@ -1,0 +1,25 @@
+
+compile rc=0
+ok   UIAppFonts names Nunito and Baloo Bhaijaan 2
+ok   the Fonts folder is copied into the app as Fonts/
+ok   Fonts/Nunito-Variable.ttf is bundled
+ok   Fonts/BalooBhaijaan2-Variable.ttf is bundled
+ok   every bundled font is registered
+ok   WardType's Latin family is Nunito's own name
+ok   WardType's Arabic family is Baloo Bhaijaan 2's own name
+ok   Arabic is chosen by the app's language
+ok   a face is Font.custom relative to its text style
+ok   display is largeTitle bold
+ok   title is title3 semibold
+ok   headline is headline semibold
+ok   body is body regular
+ok   caption is caption regular
+ok   observations stay in the system mono
+ok   both windows default to WardType.body
+ok   Nunito-OFL.txt is beside its font
+ok   BalooBhaijaan2-OFL.txt is beside its font
+ok   the fonts are in Settings' credits under the OFL
+
+ALL FONT TESTS PASS
+
+run rc=0

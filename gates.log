@@ -1,0 +1,56 @@
+
+compile rc=0
+ok   a session saved before the owner flag still decodes
+ok   and is nobody's owner
+ok   an owner session survives the keychain round trip
+ok   owner false is not the owner
+ok   /account/me decodes, unknown fields and all
+ok   the owner flag
+ok   terms agreed to an older version are outdated
+ok   an AI consent at the version in force is not
+ok   an answer with only the id decodes
+ok   and says nothing is outdated, and no owner
+ok   never having agreed to AI is outdated once a version is in force
+ok   an answer without the id does not decode
+ok   2xx is fine
+ok   401 is signed out, code or not
+ok   402 needs Pro
+ok   428 needs a consent, and says which
+ok   429 is too many tries
+ok   403 without a code is still signed out
+ok   404 without a code is still not found
+ok   a blank code counts as none
+ok   500 is the server
+ok   410 is gone
+ok   403 with a code is a refusal, not a sign-out
+ok   404 with a code is a refusal
+ok   a coded body's parts
+ok   an object error is no string, and no code
+ok   a numeric code is no code
+ok   a body that is not JSON has nothing
+ok   the personal build is the owner
+ok   an owner account is the owner
+ok   anyone else is not
+ok   a session marked owner opens the gate
+ok   an answer for another account is ignored
+ok   /account/me can close it
+ok   signing out closes it
+ok   a build number passes
+ok   anything else is 0
+ok   two headers
+ok   the worker is the worker
+ok   another host is not
+ok   a request to the worker carries both
+ok   a request to a provider the student added carries neither
+ok   deleting an Apple account leaves the Settings step
+ok   no other way in leaves one
+ok   only the pages the worker serves (server/legal.js)
+ok   the terms, in Arabic
+ok   an unknown language falls back to English
+ok   the first language the pages come in
+ok   a placeholder resolves
+ok   an unknown placeholder does not
+
+ALL GATES TESTS PASS
+
+run rc=0

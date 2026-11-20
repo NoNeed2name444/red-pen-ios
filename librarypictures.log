@@ -1,0 +1,35 @@
+
+compile rc=0
+ok   SHA-256 of nothing
+ok   SHA-256 of abc
+ok   SHA-256 of two blocks
+ok   SHA-256 of a million a's
+ok   pictures become references; garbled base64 and references stay
+ok   and their blobs are written
+ok   a data: picture is stored as its bytes
+ok   a picture in two sets is stored once
+ok   a verified picture is not looked for again
+ok   a picture whose blob cannot be written stays inline
+ok   a picture moved within its set keeps its name
+ok   a reference is filled from its blob
+ok   a reference whose blob is missing stays a reference
+ok   anything else is left as it is
+ok   filled pictures pack back to the same references
+ok   an inline picture needs packing
+ok   references and garbled base64 do not (no rewrite every launch)
+ok   the app's library uses the picture cache
+ok   any other library a folder beside it
+ok   a folder never swept is due
+ok   only an old blob nothing refers to is swept
+ok   a file not named as a blob is never touched
+ok   a blob from the last day is spared
+ok   and the next sweep is a day away
+ok   due again after a day
+ok   a picture added back after a sweep is written again
+ok   the byte scan finds what the text scan finds
+ok   only real names
+ok   the library's recovery copies are read, no other store's
+ok   a new copy is read too
+all passed
+
+run rc=0
