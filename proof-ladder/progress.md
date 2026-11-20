@@ -1,10 +1,10 @@
 # The proof ladder
 
-Updated 2026-11-19T12:48:24.620Z. Live Worker, every item checked once, half with a distractor keyed (a Verified distractor is an error).
+Updated 2026-11-20T12:30:01.895Z. Live Worker, every item checked once, half with a distractor keyed (a Verified distractor is an error).
 
 | checked | Verified | errors among Verified | proven accuracy of Verified (95%, one-sided) |
 |---|---|---|---|
-| 3944 | 0 | 0 | n/a |
+| 4004 | 0 | 0 | n/a |
 
 | rung | Verified needed with no error | status |
 |---|---|---|
@@ -12,11 +12,10 @@ Updated 2026-11-19T12:48:24.620Z. Live Worker, every item checked once, half wit
 | 99.99% | 29,956 | waiting |
 | 99.999% | 299,572 | waiting |
 
-Verified per check so far: 0.00%. Flagged 906, Check this 3038, not checked 1096.
+Verified per check so far: 0.00%. Flagged 912, Check this 3092, not checked 1096.
 
 | day | checked | Verified | errors |
 |---|---|---|---|
-| 2026-11-06 | 60 | 0 | 0 |
 | 2026-11-07 | 60 | 0 | 0 |
 | 2026-11-08 | 47 | 0 | 0 |
 | 2026-11-09 | 60 | 0 | 0 |
@@ -30,6 +29,7 @@ Verified per check so far: 0.00%. Flagged 906, Check this 3038, not checked 1096
 | 2026-11-17 | 60 | 0 | 0 |
 | 2026-11-18 | 60 | 0 | 0 |
 | 2026-11-19 | 60 | 0 | 0 |
+| 2026-11-20 | 60 | 0 | 0 |
 
 The cloud checker this month (2026-11): $3.60 of the $40 cap at the end of the last run, $0.00 of it during that run.
 
@@ -37,20 +37,20 @@ Runner voters, every blind answer for the items sent (a runner holds a seat only
 
 | runner | answered | right | right, 95% lower bound | seated |
 |---|---|---|---|---|
-| granite-4.0-h-tiny | 4917 | 2795 | 55.6688% | no |
-| phi-4-mini-instruct | 3439 | 1997 | 56.6659% | no |
+| granite-4.0-h-tiny | 4977 | 2824 | 55.5731% | no |
+| phi-4-mini-instruct | 3485 | 2020 | 56.5684% | no |
 
 Why items were not Verified (each reason counted once per item):
 
 | reason | items |
 |---|---|
-| Not yet passed by three model families. | 2168 |
-| No official source states it word for word yet. | 1907 |
-| The checkers judged it likely wrong. | 1220 |
+| Not yet passed by three model families. | 2222 |
+| No official source states it word for word yet. | 1940 |
+| The checkers judged it likely wrong. | 1259 |
 | Checkers from 2 different model families, solving it without the key, chose another answer. | 1166 |
+| Fewer than three independent blind solves reached the key. | 1149 |
 | Not checked yet. | 1096 |
-| Fewer than three independent blind solves reached the key. | 1089 |
-| A dose, diagnosis or treatment no official source states word for word yet. | 867 |
+| A dose, diagnosis or treatment no official source states word for word yet. | 885 |
 | The checkers were not confident enough. | 621 |
 
 Each family's blind answers against the gold key (one witness per family per question; "runner": run on GitHub's CPU with no key):
@@ -59,8 +59,8 @@ Each family's blind answers against the gold key (one witness per family per que
 |---|---|---|---|
 | anthropic | 3240 | 2933 | 89.6356% |
 | google | 2785 | 2396 | 84.9058% |
+| openai | 1284 | 1111 | 84.8580% |
 | nvidia | 1228 | 1047 | 83.4933% |
-| openai | 1224 | 1060 | 84.8936% |
 | ibm (runner) | 584 | 327 | 52.5119% |
 | microsoft (runner) | 12 | 5 | 18.1025% |
 
