@@ -908,21 +908,15 @@ private struct VitalsTileFace: View {
     var body: some View {
         VStack(alignment: .leading, spacing: WardSpace.s) {
             Text("Progress").homeSmallCaps().a11yProbeHide("library-vitals-title")
-            // the figures beside the ring only where they fit whole: squeezed
-            // there, "No streak yet" broke inside its word ("No strea / k
-            // yet"); otherwise under the ring, at the tile's full width
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: WardSpace.m) {
-                    ring
-                    figures(besideRing: true)
-                }
-                .vitalsBranchProbe("beside the ring")
-                VStack(alignment: .leading, spacing: WardSpace.s) {
-                    ring
-                    figures(besideRing: false)
-                }
-                .vitalsBranchProbe("under the ring")
+            // the ring over its figures at every size and width (T0287): beside
+            // each other (a ViewThatFits that picked that at the full-width
+            // tile) the library audit flagged three texts as not scaling with
+            // Dynamic Type; the stacked layout it had passed with did not
+            VStack(alignment: .leading, spacing: WardSpace.s) {
+                ring
+                figures
             }
+            .vitalsBranchProbe("under the ring")
             RhythmTrace(beats: rhythm.beats)
                 .stroke(Color.wardEcg, style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
                 .frame(height: stripHeight)
@@ -940,13 +934,9 @@ private struct VitalsTileFace: View {
             .a11yProbeHide("library-vitals-ring")
     }
 
-    /// Beside the ring the streak is one line at its own width, set on the
-    /// text itself: a Label's icon-and-title row kept its title at the
-    /// width of "Readiness" above it (18 pt of 40 for "streak") although
-    /// ViewThatFits had judged the row by the title's whole width, so the
-    /// row was picked and then drawn narrower than it was judged. Under
-    /// the ring it takes the tile's width and may wrap between words.
-    private func figures(besideRing: Bool) -> some View {
+    /// Under the ring the streak takes the tile's width and may wrap between
+    /// words, so it grows with the text instead of holding one line.
+    private var figures: some View {
         let text: String = VitalsTileFace.streakText(streak)
         return VStack(alignment: .leading, spacing: WardSpace.xs) {
             Text("Readiness")
@@ -958,7 +948,7 @@ private struct VitalsTileFace: View {
                     .accessibilityHidden(true)
                 Text(text)
                     .homeWordFit("the Vitals tile's streak", text, font: WardType.face(.caption, weight: .semibold))
-                    .fixedSize(horizontal: besideRing, vertical: true)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .font(WardType.face(.caption, weight: .semibold))
             .foregroundStyle(Color.wardInk)
