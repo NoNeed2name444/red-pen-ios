@@ -1,0 +1,18 @@
+== library-light
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 6, kept 0 (cut none), book 6 parts before the push, 0 at its last look
+card 350-662, start 590-646, new set 694-750, tiles 694-884 (spare 93), bar 694-840, bar's line 682, not cut, large text false
+vitals tile: under the ring, branch 91x108, tile frame 354x189, large text false
+6 parts measured: the round card 350-662, bed 1 411-485, the Due chip 436-459, bed 2 487-578, the New chip 521-544, the tiles 694-884
+words: the Vitals tile's streak 72/33
+== library-dark
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 6, kept 0 (cut none), book 6 parts before the push, 0 at its last look
+card 350-662, start 590-646, new set 694-750, tiles 694-884 (spare 93), bar 694-840, bar's line 682, not cut, large text false
+vitals tile: under the ring, branch 91x108, tile frame 354x189, large text false
+6 parts measured: the round card 350-662, bed 1 411-485, the Due chip 436-459, bed 2 487-578, the New chip 521-544, the tiles 694-884
+words: the Vitals tile's streak 72/33

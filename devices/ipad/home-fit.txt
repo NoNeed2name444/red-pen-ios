@@ -1,0 +1,45 @@
+== ipad library-light
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 11, kept 0 (cut none), book 11 parts before the push, 0 at its last look
+card 320-676, start 604-660, new set 1118-1174, tiles 708-898 (spare 152), bar 1118-1190, bar's line 1106, not cut, large text false
+vitals tile: under the ring, branch 92x108, tile frame 676x189, large text false
+11 parts measured: the round card 321-677, bed 1 367-441, the Due chip 392-415, bed 2 443-517, the New chip 468-491, bed 3 519-593, the tiles 709-898, the Your sets heading 946-962, a set row 988-1062, Build a session 1100-1172, the Practise heading 1210-1225
+words: the Vitals tile's streak 73/34
+== ipad library-dark
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 11, kept 0 (cut none), book 11 parts before the push, 0 at its last look
+card 320-676, start 604-660, new set 1118-1174, tiles 708-898 (spare 152), bar 1118-1190, bar's line 1106, not cut, large text false
+vitals tile: under the ring, branch 92x108, tile frame 676x189, large text false
+11 parts measured: the round card 321-677, bed 1 367-441, the Due chip 392-415, bed 2 443-517, the New chip 468-491, bed 3 519-593, the tiles 709-898, the Your sets heading 946-962, a set row 988-1062, Build a session 1100-1172, the Practise heading 1210-1225
+words: the Vitals tile's streak 73/34
+== ipad xxl-library-light
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 9, kept 0 (cut none), book 9 parts before the push, 0 at its last look
+card 345-756, start 684-740, new set 1118-1174, tiles 788-1018 (spare 185), bar 1118-1190, bar's line 1106, not cut, large text true
+vitals tile: under the ring, branch 121x134, tile frame 648x229, large text true
+9 parts measured: the round card 346-757, bed 1 397-488, the Due chip 427-458, bed 2 490-580, the New chip 519-551, bed 3 582-673, the tiles 789-1018, the Your sets heading 1062-1086, a set row 1108-1199
+words: the Vitals tile's streak 97/45
+== ipad xxl-library-dark
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 9, kept 0 (cut none), book 9 parts before the push, 0 at its last look
+card 345-756, start 684-740, new set 1118-1174, tiles 788-1018 (spare 185), bar 1118-1190, bar's line 1106, not cut, large text true
+vitals tile: under the ring, branch 121x134, tile frame 648x229, large text true
+9 parts measured: the round card 346-757, bed 1 397-488, the Due chip 427-458, bed 2 490-580, the New chip 519-551, bed 3 582-673, the tiles 789-1018, the Your sets heading 1062-1086, a set row 1108-1199
+words: the Vitals tile's streak 97/45
+== ipad ax1-library-light
+fits
+push and back: done
+push and back: home covered: yes
+push and back: drops removed 6, kept 0 (cut none), book 6 parts before the push, 0 at its last look
+card 432-1200, start 1128-1184, new set 1032-1089, tiles none (spare 364), bar 1032-1188, bar's line 1020, not cut, large text true
+vitals tile: no branch laid out, branch 0x0, tile frame none, large text true
+6 parts measured: the round card 432-1201, bed 1 550-753, the Due chip 708-745, bed 2 755-957, the New chip 912-949, bed 3 959-1117
+words: 
