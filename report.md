@@ -1,0 +1,103 @@
+# Accuracy model trained-2026-11-22-924
+
+924 items (cross-validated, 5 folds by question) · L2 0.1
+
+| | Log loss | Brier | AUC | Calibration error (ECE) |
+|---|---|---|---|---|
+| Trained (held-out) | 0.281 | 0.079 | 0.951 | 0.048 |
+| Current weights | 0.329 | 0.076 | 0.940 | 0.044 |
+
+**Verified** at P ≥ 0.94: precision 98.1%, recall 49.8% of accurate items (214 items).
+**Flagged** at P < 0.84: precision 80.2%, recall 95.4% of wrong items (597 items).
+
+## Calibration (held-out)
+
+| P(accurate) | Items | Mean P | Actually accurate |
+|---|---|---|---|
+| 0.0–0.1 | 286 | 1.2% | 4.2% |
+| 0.1–0.2 | 138 | 16.7% | 7.2% |
+| 0.2–0.3 | 47 | 23.5% | 19.1% |
+| 0.3–0.4 | 17 | 33.6% | 52.9% |
+| 0.4–0.5 | 28 | 45.0% | 32.1% |
+| 0.5–0.6 | 18 | 55.2% | 83.3% |
+| 0.6–0.7 | 14 | 65.1% | 64.3% |
+| 0.7–0.8 | 26 | 73.6% | 88.5% |
+| 0.8–0.9 | 104 | 86.1% | 88.5% |
+| 0.9–1.0 | 246 | 96.0% | 95.1% |
+
+## By kind of item
+
+| Variant | Items | Flagged | Verified |
+|---|---|---|---|
+| correct | 422 | 28.0% | 49.8% |
+| swapped-key | 291 | 100.0% | 0.0% |
+| wrong-everywhere | 190 | 97.4% | 1.1% |
+| corrupted-explanation | 21 | 14.3% | 9.5% |
+
+## By exam slice (held-out)
+
+| Slice | Items | AUC | Accurate verified | Wrong flagged |
+|---|---|---|---|---|
+| usmle-step2-3 | 318 | 0.9825 | 56.6% | 98.9% |
+| usmle-step1 | 350 | 0.9851 | 64.3% | 100.0% |
+| neetpg-aiims | 256 | 0.8579 | 22.9% | 84.3% |
+
+## Management questions, per exam
+
+Each exam's stricter Verified cut-off for management questions ("next best step", "most appropriate treatment") on its style slice, against the shared one.
+
+| Exam | Slice | Strictness | Items | Cut-off | Precision (shared → own) | Accurate verified (shared → own) |
+|---|---|---|---|---|---|---|
+| step2ck | usmle-step2-3 | 0.5 | 94 | 0.965 | 100.0% → 100.0% | 62.8% → 25.6% |
+| step3 | usmle-step2-3 | 0.6 | 94 | 0.97 | 100.0% → 100.0% | 62.8% → 16.3% |
+| comlex2 | usmle-step2-3 | 0.5 | 94 | 0.965 | 100.0% → 100.0% | 62.8% → 25.6% |
+| plab1 | usmle-step2-3 | 0.3 | 94 | 0.955 | 100.0% → 100.0% | 62.8% → 58.1% |
+| mrcp1 | usmle-step2-3 | 0.2 | 94 | 0.95 | 100.0% → 100.0% | 62.8% → 58.1% |
+| mrcsA | neetpg-aiims | 0.2 | 10 | 0.95 | 50.0% → 33.3% | 40.0% → 20.0% |
+| mccqe1 | usmle-step2-3 | 0.4 | 94 | 0.96 | 100.0% → 100.0% | 62.8% → 46.5% |
+| amc | usmle-step2-3 | 0.3 | 94 | 0.955 | 100.0% → 100.0% | 62.8% → 58.1% |
+| neetpg | neetpg-aiims | 0.1 | 10 | 0.945 | 50.0% → 50.0% | 40.0% → 40.0% |
+| inicet | neetpg-aiims | 0.1 | 10 | 0.945 | 50.0% → 50.0% | 40.0% → 40.0% |
+| fmge | neetpg-aiims | 0.1 | 10 | 0.945 | 50.0% → 50.0% | 40.0% → 40.0% |
+| smle | usmle-step2-3 | 0.2 | 94 | 0.95 | 100.0% → 100.0% | 62.8% → 58.1% |
+| dha | usmle-step2-3 | 0.2 | 94 | 0.95 | 100.0% → 100.0% | 62.8% → 58.1% |
+| doh | usmle-step2-3 | 0.2 | 94 | 0.95 | 100.0% → 100.0% | 62.8% → 58.1% |
+| mohap | usmle-step2-3 | 0.2 | 94 | 0.95 | 100.0% → 100.0% | 62.8% → 58.1% |
+| qchp | usmle-step2-3 | 0.2 | 94 | 0.95 | 100.0% → 100.0% | 62.8% → 58.1% |
+| omsb | usmle-step2-3 | 0.2 | 94 | 0.95 | 100.0% → 100.0% | 62.8% → 58.1% |
+| emle | usmle-step2-3 | 0.2 | 94 | 0.95 | 100.0% → 100.0% | 62.8% → 58.1% |
+| ifom | usmle-step2-3 | 0.4 | 94 | 0.96 | 100.0% → 100.0% | 62.8% → 46.5% |
+
+## Weights
+
+| Feature | Weight |
+|---|---|
+| bias | 3.1173 |
+| rule_severe | -5.1268 |
+| rule_minor | 0.8913 |
+| risk_max | -0.0473 |
+| risk_mean | -2.1816 |
+| flag_frac | -1.572 |
+| disagree | -0.3941 |
+| voters | -0.2568 |
+| key_disagree | -4.8628 |
+| ev_support | -0.0838 |
+| ev_contradict | -1.3466 |
+| ev_count | -0.9294 |
+| source_match | -1.5405 |
+| no_source | 0.1881 |
+| no_models | 0 |
+| kind_mcq | 0.634 |
+| kind_card | -0.634 |
+| kind_case | 0 |
+| kind_osce | 0 |
+| kind_page | 0 |
+
+**Better than the current weights on these items: published.**
+
+## Notes
+
+- batch 55: 503 
+- batch 57: 503 
+- stopped at this run's 60 batches; the next run carries on
+- published trained-2026-11-22-924 to the worker
