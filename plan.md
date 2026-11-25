@@ -3872,6 +3872,15 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     off the plate, a faint line down its outer side, a small head on a
     broad column from the side), the hind border still rounded like a
     column from behind, the coronoid narrow. One repair round is left.
+  - Temporal bone (temporal.py), task A round 1 (not accepted, kept): the
+    mastoid is a leaning cone on Fig. 188's outline instead of a ball
+    (side outline within 0.9 mm, was 2.8), the styloid a slender 25 mm
+    spine, the tympanic plate's lower border on Fig. 187's line, a
+    petrotympanic fissure and a mastoid foramen added; nothing outside
+    the region moved (0.009 mm). Fig. 187 and Fig. 188 disagree on the
+    styloid's tip by 11 mm; Fig. 188 kept. Still wrong: the tympanic
+    plate reads from below as two straight parallel rails, the fissure
+    is a straight groove, the mastoid is smooth from below.
 - [ ] F8. Mesh checks, the neck and down, the muscles, the woman, and where
   the from-scratch model goes in the app.
 

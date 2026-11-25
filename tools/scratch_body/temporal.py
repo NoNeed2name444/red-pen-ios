@@ -51,7 +51,8 @@ BAND = [(0.4, -1.6), (0.8, -4.5), (0.6, -8.0), (-0.3, -11.2), (-1.7, -14.2), (-3
 BAND_X = (56.3, 56.9, 56.8, 56.2, 55.3, 54.4, 53.7, 53.4)             # how far out the crest stands: 3 to 4 mm inside the root above it, more below
 FISSURE = [(-12.0, -4.0), (-11.3, -8.5), (-11.9, -13.0), (-12.4, -17.5)]   # between the tympanic part and the mastoid
 ARTERY = [(-9.0, 9.0), (-10.5, 17.0), (-12.5, 26.0), (-13.5, 34.0)]    # the groove of the middle temporal artery, up the squama
-STYLOID = [(41.9, -13.0, -2.6), (41.5, -19.5, 0.6), (40.5, -25.0, 2.5), (39.6, -30.2, 4.6), (38.7, -34.9, 6.6)]   # down, forward and a little inward, bowed: 17 mm of it show below the sheath
+STYLOID = [(41.5, -12.6, -2.9), (41.2, -15.6, -1.9), (41.0, -18.2, -1.0), (40.7, -21.0, 0.0), (40.4, -23.4, 0.7), (40.1, -26.2, 1.9),
+              (39.8, -28.9, 3.0), (39.5, -31.4, 4.4), (39.2, -33.6, 5.6), (38.95, -35.3, 6.6)]   # (z, y) of the tip as Fig. 188; bowed and kinked a little
 INSIDE = MASTOID_SIDE[-6:] + MASTOID_SIDE[:1]       # the part of the mastoid's outline that lies in the bone: there the process runs out into the skull's side
 # The temporal lines, which Fig. 188 draws and names ("Supr. temporal line", "Infr. temporal line"): one crest climbs from the
 # frontal bone's zygomatic process up the side of the forehead and parts in two as it nears the coronal suture; the two lines
@@ -121,18 +122,53 @@ def mastoid(F, log=print):
     if xw is not None:
         xo = xw + (xo - xw) * smoothstep(d / 10.0)
     xi = np.minimum(xi, xo - 5.0)
-    # a blunt cone, not a slab: toward its free borders (front, tip, hind) the two faces close on each other in a quarter-round,
-    # widest low down, so that from below the tip is a dome and not a pad with a flat end
-    free, _ = along(M, MASTOID_SIDE[:17])
-    R = np.interp(y, [-34.0, -27.0, -16.0, -6.0], [6.0, 5.5, 4.2, 3.6])
-    t = np.clip(free / R, 0.0, 1.0)
-    dome = 1.0 - (1.0 - np.sqrt(t * (2.0 - t))) * smoothstep(d / 7.0)
-    xm = 0.5 * (xo + xi) + 0.8 * (1.0 - dome)                 # (the tip leans a little outward of the middle)
-    xo, xi = xm + (xo - xm) * dome, xm - (xm - xi) * np.maximum(dome, 0.12)
-    F.add(Slab(M, (2, 1, 0), xo, np.minimum(xi, xo - 0.6), reg, round=1.4), 3.0)
+    # Below the digastric notch's roof the process is a stout cone flattened from side to side, not a ball (it was a slab whose
+    # faces closed on each other in quarter-rounds all round its free border: from below a sphere hung under the skull, and it
+    # overhung the notch so that the notch did not show). Gray (p. 141): the mastoid process "is conical in form"; on its medial
+    # side "is a deep groove, the mastoid notch (digastric fossa)". Fig. 187 draws the process from the skull's side wall
+    # (x 62) in to the notch's lateral lip (x 51), the notch 8 mm across, medial to it the occipital groove. So at each level
+    # the section runs from the side outline's front border to its hind border, with a lateral face that is nearly flat and a
+    # medial face (the notch's lateral wall) that is convex, the breadth from side to side shrinking to the blunt tip.
+    low = smoothstep((-16.5 - y) / 6.5)                         # 0 above the notch's roof, 1 from 23 mm below the plane down
+    inside = reg < 0
+    zf = np.where(inside, z, -99.0).max(0); zb = np.where(inside, z, 99.0).min(0)   # the outline's front and hind border at each level
+    ok = zf > zb
+    zf = np.interp(M.V[0], M.V[0][ok], zf[ok]); zb = np.interp(M.V[0], M.V[0][ok], zb[ok])
+    u = np.clip((z - zb[None, :]) / np.maximum(zf - zb, 1.0)[None, :], 0.0, 1.0)
+    wob = uneven(M, 421, 3.5); wob2 = uneven(M, 422, 1.6)      # no two millimetres of it alike, and not the other side's
+    T = np.interp(y, [-34.0, -32.0, -29.0, -26.0, -22.0, -18.0], [3.2, 5.2, 7.6, 9.4, 11.2, 13.5]) * (1.0 + 0.07 * wob)
+    g = np.maximum(np.sin(np.pi * np.clip(u ** 0.9, 0.0, 1.0)) ** 0.5, 0.42)                # thickest a little in front of the middle
+    xo_low = xo + low * (0.3 * wob2 - 0.5 * np.clip(u - 0.75, 0.0, 1.0) * 4.0 * smoothstep((-24.0 - y) / 6.0))   # the hind border turns in
+    xi = xi * (1.0 - low) + np.maximum(xi, xo_low - T * g) * low
+    xo = xo * (1.0 - low) + xo_low * low
+    xi = ndimage.gaussian_filter(xi, 1.2 / M.cell)            # (no crease where the faces' rules change)
+    # the slab ends 23.5 mm below the plane, inside the cone's upper part; the free process below is one smooth cone (a slab's outline and faces met there in
+    # ridges and corners, a keel along the bottom and a beak at the front)
+    F.add(Slab(M, (2, 1, 0), xo, np.minimum(xi, xo - 0.8), np.maximum(reg, -(y + 23.5)), round=2.0), 3.0)
+    # The cone: sections square to its axis, longer front to back than across, the outer face the flatter; its axis leans forward
+    # as it comes down, its front and hind borders on the side outline (Fig. 188), its tip 33 mm below the plane and 15 behind
+    # the ear hole; from below it runs from the side wall (x 62) in to the notch's lateral lip (x 46 in front to 51 behind, Fig. 187),
+    # its tip under the inner half, where the plate's muscle outlines hook round it (x 50, z -12). The
+    # sections' sizes do not fall evenly.
+    CONE = [(55.6, -16.0, -21.4), (55.9, -19.0, -20.9), (55.7, -22.0, -20.1), (54.8, -24.2, -18.7), (54.0, -26.0, -17.4), (53.2, -27.7, -15.8),
+            (52.5, -29.0, -14.5), (51.8, -30.2, -13.3)]
+    F.add(Tube(spline(CONE, 0.5), [(0, 9.4), (0.18, 9.2), (0.4, 8.1), (0.55, 7.1), (0.7, 6.5), (0.82, 5.6), (0.92, 4.6), (1, 3.9)],
+               [(0, 6.9), (0.18, 6.5), (0.4, 5.7), (0.55, 5.1), (0.7, 4.9), (0.82, 4.1), (0.92, 3.5), (1, 3.1)], up=(0, 0.22, 1.0)), 3.2, keep=4)
+    # the mastoid foramen: a small oblique canal through the bone near its hind border, in front of the occipitomastoid suture
+    # (Gray, p. 141: "Near the posterior border of this region is the mastoid foramen"); it opens on the surface as an oval
+    # with a short groove leading from it upward and backward (the vein's and the artery's way), not as a punched round hole
+    zc, yc = -41.5, -4.5
+    xs_ = np.arange(76.0, 40.0, -0.25)
+    dd = sdf.sample_field(F.D, F.lo, F.h, np.column_stack([xs_, np.full_like(xs_, yc), np.full_like(xs_, zc)]))
+    if (dd < 0).any():
+        xc = xs_[np.argmax(dd < 0)]
+        F.cut(Tube(spline([(xc + 1.2, yc + 0.3, zc - 0.4), (xc - 1.5, yc - 0.4, zc + 0.6), (xc - 4.5, yc - 1.0, zc + 2.2)], 0.5),
+                   [(0, 1.05), (0.4, 0.85), (1, 0.7)], [(0, 0.8), (0.4, 0.65), (1, 0.55)], up=(0, 0.9, -0.44)), 0.4)
+        F.cut(Tube(spline([(xc + 0.6, yc + 0.6, zc - 0.6), (xc + 0.5, yc + 2.0, zc - 2.0), (xc + 0.35, yc + 3.1, zc - 3.6)], 0.5),
+                   [(0, 0.6), (1, 0.4)], [(0, 0.5), (1, 0.3)], up=(1, 0, 0)), 0.5)
     tip = min(MASTOID_SIDE, key=lambda p: p[1])
-    log("mastoid process: tip %.1f mm below the Frankfurt plane, %.1f behind the ear hole's upper edge; %.0f mm from front to back at mid-height; outer face out to x %.1f"
-        % (-tip[1], -tip[0], 14.0, float(xo[reg < 0].max())))
+    log("mastoid process: tip %.1f mm below the Frankfurt plane, %.1f behind the ear hole's upper edge; a cone flattened from side to side, %.1f to %.1f mm across at 26 and 22 mm below the plane; outer face out to x %.1f"
+        % (-tip[1], -tip[0], 9.4, 11.2, float(xo[reg < 0].max())))
 
 
 def ear_hole(F, log=print):
@@ -163,8 +199,35 @@ def ear_hole(F, log=print):
     F.add(Slab(M, (2, 1, 0), xo, np.full(M.U.shape, 44.0), edge, round=1.0), 1.0, keep=4)
     # behind its outer end the tympanic part is a plate under the canal with a thin lower border, running inward and forward
     # to the styloid's root, which it sheathes in front (the vaginal process), and on toward the carotid canal
-    F.add(Tube(spline([(52.5, -12.4, -5.6), (49.8, -12.9, -3.5), (47.0, -12.8, -2.7), (44.6, -13.5, -0.5), (42.4, -13.6, 0.6), (38.5, -13.4, 2.8)], 1.0),
-               [(0, 5.6), (0.22, 6.2), (0.42, 5.6), (0.62, 6.5), (0.8, 5.9), (1, 4.8)], [(0, 1.9), (0.3, 1.5), (0.6, 1.7), (1, 1.3)], up=up, taper=-0.3), 1.6, keep=4)   # (its border is not ruled: it dips and rises)
+    # Fig. 187 draws its lower border from the canal's outer end in to the styloid's root 2 mm in front of the stylomastoid
+    # foramen's level (z -2; the line below is 1 mm further forward, as the plate leans back as it comes down), gently bowed, and at the root it wraps round the front of the styloid as its sheath. (It was a
+    # straight plate leaning back to z -6 at the canal, with a rounded bar of a border; its inner end ran on past the root,
+    # and where it met the styloid the two webbed into a fan.) The border is thin and rough: its height and thickness change
+    # every two or three millimetres, no two stretches alike.
+    TP = [(53.4, -12.4, -3.4), (51.6, -12.7, -2.2), (49.8, -12.9, -1.6), (48.0, -13.0, -1.35), (46.2, -13.1, -1.25), (44.4, -13.3, -1.3),
+          (42.9, -13.5, -1.5), (41.9, -13.7, -1.25), (41.0, -13.9, -0.6), (40.1, -14.0, 0.2), (39.2, -13.9, 0.9),
+          (38.4, -13.7, 1.9), (37.6, -13.5, 2.9)]          # (and on inward toward the carotid canal, as it was)
+    TPa = [(0, 5.1), (0.15, 5.45), (0.31, 5.3), (0.45, 5.75), (0.55, 5.6), (0.67, 6.05), (0.76, 6.35), (0.83, 5.7), (0.92, 5.0), (1, 4.8)]
+    TPb = [(0, 1.5), (0.18, 1.25), (0.29, 1.38), (0.44, 1.1), (0.58, 1.3), (0.68, 1.2), (0.77, 1.45), (0.88, 1.2), (1, 1.3)]
+    F.add(Tube(spline(TP, 0.6), TPa, TPb, up=(0.0, 0.985, 0.17), taper=-0.2), 1.8, keep=4)
+    # the petrotympanic fissure: a fine cleft across the fossa's back wall where the tympanic plate meets the squama, 5 to 6 mm
+    # below the fossa's roof, behind the articular part. Found on the wall as it stands (the first bone met going forward at
+    # that height), then cut as a wavering slit 0.7 mm wide and 1.2 deep that comes and goes (Fig. 187: "Petrotympanic fissure")
+    fis = []
+    zz = np.arange(-6.0, 9.0, 0.25)
+    for xq in np.arange(52.0, 41.4, -0.7):
+        yq = -4.6 + 0.3 * np.sin(xq * 0.55 + 0.6) + 0.12 * np.sin(xq * 1.3 + 2.0)
+        dq = sdf.sample_field(F.D, F.lo, F.h, np.column_stack([np.full_like(zz, xq), np.full_like(zz, yq), zz]))
+        k = np.nonzero((dq[:-1] < 0) & (dq[1:] >= 0) & (zz[:-1] > -4.0))[0]       # the back wall's face: the first edge met going forward
+        if len(k) and zz[k[0]] < 3.0:                      # only on the back wall, never forward into the fossa the jaw's head works in
+            fis.append((xq, yq, zz[k[0]] + 0.1))
+        elif fis:
+            break
+    if len(fis) > 4:
+        fis = np.array(fis); fis[:, 2] = ndimage.gaussian_filter1d(fis[:, 2], 2.5, mode="nearest")
+        n = len(fis); s = np.linspace(0, 1, n)
+        F.cut(Tube(spline(fis, 0.4), [(0, 0.3), (0.2, 0.42), (0.5, 0.36), (0.75, 0.44), (1, 0.3)],
+                   [(0, 0.3), (0.15, 0.85), (0.35, 1.0), (0.55, 0.7), (0.7, 0.95), (0.88, 0.75), (1, 0.3)], up=(0, 1, 0)), 0.3)
     # the post-glenoid process: a small tongue of the squama hanging between the opening and the jaw's socket
     F.add(Ellipsoid((57.6, -1.2, 2.4), (3.4, 1.9, 1.7)), 1.2, keep=4)
     # the canal: the traced mouth carried inward, a little forward and upward, narrowing
@@ -182,9 +245,15 @@ def ear_hole(F, log=print):
 
 def styloid(F, log=print):
     """The styloid process: a tapering thorn, a little flattened, never quite straight, its root in the tympanic part's sheath."""
-    P = spline(np.array(STYLOID, float), 0.8)
-    F.add(Tube(P, [(0, 3.2), (0.3, 2.6), (0.45, 2.0), (0.7, 1.45), (0.9, 1.0), (1, 0.75)], [(0, 3.0), (0.3, 2.5), (0.45, 1.85), (0.7, 1.3), (0.9, 0.9), (1, 0.75)],
-               up=(1, 0, 0)), 1.6, keep=3)
+    # Gray (p. 145): "The styloid process is slender, pointed, and of varying length; it projects downward and forward". It was a
+    # straight machined cone 6.4 mm across at the root, joined to the tympanic plate in a fan of bone (a blend 1.6 mm wide). Now
+    # a spine 4.6 mm across where it leaves its sheath and 1.2 at the point, faintly bowed (concave forward) with a small kink
+    # and its thickness not falling evenly, set into the bone with a blend of 0.7 mm so that the sheath's edge shows as an edge.
+    # Its tip stays where Fig. 188 draws it (z 6.6, y -35.4 there).
+    P = spline(np.array(STYLOID, float), 0.5)
+    F.add(Tube(P, [(0, 2.4), (0.16, 2.25), (0.3, 1.6), (0.42, 1.38), (0.55, 1.3), (0.66, 1.08), (0.78, 0.95), (0.9, 0.78), (1, 0.62)],
+               [(0, 2.2), (0.16, 2.05), (0.3, 1.45), (0.44, 1.32), (0.56, 1.12), (0.68, 1.06), (0.8, 0.86), (0.91, 0.74), (1, 0.6)],
+               up=(1, 0, 0.25)), 0.7, keep=3)
     L = np.linalg.norm(np.diff(P, axis=0), axis=1).sum()
     log("styloid process: %.0f mm long, its tip %.1f mm below the Frankfurt plane" % (L, -STYLOID[-1][1]))
 
