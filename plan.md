@@ -3896,7 +3896,22 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     talus may sit 2 to 3 mm too far back is not supported. Next, a
     different method: pose the pair from the joint lines the two side
     plates draw (re-read at the joint), not from each bone's outline
-    alone.
+    alone. (Started and stopped the same night: overtaken by the
+    owner's change of method, next item.)
+  - [ ] 26 Nov, the owner: "let's change the approach for complex bone
+    collections. make the full foot bones then we separate them." So
+    for the foot (and later the hand, the spine, the pelvis): build
+    the whole set as one solid from the plates that show it together
+    (Fig. 268 from above, 269 from below, 290 inner side, 291 outer
+    side), then cut it along the joints into bones. Each joint is one
+    shared surface, so the two faces fit by construction and nothing
+    floats or passes through. Each bone's own plates (Fig. 264 to 283)
+    then give the faces hidden in the joints and check each piece.
+    The single-bone builds (foot.py, talus.py, midfoot.py,
+    cuneiforms.py) stay as sources of detail, not as the assembly.
+    Steps: 1 whole-foot solid and joint surfaces, tarsus first
+    (foot_whole.py); 2 cut and check each tarsal against its own
+    plates; 3 metatarsals and phalanges the same way; 4 surface detail.
   - [ ] The metatarsals, phalanges; the foot together.
 - [ ] F11. 25 Nov, the owner: "switch back to the skull and mandible so we
   fix every single part of them especially the mandible and skull base";
