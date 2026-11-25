@@ -499,13 +499,15 @@ def calcaneus(h=0.4, log=print, relief=1.0, upto="all", poses=None, ink=INK):
     return _one_piece(F)                                           # no crumb left by a cut
 
 
-def grain(F, seed=264, amp=0.12, fibre=0.02):
+def grain(F, seed=264, amp=0.12, fibre=0.02, fibre_sigma=(0.45, 0.45, 7.0)):
     """A bone's fine unevenness (no surface of it is polished): chance, smoothed over about a millimetre and over four;
-    and the faint lengthwise fibre its rough surfaces show (Gray's plates draw it), chance drawn out along the bone."""
+    and the faint lengthwise fibre its rough surfaces show (Gray's plates draw it), chance drawn out along the bone.
+    fibre_sigma: the fibre term's smoothing in mm along grid x, y, z (default: along z, the heel bone's long axis);
+    for a short bone pass (1.5, 1.5, 1.5)-like equal sigmas, or put the long one on the bone's own axis."""
     from scipy import ndimage
     rng = np.random.default_rng(seed); n = F.D.shape
     a = ndimage.gaussian_filter(rng.normal(size=n).astype(np.float32), 1.0 / F.h); a /= a.std()
     b = ndimage.gaussian_filter(rng.normal(size=n).astype(np.float32), 3.5 / F.h); b /= b.std()
-    c = ndimage.gaussian_filter(rng.normal(size=n).astype(np.float32), (0.45 / F.h, 0.45 / F.h, 7.0 / F.h)); c /= c.std()
+    c = ndimage.gaussian_filter(rng.normal(size=n).astype(np.float32), tuple(s / F.h for s in fibre_sigma)); c /= c.std()
     F.D += (amp * (0.6 * a + 0.8 * b) + fibre * c) * (1.0 - 0.85 * getattr(F, 'smooth', 0.0))
     return _one_piece(F)

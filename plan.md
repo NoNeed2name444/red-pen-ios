@@ -3810,9 +3810,11 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     caption); one near-straight 8 mm border on the upper surface; the
     rough rim is thin at the top left from in front; on the sole side the
     front surface shows as a dark field past the tuberosity (a real edge,
-    to be looked at again under side lighting). The streaks came from the
-    fibre term of foot.grain, which always runs along the grid's z: to
-    be given an axis per bone.
+    to be looked at again under side lighting). foot.grain's fibre term now takes
+    its smoothing per axis (default unchanged, so the heel bone is the
+    same); the short bones do not call it yet, so any streak left on
+    them has another cause (layers taken on at a slant) and is to be
+    looked for there.
   - [ ] The cuneiforms, metatarsals, phalanges; the foot together.
 - [ ] F8. Mesh checks, the neck and down, the muscles, the woman, and where
   the from-scratch model goes in the app.
