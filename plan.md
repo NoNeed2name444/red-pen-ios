@@ -3912,6 +3912,22 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     Steps: 1 whole-foot solid and joint surfaces, tarsus first
     (foot_whole.py); 2 cut and check each tarsal against its own
     plates; 3 metatarsals and phalanges the same way; 4 surface detail.
+    Step 1, attempt 1 (foot_whole.py), saved, not accepted: the joints
+    do fit by this method (no two bones overlap; joint spaces 1.2 mm
+    over 90 to 100% of nine of eleven joints; sinus tarsi open) and the
+    whole matches the four plates' outlines at 0.7 to 1.5 mm. But the
+    surface is ruined: pushing the rim to the outlines made flat walls
+    and terraces, bridging the joints left flat waffled faces and
+    stubs, each bone fits its own plates worse (1.1 to 2.6 mm against
+    0.2 to 1.0), the peroneal trochlea and the cuboid's groove are
+    flattened. Decided for repair 1: free surfaces come from the single
+    builds warped smoothly (no silhouette clamp); a joint surface is
+    shared only over the true contact; the line on Fig. 290 taken as
+    the talocalcaneal joint (7 to 10 mm low) is not used as a joint
+    line (it runs along the sustentaculum's under edge) and Fig. 291
+    with the bones' own plates rules there; a bone may be stretched
+    smoothly up to 12% to fill the whole, since Gray's single-bone
+    plates carry no common scale.
   - [ ] The metatarsals, phalanges; the foot together.
 - [ ] F11. 25 Nov, the owner: "switch back to the skull and mandible so we
   fix every single part of them especially the mandible and skull base";
