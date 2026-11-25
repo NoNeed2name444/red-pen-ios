@@ -3840,6 +3840,18 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     navicular (to be reset), and the talus seated in the navicular sits
     about 11 mm lower than Fig. 290 and 268 draw it: the foot needs one
     assembly frame from Fig. 268, 290 and 291 before more bones.
+    Task B, repair 1 (kept, not accepted; task stopped here): cuneiform
+    nudges reset to Fig. 268's joint lines, outlines hold (plan 0.68 mm
+    mean, Fig. 276 0.26, Fig. 277 0.34), the trough, ruled edge and step
+    on the front are gone. Not met: the three front facets barely read
+    as separate fields, a shadowed wall remains inside the talar rim,
+    the rim is 0.0 mm thick at one place. Cause is outside the bone:
+    with the cuneiforms on Fig. 268's lines their bodies overlap the
+    navicular's outline by 1.0 to 1.6 mm, and the seated talus head
+    eats the rim. So the last repair waits for the assembly frame.
+  - [ ] Foot assembly frame: one frame from Fig. 268, 290 and 291 giving
+    every tarsal bone's place and joint lines, with the conflicts
+    between bones measured, before any bone is refitted.
   - [ ] The metatarsals, phalanges; the foot together.
 - [ ] F11. 25 Nov, the owner: "switch back to the skull and mandible so we
   fix every single part of them especially the mandible and skull base";

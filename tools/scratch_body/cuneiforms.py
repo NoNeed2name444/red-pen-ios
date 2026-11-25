@@ -73,12 +73,10 @@ def _centre(name):
     return np.array([0.5 * (P[:, 0].min() + P[:, 0].max()), 0.5 * (t + b), 0.5 * (P[:, 1].min() + P[:, 1].max())])
 
 
-# (set by the plan, the three stand 1 to 5 mm short of the built navicular's facets: Fig. 268's outlines are read off
-# the dorsal surfaces, the joints lie a little behind them below. Each is moved back toward the navicular by what the
-# nearest 200 points of the two surfaces ask, as far as the bone beside it allows. The third asks 5 mm medially and
-# gets none: the second stands there, and moved so far the third loses its medial face to it. It is left 5 mm off
-# the navicular's lateral end, an open defect: Fig. 268 draws it lateral of where the built navicular ends)
-NUDGE = {"first": (0.0, 0.0, -1.5), "second": (0.9, 0.0, -1.6), "third": (0.3, 0.0, -1.0)}
+# (set by the plan, the first stands about 1.5 mm short of the navicular's facet: Fig. 268's outline is read off its
+# dorsal surface, the joint lies a little behind it below, so it is moved back by that much. The second and third
+# stand where Fig. 268 draws them, at its joint lines with the navicular: the navicular reaches them)
+NUDGE = {"first": (0.0, 0.0, -1.5), "second": (0.0, 0.0, 0.0), "third": (0.0, 0.0, 0.0)}
 PLACE = {n: _centre(n) + np.array(NUDGE[n]) for n in PLAN}
 # the cuboid's frame (midfoot.cuboid) in the navicular's: Fig. 268 puts its origin at pixel (190, 388); its height
 # is set so its facet for the third cuneiform lies against the third's (A4 in the task notes)
