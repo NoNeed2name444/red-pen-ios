@@ -212,7 +212,9 @@ def talus(h=0.4, log=print, relief=0.0, upto="all", poses=None, ink=foot.INK):
     y_low = ndi.gaussian_filter1d(np.interp(zz, [a for a, _ in FACET_LOW], [b for _, b in FACET_LOW]), 1.5 / h)[None, None, :]
     ye = Hc - 0.6
     t = np.clip((ye - Yb) / np.maximum(ye - y_low, 4.0), 0.0, None)
-    wti = _bump(zz, 6.0, 12.0, 30.0, 35.0)[None, None, :]     # (under the apex and behind; in front the sinus tarsi)
+    # (the turn is strongest behind the apex, under the triangle's hind edge, where the rough bone between the facet and
+    # the posterior calcaneal surface faces back and down; under the apex the lateral process keeps its outline)
+    wti = (0.55 + 0.9 * _bump(zz, 8.0, 12.0, 22.0, 27.0))[None, None, :] * _bump(zz, 5.0, 10.0, 30.0, 35.0)[None, None, :]
     XL = xl + (xo - xl) * np.minimum(t, 1.0) ** 1.9 + (0.7 * wti - 1.0 * (1.0 - wti)) * np.maximum(t - 1.0, 0.0) * (ye - y_low)
     XL = ndi.gaussian_filter1d(XL, 0.9 / h, axis=1)      # (below its lower border the bone turns back in: a rounded ridge)
     wl = _bump(zz, 3.0, 9.0, 39.0, 44.0)[None, None, :]
@@ -222,14 +224,19 @@ def talus(h=0.4, log=print, relief=0.0, upto="all", poses=None, ink=foot.INK):
     # the medial wall, the facet read off Fig. 272 at the trochlea's medial border
     v272 = V["Gray272"]
     fm = _read(_mask(tr["Gray272_sdf"].shape, [MED_FACET_272], 3.0), *_pixels(v272, P["Gray272"], xm + 0.0 * Yb, Yb, Zb))
-    fm = ndi.gaussian_filter(np.clip(1.6 * fm, 0.0, 1.0), 0.8 / h)
-    XM = xm - 0.4 + 0.08 * np.maximum(Hc - Yb, 0.0) + (2.9 + 6.0 * _ss((Zb - 36.0) / 5.0)) * (1.0 - fm) * _ss((Hc - 3.0 - Yb) / 4.0)
+    # (the border between the facet and the rough bone below an irregular line, not the tracing's smooth curve)
+    wob = ndi.gaussian_filter(np.random.default_rng(272).normal(0.0, 1.0, fm.shape[1:]), 1.3 / h)
+    wob = (wob / max(float(np.abs(wob).max()), 1e-6))[None]
+    fm = ndi.gaussian_filter(np.clip(1.6 * fm + 0.45 * wob, 0.0, 1.0), 0.6 / h); del wob
+    XM = xm - 0.4 + 0.08 * np.maximum(Hc - Yb, 0.0) + (2.9 + 6.0 * _ss((Zb - 36.0) / 5.0)) * (1.0 - fm) * _ss((Hc - 1.5 - Yb) / 2.5)
     wm = _bump(zz, 4.0, 9.0, 41.0, 46.0)[None, None, :]
     XM = XM + 8.0 * (1.0 - wm)
     gy, gz = np.gradient(XM[0].astype(np.float32), h)
     Dmed = unitd(X - XM, gy[None], gz[None]); del XM, gy, gz, fm
     # (behind, the lateral border bevelled into the facet for the inferior transverse ligament and both corners rounded)
-    Rl = 2.2 + 3.5 * _ss((20.0 - Zb) / 10.0); Rm = 2.6 + 2.6 * _ss((16.0 - Zb) / 8.0)
+    # (the radii vary along the border, as a worn edge does: laterally 1.6 to 2.4 mm, medially 3.2 to 4.0)
+    Rl = 2.0 + 0.4 * np.cos((Zb - 14.0) / 5.5) + 3.0 * _ss((18.0 - Zb) / 9.0)
+    Rm = 3.6 + 0.4 * np.sin((Zb - 20.0) / 4.5) + 1.8 * _ss((15.0 - Zb) / 7.0)
     Dsec = _round_meet(_round_meet(Dtop, Dlat, Rl), Dmed, Rm * _ss((sx + 0.2) / 0.6) + Rl * (1.0 - _ss((sx + 0.2) / 0.6)))
     del Dtop, Dlat, Dmed
     # held in the outlines: above, the sharp common solid (its rounding would take the shoulders down), lower the rounded
@@ -310,6 +317,15 @@ def talus(h=0.4, log=print, relief=0.0, upto="all", poses=None, ink=foot.INK):
     g = 2.6 * np.exp(-(d / 2.4) ** 2) * _ss(t / 0.35) * _ss((1.0 - t) / 0.35) * _ss((16.0 - zb) / 3.0)
     D = D + g[:, :, None] * _ss((zb[:, :, None] + 9.0 - Z) / 8.0) * _ss((Y - 9.0) / 4.0); del d, t, g
 
+    # the lateral malleolar facet stands as a low triangular table on the lateral surface: round it, under the trochlea's
+    # border and above the calcaneal surfaces, the rough bone (in front the neck's side, behind the strip between the
+    # facet's hind edge and the posterior calcaneal surface) lies 1 mm lower, eased over 2 to 3 mm (Fig. 273's tracing)
+    v273 = V["Gray273"]
+    m273 = _read(_mask(tr["Gray273_sdf"].shape, [LAT_FACET_273], 3.0), *_pixels(v273, P["Gray273"], X, Y, Z))
+    sink = (1.0 - np.clip(1.5 * m273, 0.0, 1.0)) * _ss((-14.0 - X) / 3.0) * _ss((HL - 2.0 - Y) / 2.5) \
+        * _ss((Y - (los + 4.0)) / 2.5) * _bump(Z, 4.0, 8.0, 34.0, 39.0)
+    D = D + 1.0 * ndi.gaussian_filter(sink, 0.8 / h); del m273, sink
+
     D = ndi.gaussian_filter(D, 0.5 / h)          # (the cuts' last voxel-sized kinks would print as speckle)
     F.D = np.clip(D, -12.0, 12.0).astype(np.float32); del D
     F = _one_piece(F)
@@ -359,5 +375,13 @@ def talus(h=0.4, log=print, relief=0.0, upto="all", poses=None, ink=foot.INK):
         lay(F, TALUS, P, maps, shared=True, rough=True)
     pits = [("dot", q, r, -dp) for q, r, dp in _neck_pits()]
     lay(F, TALUS, P, {"Gray270": foot._marks_map(pits, tr["Gray270_sdf"].shape, V["Gray270"]["s"] * P["Gray270"][3])})
+    # the rough bone under the medial facet, for the deltoid ligament: Fig. 272's scattered pits (cols 190 to 300, rows
+    # 100 to 150), mixed sizes, none in a row; not on the facet itself (rough=True)
+    rng = np.random.default_rng(2720); dp = []
+    while len(dp) < 26:
+        c, r = rng.uniform(188.0, 300.0), rng.uniform(104.0, 152.0)
+        if all(np.hypot(c - a, r - b) > 6.0 for (a, b), _, _ in dp):
+            dp.append(((c, r), rng.uniform(0.3, 0.65), rng.uniform(0.12, 0.3)))
+    lay(F, TALUS, P, {"Gray272": foot._marks_map([("dot", q, a, -b) for q, a, b in dp], tr["Gray272_sdf"].shape, V["Gray272"]["s"] * P["Gray272"][3])}, rough=True)
     log("talus: built from its four plates")
     return _one_piece(F)
