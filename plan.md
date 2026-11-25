@@ -3798,6 +3798,21 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     that come from the shared grain step in foot.py; and Fig. 277 (the
     surface for the talus) is still not fetched or fitted. Next try is a
     new task once Fig. 277 is in hand.
+    Navicular, later on 25 Nov: accepted against the bar after that new
+    task. Fig. 277 (cut from the 1918 scan) is fitted: mean gap 0.32 mm,
+    worst 1.35; Fig. 276 0.23 mm. The surface for the talus is an oval
+    hollow with a continuous raised lip, broader laterally; the
+    tuberosity is rough and projects down; the block edges, steps, torn
+    margin and seam are gone (the steps came from the hull being read
+    from windowed outline points, now filled row by row and eased). The
+    occasional facet for the cuboid is left out. Open: Fig. 277's pose is
+    not fixed by its outline alone (nod and turn were set from the
+    caption); one near-straight 8 mm border on the upper surface; the
+    rough rim is thin at the top left from in front; on the sole side the
+    front surface shows as a dark field past the tuberosity (a real edge,
+    to be looked at again under side lighting). The streaks came from the
+    fibre term of foot.grain, which always runs along the grid's z: to
+    be given an axis per bone.
   - [ ] The cuneiforms, metatarsals, phalanges; the foot together.
 - [ ] F8. Mesh checks, the neck and down, the muscles, the woman, and where
   the from-scratch model goes in the app.

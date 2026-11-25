@@ -44,8 +44,8 @@ CUBOID = [
 NAVICULAR = [
     dict(fig="Gray276", cap="antero-lateral view", right=(-1, 0, 0), up=(0, 1, 0), eye=(0, 0, 1), s=0.14, u0=176, v0=137,
          pose=(10.0, -20.0, 0.0, 1.0, 0.0, 0.0), free=(1, 1, 1, 1, 1, 1)),
-    dict(fig="Gray277", cap="postero-medial view", right=(1, 0, 0), up=(0, 1, 0), eye=(0, 0, -1), s=0.18, u0=176, v0=137,
-         pose=(0.0, -20.0, 0.0, 1.0, 0.0, 0.0), free=(1, 1, 1, 1, 1, 1)),
+    dict(fig="Gray277", cap="postero-medial view", right=(1, 0, 0), up=(0, 1, 0), eye=(0, 0, -1), s=0.08, u0=465, v0=255,
+         pose=(0.0, 0.0, 0.0, 1.0, 0.0, 0.0), free=(1, 1, 1, 1, 1, 1)),
 ]
 PLATES = {"cuboid": CUBOID, "navicular": NAVICULAR}
 
@@ -389,8 +389,10 @@ def cuboid(h=0.3, log=print, relief=1.0, upto="all", poses=None, ink=INK):
     return _one_piece(F)
 
 
-# The navicular. Fig. 276 is its only own plate here (Fig. 277, the postero-medial view, could not be fetched: the
-# plate server refused every request), so the bone is held by three outlines: its plan as Fig. 268 draws its dorsal
+# The navicular. Its body is held by three outlines (Fig. 277, the postero-medial view, is fitted to it afterwards and
+# gives the surface for the talus, its rim and the rough bone round it; its pose is found by the outline alone, which
+# leaves the view's nod and turn free along a valley: they are set at 5 degrees from above and 10 medial, nearly
+# straight into the talar surface as the plate draws it, and the roll, scale and shift fitted): its plan as Fig. 268 draws its dorsal
 # surface (0.208 mm a pixel, x = (u - 377) 0.208, z = (v - 440) 0.208), its side as Fig. 290 draws it between the
 # talus's head and the first cuneiform (0.49 mm a pixel, the scale of Fig. 291 at which the calcaneus is 79 mm:
 # z = (u - 210) 0.49, y = (80 - v) 0.49), and Fig. 276 from in front, whose pose is fitted to the first two.
@@ -409,6 +411,29 @@ NAV_FACETS = {"Gray276": [
      (195, 167), (187, 160), (185, 125)],
     [(267, 113), (279, 123), (282, 139), (275, 163), (255, 183), (235, 191), (223, 183), (219, 163), (223, 143), (235, 125), (251, 116)],
     [(222, 205), (230, 196), (248, 188), (254, 191), (242, 204), (228, 213)]]}
+# Fig. 277 (the postero-medial view), in its own pixels (0.07 mm): the border of the surface for the talus, the white
+# line just inside the dark rim; and the rough bone it draws dark and pitted round it, each patch with how many pits
+# and swellings: the lateral end (left), the tuberosity (lower right) and the band below the surface.
+NAV_TALAR = [(332, 72), (318, 105), (312, 150), (310, 200), (312, 250), (318, 300), (330, 345), (345, 375), (365, 395), (400, 401),
+             (480, 401), (560, 398), (615, 386), (640, 362), (648, 330), (641, 292), (622, 243), (600, 200), (574, 158), (545, 115),
+             (512, 82), (480, 63), (450, 57), (400, 59), (360, 64)]
+NAV_ROUGH7 = [
+    ([(222, 180), (250, 120), (296, 72), (318, 85), (302, 200), (302, 330), (330, 385), (300, 380), (255, 330), (226, 260)], 45, 10),
+    ([(565, 412), (610, 390), (652, 345), (690, 330), (712, 380), (712, 440), (690, 472), (640, 476), (590, 462)], 40, 9),
+    ([(345, 410), (480, 412), (600, 404), (560, 440), (470, 452), (400, 455), (345, 432)], 20, 5)]
+TALAR_OUT = 5.0     # mm: how far the head is pushed back outside the talar surface's border (no hollow there)
+TALAR_EASE = 3.0    # mm inside the border over which the hollow comes to its full depth
+TALAR_LIP = 0.45    # mm: the rim at the border
+NAV_FRONT_R = 1.3   # mm: the front border's rounding
+NAV_LOW_R = 1.8     # mm more along its lower part
+TUB_BLEND = 3.5    # mm
+ROUGH3 = 0.2      # mm
+NAV_LOW_DAMP = 0.65   # how much lower the rough rim is along the front surface's lower border
+NAV_RECESS = -0.3   # mm: the cuneiform facets set into the rim
+NAV_FACE = 0.5      # Fig. 276's layers only where the surface faces it so squarely (n . eye): taken on at a slant they ran out into streaks along its line of sight
+NAV_WANDER = 0.3    # mm
+NAV_SOFT = 0.9      # mm
+GROOVE_SINK = 0.6   # mm: the groove's line below the plantar surface
 NAV_MARKS = {"Gray276": [
     # the rough plantar part between the 1st and 3rd facets, under the 2nd, and the pits the plate draws in it
     ("area", [(160, 182), (185, 172), (212, 172), (222, 190), (215, 212), (190, 218), (165, 205)], -0.5, 1.2),
@@ -429,12 +454,15 @@ def _slab(poly, a, z, across=0, step=0.2):
     P = sdf.spline(np.asarray(poly, float), 0.4, closed=True)
     if across == 1:
         P = P[:, ::-1]
-    lo, hi = P[:, 0].min(), P[:, 0].max(); grid = np.arange(lo, hi + step, step); zb = np.full(len(grid), np.nan); zf = zb.copy()
-    for i, g in enumerate(grid):
-        near = np.abs(P[:, 0] - g) < 0.6
-        if near.any():
-            zb[i] = P[near, 1].min(); zf[i] = P[near, 1].max()
-    ok = ~np.isnan(zb); zb = np.interp(grid, grid[ok], zb[ok]); zf = np.interp(grid, grid[ok], zf[ok])
+    # (each border read off the outline filled on a fine raster, row by row: read from the outline's points that fall
+    # within a window, it moved in steps as points came into the window and printed them on the dorsal surface as bands)
+    from PIL import Image, ImageDraw
+    fine = 0.02; lo, hi = P.min(0), P.max(0); W, H = (np.ceil((hi - lo) / fine).astype(int) + 2)
+    im = Image.new("L", (int(H), int(W)), 0); ImageDraw.Draw(im).polygon([((b - lo[1]) / fine, (a_ - lo[0]) / fine) for a_, b in P], fill=255)
+    m = np.asarray(im) > 0; zs = lo[1] + np.arange(m.shape[1]) * fine; rows = lo[0] + np.arange(m.shape[0]) * fine; ok = m.any(1)
+    zbr = np.where(ok, zs[np.argmax(m, 1)], np.nan); zfr = np.where(ok, zs[m.shape[1] - 1 - np.argmax(m[:, ::-1], 1)], np.nan)
+    grid = np.arange(lo[0], hi[0] + step, step)
+    zb = np.interp(grid, rows[ok], zbr[ok]); zf = np.interp(grid, rows[ok], zfr[ok])
     zb = ndi.gaussian_filter1d(zb, 2.5 / step, mode="nearest"); zf = ndi.gaussian_filter1d(zf, 2.5 / step, mode="nearest")
     b = np.interp(a, grid, zb); f = np.interp(a, grid, zf)
     return np.maximum(b - z, z - f).astype(np.float32)
@@ -456,56 +484,138 @@ def navicular(h=0.3, log=print, relief=1.0, upto="all", poses=None, ink=INK):
     # back and forward at each x and at each height (their front and back borders), so the solid fills Fig. 276's
     # outline and lies within the other two where the pose is right.
     D = sdf.smax(_slab(NAV_PLAN, X, Z), _slab(NAV_SIDE, Y, Z, across=1), 2.5)
-    fig = "Gray276"; px = V[fig]["s"] * P[fig][3]
+    fig = "Gray276"; px = V[fig]["s"] * P[fig][3]; B6 = pm.basis(V[fig], P[fig][:3])
     d = tr[fig + "_sdf"].astype(np.float32) * (P[fig][3] / tr[fig + "_pose"][3])
     o6 = _read(ndi.gaussian_filter(d, 1.3 / px), *_pixels(V[fig], P[fig], X, Y, Z))
     if upto != "hull":
         # (no face of it runs straight back from Fig. 276's outline: the dorsal and plantar surfaces are convex from
         # the talus forward to the cuneiforms, and the outline's walls fall in toward both)
         o6 = o6 + 0.028 * (Z - 0.5) ** 2 * (1.0 + 0.15 * np.sin(0.35 * X + 0.25 * Y))
-    D = _round_meet(D, o6, 1.3 + 1.4 * _ss((1.0 - Z) / 5.0) + 0.0 * D); del o6      # (a firm rim in front, as Fig. 276 draws it)
+        # (nor is any of them the outline drawn straight back: each small turn of Fig. 276's outline, so carried, ran
+        # across the dorsal surface as a straight crease. Away from the bone's widest section they wander a little)
+        o6 = o6 + NAV_WANDER * (np.sin(0.55 * Z + 0.4 * X - 0.3 * Y + 0.6) + 0.6 * np.sin(0.9 * Z - 0.5 * X + 0.2 * Y + 2.1)) * _ss((np.abs(Z - 0.5) - 1.0) / 4.0)
+    # (the front border rounded, as Fig. 276 draws it; more broadly along its lower part, where the first cuneiform's
+    # facet comes down to it: met there at a sharp corner, the facet stood from below as a hard-edged black field)
+    up6 = (X * B6[1][0] + Y * B6[1][1] + Z * B6[1][2]).astype(np.float32)
+    D = _round_meet(D, o6, NAV_FRONT_R + 1.0 * _ss((1.0 - Z) / 5.0) + NAV_LOW_R * _ss((-up6 - 2.0) / 6.0)); del o6, up6
     if upto == "hull":
         F.D = np.clip(D, -12.0, 12.0).astype(np.float32); return F
     B = pm.basis(V[fig], P[fig][:3]); ax_ = B[0]                    # the bone's long axis (Fig. 276's left to right: medial to lateral)
-    # 2a. behind, the surface for the talus: "oval, concave, broader laterally than medially". The head as Fig. 268
-    # draws its front border: some 17 mm in radius from side to side; the socket 4 mm deep, its rim left all round.
+    f7 = "Gray277"; V7 = [v for v in NAVICULAR if v["fig"] == f7][0]; P7 = np.asarray((poses or {}).get(f7, tr[f7 + "_pose"]), float)
+    px7 = V7["s"] * P7[3]; sh7 = tr[f7 + "_sdf"].shape
+    # 2a. behind, the surface for the talus: "oval, concave, broader laterally than medially". Fig. 277 looks into
+    # it: its border is traced there (NAV_TALAR), and the hollow is cut only within it, deepest (the head as Fig. 268
+    # draws its front border, some 17 mm in radius from side to side) 2 to 3 mm inside the border and shallowing to
+    # nothing at it, so that what is left round it stands as a rim all round, as the plate draws it.
     c = np.array([0.0, 0.0, -15.6]) + 2.0 * ax_
     rr = (np.stack(np.broadcast_arrays(X - c[0], Y - c[1], Z - c[2]), -1) @ np.stack([ax_, B[1], [0.0, 0.0, 1.0]], 1)).astype(np.float32)
     a = 17.5 + 1.2 * np.tanh(rr[..., 0] / 8.0)                       # the lateral half the broader
     head = (np.sqrt((rr[..., 0] / a) ** 2 + (rr[..., 1] / 11.5) ** 2 + (rr[..., 2] / 13.0) ** 2) - 1.0) * 11.5; del rr, a
+    fm = _mask([NAV_TALAR], sh7, 0.5) > 0.5
+    fsd = ndi.gaussian_filter((ndi.distance_transform_edt(fm) - ndi.distance_transform_edt(~fm)).astype(np.float32), 0.6 / px7) * px7   # mm inside the border
+    fin = _read(fsd, *_pixels(V7, P7, X, Y, Z))
+    head = head + TALAR_OUT * (1.0 - _ss((fin - 0.2) / TALAR_EASE))
     D = sdf.smax(D, -head, 1.2); del head
     # 2b. the tuberosity, at the medial end, rounded, and reaching down and back past the body (Fig. 268 has it bulge
-    # medially behind the first cuneiform, Fig. 290 low at the back of the bone, Fig. 276 as the thick rounded rim of its left end)
+    # medially behind the first cuneiform, Fig. 290 low at the back of the bone, Fig. 276 as the thick rounded rim of
+    # its left end, Fig. 277 as the low hind end of the bone's right side)
     t = np.array([0.0, 0.0, -3.5]) - 15.0 * ax_ - 1.5 * B[1]
-    D = sdf.smin(D, Ellipsoid(tuple(t), (4.0, 4.8, 4.6), rot((0, 0, 1), -40.0))(X, Y, Z), 3.5)
-    F.D = np.clip(D, -12.0, 12.0).astype(np.float32); del D
+    D = sdf.smin(D, Ellipsoid(tuple(t), (4.0, 4.8, 4.6), rot((0, 0, 1), -40.0))(X, Y, Z), TUB_BLEND)
+    # (the plantar surface has a shallow groove lateral to the tuberosity, running from behind forward under the
+    # tendon's slip: cut along the bone's lowest surface there)
+    g0 = t + 6.5 * ax_
+    i0 = int(round((g0[0] - F.lo[0]) / F.h)); col = D[i0, :, :]; low = np.where((col < 0).any(0), F.ax[1][np.argmax(col < 0, 0)], np.nan)
+    path = []
+    for zz in (-5.0, -2.5, 0.0, 2.5):
+        k = int(round((zz - F.lo[2]) / F.h)); yb = low[k] if np.isfinite(low[k]) else g0[1]
+        path.append((g0[0] + 0.12 * zz, yb - GROOVE_SINK + 0.15 * np.sin(zz), zz))
+    D = sdf.smax(D, -_tube(X, Y, Z, path, [0.5, 1.4, 1.4, 0.5]), 1.0)
+    # (each part above is a solid ruled along one line of sight (the plan's, the side's, Fig. 276's) and where two
+    # meet they leave a straight crease, which the dorsal view showed as rectangular steps: the whole is eased over a
+    # millimetre)
+    D = ndi.gaussian_filter(D, NAV_SOFT / F.h)
+    F.D = np.clip(D, -12.0, 12.0).astype(np.float32); del D, fin
     if upto == "forms":
         return F
-    # 3. the joint surfaces in front ("subdivided by two ridges into three facets") and on the lateral side, smooth;
-    # the two ridges between the facets a little raised; the plate's marks
-    # (Fig. 276 looks straight at the front: every layer it gives is kept to what faces it squarely, or the dorsal and
-    # plantar surfaces, which fall away from the front border at a slant, take its tracings drawn out into streaks)
-    _facets(F, [V[fig]], P, tr, {fig: NAV_FACETS[fig][:3]}, proud=-0.45, edge=0.8, face=0.55)        # set a little into the rim, each its own surface
-    _facets(F, [V[fig]], P, tr, {fig: NAV_FACETS[fig]}, proud=0.0, face=0.55)
+    # 3. the joint surfaces in front ("subdivided by two ridges into three facets"), smooth; the two ridges between
+    # the facets a little raised; the plate's marks. (Fig. 276 draws a fourth, "occasional facet for cuboid", on the
+    # lateral side: occasional, so it is left out.)
+    # Every layer Fig. 276 gives is eased out to nothing over the outline's last millimetre or so (q6), whatever way the
+    # surface faces there: a layer that ran to the outline and was cut off only where the surface turned from the plate
+    # stopped dead along the front border, as a block edge seen from above, a torn black margin from below and a seam
+    # from the sides.
+    sh = tr[fig + "_sdf"].shape; s6 = tr[fig + "_sdf"].astype(np.float32); q6 = _ss((-s6 - 0.15) / 1.0)
+    m = _mask(NAV_FACETS[fig][:3], sh, 0.8 / px)
+    # (set a little into the rim, each its own surface; the step eased out over 2 mm toward the outline, where the
+    # first cuneiform's facet comes near the plantar border: stopping nearer, it stood as a hard black edge from below)
+    _lay(F, [V[fig]], P, {fig: NAV_RECESS * _ss((m - 0.2) / 0.6) * _ss((-s6 - 0.2) / 2.0)}, face=NAV_FACE)
+    smooth = _shown(F, V[fig], P[fig], _mask(NAV_FACETS[fig][:3], sh, 0.8 / px))
     # (Fig. 276 sets the facets inside a broad rough rim, widest above and at the lower middle: what of the outline the
     # facets leave is raised a little and roughened, with pits strewn over it)
-    sh = tr[fig + "_sdf"].shape; inside = (tr[fig + "_sdf"].astype(np.float32) < 0).astype(np.float32)
+    inside = (s6 < 0).astype(np.float32)
     fac = ndi.binary_dilation(_mask(NAV_FACETS[fig][:3], sh, 0.5) > 0.5, iterations=2).astype(np.float32)
-    rim = ndi.gaussian_filter(np.clip(inside - fac, 0.0, 1.0), 0.5 / px)
+    # (its inner edge eased over a millimetre: a sheer step there stood, where the first cuneiform's facet comes down to
+    # the plantar border, as a hard-edged black field from below)
+    rim = ndi.gaussian_filter(np.clip(inside - fac, 0.0, 1.0), 1.0 / px)
     rng = np.random.default_rng(276)
     bumpy = ndi.gaussian_filter(rng.normal(size=sh).astype(np.float32), 0.7 / px); bumpy /= bumpy.std()
-    # (eased off over the outline's last half millimetre, where the surface turns away from the plate: raised right
-    # to the edge, it stood as a seam down the bone's front border in the side views)
-    rmap = rim * (0.8 + 0.3 * bumpy) * _ss((-tr[fig + "_sdf"].astype(np.float32) - 0.3) / 0.5)
-    ys, xs_ = np.nonzero(rim > 0.6); pick = rng.choice(len(ys), 28, replace=False)
+    rmap = rim * (0.6 + 0.25 * bumpy)
+    ys, xs_ = np.nonzero((rim > 0.6) & (q6 > 0.7)); pick = rng.choice(len(ys), 28, replace=False)
     rmap += _marks_map(_pits([("dot", (float(xs_[i]), float(ys[i])), float(rng.uniform(0.2, 0.45)), float(rng.uniform(-0.6, -0.3))) for i in pick], px, 277), sh, px)
-    _lay(F, [V[fig]], P, {fig: rmap}, face=0.4)
-    # (only on what faces the plate: laid on the dorsal and plantar surfaces, which Fig. 276 sees edge-on, the marks
-    # of its border were drawn out into streaks and blocks across them)
-    _lay(F, [V[fig]], P, {fig: _marks_map(_pits(NAV_MARKS[fig], V[fig]["s"] * P[fig][3]), tr[fig + "_sdf"].shape, V[fig]["s"] * P[fig][3])}, face=0.45)
+    rmap += _marks_map(_pits(NAV_MARKS[fig], px), sh, px)
+    # (along the lower border, where the front surface comes down to the plantar border at a slant, the rim's roughness
+    # is eased out further from the outline, and lower: the front surface is seen from below in profile there, and
+    # its rough rim at full height stood as a torn margin along that border)
+    low = _ss((np.arange(sh[0], dtype=np.float32)[:, None] - 150.0) / 30.0)
+    _lay(F, [V[fig]], P, {fig: rmap * (1.0 - NAV_LOW_DAMP * low) * (q6 * (1.0 - low) + _ss((-s6 - 0.3) / 2.2) * low)}, face=NAV_FACE)
+    # 4. behind, Fig. 277: the talar surface's border a raised lip all round, the hollow smooth; the rough bone round it,
+    # the tuberosity and the lateral end pitted and uneven as the plate draws them
+    sm7 = _shown(F, V7, P7, _mask([NAV_TALAR], sh7, 0.8 / px7))
+    s7 = tr[f7 + "_sdf"].astype(np.float32); q7 = _ss((-s7 - 0.15) / 1.0)
+    lip = _marks_map([("line", NAV_TALAR + NAV_TALAR[:1], 1.3, TALAR_LIP)], sh7, px7)
+    rng = np.random.default_rng(2770)
+    band = np.clip((s7 < 0).astype(np.float32) - ndi.binary_dilation(_mask([NAV_TALAR], sh7, 0.5) > 0.5, iterations=8), 0.0, 1.0)
+    bumpy7 = ndi.gaussian_filter(rng.normal(size=sh7).astype(np.float32), 0.7 / px7); bumpy7 /= bumpy7.std()
+    rough7 = ndi.gaussian_filter(band, 0.5 / px7) * (0.25 + 0.3 * bumpy7)
+    rough7 += _marks_map(_pits(_rough7(NAV_ROUGH7, rng), px7, 2771), sh7, px7)
+    _lay(F, [V7], {f7: P7}, {f7: lip * q7}, face=0.5)
+    _lay(F, [V7], {f7: P7}, {f7: rough7 * q7}, face=0.7)
+    F.smooth = np.clip(np.maximum(smooth, sm7), 0.0, 1.0).astype(np.float32); del sm7, smooth
+    # (the bone's rough surfaces, "rough" in Gray's words for the dorsal, the plantar and the lateral surface, and the
+    # broad rim round the facets which Fig. 276 draws hatched and pitted: laid in the solid itself, the same from
+    # every side, not from one plate's tracing, which carried on to faces the plate sees at a slant runs out into
+    # streaks along its line of sight. Low uneven swellings, and small pits of every shape where a finer chance runs high)
+    rng = np.random.default_rng(278); sh3 = F.D.shape
+    n1 = ndi.gaussian_filter(rng.normal(size=sh3).astype(np.float32), 0.5 / F.h); n1 /= n1.std()
+    n2 = ndi.gaussian_filter(rng.normal(size=sh3).astype(np.float32), 1.6 / F.h); n2 /= n2.std()
+    n3 = ndi.gaussian_filter(rng.normal(size=sh3).astype(np.float32), 0.3 / F.h); n3 /= n3.std()
+    F.D += ROUGH3 * (0.35 * n1 + 0.5 * n2 + 1.4 * _ss((n3 - 2.3) / 0.6)) * (1.0 - F.smooth); del n1, n2, n3      # (D grows outward: + is a pit)
     if relief:
-        _emboss(F, tr, [V[fig]], P, relief, log, face=0.6)
+        D0 = F.D.copy(); _emboss(F, tr, [V[fig]], P, relief, log, face=0.6)
+        F.D = (D0 + (F.D - D0) * _shown(F, V[fig], P[fig], q6, deep=3.0)).astype(np.float32); del D0
     if ink:
-        _lay(F, [V[fig]], P, {fig: tr[fig + "_ink"].astype(np.float32) * (ink / 50.0)}, face=0.55, shared=True, rough=True)
-    log("navicular: built from Fig. 276, its plan from Fig. 268 and its side from Fig. 290")
+        _lay(F, [V[fig]], P, {fig: tr[fig + "_ink"].astype(np.float32) * (ink / 50.0) * q6}, face=0.55, shared=True, rough=True)
+    log("navicular: built from Fig. 276 and 277, its plan from Fig. 268 and its side from Fig. 290")
     return _one_piece(F)
+
+
+def _rough7(patches, rng):
+    """Rough patches traced on Fig. 277 (whose pixels are fine: 0.07 mm), as _rough's pits and low swellings, with
+    the swellings a millimetre or so across."""
+    out = []
+    for poly, n, lumps in patches:
+        from PIL import Image, ImageDraw
+        poly = np.asarray(poly, float); lo, hi = poly.min(0), poly.max(0); k = 0; j = 0
+        im = Image.new("L", (int(hi[0]) + 2, int(hi[1]) + 2), 0); ImageDraw.Draw(im).polygon([tuple(q) for q in poly], fill=255); ins = np.asarray(im) > 0
+        inside = lambda p: ins[int(p[1]), int(p[0])]
+        while k < n:
+            p = rng.uniform(lo, hi)
+            if inside(p):
+                out.append(("dot", (float(p[0]), float(p[1])), float(rng.uniform(0.25, 0.55)), float(rng.uniform(-0.5, -0.25)))); k += 1
+        while j < lumps:
+            p = rng.uniform(lo, hi)
+            if inside(p):
+                a = rng.uniform(9, 18); t = np.linspace(0, 2 * np.pi, 9)[:-1]; rad = a * rng.uniform(0.6, 1.3, len(t))
+                out.append(("area", [(float(p[0] + q * np.cos(w)), float(p[1] + 0.8 * q * np.sin(w))) for q, w in zip(rad, t)],
+                            float(rng.choice([-1, 1]) * rng.uniform(0.2, 0.35)), 1.0)); j += 1
+    return out
