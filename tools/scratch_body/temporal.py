@@ -349,31 +349,48 @@ def ear_hole(F, log=print):
         % (np.ptp(q[:, 0]), np.ptp(q[:, 1]), min(BAND_X), max(BAND_X), -min(p[1] for p in TYMPANIC_SIDE)))
 
 
-class _Sheath:
-    """A thin curved shell about a short axis A-B: radius r_in..r_in+t, over the front and outer side only, its lower rim oblique
-    (lowest in front) and uneven."""
-    def __init__(self, A, B, r_in=(2.25, 1.75), t=0.8, wrap=0.15):
-        self.A, self.B = np.asarray(A, float), np.asarray(B, float)
-        self.r_in, self.t, self.wrap = r_in, t, wrap
-        r = max(r_in) + t + 1.0
-        self.bounds = (np.minimum(self.A, self.B) - r, np.maximum(self.A, self.B) + r)
+class _Vaginal:
+    """The vaginal process: the tympanic crest's own lower edge, split to sheathe the styloid's root in front and outside. A thin
+    uneven lamina (0.5 to 0.9 mm) hugging the root's surface: it leaves the crest's medial end on the outer side, runs round to
+    the front, where its edge hangs lowest, and thins out to nothing behind and inside; its free edge is oblique and ragged. It is
+    measured on the styloid's own path and sections (P, a, b, up), so it follows the root with no gap, and has no top edge (it
+    swells out of the root over 2 mm). It exists only inside `box`; elsewhere it is BIG, so the field there is left untouched."""
+    S_TOP, S_RIM, PH_LO, PH_HI, X_MAX = 3.5, 10.6, 40.0, 125.0, 42.6
+    def __init__(self, P, a, b, up, box):
+        self.P = np.asarray(P, float); self.box = (np.asarray(box[0], float), np.asarray(box[1], float)); self.bounds = self.box
+        self.arc = np.concatenate([[0], np.cumsum(np.linalg.norm(np.diff(self.P, axis=0), axis=1))])
+        e = np.gradient(self.P, axis=0); self.e = e / np.linalg.norm(e, axis=1)[:, None]
+        up = np.asarray(up, float); u = up - (self.e @ up)[:, None] * self.e; self.u = u / np.linalg.norm(u, axis=1)[:, None]
+        self.a, self.b = np.asarray(a, float), np.asarray(b, float); self.tree = cKDTree(self.P)
+        # the angle round the section is 0 at the front-outer side and runs negative toward the crest (outer, a little behind)
+        i = int(np.argmin(np.abs(self.arc - 6.0))); n0 = self._front(self.e[i:i + 1])[0]
+        self.sgn = -1.0 if np.dot(np.cross(self.e[i], n0), [1.0, 0.0, -0.35]) > 0 else 1.0
+    @staticmethod
+    def _front(e):
+        n = np.array([0.72, 0.0, 0.69]) - np.sum(e * np.array([0.72, 0.0, 0.69]), -1)[..., None] * e
+        return n / np.linalg.norm(n, axis=-1)[..., None]
     def __call__(self, X, Y, Z):
-        X, Y, Z = np.broadcast_arrays(X, Y, Z)
-        AB = self.B - self.A; Lq = np.linalg.norm(AB); ax = AB / Lq
-        R = np.stack([X - self.A[0], Y - self.A[1], Z - self.A[2]], -1)
-        s = R @ ax; tq = np.clip(s / Lq, 0.0, 1.0)
-        rad = R - tq[..., None] * AB
-        rho = np.linalg.norm(rad, axis=-1)
-        ri = self.r_in[0] + (self.r_in[1] - self.r_in[0]) * tq
-        shell = np.maximum(ri - rho, rho - ri - self.t)
-        n = np.array([0.72, 0.0, 0.69]); n = n - ax * (n @ ax); n /= np.linalg.norm(n)
-        side = -(rad @ n) / np.maximum(rho, 1e-6) - self.wrap          # < 0 on the front-outer side
-        side = side * np.maximum(rho, 0.5)
-        e2 = np.cross(ax, n)
-        ang = np.arctan2(rad @ e2, rad @ n)
-        low = Lq * (0.63 + 0.12 * np.cos(ang) + 0.04 * np.sin(3.1 * ang + 0.7))   # the rim: lowest in front, uneven
-        ends = np.maximum(-s, s - low)
-        return np.maximum(np.maximum(shell, side), ends).astype(np.float32)
+        X, Y, Z = (np.asarray(v, np.float64) for v in np.broadcast_arrays(X, Y, Z))
+        Q = np.stack([X, Y, Z], -1); _, i = self.tree.query(Q)
+        e, u = self.e[i], self.u[i]; w = np.cross(e, u)
+        R = Q - self.P[i]; se = np.sum(R * e, -1); s = self.arc[i] + se
+        rad = R - se[..., None] * e
+        qu, qw = np.sum(rad * u, -1), np.sum(rad * w, -1)
+        k = np.sqrt((qu / self.a[i]) ** 2 + (qw / self.b[i]) ** 2); rho = np.sqrt(qu ** 2 + qw ** 2)
+        d = rho * (1.0 - 1.0 / np.maximum(k, 1e-6))              # how far outside the root's surface, along the ray from its axis
+        nf = self._front(e)
+        ph = self.sgn * np.degrees(np.arctan2(np.sum(rad * np.cross(e, nf), -1), np.sum(rad * nf, -1)))
+        sm = lambda x: (lambda c: c * c * (3 - 2 * c))(np.clip(x, 0.0, 1.0))
+        # 0.5 to 0.9 mm thick and uneven, swelling out of the root over 2 mm, fading out behind and inside
+        t = (0.85 + 0.17 * np.sin(0.9 * s + 0.045 * ph + 1.0) + 0.1 * np.sin(2.3 * s - 0.03 * ph))
+        t = t * sm((s - self.S_TOP) / 1.8) * sm((ph + self.PH_LO) / 30.0) * sm((self.PH_HI - ph) / 40.0)
+        # the free edge: hangs lowest in front and outside, climbs toward the crest and toward the front, oblique and ragged
+        rim = (self.S_RIM - 2.6 * (np.clip(ph - 20.0, -90.0, 90.0) / 70.0) ** 2 + 0.012 * np.clip(ph, -60.0, 60.0)
+               + 0.42 * np.sin(ph / 10.5 + 1.3) + 0.22 * np.sin(ph / 5.5 + 2.1))
+        t = t * (0.85 + 0.15 * sm((rim - s) / 1.0)) * sm((self.X_MAX - X) / 0.9)
+        lam = np.maximum(d - t, s - rim)
+        out = np.any((Q < self.box[0]) | (Q > self.box[1]), -1)
+        return np.where(out, sdf.BIG, lam).astype(np.float32)
 
 
 def styloid(F, log=print):
@@ -384,12 +401,15 @@ def styloid(F, log=print):
     # and its thickness not falling evenly, set into the bone with a blend of 0.7 mm so that the sheath's edge shows as an edge.
     # Its tip stays where Fig. 188 draws it (z 6.6, y -35.4 there).
     P = spline(np.array(STYLOID, float), 0.5)
-    F.add(Tube(P, [(0, 2.4), (0.16, 2.25), (0.3, 1.6), (0.42, 1.38), (0.55, 1.3), (0.66, 1.08), (0.78, 0.95), (0.9, 0.78), (1, 0.62)],
-               [(0, 2.2), (0.16, 2.05), (0.3, 1.45), (0.44, 1.32), (0.56, 1.12), (0.68, 1.06), (0.8, 0.86), (0.91, 0.74), (1, 0.6)],
-               up=(1, 0, 0.25)), 0.7, keep=3)
-    # the vaginal process (Fig. 187 "Vagin. proc."): the tympanic plate's crest, at its inner end, splits and runs down as a thin
-    # sheath round the front and outer side of the styloid's root, standing a little off it, its lower rim oblique and uneven
-    F.add(_Sheath((41.15, -15.0, -1.95), (40.6, -22.2, 0.35)), 0.4, keep=2)      # (it grows out of the plate: no top edge)
+    TA = [(0, 2.4), (0.16, 2.25), (0.3, 1.6), (0.42, 1.38), (0.55, 1.3), (0.66, 1.08), (0.78, 0.95), (0.9, 0.78), (1, 0.62)]
+    TB = [(0, 2.2), (0.16, 2.05), (0.3, 1.45), (0.44, 1.32), (0.56, 1.12), (0.68, 1.06), (0.8, 0.86), (0.91, 0.74), (1, 0.6)]
+    UP = (1, 0, 0.25)
+    F.add(Tube(P, TA, TB, up=UP), 0.7, keep=3)
+    # the vaginal process (Fig. 187 "Vagin. proc."; Gray p. 145): the tympanic plate's own lower edge, at its inner end, splits and
+    # runs down as a thin lamina over the front and outer side of the styloid's root only, hugging it, highest (lowest edge) in
+    # front and outside, its free edge oblique and ragged, fading out behind and inside. (It was a ring standing off the root, of
+    # even height with a level rim, and a spike where its top broke through the crest.)
+    F.add(_Vaginal(P, sdf.along(P, TA), sdf.along(P, TB), UP, ([37.0, -24.5, -6.5], [43.2, -14.5, 3.5])), 0.5, keep=2)
     L = np.linalg.norm(np.diff(P, axis=0), axis=1).sum()
     log("styloid process: %.0f mm long, its tip %.1f mm below the Frankfurt plane" % (L, -STYLOID[-1][1]))
 

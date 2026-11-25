@@ -3930,6 +3930,21 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     cuff with an even rim (a single-item follow-up). Open, small: notch
     lip at z -20 is 1.8 mm inside the plate; mastoid tip 2.4 mm from
     Fig. 187's (uncertain reading).
+    Follow-up (accepted): the cuff is replaced by a thin plate laid on
+    the root's front and outer side, running down from the crest and
+    fading behind; it reads a little full, not as a sharp lip (0.5 mm
+    grid). Joint unchanged.
+  - Tooth rows, 25 Nov, the owner with red lines on the mandible from
+    above: "sokets arent in their right spots fix that in it and also
+    the maxillas accordingly". Measured: both rows too narrow and
+    pointed (between canines 21.8 lower / 26.7 upper, between first
+    molars 40.9 / 42.3; Gray Fig. 996 and 997 with CT as a check give
+    27.2 / 32.2 and 47.2 / 48.8), molar rows 13 degrees to the midline
+    (about 5 to 6), and the mandible's body about 5 mm narrow each side
+    at the first molars with the sockets 3 mm to the tongue side of its
+    centre line. Sockets are no longer a fixed constraint. Upper row
+    first (skull2.py, palate.py), then the lower row with the body
+    (mandible2.py, mandible4.py) once the head-and-neck task ends.
 - [ ] F8. Mesh checks, the neck and down, the muscles, the woman, and where
   the from-scratch model goes in the app.
 
