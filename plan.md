@@ -3815,7 +3815,20 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     same); the short bones do not call it yet, so any streak left on
     them has another cause (layers taken on at a slant) and is to be
     looked for there.
-  - [ ] The cuneiforms, metatarsals, phalanges; the foot together.
+  - [ ] The cuneiforms (cuneiforms.py), 25 Nov, three rounds: outlines and
+    joints accepted (Fig. 278 to 283 mean gap 0.20 to 0.40 mm, worst
+    2.1; no overlap; joint gaps median 1.0 to 1.6 mm), the joint
+    surfaces traced from the engraved lines. Surface not accepted and
+    the repair budget is spent: the surfaces are smooth planes meeting
+    at hard creases, the rough bone is still evenly bumpy, the third's
+    surfaces for the second and fourth metatarsals are faint, seams on
+    the third from behind and above. Next: a new task with another
+    method for the surface, after the navicular.
+  - [ ] The navicular is reopened (accepted on Fig. 276 and 277 only): on
+    Fig. 268, a right foot, its front outer corner stops 6 to 8 mm
+    short, so the third cuneiform is 3.4 mm from touching it. Size is
+    right; the tilt and the plan outline are wrong. Task B running.
+  - [ ] The metatarsals, phalanges; the foot together.
 - [ ] F11. 25 Nov, the owner: "switch back to the skull and mandible so we
   fix every single part of them especially the mandible and skull base";
   later the same day: CT, other radiology and ready-made 3D may help, "ONLY
