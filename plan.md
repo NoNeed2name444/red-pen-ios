@@ -3907,6 +3907,14 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     side the joint head is a small knob at the top front of a broad
     column, the hind border still reads as a column from behind, a
     smooth swelling inside the angle, masseter ridges knobbly.
+    Task C, round 1 (kept, not accepted): head and neck are a loft of
+    horizontal sections under the fixed joint surface; the knob is gone
+    and from in front and behind the head is one transverse cap. Not
+    met: from the side the head is a dome on a ring groove (a collar),
+    where Fig. 176 has the neck's hind edge running straight up into
+    the head and one long hollow in front; the hind border still shows
+    a bright strip from three-quarter behind; pterygoid ridges and the
+    tubercle too faint to see. Joint, sockets, outline numbers held.
   - Temporal bone (temporal.py), task A round 1 (not accepted, kept): the
     mastoid is a leaning cone on Fig. 188's outline instead of a ball
     (side outline within 0.9 mm, was 2.8), the styloid a slender 25 mm
