@@ -265,14 +265,20 @@ def braincase(T, log=print):
 # =================================== the face: a relief over the front view ===================================
 ORBIT_BOX = ((11.5, 49.5), (-1.0, 31.3))        # the orbit's opening: breadth as usual, heights from the side view
 APERTURE_HALF = 12.4                            # half the nasal opening's breadth (24.8 mm)
-ARCH = [(0.0, 98.1), (5.0, 97.4), (9.5, 95.6), (14.0, 92.0), (17.5, 88.0), (21.0, 81.5), (23.8, 74.0), (27.0, 64.5),
-        (29.5, 54.5), (30.8, 46.0)]             # the upper teeth's outer faces at the gum, seen from below: (x, z)
+ARCH = [(0.0, 96.9), (5.6, 96.6), (10.9, 94.9), (16.2, 92.2), (20.5, 87.3), (23.4, 82.3), (26.7, 74.9), (29.2, 66.8),
+        (30.5, 57.6), (31.1, 49.7), (31.5, 45.7)]   # the upper teeth's outer faces at the gum, seen from below: (x, z): UPPER_LINE and half each tooth's thickness
 
 
-# the line the upper teeth stand on: the traced outer faces at the gum brought in by half a tooth's thickness, and run on
-# behind the trace for the third molar; the bone's margin at each tooth is the front view's lower edge
-UPPER_LINE = [(0, 95.1), (4.5, 94.4), (8.1, 92.7), (11.5, 89.4), (14.2, 85.7), (17.1, 79.7), (19.4, 72.5), (22.0, 63.0),
-              (24.3, 53.4), (25.5, 45.4), (26.0, 40.0)]
+# the line the upper teeth stand on, from the upper arch seen from below (Gray 1918, Fig. 996; Fig. 160 is the same drawing):
+# a broad U, round in front (the six front teeth on a circle of about 23 mm), the molar rows nearly parallel (8 degrees off
+# the midline each side). The old line, from an outline traced at the gum, stood 27 mm between the canines and 42 between the
+# first molars, its front pointed (a 15 mm circle) and its rows splayed 13 degrees: the owner (25 November) drew the sockets
+# out on a wider, rounder U. The points are placed so that the teeth, packed in contact by their own shapes (teeth.packed),
+# stand on the plate's socket centres: within 0.9 mm, the lateral incisor within 1.2 (the built front teeth in contact span
+# 1.7 mm less from the midline to the third molar than the plate's centres, which were scaled by the table's widths).
+# The bone's margin at each tooth is the front view's lower edge.
+UPPER_LINE = [(0, 93.8), (5.1, 93.6), (11.0, 91.8), (15.3, 88.2), (18.4, 82.7), (21.6, 76.1), (23.5, 68.3), (25.0, 59.5),
+              (26.1, 50.1), (27.2, 40.4)]
 UPPER_T = dict(L.UPPER, **{"crest y": [-44.7, -43.9, -43.0, -42.4, -42.0, -41.6, -41.2, -41.0]})
 
 
@@ -284,8 +290,17 @@ def tooth_ridge(line, table, upper, rise=8.0, beyond=2.0):
     keep = d <= w.sum() + beyond               # (a tube's end is round: it reaches its own half-width past its last point)
     cy = np.interp(d, mid, table["crest y"])
     sgn = 1.0 if upper else -1.0
-    P = np.column_stack([A[keep, 0], cy[keep] + sgn * rise, A[keep, 1]])[::3]
-    half = [(0, 3.9), (0.2, 4.2), (0.35, 5.0), (0.55, 5.8), (0.75, 7.2), (1, 7.0)]
+    # On the wider arch the premolars' and molars' roots, splayed toward the cheek, stand 2 to 3 mm further out than the face's
+    # relief: the ridge is laid 1.5 mm out from the teeth's line behind the canine (run in over the canine, none in front), so
+    # the bone over them is what it was. (Moving the face's own points out with them bent its relief, a smooth surface through
+    # all of its points, as far as the cheek bone's lower edge.) Its points are now taken every millimetre: out in the open its
+    # joints every 3 mm stood on the jaw's side as a row of even ribs.
+    t = np.gradient(A, axis=0); t /= np.linalg.norm(t, axis=1, keepdims=True)
+    n = np.column_stack([-t[:, 1], t[:, 0]]); n *= np.where(n[:, :1] < 0, -1.0, 1.0)
+    out = np.interp(d, [0.0, 14.0, 26.0, 1e3], [0.0, 0.0, 1.5, 1.5]) if upper else 0.0 * d
+    Q = A + out[:, None] * n
+    P = np.column_stack([Q[keep, 0], cy[keep] + sgn * rise, Q[keep, 1]])
+    half = [(0, 3.9), (0.2, 4.2), (0.35, 5.0), (0.55, 6.0), (0.75, 7.5), (1, 7.3)]     # (the molars' part 0.2 to 0.3 mm fuller)
     return Tube(P, rise, half, up=(0, 1, 0), n=2.5), A
 
 
@@ -312,8 +327,8 @@ def aperture_rim():
 FACE_EDGE = [   # the outline of the facial skeleton seen from the front, left half, from the midline over the brow and round: (x, y)
     (0, 57), (46.0, 57), (47.5, 52), (49.5, 44), (51.0, 37.6), (52.9, 30), (56.0, 24), (57.4, 19), (57.6, 6.6), (58.0, 1.5),
     (60.5, -3.0), (59.8, -7.6), (55.6, -12.8), (52.4, -17.0), (49.2, -19.5), (45.5, -20.6), (40.7, -21.1), (35.5, -23.0),
-    (32.6, -26.5), (31.8, -32.0), (31.8, -39.0), (28.5, -40.5), (22.5, -41.6), (17.5, -42.6), (9.5, -44.2), (0, -45.1),
-]
+    (32.6, -26.5), (32.5, -32.0), (33.0, -39.0), (30.2, -40.5), (24.6, -41.6), (19.5, -42.6), (10.9, -44.2), (0, -45.1),
+]   # (its lower edge, the tooth-bearing process, follows the wider arch: each point moved out with the tooth above it)
 FACE_POINTS = [  # the front surface's depth z where no traced line gives it: (x, y, z)
     # frontal process of the maxilla and the side of the nasal bones
     (6.0, 16, 96.0), (7.0, 10, 100.5), (9.0, 19, 93.5), (10.5, 8, 95.0), (12.0, 2, 93.0),
@@ -331,10 +346,12 @@ FACE_POINTS = [  # the front surface's depth z where no traced line gives it: (x
     # forehead turned back too soon: at the crest's line it stood 47 mm out where the outline from in front has 52, and the
     # pillar beside the orbit ended in a horn under that narrow place.
     (53.6, 26.8, 67.9), (51.9, 30.2, 70.7), (50.9, 34.0, 72.9), (49.9, 38.2, 74.3), (48.8, 42.5, 74.9), (48.0, 46.5, 74.6), (47.2, 49.4, 74.0),
-    # the tooth-bearing process: the swellings over the roots and the hollows between
-    (4.5, -38, 97.6), (9.5, -38, 96.0), (13.8, -38, 92.8), (17.5, -36, 91.5), (17.5, -41, 89.5), (21.5, -38, 83.5),
+    # the tooth-bearing process: the swellings over the roots and the hollows between. Over the canine and the first premolar each
+    # point keeps its place against the tooth it lies over on the wider arch (UPPER_LINE); further back the ridge carries the
+    # wider arch (tooth_ridge) and these stay as they were
+    (4.5, -38, 97.6), (9.5, -38, 96.0), (14.0, -38, 94.7), (18.3, -36, 93.7), (18.7, -41, 91.6), (23.1, -38, 85.6),
     (24.3, -38, 76.0), (27.6, -37, 66.5), (30.0, -36, 57.0), (4.5, -43, 97.8), (9.5, -43, 95.8),
-    (20.0, -30, 87.2), (25.0, -30, 79.2), (29.0, -30, 68.0),
+    (21.2, -30, 88.5), (25.0, -30, 79.2), (29.0, -30, 68.0),
 ]
 
 
@@ -627,8 +644,9 @@ def build(h=1.0, log=print, box=None):
     # of the pterygoid plates lean on it
     # (it ends 4 to 5 mm behind the last molar and the jaw's back rises from it nearly upright, as Fig. 189 has it: one rounded
     # swelling from the gum to under the orbit, not a ball hung behind the jaw)
-    F.add(Ellipsoid((25.4, -34.6, 44.5), (6.1, 6.4, 4.8)), 3.5)
-    F.add(Ellipsoid((26.2, -24.0, 45.6), (6.0, 13.0, 5.3)), 4.5)
+    # (on the wider arch the last molar stands 1 mm further out and 1.2 forward: the swelling's foot goes with it, its upper part half as far)
+    F.add(Ellipsoid((26.4, -34.6, 45.7), (6.1, 6.4, 4.8)), 3.5)
+    F.add(Ellipsoid((26.7, -24.0, 46.2), (6.0, 13.0, 5.3)), 4.5)
     build.midline.append(("median palatine", build.palate["median"], 0.85, max(0.3, 0.7 * h)))
     # joint socket for the mandible, ear hole, groove behind the mastoid, foramen magnum
     base.socket_cut(F, B)                      # the socket's shape is the base relief's own; this clears the arch's root out of it

@@ -3927,6 +3927,18 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     the head and one long hollow in front; the hind border still shows
     a bright strip from three-quarter behind; pterygoid ridges and the
     tubercle too faint to see. Joint, sockets, outline numbers held.
+    Upper tooth row (skull2.py, palate.py, landmarks.py), accepted with
+    open items: sockets on a wider, rounder arch after Fig. 996
+    (intercanine 26.7 to 30.5, first molars 42.3 to 47.2, front radius
+    15 to 22.6, rows 12.6 to 8.0 degrees each side), every socket within
+    1.2 mm of its target (was up to 4.1); ridge, palate, its openings
+    and the face of the maxilla follow; bone over the roots no thinner
+    on the cheek side; nothing changed outside the maxilla. Open: the
+    built teeth in contact are 3 per cent shorter along the row than
+    Gray's (so the arch is 1.6 mm short of full width; a teeth.py
+    task), the palate ends 6 mm behind the third molar where Fig. 160
+    has about 13 (moves the choanae; own task), lesser palatine
+    foramina barely visible.
     Task C, repair 1 (head and neck accepted; task closed): the ring is
     gone. Each section under the head is solved to silhouette targets
     from Fig. 176 and 177: the hind edge runs straight into the head,

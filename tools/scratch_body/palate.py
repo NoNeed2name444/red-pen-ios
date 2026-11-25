@@ -25,14 +25,14 @@ import relief, sdf, base, foramina
 from skull import arch
 
 # the free hind edge, from behind the last molar in to the spine at the midline (x, z): each half sweeps a little forward
-HIND = [(23.6, 39.3), (20.6, 39.1), (18.2, 39.7), (16.6, 41.2), (15.6, 43.0), (14.5, 44.2), (11.5, 45.0), (8.0, 45.3), (5.0, 44.9), (2.9, 44.2), (1.6, 43.3), (0.7, 42.5), (0.0, 42.2)]
+HIND = [(24.6, 39.6), (21.2, 39.2), (18.2, 39.7), (16.6, 41.2), (15.6, 43.0), (14.5, 44.2), (11.5, 45.0), (8.0, 45.3), (5.0, 44.9), (2.9, 44.2), (1.6, 43.3), (0.7, 42.5), (0.0, 42.2)]
 NECK_HALF = [3.1, 2.7, 3.7, 4.2, 4.2, 5.3, 5.3, 4.9]          # half of each tooth's thickness at the gum, lip side to tongue side (mm)
-FORAMEN = (16.6, 46.3)                                        # greater palatine foramen (x, z)
+FORAMEN = (16.8, 47.0)                                        # greater palatine foramen (x, z): inward of the third molar (Fig. 160)
 LESSER = [(17.5, 43.5), (19.3, 43.8)]
 # the suture across: from the midline outward, then back along the groove's inner side to the foramen
-TRANSVERSE = [(0.0, 56.1), (1.6, 56.4), (3.6, 55.9), (6.0, 55.4), (8.4, 55.2), (10.6, 54.8), (12.3, 53.9), (13.6, 52.0), (14.7, 49.8), (15.6, 48.2)]
+TRANSVERSE = [(0.0, 56.1), (1.6, 56.4), (3.6, 55.9), (6.0, 55.4), (8.4, 55.2), (10.7, 54.9), (12.5, 54.3), (14.0, 52.6), (15.0, 50.5), (15.9, 48.9)]
 # the incisive fossa: a pear, broad in front, drawn out to a slit behind (left half of its outline)
-FOSSA = [(0.0, 88.6), (1.1, 88.3), (1.95, 87.2), (2.3, 85.6), (2.05, 83.8), (1.35, 82.2), (0.75, 80.8), (0.4, 79.6), (0.0, 79.0)]
+FOSSA = [(0.0, 87.6), (1.1, 87.3), (1.95, 86.2), (2.3, 84.6), (2.05, 82.8), (1.35, 81.2), (0.75, 79.8), (0.4, 78.6), (0.0, 78.0)]
 NOSE_FLOOR = -28.0                                            # the floor of the nose is never lower than this (it is nearly level)
 
 
@@ -72,12 +72,16 @@ def surface(line, table, h=0.5, log=print):
     s, arc = to_line(M, A)                                    # s: how far in from the line the teeth stand on
     cy = np.interp(arc, mid, table["crest y"])
     sb = np.interp(arc, mid, NECK_HALF) + 1.3                 # the tooth's own half thickness and 1.3 mm of bone on its tongue side
+    # (both are read off the nearest tooth, and on the broad, round arch the nearest tooth changes along a V from behind the incisive
+    # fossa to the canines: from the middle incisors' gum, 1.7 mm lower, to the canines'. Read so, the roof stepped along that V;
+    # they are made to change smoothly, over some 4 mm)
+    cy = ndimage.gaussian_filter(cy, 16.0); sb = ndimage.gaussian_filter(sb, 16.0)
     hind = sdf.spline(np.column_stack([np.array([tuple(A[-1])] + HIND, float), np.zeros(len(HIND) + 1)]), 0.3)[:, :2]
     half = np.concatenate([A, hind[1:]])
     reg = M.region(np.concatenate([half, half[-2:0:-1] * np.array([-1.0, 1.0])]))
     # ---- the vault: level at the gum, a steep wall, a nearly level roof
-    L = np.interp(M.V, [44, 70, 80, 92], [6.5, 7.0, 8.5, 9.5])
-    R = np.interp(M.V, [42, 50, 66, 72, 78, 84, 90, 96], [11.2, 11.8, 12.2, 11.6, 10.2, 8.4, 6.6, 5.2])
+    L = np.interp(M.V, [44, 70, 80, 91], [6.5, 7.0, 8.5, 9.5])
+    R = np.interp(M.V, [42, 50, 66, 72, 78, 83, 89, 95], [11.2, 11.8, 12.2, 11.6, 10.2, 8.4, 6.6, 5.2])
     t = np.clip((s - sb) / L, 0.0, 1.0)
     Yb = cy + 0.05 + R * (1.0 - (1.0 - t) ** 2.2) + 1.5 * smoothstep((s - sb - L) / 9.0)      # (the roof is not level from side to side: it rises a little more to the midline)
     # behind the last molar the tooth-bearing process ends rounded: its under side rises to the palatine bone's pyramidal process,
@@ -151,8 +155,8 @@ def build(F, line, table, log=print):
     Mf, rf = foramina.outline_map(foramina.fair(pear, 0.2), cell=0.2, margin=3.0)
     ysf = M.sample(Yb, Mf.U, Mf.V)
     F.cut(foramina.Opening(Mf, rf, ysf, 6.5, rim=0.6 * np.ones(Mf.U.shape), mouth=2.4, taper=0.2, lean=(0.0, -0.3)), 0.5)
-    yf = at(M, Yb, 0.0, 84.5)
-    F.cut(sdf.Tube(np.array([(1.0, yf + 3.5, 84.2), (1.9, yf + 7.5, 82.8), (2.7, yf + 13.0, 80.6)]), 0.85), 0.4)
+    yf = at(M, Yb, 0.0, 83.5)
+    F.cut(sdf.Tube(np.array([(1.0, yf + 3.5, 83.2), (1.9, yf + 7.5, 81.8), (2.7, yf + 13.0, 79.6)]), 0.85), 0.4)
     # greater palatine foramen: an oval longer front to back, its canal running up and a little back; open forward into the groove
     c = np.array(FORAMEN); oval = foramina.ragged(c + np.array(foramina.ROUNDISH) * np.array([1.3, 2.35]), 53, 0.1, n=9)
     Mg, rg = foramina.outline_map(oval, cell=0.2, margin=3.0)
