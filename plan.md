@@ -4054,6 +4054,17 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     square-edged block shows at the incisor sockets' front rim in the
     bone-only view; the lower canine's tip stays 0.9 mm short of the
     upper teeth.
+    Repair 2 (mandible2.py, mandible4.py), accepted; task closed: the
+    groove and ripples on the cheek face are gone (root swellings are
+    one long low swelling; the wall thins in one smooth taper), at the
+    cost of breadth: 66.8 mm at the first molar, 0.8 over the bar,
+    taken because a clean surface matters more. The incisor sockets'
+    front rim is thin and scalloped with pointed septa. The lower
+    canine now stands 0.25 mm from the upper teeth. Bite, rows, joint
+    unchanged. Open, small: a square-edged block on the tongue side at
+    the midline between the central incisor sockets (seen in the left
+    three-quarter bone-only view; may be the mirror seam or the view's
+    own cut, to be checked first); make.py line 164.
     Task C, repair 1 (head and neck accepted; task closed): the ring is
     gone. Each section under the head is solved to silhouette targets
     from Fig. 176 and 177: the hind edge runs straight into the head,

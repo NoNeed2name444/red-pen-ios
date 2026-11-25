@@ -229,7 +229,9 @@ def near_abs(M, pts, r):
     return np.exp(-(d / r) ** 2)
 
 
-WALL_MOLAR = 0.0                 # (Repair 1) the cheek wall's extra thickness over the first and second molars' roots (1.3 elsewhere); there the wall is 0.6 mm, 0.8 elsewhere
+RIM_FRONT = 0.65
+LIFT_W, LIFT_S = 41, 12.0         # (Repair 2) the cheek face's lift over the roots: one long low swelling along the row
+WALL_MOLAR = 0.35                # (Repairs 1-2) the cheek wall's extra thickness over the first and second molars' roots (1.3 elsewhere); there the wall at the margin is 0.6 mm, 0.8 elsewhere
 
 def crest_line(S):
     """The alveolar margin's height over s (|s|, mm along the sheet): scalloped as a jaw's is. Over the middle of each socket the
@@ -239,7 +241,7 @@ def crest_line(S):
     fr = [f for f in teeth.packed(M2.LOWER_LINE, M2.LOWER_T, False) if f["side"] == "L"]
     sc = np.array([float(S.sn(f["position_mm"][0], f["position_mm"][2])[0]) for f in fr])
     yc = np.array([float(f["position_mm"][1]) for f in fr])
-    rise = [0.12, 0.12, 0.16, 0.2, 0.24, 0.22, 0.2, 0.16]                # at the midline, then between tooth k and k + 1 (more and the narrow
+    rise = [0.45, 0.45, 0.35, 0.2, 0.24, 0.22, 0.2, 0.16]   # (Repair 2: the front septa rise to points, the rim rounded more below)                # at the midline, then between tooth k and k + 1 (more and the narrow
                                                                      # septa between the front teeth stood up as a row of spikes)
     wob = np.random.default_rng(1918).uniform(-0.1, 0.1, 2 * len(fr) + 2)
     ss, yy = [0.0], [yc[0] + rise[0] + wob[0]]
@@ -491,7 +493,7 @@ def maps(S, log=print):
             i, j = M.ij(sg * sv, Pw[:, 1]); i, j = np.round(i).astype(int), np.round(j).astype(int)
             ok = (i >= 0) & (i < M.nu) & (j >= 0) & (j < M.nv)
             np.maximum.at(need_out, (i[ok], j[ok]), (nv + wall_out)[ok]); np.minimum.at(need_in, (i[ok], j[ok]), (nv - wall)[ok])
-    lift = ndimage.gaussian_filter(ndimage.maximum_filter(np.maximum(need_out - outer, 0.0), (21, 17)), (8.0, 5.0))   # (broad: a narrow one read as a pimple; Repair 1: longer along the row, no groove between the premolar's and the molar's swellings)   # (broad: a narrow one read as a pimple)
+    lift = ndimage.gaussian_filter(ndimage.maximum_filter(np.maximum(need_out - outer, 0.0), (LIFT_W, 17)), (LIFT_S, 5.0))   # (broad: a narrow one read as a pimple; Repair 1: longer along the row, no groove between the premolar's and the molar's swellings)   # (broad: a narrow one read as a pimple)
     sink = ndimage.gaussian_filter(ndimage.maximum_filter(np.maximum(ib - need_in, 0.0), 17), 5.0)
     log("jaw sheet: to clear the roots the cheek-side face is lifted by up to %.1f mm and the tongue-side by up to %.1f" % (lift.max(), sink.max()))
     outer = outer + 1.1 * lift
@@ -604,6 +606,10 @@ def sockets(F, frames, yrim, S, wall=1.5, gap=0.3):
     win = tuple(slice(int(a), int(b)) for a, b in zip(lo_, hi_))
     A = F.D[win].astype(np.float32)
     G = ndimage.gaussian_filter(np.clip(A, -20, 20), 0.45 / h, mode="nearest")
+    # (Repair 2) round the front teeth's rim more: their septa and lips met the sockets in square-edged blocks
+    G2 = ndimage.gaussian_filter(np.clip(A, -20, 20), RIM_FRONT / h, mode="nearest")
+    X_, Y_, Z_ = np.broadcast_arrays(*F.coords(win)); wf = smoothstep((14.0 - np.abs(S.sn(X_, Z_)[0])) / 4.0)
+    G = G * (1 - wf) + G2 * wf
     X, Y, Z = np.broadcast_arrays(*F.coords(win))
     dy = Y - yrim(S.sn(X, Z)[0])
     wb = np.clip((dy + 4.0) / 2.0, 0, 1) * np.clip((3.0 - dy) / 1.5, 0, 1); wb = wb * wb * (3 - 2 * wb)

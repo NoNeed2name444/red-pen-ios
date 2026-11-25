@@ -28,10 +28,10 @@ LOWER_LINE = [(0, 88.3), (10.2, 86.1), (14.8, 83.8), (18.9, 80.9), (21.9, 76.4),
 # (Repair 1) the premolars and molars stood up to 1.9 mm short of the upper row with the jaw shut: each is raised, with its
 # bone, until its cusps meet the upper ones (the least gap 0.0 to 0.1 mm); the canine 1.5 mm (its tip still short of
 # the upper teeth), so that the margin climbs evenly from the incisors to the premolars; the incisors as they were.
-LOWER_T = dict(L.LOWER, **{"crest y": [-62.8, -63.2, -63.5, -61.0, -61.1, -59.1, -58.1, -57.4]})
+LOWER_T = dict(L.LOWER, **{"crest y": [-62.8, -63.2, -62.9, -61.0, -61.1, -59.1, -58.1, -57.4]})
 
 # matched stations from the midline back: the middle of the tooth-bearing margin, and the lower border under it
-T = [(0, -62.8, 86.8), (5.5, -63.0, 86.0), (11.8, -63.1, 84.6), (17.4, -61.3, 81.7), (21.9, -61.3, 76.0),
+T = [(0, -62.8, 86.8), (5.5, -63.0, 86.0), (11.8, -62.5, 84.6), (17.4, -61.3, 81.7), (21.9, -61.3, 76.0),
      (25.1, -59.3, 67.4), (27.0, -58.7, 58.0), (28.2, -57.8, 48.9), (29.7, -57.4, 40.2),
      (33.5, -51.0, 31.5), (40.0, -44.0, 27.0)]                 # the last two climb the ramus
 # Seen from below the base is a V with a rounded point, not a U: from the chin's tubercles the two halves run back and outward
