@@ -154,6 +154,12 @@ def mastoid(F, log=print):
             (52.5, -29.0, -14.5), (51.8, -30.2, -13.3)]
     F.add(Tube(spline(CONE, 0.5), [(0, 9.4), (0.18, 9.2), (0.4, 8.1), (0.55, 7.1), (0.7, 6.5), (0.82, 5.6), (0.92, 4.6), (1, 3.9)],
                [(0, 6.9), (0.18, 6.5), (0.4, 5.7), (0.55, 5.1), (0.7, 4.9), (0.82, 4.1), (0.92, 3.5), (1, 3.1)], up=(0, 0.22, 1.0)), 3.2, keep=4)
+    # where the slab runs out into the cone its front border sank in a shallow dent 23 to 25 mm below the plane: filled
+    F.add(Ellipsoid((54.6, -24.0, -14.6), (3.2, 3.6, 2.8)), 2.2, keep=4)
+    # the notch's lateral lip: Fig. 187 draws it at x 46 where the notch begins (z -14); the cone's front-inner foot is filled out
+    # toward it, low down and on the medial side only (the side outline is not touched)
+    F.add(Ellipsoid((48.9, -27.2, -14.3), (1.9, 3.4, 2.6)), 1.4, keep=4)
+    mastoid_rough(F, CONE)
     # the mastoid foramen: a small oblique canal through the bone near its hind border, in front of the occipitomastoid suture
     # (Gray, p. 141: "Near the posterior border of this region is the mastoid foramen"); it opens on the surface as an oval
     # with a short groove leading from it upward and backward (the vein's and the artery's way), not as a punched round hole
@@ -169,6 +175,93 @@ def mastoid(F, log=print):
     tip = min(MASTOID_SIDE, key=lambda p: p[1])
     log("mastoid process: tip %.1f mm below the Frankfurt plane, %.1f behind the ear hole's upper edge; a cone flattened from side to side, %.1f to %.1f mm across at 26 and 22 mm below the plane; outer face out to x %.1f"
         % (-tip[1], -tip[0], 9.4, 11.2, float(xo[reg < 0].max())))
+
+
+def _frame(t, n):
+    """Columns: t made square to n, n, and their cross."""
+    n = n / np.linalg.norm(n); t = t - n * (t @ n); t = t / np.linalg.norm(t)
+    return np.column_stack([t, n, np.cross(t, n)])
+
+
+def mastoid_rough(F, axis, seed=431):
+    """The mastoid's outer and hind face are rough with the attachments of the sternocleidomastoid, splenius capitis and
+    longissimus capitis (Fig. 187 hatches the outer face down to the tip). Low ridges running mostly along the process, some across, with pits between
+    them, of mixed sizes, thickest toward the tip and the hind border; none on the medial face (the notch's wall)."""
+    rng = np.random.default_rng(seed)
+    L = spline(np.array(axis, float), 0.5); n_ = len(L)
+    def surf(c, d):
+        r = np.arange(0.0, 14.0, 0.2)
+        P = c[None, :] + r[:, None] * d[None, :]
+        dd = sdf.sample_field(F.D, F.lo, F.h, P)
+        k = np.nonzero((dd[:-1] < 0) & (dd[1:] >= 0))[0]
+        return P[k[-1]] if len(k) else None
+    def sample(bias_tip):
+        t = rng.beta(2.2, 1.2) if bias_tip else rng.uniform(0.0, 1.0)
+        i = min(int(t * (n_ - 1)), n_ - 2); c = L[i]; ax = L[i + 1] - L[i]; ax /= np.linalg.norm(ax)
+        th = rng.uniform(0.05, 1.25) * np.pi / 2                # from the lateral face (0) round the hind border (pi/2), not onto the notch
+        e1 = np.array([1.0, 0.0, 0.0]); e2 = np.array([0.0, -0.25, -1.0])
+        d = np.cos(th) * e1 + np.sin(th) * e2; d = d - ax * (d @ ax); d /= np.linalg.norm(d)
+        p = surf(c, d)
+        return (p, d, ax, t, th) if p is not None and -31.0 < p[1] < -16.0 else None      # (not on the blunt tip itself: it keeps its place)
+    ridges = pits = 0
+    for _ in range(230):
+        s = sample(True)
+        if s is None:
+            continue
+        p, n, ax, t, th = s
+        w = 0.55 + 0.35 * t + 0.25 * np.clip(th / (np.pi / 2), 0, 1.2)          # stronger toward the tip and the hind border
+        if rng.uniform() < 0.62:
+            ang = rng.normal(0.0, 0.55) if rng.uniform() < 0.75 else rng.uniform(1.0, 1.6)
+            tt = np.cos(ang) * ax + np.sin(ang) * np.cross(n, ax)
+            r = np.array([rng.uniform(1.1, 3.2), rng.uniform(0.5, 0.85), rng.uniform(0.3, 0.65)])
+            hgt = rng.uniform(0.1, 0.28) * w
+            F.add(Ellipsoid(p + n * (hgt - r[1]), r, _frame(tt, n)), 0.45)
+            ridges += 1
+        else:
+            r = rng.uniform(0.3, 0.55) * np.array([rng.uniform(1.0, 1.8), 1.0, 1.0])
+            tt = rng.normal(size=3)
+            F.cut(Ellipsoid(p + n * (r[1] - rng.uniform(0.12, 0.28) * w), r, _frame(tt, n)), 0.25)
+            pits += 1
+    return ridges, pits
+
+
+def behind_crest(F):
+    """From below, the tympanic plate is one curved plate with a single crest: behind the crest the plate's under face rises
+    steeply and then slopes back down onto the mastoid's front and the ground round the stylomastoid foramen, with no second
+    ridge and no flat floor between (the outer end's lower outline, extruded inward, stood 4 mm behind the crest as a second
+    rail). Measured on the field as it stands: the crest's line (the lowest bone 4 mm either side of z -1.5 at each x), and the
+    under face behind it; then a new under face is set there and the bone is filled up to it or cut back to it."""
+    M = Map(42.0, 55.0, -13.0, 1.0, 0.25)                      # u = x, v = z
+    X, Zm = M.U, M.V
+    ys = np.arange(-30.0, -10.0, 0.25)
+    P = np.column_stack([np.repeat(X.ravel(), len(ys)), np.tile(ys, X.size), np.repeat(Zm.ravel(), len(ys))])
+    dd = sdf.sample_field(F.D, F.lo, F.h, P).reshape(X.size, len(ys)) < 0
+    ye = np.where(dd.any(1), ys[np.argmax(dd, axis=1)], -10.0).reshape(X.shape)     # the under face: first bone met from below
+    band = (Zm > -4.0) & (Zm < 0.5)
+    yb = np.where(band, ye, 0.0)
+    jc = np.argmin(yb, axis=1); zc = M.V[0][jc]; yc = yb[np.arange(M.nu), jc]
+    zc = ndimage.gaussian_filter1d(zc, 1.5); yc = ndimage.gaussian_filter1d(yc, 2.0)
+    s = zc[:, None] - Zm                                        # how far behind the crest
+    wob = uneven(M, 441, 2.0); wob2 = uneven(M, 442, 0.8)
+    rise = (3.6 + 0.6 * wob) * smoothstep(s / (2.0 + 0.3 * wob2))                         # the steep back of the crest
+    reach = np.interp(X, [42.0, 45.0, 49.0, 52.0, 55.0], [5.5, 7.0, 6.0, 7.5, 5.0]) + 0.8 * wob   # where it has come down again
+    fall = smoothstep((s - 2.2) / (reach - 2.2))
+    yt = yc[:, None] + rise + 0.25 * wob2
+    yt = yt * (1 - fall) + ye * fall
+    w = smoothstep((s - 0.5) / 0.8) * smoothstep((X - 42.6) / 1.0) * smoothstep((52.5 - X) / 2.5)   # (the outer end, under the canal, is left as it was)
+    keep = ((ye < -10.5) & (ye > -20.5)).astype(float)          # only under bone, and off the mastoid's front (its face falls steeply there)
+    w = w * np.clip(ndimage.gaussian_filter(keep, 0.6 / M.cell) * 2.0 - 1.0, 0.0, 1.0)
+    yt = ye * (1 - w) + yt * w
+    yt = np.clip(ndimage.gaussian_filter(yt, 0.5 / M.cell), -23.0, -12.6)     # (the maps stay in the plate's band, so the solids' reach does too)
+    ye_raw = ye; ye = np.clip(ye, -23.0, -12.6)
+    reg = np.where((w > 0.02) & (s < reach + 1.0), -1.0, 1.0)
+    reg = ndimage.gaussian_filter(reg, 0.5 / M.cell)
+    F.cut(Slab(M, (0, 2, 1), yt, np.full(X.shape, -23.0), reg, round=0.5), 0.5)       # (no deeper than the old rail: the field below is left alone)
+    # filled only where the trough was, away from the mastoid's steep front (there the smoothed face would hang a fin beside it)
+    wf = w * smoothstep((reach - 0.8 - s) / 1.5)
+    top = np.minimum(np.full(X.shape, -12.5), ye + 4.0)
+    bot = np.where((ye_raw < -20.5) | (ye_raw > -10.5), top + 1.0, yt * wf + np.maximum(yt, ye + 0.3) * (1 - wf))   # (nothing where there was no plate)
+    F.add(Slab(M, (0, 2, 1), top, bot, reg, round=0.5), 0.5)
 
 
 def ear_hole(F, log=print):
@@ -204,19 +297,23 @@ def ear_hole(F, log=print):
     # straight plate leaning back to z -6 at the canal, with a rounded bar of a border; its inner end ran on past the root,
     # and where it met the styloid the two webbed into a fan.) The border is thin and rough: its height and thickness change
     # every two or three millimetres, no two stretches alike.
-    TP = [(53.4, -12.4, -3.4), (51.6, -12.7, -2.2), (49.8, -12.9, -1.6), (48.0, -13.0, -1.35), (46.2, -13.1, -1.25), (44.4, -13.3, -1.3),
-          (42.9, -13.5, -1.5), (41.9, -13.7, -1.25), (41.0, -13.9, -0.6), (40.1, -14.0, 0.2), (39.2, -13.9, 0.9),
+    # Seen from below the crest is one line that wanders forward and back by a millimetre over every 3 to 6 (it was ruled
+    # straight, and with the outer end's lower outline 4 mm behind it read as two rails), and it is thicker and rougher out at
+    # the canal than in at the root, where it thins and then splits round the styloid
+    TP = [(53.4, -12.4, -3.4), (51.6, -12.7, -2.2), (49.8, -12.9, -2.3), (48.0, -13.0, -1.35), (46.2, -13.1, -1.25), (44.4, -13.3, -2.0),
+          (42.9, -13.5, -1.35), (41.9, -13.7, -1.0), (41.0, -13.9, -0.6), (40.1, -14.0, 0.2), (39.2, -13.9, 0.9),
           (38.4, -13.7, 1.9), (37.6, -13.5, 2.9)]          # (and on inward toward the carotid canal, as it was)
-    TPa = [(0, 5.1), (0.15, 5.45), (0.31, 5.3), (0.45, 5.75), (0.55, 5.6), (0.67, 6.05), (0.76, 6.35), (0.83, 5.7), (0.92, 5.0), (1, 4.8)]
-    TPb = [(0, 1.5), (0.18, 1.25), (0.29, 1.38), (0.44, 1.1), (0.58, 1.3), (0.68, 1.2), (0.77, 1.45), (0.88, 1.2), (1, 1.3)]
+    TPa = [(0, 5.1), (0.12, 5.45), (0.24, 5.45), (0.36, 5.8), (0.46, 5.6), (0.55, 5.75), (0.67, 6.15), (0.76, 6.4), (0.83, 5.7), (0.92, 5.0), (1, 4.8)]
+    TPb = [(0, 1.5), (0.12, 1.3), (0.22, 1.6), (0.34, 1.35), (0.46, 1.2), (0.58, 1.05), (0.68, 1.0), (0.77, 1.3), (0.88, 1.1), (1, 1.2)]
     F.add(Tube(spline(TP, 0.6), TPa, TPb, up=(0.0, 0.985, 0.17), taper=-0.2), 1.8, keep=4)
+    behind_crest(F)
     # the petrotympanic fissure: a fine cleft across the fossa's back wall where the tympanic plate meets the squama, 5 to 6 mm
     # below the fossa's roof, behind the articular part. Found on the wall as it stands (the first bone met going forward at
     # that height), then cut as a wavering slit 0.7 mm wide and 1.2 deep that comes and goes (Fig. 187: "Petrotympanic fissure")
     fis = []
     zz = np.arange(-6.0, 9.0, 0.25)
-    for xq in np.arange(52.0, 41.4, -0.7):
-        yq = -4.6 + 0.3 * np.sin(xq * 0.55 + 0.6) + 0.12 * np.sin(xq * 1.3 + 2.0)
+    for xq in np.arange(51.0, 41.4, -0.5):
+        yq = np.interp(xq, [41.4, 44.0, 47.0, 50.0, 52.0], [-3.7, -4.1, -4.7, -5.1, -5.3]) + 0.35 * np.sin(xq * 0.9 + 0.6) + 0.15 * np.sin(xq * 2.3 + 2.0)
         dq = sdf.sample_field(F.D, F.lo, F.h, np.column_stack([np.full_like(zz, xq), np.full_like(zz, yq), zz]))
         k = np.nonzero((dq[:-1] < 0) & (dq[1:] >= 0) & (zz[:-1] > -4.0))[0]       # the back wall's face: the first edge met going forward
         if len(k) and zz[k[0]] < 3.0:                      # only on the back wall, never forward into the fossa the jaw's head works in
@@ -226,8 +323,15 @@ def ear_hole(F, log=print):
     if len(fis) > 4:
         fis = np.array(fis); fis[:, 2] = ndimage.gaussian_filter1d(fis[:, 2], 2.5, mode="nearest")
         n = len(fis); s = np.linspace(0, 1, n)
-        F.cut(Tube(spline(fis, 0.4), [(0, 0.3), (0.2, 0.42), (0.5, 0.36), (0.75, 0.44), (1, 0.3)],
-                   [(0, 0.3), (0.15, 0.85), (0.35, 1.0), (0.55, 0.7), (0.7, 0.95), (0.88, 0.75), (1, 0.3)], up=(0, 1, 0)), 0.3)
+        # a crack, not a ruled groove: it curves (lower out at the canal, higher in toward the root, so it is not parallel to the
+        # crest below), its width comes and goes, and it is broken in two places where the plate and the squama touch
+        cuts = [(0.0, 0.42), (0.47, 0.71), (0.76, 1.0)]
+        for a, b in cuts:
+            seg = fis[int(a * (n - 1)):int(np.ceil(b * (n - 1))) + 1]
+            if len(seg) < 3:
+                continue
+            F.cut(Tube(spline(seg, 0.3), [(0, 0.18), (0.3, 0.34), (0.6, 0.26), (1, 0.16)],
+                       [(0, 0.25), (0.2, 0.7), (0.5, 0.9), (0.8, 0.6), (1, 0.25)], up=(0, 1, 0)), 0.2)
     # the post-glenoid process: a small tongue of the squama hanging between the opening and the jaw's socket
     F.add(Ellipsoid((57.6, -1.2, 2.4), (3.4, 1.9, 1.7)), 1.2, keep=4)
     # the canal: the traced mouth carried inward, a little forward and upward, narrowing

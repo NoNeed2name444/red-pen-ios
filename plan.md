@@ -3894,6 +3894,11 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     styloid's tip by 11 mm; Fig. 188 kept. Still wrong: the tympanic
     plate reads from below as two straight parallel rails, the fissure
     is a straight groove, the mastoid is smooth from below.
+    Repair 1 (not accepted, kept): one crest instead of two rails and
+    the trough filled, the fissure a fine broken curving crack, the
+    notch's lip within 1.5 mm. Wrong: the crest waves evenly like a
+    drawn wave, and the mastoid's new roughness is warts and a hooked
+    pit instead of low ridges. One repair round is left.
 - [ ] F8. Mesh checks, the neck and down, the muscles, the woman, and where
   the from-scratch model goes in the app.
 
