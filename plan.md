@@ -3770,6 +3770,18 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     Next try is a new task, not a third repair: build the body from
     cross-sections taken across the pulley, not from the plate outlines'
     common solid.
+    Talus, later on 25 Nov: accepted against the bar after that new task
+    and its two repair rounds. The body is built from cross-sections; the
+    pulley surface's own border is traced from the line inside Fig. 270
+    (not the silhouette), so from above it is a wedge whose front-to-back
+    width ratio is 1.37 against the plate's 1.36, with the two ankle
+    facets showing beside it as strips of the plate's widths. Outlines:
+    mean gap 0.64 to 0.79 mm. The check pictures now use one side light
+    with nothing clipped to white; the old ones flattened the top. Open:
+    the pulley's front-lateral corner is sharp; the walls at the front
+    are near vertical because the plate shows only a 1 mm strip there;
+    the medial tubercle still reads rather round; softer than the
+    engravings overall.
     Cuboid, 25 Nov: accepted against the bar after two repair rounds
     (Fig. 274 mean gap 0.51 mm, Fig. 275 0.52 mm). The surface for the
     heel bone has its rim, the tuberosity its oval facet, the rough bone

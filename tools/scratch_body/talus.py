@@ -48,14 +48,16 @@ TALUS = [
 pm.PLATES.setdefault("talus", TALUS)          # for the dev tools (trace_plates.py, fit_plates.py, zoom_plates.py)
 
 # Read off the plates under a pixel grid (each plate's own pixels).
-# Fig. 270, from above: the trochlea's lateral border (where it turns down into the facet for the lateral malleolus and,
-# behind, into the narrow facet for the inferior transverse ligament) and its medial border, as (row, column)
-TROCH_LAT_270 = [(165, 142), (180, 140), (205, 140), (255, 144), (280, 153), (305, 170), (318, 185), (328, 200)]
-# the whole trochlea as Fig. 270 draws it (column, row): wider in front, its lateral border curved, its hind corners
-# rounded, its front border notched where the neck's upper surface runs back into it
-TROCH_270 = [(150, 172), (140, 182), (140, 205), (144, 255), (153, 280), (170, 305), (185, 318), (200, 327), (230, 330),
-             (260, 326), (280, 318), (292, 305), (298, 280), (298, 220), (296, 172), (285, 160), (270, 168), (258, 177),
-             (245, 168), (225, 158), (200, 155), (175, 160)]
+# Fig. 270, from above: the trochlea's own border (column, row), the engraved line inside the silhouette that bounds
+# the articular surface (read on the 1918 book's 300 dpi page, PDF page 266, brought into the plate's pixels): wider
+# in front than behind, the medial border nearly straight, the lateral one the longer and curved. Outside it, between
+# the lateral border and the silhouette, the plate shows the strip "for lateral malleolus" (the facet seen from above:
+# the wall leans out below the border) and behind it the narrow one "for inferior transverse ligament"; medially a
+# narrower strip "for medial malleolus" toward the front. Its front border is notched where the neck's upper surface
+# runs back into it.
+TROCH_EDGE_270 = [(150, 172), (140, 182), (139, 205), (141, 232), (145, 250), (152, 263), (161, 276), (168, 288), (175, 299),
+                  (187, 312), (200, 322), (215, 329), (230, 331), (260, 326), (280, 318), (292, 305), (297, 280), (297, 220),
+                  (296, 172), (285, 160), (270, 168), (258, 177), (245, 168), (225, 158), (200, 155), (175, 160)]
 # the small pits of the neck's rough upper surface, Fig. 270 (column, row)
 NECK_PITS_270 = [(240, 137), (255, 150), (265, 131), (270, 157), (285, 138), (275, 145), (245, 160), (265, 167), (231, 128),
                  (292, 127), (252, 128), (281, 152)]
@@ -178,14 +180,18 @@ def talus(h=0.4, log=print, relief=0.0, upto="all", poses=None, ink=foot.INK):
     #   curved and, behind, bevelled into the narrow facet for the inferior transverse ligament;
     #   the lateral wall, "a large triangular facet, concave from above downward, for articulation with the lateral
     #   malleolus", leaning out from the trochlea's border (where it starts upright) to the bone's outline at the facet's
-    #   lower border (Fig. 273), its apex on the lateral process (x follows the depth below the border to the power 1.7);
+    #   lower border (Fig. 273), its apex on the lateral process (x follows the depth below the border as 0.8 t + 0.2 t^2:
+    #   it leans out from the border itself, so from above the facet shows as a strip, as in Fig. 270);
     #   the medial wall: the pear-shaped facet for the medial malleolus (Fig. 272) nearly upright under the rounded
     #   medial border, broad in front and tapering behind; below and behind it the rough bone stands 1.6 mm further out.
     # Each section is a set of distances, met with rounded edges (_round_meet), held inside the four outlines with a
     # rounded meeting too, and eased into the rest of the bone in front (the neck) and behind (the posterior process).
-    u_top = _line(r2, TROCH_LAT_270); u_med = _line(r2, TROCH_MED_270)
+    tm = _mask(tr["Gray270_sdf"].shape, [TROCH_EDGE_270], 0.5) > 0.5
+    rows = np.arange(tm.shape[0]); has = tm.any(1)
+    lat = np.interp(rows, rows[has], np.argmax(tm, 1)[has].astype(float))           # the trochlea's lateral border per row
+    u_top = np.interp(r2, rows, ndi.gaussian_filter1d(lat, 2.0)); u_med = _line(r2, TROCH_MED_270)
     sil = tr["Gray270_sdf"].astype(np.float32) < 0
-    rows = np.arange(sil.shape[0]); first = np.where(sil.any(1), np.argmax(sil, 1), 400).astype(float)
+    first = np.where(sil.any(1), np.argmax(sil, 1), 400).astype(float)
     u_out = np.interp(r2, rows, ndi.gaussian_filter1d(ndi.minimum_filter1d(first, 5), 7.0))       # the lateral outline
     tox = lambda u: ((u[0] - v270["u0"] - p270[4]) * s270)[None, None, :]
     xl = tox(u_top); xm = tox(u_med); xo = tox(u_out) - 0.6                 # x of the two borders and of the outline
@@ -215,7 +221,8 @@ def talus(h=0.4, log=print, relief=0.0, upto="all", poses=None, ink=foot.INK):
     # (the turn is strongest behind the apex, under the triangle's hind edge, where the rough bone between the facet and
     # the posterior calcaneal surface faces back and down; under the apex the lateral process keeps its outline)
     wti = (0.55 + 0.9 * _bump(zz, 8.0, 12.0, 22.0, 27.0))[None, None, :] * _bump(zz, 5.0, 10.0, 30.0, 35.0)[None, None, :]
-    XL = xl + (xo - xl) * np.minimum(t, 1.0) ** 1.9 + (0.7 * wti - 1.0 * (1.0 - wti)) * np.maximum(t - 1.0, 0.0) * (ye - y_low)
+    tl = np.minimum(t, 1.0)
+    XL = xl + (xo - xl) * (0.8 * tl + 0.2 * tl ** 2) + (0.7 * wti - 1.0 * (1.0 - wti)) * np.maximum(t - 1.0, 0.0) * (ye - y_low)
     XL = ndi.gaussian_filter1d(XL, 0.9 / h, axis=1)      # (below its lower border the bone turns back in: a rounded ridge)
     wl = _bump(zz, 3.0, 9.0, 39.0, 44.0)[None, None, :]
     XL = XL + (xo - 8.0 - XL) * (1.0 - wl)
@@ -228,7 +235,7 @@ def talus(h=0.4, log=print, relief=0.0, upto="all", poses=None, ink=foot.INK):
     wob = ndi.gaussian_filter(np.random.default_rng(272).normal(0.0, 1.0, fm.shape[1:]), 1.3 / h)
     wob = (wob / max(float(np.abs(wob).max()), 1e-6))[None]
     fm = ndi.gaussian_filter(np.clip(1.6 * fm + 0.45 * wob, 0.0, 1.0), 0.6 / h); del wob
-    XM = xm - 0.4 + 0.08 * np.maximum(Hc - Yb, 0.0) + (2.9 + 6.0 * _ss((Zb - 36.0) / 5.0)) * (1.0 - fm) * _ss((Hc - 1.5 - Yb) / 2.5)
+    XM = xm - 0.4 + (0.08 + 0.14 * _ss((Zb - 22.0) / 6.0)) * np.maximum(Hc - Yb, 0.0) + (2.9 + 6.0 * _ss((Zb - 36.0) / 5.0)) * (1.0 - fm) * _ss((Hc - 1.5 - Yb) / 2.5)
     wm = _bump(zz, 4.0, 9.0, 41.0, 46.0)[None, None, :]
     XM = XM + 8.0 * (1.0 - wm)
     gy, gz = np.gradient(XM[0].astype(np.float32), h)
@@ -251,7 +258,6 @@ def talus(h=0.4, log=print, relief=0.0, upto="all", poses=None, ink=foot.INK):
     # in front of its border the upper surface falls away to the neck: the border as Fig. 270 draws it, notched in
     # the middle (the side outlines alone would leave it a straight edge across)
     # behind and medially it ends where its outline in Fig. 270 ends (the side outlines alone would square it off)
-    tm = _mask(tr["Gray270_sdf"].shape, [TROCH_270], 0.5) > 0.5
     dtro = (ndi.distance_transform_edt(~tm) - ndi.distance_transform_edt(tm)) * s270
     dtro = _read(ndi.gaussian_filter(dtro, 1.5), u2, r2)                   # mm outside the trochlea's outline, on the plan
     # (on the lateral side only at the two corners: between them the facet's own slope is the border)
