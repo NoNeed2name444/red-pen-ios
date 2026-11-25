@@ -12,15 +12,21 @@ import mandible as MB
 import skull, teeth
 
 # the line the lower teeth stand on, seen from above: (x, z) from the midline to behind the last molar
-LOWER_LINE = [(0, 89.9), (5.5, 88.6), (10.8, 85.6), (14.8, 80.5), (17.6, 74.0), (20.6, 65.0), (23.0, 56.0), (24.9, 47.0),
-              (26.4, 39.0), (27.6, 33.0)]
+LOWER_LINE = [(0, 91.4), (2.2, 91.3), (7.4, 90.4), (13.0, 87.6), (18.0, 82.6), (21.6, 76.0), (24.0, 67.4), (25.4, 57.0),
+              (26.0, 46.5), (26.4, 38.0), (26.9, 31.0)]
+# (task T-arch-lower) The owner, seen from above: the row was a narrow pointed V ("sokets arent in their right spots"); it is now
+# the wider, rounder U of Gray's lower arch (Fig. 997): 47 mm between the first molars' sockets (41 before), the molar rows
+# 6 degrees off the midline (13 before), the front a broad curve. The teeth stand in contact (teeth.packed), so where each
+# socket falls along the line is set by the crowns' own widths (the row runs about 3 % shorter than Gray's, as the upper one
+# does); the incisors stand 1.6 mm further forward, so that the upper incisors (skull2, as built) overlap them by 2.5 mm, and
+# every lower tooth stands inside its upper partner (0.4 to 3.7 mm).
 # the bone's margin at each tooth, set so that the crowns meet the upper teeth on the traced biting line
 # (from z 97, y -54.5 to z 52, y -49.6) with the front teeth behind and 1 to 2 mm above the upper ones' edges
 LOWER_T = dict(L.LOWER, **{"crest y": [-62.8, -63.2, -65.0, -62.9, -61.7, -60.2, -58.6, -57.6]})
 
 # matched stations from the midline back: the middle of the tooth-bearing margin, and the lower border under it
-T = [(0, -62.8, 89.9), (5.5, -63.0, 88.6), (10.8, -64.6, 85.6), (14.8, -63.2, 80.5), (17.6, -61.9, 74.0),
-     (20.6, -60.4, 65.0), (23.0, -59.2, 56.0), (24.9, -58.0, 47.0), (26.8, -57.4, 38.5),
+T = [(0, -62.8, 89.9), (5.6, -63.0, 89.4), (11.4, -64.6, 87.6), (16.3, -63.2, 84.0), (20.4, -61.9, 78.2),
+     (23.5, -60.4, 69.3), (25.1, -59.2, 60.1), (26.2, -58.0, 50.9), (27.4, -57.4, 42.2),
      (33.5, -51.0, 31.5), (40.0, -44.0, 27.0)]                 # the last two climb the ramus
 # Seen from below the base is a V with a rounded point, not a U: from the chin's tubercles the two halves run back and outward
 # nearly straight (about 27 degrees off the midline) to the angles. Under the premolars the base lies straight under the teeth;
@@ -32,8 +38,10 @@ T = [(0, -62.8, 89.9), (5.5, -63.0, 88.6), (10.8, -64.6, 85.6), (14.8, -63.2, 80
 # joint to angle 62) put the chin at 94 and the angle at 64: the border then slopes 21 degrees (Downs' norm for the mandibular
 # plane is 21.9) and the angle opens to about 117, inside the "110 to 120 degrees" Gray gives for the adult (p. 177). The
 # body gains height in front (31 mm at the chin for 27) and keeps what it had under the last molar.
-B = [(0, -94.2, 86.2), (6.2, -94.2, 85.9), (10.6, -93.7, 82.4), (15.0, -91.8, 74.6), (19.8, -88.2, 64.5),
-     (25.2, -84.2, 54.0), (31.6, -79.4, 42.0), (37.6, -74.9, 31.0), (42.0, -71.0, 22.0),
+# (T-arch-lower) Under the wider row the base is widened with it (1 to 3 mm a side from the canine to the second molar,
+# none from the angle back): from below a rounder U, and the tongue-side face no longer steps from the base to the margin.
+B = [(0, -94.2, 86.2), (6.4, -94.2, 85.9), (12.0, -93.7, 82.4), (18.0, -91.8, 74.6), (24.4, -88.2, 64.5),
+     (29.3, -84.2, 54.0), (34.3, -79.4, 42.0), (38.5, -74.9, 31.0), (42.0, -71.0, 22.0),
      (44.5, -67.6, 16.5), (45.2, -63.6, 12.8)]                 # breadths: the usual ones (about 50 between the chin's foramina, 98 across the angles)
 # the ramus: a plane closing in toward the chin and leaning in toward the angle (120 across the condyles, 98 across the angles);
 # its outline in (z, y) as traced
@@ -55,6 +63,8 @@ def use():
     """Put these lines in place of mandible.py's own."""
     MB.T, MB.B, MB.O, MB.ES, MB.ET, MB.OUTLINE, MB.CONDYLE = T, B, O, ES, sdf.unit(ET - (ET @ ES) * ES), OUTLINE, CONDYLE
     S = [list(q) for q in SECTIONS0]
+    for i, k in ((1, 1.06), (2, 1.10), (3, 1.10)):           # (T-arch-lower) canine to molars a little fuller: the wider row's roots stood
+        S[i] = [(o * k, u) for o, u in S[i]]                  # 2.5 to 3 mm out of the faces before they were lifted over them
     for i, k in ((5, 0.72), (6, 0.78)):                      # the two sections that climb the ramus: a ramus is 5 to 6 mm thick, not 7
         S[i] = [(o * k, u) for o, u in S[i]]
     MB.SECTIONS = S

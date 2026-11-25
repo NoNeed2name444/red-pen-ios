@@ -69,7 +69,8 @@ LOWER = {"width": [5.0, 5.5, 7.0, 7.0, 7.0, 11.0, 10.5, 10.0], "crown": [9.0, 9.
 # the two arches seen from above: (x, z) of the middle of the alveolar crest, midline to behind the last molar
 UPPER_ARCH = [(0, 93.8), (5.1, 93.6), (11.0, 91.8), (15.3, 88.2), (18.4, 82.7), (21.6, 76.1), (23.5, 68.3), (25.0, 59.5),
               (26.1, 50.1), (27.2, 40.4)]       # the upper one as skull2.UPPER_LINE (Gray 1918, Fig. 996)
-LOWER_ARCH = [(0, 89.8), (6.5, 88.3), (13.5, 84.5), (18.6, 78.6), (21.8, 72.0), (24.6, 62.5), (26.8, 52.0), (28.8, 42.0), (30.5, 35.0)]
+LOWER_ARCH = [(0, 91.4), (2.2, 91.3), (7.4, 90.4), (13.0, 87.6), (18.0, 82.6), (21.6, 76.0), (24.0, 67.4), (25.4, 57.0),
+              (26.0, 46.5), (26.4, 38.0), (26.9, 31.0)]       # the lower one as mandible2.LOWER_LINE (Gray 1918, Fig. 997)
 
 # ---- neck, head frame, mm -----------------------------------------------------------------------
 # each vertebra: body height (front), disc below it, depth and width of the body, forward tilt of

@@ -35,7 +35,9 @@ import skull, teeth, surface
 from mandible3 import Sheet, Ribbon, sheet, smin, gauss, near_line
 
 BACK_L, OUT_S0, OUT_L = 58.0, 28.0, 80.0         # the lengths over which body passes into ramus (tongue side, cheek side)
-BACK_Q0, BACK_TOP = 0.45, 0.45      # (task C) below this fraction of the body's height the tongue-side face is given up over BACK_L / 2: carried on
+BACK_Q0, BACK_TOP = 0.45, 0.25      # (task C; T-arch-lower: 0.45 to 0.10, below) below this fraction of the body's height the tongue-side face is given up over BACK_L / 2: carried on
+# (T-arch-lower: at the margin's height it was carried 55 mm back, nearly to the hind border: from below and from inside a
+# shelf ran under the angle. With the body now as wide as the ramus behind the molars there is less to bridge: 43 mm.)
 # over most of BACK_L down to the lower border, the body's face stood on the angle's inner side as a long smooth swelling
 # (seen from below and behind), where Fig. 177 draws a flat plate with the medial pterygoid's oblique ridges
 def _clothoid(n=4001):
@@ -446,12 +448,12 @@ def maps(S, log=print):
     # mental protuberance: a triangle, its apex up toward the incisors, its base the lower border between the two tubercles
     hw = 11.0 * np.clip(1.0 - (M.V - (yc + 2.5)) / 14.0, 0.0, 1.0) + 0.5
     tri = ndimage.gaussian_filter(smoothstep((hw - s) / 3.5) * smoothstep((M.V - (yc + 1.0)) / 5.0) * smoothstep((yc + 18.0 - M.V) / 5.0), 2.4)
-    outer = outer + 1.4 * tri
+    outer = outer + 2.4 * tri                       # (T-arch-lower: 1.4 to 2.4, and the fill above 3.6 to 3.0: with the incisors 1.6 mm further forward the chin stood behind Fig. 176)
     outer = outer + 1.0 * G2((9.8, yc + 5.0), (3.0, 2.6)) + 0.3 * G2((11.4, yc + 3.8), (1.8, 1.5))   # mental tubercles (a little lumpy)
     outer = outer - 0.12 * G2((0.0, yc + 2.8), (4.0, 2.8))                        # the protuberance's base, depressed in the centre
     outer = outer + stroke(M, [(0.0, yc + 12.5), (0.3, yc + 17.0), (-0.2, yc + 21.0), (0.1, float(yt(0.0)) - 2.0)], [1.2, 1.3, 1.3, 1.1], [0.2, 0.45, 0.4, 0.15], 0.25, 62)   # the symphysis's faint ridge above it
     # Gray 176: the symphysis stands upright under the incisors, the chin as far forward as the alveolar border, not set back under it
-    outer = outer + 3.6 * np.exp(-(s / 13.0) ** 2) * smoothstep((M.V - (yc - 1.0)) / 11.0) * smoothstep((yt(M.U) - 2.0 - M.V) / 7.0)   # (repair 1: from 1 mm under the border, not 4: the chin's underside rounds back)   # (no edge to it: a window starting at the border drew a shelf across the chin)
+    outer = outer + 3.0 * np.exp(-(s / 13.0) ** 2) * smoothstep((M.V - (yc - 1.0)) / 11.0) * smoothstep((yt(M.U) - 2.0 - M.V) / 7.0)   # (repair 1: from 1 mm under the border, not 4: the chin's underside rounds back)   # (no edge to it: a window starting at the border drew a shelf across the chin)
     outer = outer - 0.5 * G2((6.5, yc + 18.5), (5.0, 4.8))                       # incisive fossa, under the incisors' roots
     # the oblique line: faint in front, as Gray has it, and stronger toward the ramus, whose front border it becomes
     # (it runs on up into the ramus's front border, which now rises behind the third molar)
@@ -666,8 +668,9 @@ COND_HANDOVER_TOP = (-7.0, -10.5)   # (repair 1) and from here up to the head's 
 #   eased over an angle and a height: (amplitude, angle, angular spread, y, height spread)
 COND_MARKS = [(0.35, 12.0, 28.0, -7.6, 1.4),       # the lateral tubercle: a low swelling on the outer end, a little forward
               (-1.0, 115.0, 22.0, -10.8, 1.8),     # the pterygoid fovea: a shallow hollow on the front of the neck, under the inner half
-              (0.22, 58.0, 16.0, -11.0, 2.4),      # the ridges from the fore part and sides of the head, either side of the fovea,
-              (0.22, 158.0, 16.0, -11.0, 2.4)]     # fading down the neck
+              (0.22, 58.0, 16.0, -10.6, 1.6),      # the ridges from the fore part and sides of the head, either side of the fovea,
+              (0.22, 158.0, 16.0, -10.6, 1.6)]     # fading down the neck (T-arch-lower: by y -13; reaching on to y -16 they stood as two
+                                                   # soft lumps low on the neck's outer face)
 
 
 def condyle_sections(F, log=print):

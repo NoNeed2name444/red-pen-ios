@@ -3955,6 +3955,20 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     task), the palate ends 6 mm behind the third molar where Fig. 160
     has about 13 (moves the choanae; own task), lesser palatine
     foramina barely visible.
+    Lower tooth row and body (mandible2.py, mandible4.py, landmarks
+    LOWER_ARCH), partly accepted: round front and near-parallel molar
+    rows (front radius 16 to 24.4, rows 13.2 to 6.3 degrees each side,
+    first molars 40.9 to 47.1 mm apart), body widened to 64 mm at the
+    first molar (CT 64.7), upper row outside the lower all round,
+    overjet 2.5 mm, root cover better on seven of eight teeth, joint
+    and head unchanged, neck lumps gone. Not met: canines 23.7 mm
+    apart (target 27.2; Fig. 997 wider still) and sockets 1.5 to 3.6
+    mm from target, because the built teeth do not pack like Gray's
+    (front crowns flare, molars 12.1 mm long against 10 to 11); chin
+    gap 0.60 to 0.68; a softened ledge behind the third molar and a
+    long line on the inner face from below; the stretch behind the
+    third molar is 46.6 mm (CT 33 to 44). Next: tooth widths in
+    teeth.py, then both rows refitted through the packing.
     Task C, repair 1 (head and neck accepted; task closed): the ring is
     gone. Each section under the head is solved to silhouette targets
     from Fig. 176 and 177: the hind edge runs straight into the head,
