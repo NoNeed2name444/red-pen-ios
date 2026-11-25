@@ -316,6 +316,14 @@ def talus(h=0.4, log=print, relief=0.0, upto="all", poses=None, ink=foot.INK):
     lift = 3.0 * np.clip(1.0 - (sd / half) ** 2, 0.0, 1.0) * _ss((mpost - 0.2) / 0.5)
     lift = ndi.gaussian_filter(lift, 2.5 / h)
     D = D + lift[:, None, :] * _ss((los + 10.0 - Y) / 8.0)      # the underside moved up, its sides with it
+    # (the surface's fall from behind forward, as the two side plates draw its margins (T-subtalar, 25 Nov): the hull
+    # left it too level. Under the lateral process, Fig. 273's lower outline stands 1.6 to 3.2 mm below the hull's
+    # (columns 180 to 228, z 16 to 26); behind, both side plates draw it higher than the hull: Fig. 273 by 1.2 to 3.4
+    # mm (columns 258 to 290), Fig. 272 by 1.0 to 2.2 (columns 146 to 188), z 1 to 10. So the lateral front of the
+    # surface comes down 2.4 mm and its hind part goes up 1.8, both eased over 5 mm: the surface then falls forward as
+    # the calcaneus's posterior surface rises backward, "deeply concave" still along its long axis.)
+    down = 2.4 * _bump(zs, 11.0, 17.0, 25.0, 31.0) * _ss((-6.0 - xs) / 7.0) * _ss((mpost - 0.1) / 0.4)
+    D = D - ndi.gaussian_filter(down.astype(np.float32), 2.0 / h)[:, None, :] * _ss((los + 10.0 - Y) / 8.0); del down
     # the sulcus tali: "a deep groove ... runs obliquely forward and lateralward, becoming gradually broader and deeper
     # in front", between the middle and the posterior surfaces (Fig. 271's rough band; Fig. 273 looks into its wide
     # lateral end under the neck, in front of the lateral process)
@@ -346,6 +354,9 @@ def talus(h=0.4, log=print, relief=0.0, upto="all", poses=None, ink=foot.INK):
     d, t = foot._near(xa, ya, groove)
     g = 2.6 * np.exp(-(d / 2.4) ** 2) * _ss(t / 0.35) * _ss((1.0 - t) / 0.35) * _ss((16.0 - zb) / 3.0)
     D = D + g[:, :, None] * _ss((zb[:, :, None] + 9.0 - Z) / 8.0) * _ss((Y - 9.0) / 4.0); del d, t, g
+    # (and the hind part of the posterior calcaneal surface raised, the tubercles' undersides with it: see 2d)
+    up = 1.8 * (1.0 - _ss((zs - 7.0) / 6.0)) * _ss((mpost - 0.1) / 0.4)
+    D = D + ndi.gaussian_filter(up.astype(np.float32), 2.0 / h)[:, None, :] * _ss((los + 12.0 - Y) / 8.0); del up
 
     # the lateral malleolar facet stands as a low triangular table on the lateral surface: round it, under the trochlea's
     # border and above the calcaneal surfaces, the rough bone (in front the neck's side, behind the strip between the

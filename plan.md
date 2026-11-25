@@ -3883,6 +3883,20 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
   - [ ] Subtalar joint: find from each bone's own plates which facets
     are misplaced (calcaneus Fig. 264 to 267, talus Fig. 270 to 273),
     reshape that bone, seat the joint.
+    Attempt 1 (talus.py, foot.py), kept, joint not seated: against
+    their own plates the talus's hind facet was tilted (front outer
+    part 1.6 to 3.2 mm high, hind part 1.2 to 3.4 low, Fig. 273) and
+    the heel bone's hind facet 1 to 1.4 mm low behind (Fig. 266, 267);
+    both corrected, own-plate fits the same or better. The gap only
+    fell from 7.9 to 6.8 mm (middle facets 6.4). What is left is not
+    in either bone's plates: Fig. 290 puts the joint 10 to 13 mm lower
+    than both bones' middle facets and Fig. 291 puts it between the
+    bones; Fig. 271 and Fig. 264 disagree on facet spacing by 5 to 14
+    mm; both hind facets are convex across. The earlier note that the
+    talus may sit 2 to 3 mm too far back is not supported. Next, a
+    different method: pose the pair from the joint lines the two side
+    plates draw (re-read at the joint), not from each bone's outline
+    alone.
   - [ ] The metatarsals, phalanges; the foot together.
 - [ ] F11. 25 Nov, the owner: "switch back to the skull and mandible so we
   fix every single part of them especially the mandible and skull base";

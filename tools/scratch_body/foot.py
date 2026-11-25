@@ -373,7 +373,11 @@ def calcaneus(h=0.4, log=print, relief=1.0, upto="all", poses=None, ink=INK):
         plan = plan + (outline("Gray265") - plan) * _ss((31.0 - Y) / 12.0)
     side = sdf.smax(outline("Gray266", bow), outline("Gray267", bow), 1.5)
     R = ndi.gaussian_filter1d(np.interp(F.ax[2], [0.0, 40.0, 60.0, 72.0, 80.0], [11.0, 10.5, 7.0, 4.5, 3.0]), 4.0 / h)[None, None, :]
-    R = R - (R - 3.5) * _ss((X - 2.0) / 6.0) * _ss((Y - 34.0) / 6.0) * _bump(Z, 28.0, 35.0, 62.0, 66.0)      # the facet's medial rim is no rounded edge
+    R = R - (R - 3.5) * _ss((X - 2.0) / 6.0) * _ss((Y - 34.0) / 6.0) * _bump(Z, 24.0, 31.0, 62.0, 66.0)      # the facet's medial rim is no rounded edge
+    # (nor, over the posterior facet, its lateral rim: rounded over 10 mm the facet's two margins and its hind part
+    # stood 1.0 to 1.4 mm below where the side plates draw them, Fig. 266 columns 275 to 311 and Fig. 267 columns 190
+    # to 220, z 31 to 42 (T-subtalar, 25 Nov))
+    R = R - (R - 4.5) * _ss((2.0 - X) / 6.0) * _ss((Y - 34.0) / 6.0) * _bump(Z, 24.0, 31.0, 46.0, 53.0)
     # below, the lateral surface turns under into the sole all along (Gray: the plantar surface "convex from side to
     # side"; Fig. 266 shades the lower third of the lateral surface dark right to the front)
     Rb = ndi.gaussian_filter1d(np.interp(F.ax[2], [0.0, 40.0, 62.0, 72.0, 80.0], [11.0, 11.0, 10.0, 7.5, 4.0]), 4.0 / h)[None, None, :]
@@ -406,7 +410,10 @@ def calcaneus(h=0.4, log=print, relief=1.0, upto="all", poses=None, ink=INK):
     u2, v2 = _pixels(V["Gray264"], p4, xs, yref, zs); xp = (u2 - 87.0) * 0.225; zp = (421.0 - v2) * 0.225
     split = np.interp(zp, [a for a, _ in CALC_SPLIT], [b for _, b in CALC_SPLIT])
     free = 70.0 + 0 * xp
-    facet = ndi.gaussian_filter1d(np.interp(F.ax[2], [30.0, 36, 40, 43.3, 47.3, 51.4, 55.7, 58, 62], [52.0, 47.6, 47.2, 47.0, 45.3, 43.0, 38.0, 35.5, 33.0]), 1.0 / h)[None, :] + 0.05 * (xp - 6.0)
+    # (its front curl as Fig. 266 draws the facet's lower front end, at columns 205 to 215 and rows 85 to 88: built to
+    # 43 / 38 / 35.5 mm at z 51 / 56 / 58 it ran 1.7 mm lower and 2.4 mm farther forward than the plate's facet, and
+    # left the talus's lateral process 5 to 10 mm clear of it (T-subtalar, 25 Nov); the side-to-side lean taken off)
+    facet = ndi.gaussian_filter1d(np.interp(F.ax[2], [30.0, 36, 40, 43.3, 47.3, 51.4, 55.7, 58, 62], [52.0, 47.6, 47.2, 47.0, 45.6, 44.0, 40.6, 37.5, 34.0]), 1.0 / h)[None, :]
     floor = np.interp(zs, [56.9, 60, 64, 68, 70.5, 73, 79], [36.5, 36.3, 36.6, 37.3, 40.0, 41.8, 41.5]) + 1.0 * np.clip((xp + 8.0) / np.maximum(split + 8.0, 1.0), 0.0, 1.0) ** 1.5
     f = _ss((zp - 57.5) / 3.0); lateral = np.minimum(facet * (1.0 - f) + floor * f, free)
     b = _bump(zs, 40.0, 44.0, 68.0, 72.0)
