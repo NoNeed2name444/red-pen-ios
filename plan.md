@@ -3816,6 +3816,44 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     them has another cause (layers taken on at a slant) and is to be
     looked for there.
   - [ ] The cuneiforms, metatarsals, phalanges; the foot together.
+- [ ] F11. 25 Nov, the owner: "switch back to the skull and mandible so we
+  fix every single part of them especially the mandible and skull base";
+  later the same day: CT, other radiology and ready-made 3D may help, "ONLY
+  as helpers not main the mains are images" (measurements and sections
+  only, no surface copied; plates win). One worker per file, judged against
+  Fig. 176/177 (jaw) and 187/193 (base).
+  - Skull base openings (foramina.py; skull2.whole now calls
+    foramina.through): partly accepted after two repair rounds. Done: the
+    three-sided block under each greater wing is gone; oval, spinous,
+    lacerum, carotid and jugular openings pass into the cavity; the great
+    opening's lower rim is within 1 mm of Fig. 187 at three stations; the
+    condyles are the traced kidney shape, 19.8 / 36.1 mm apart front / back
+    (plate 19.6 / 36.4), axes 37 degrees; the oval foramen is a plump oval;
+    hypoglossal canals 3 mm. Open: the spinous foramen still shows a ring;
+    the lacerum is not jagged enough; the carotid canal's passage narrowed
+    to 3 / 2 mm because it ends in the now part-floored lacerum (it needs
+    its own opening above the floor); from above the great opening's front
+    is 8 mm wider at the upper edge than Fig. 193, and Fig. 187 and 193
+    disagree there (built as a funnel between them); the carotid's bend
+    cannot be seen from outside. The root cause of the block and the shut
+    canals is in inner.py (refresh() grows the cavity mask down open canals,
+    petrous() then fills them): worked round with lids, the real fix is
+    open.
+  - Still to assign, one file each: temporal.py (mastoid a ball, styloid a
+    cone with a web), sinus.py (sella a block), inner.py (the fix above,
+    the internal acoustic meatus a slit, the petrous ridge), the foramen
+    rotundum (in no file), surface.py (pits reshuffle over the whole skull
+    when any surface changes: seed them by position), pterygoid.py,
+    occiput.py, teeth.py.
+  - Mandible (mandible4.py): task A's three rounds were never accepted.
+    Kept from them: the lingula without its crack, the chin without its
+    shelf, and the owner's "turns" eased (body and ramus faces were joined
+    over 16 mm; now about 50). Measured against five head CTs (helper):
+    the joint's distance from the tooth row is within the real range, so
+    the joint stays; the ramus is wrong: upright (89 degrees to the bite
+    plane, CT 104), angle about 90 (CT 120), 76 mm tall (CT 61), 93.5 mm
+    across the angles (CT 100). Task B rebuilds the side profile from
+    Fig. 176 anchored by the tooth row and the joint head.
 - [ ] F8. Mesh checks, the neck and down, the muscles, the woman, and where
   the from-scratch model goes in the app.
 

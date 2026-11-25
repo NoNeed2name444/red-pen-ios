@@ -19,7 +19,10 @@ from sdf import Tube, sample_field
 
 PLATE_BASION_Z, PLATE_OPISTHION_Z = 4.2, -34.5       # the great opening's ends on the plate (mm, plates.base_mm)
 BASION_Z, OPISTHION_Z = 4.2, -34.5                   # and on this skull: the plate's own (base.py's midline heights end there)
-CONDYLE_LOWEST = -28.5                               # the condyle's lowest point (sagittal section, Fig. 194)
+CONDYLE_LOWEST = -28.5
+# the great opening's upper edge on Fig. 193 (upper surface), traced: half width (mm, the plate at 5.2 px/mm, the
+# basilar part's cut edge for the midline) at 0, 5, ... 100 % of its length from the basion (length 38.8 mm)
+UPPER_193 = [5.2, 7.1, 9.0, 10.2, 10.4, 11.5, 13.1, 15.4, 16.9, 17.9, 18.1, 18.1, 17.9, 17.5, 16.9, 16.1, 14.6, 11.7, 8.1, 4.5, 0.8]                               # the condyle's lowest point (sagittal section, Fig. 194)
 
 # ---- outlines read off the plate (page pixels; close-ups at 3.3 times with a 20-pixel grid) ----
 # the great opening as it is seen from below, left half from its front (basion) round to its back (opisthion). In
@@ -148,6 +151,9 @@ def condyles(F, B, log=print):
     """The condyle on the plate's own facet outline: a facet convex from front to back and from side to side, looking
     down and a little outward; its inner side slopes up to the edge of the great opening (the plate shows that slope
     as a strip beside the facet), its outer side is steeper.
+    Its outline is the plate's own facet, traced (a kidney: the inner border hollow toward the great opening), made a
+    little broader at its hind end and broken a little all round; across the facet a faint uneven line, as on many
+    condyles where its two parts meet (no pinch in its outline).
     Gray p. 131: "The condyles are oval or reniform in shape, and their anterior extremities, directed forward and
     medialward, are closer together than their posterior ... The articular surfaces ... are convex from before
     backward and from side to side, and look downward and lateralward." The plate's outline, of one width from end to
@@ -161,19 +167,19 @@ def condyles(F, B, log=print):
     wide = np.array([-long[1], long[0]])
     if wide[0] < 0:
         wide = -wide                                                   # toward the body's side
-    qa = Q @ long; La0 = np.abs(qa).max()
-    t = np.linspace(0, 2 * np.pi, 72, endpoint=False)
-    A, Bw = 0.92 * La0, 0.47 * La0                                     # half-length, half-width: 2.1 to 1 (Gray: "oval or reniform")
-    qa = A * np.cos(t); qb = Bw * np.sin(t) * (1.0 - 0.10 * np.cos(t))
-    qb = np.where(qb < 0, 0.86 * qb, qb)                               # the inner border flatter than the outer
-    qa = qa - 0.06 * A * np.sin(t) ** 2                                # fullest a little behind the middle
-    P = fair(c + np.outer(qa, long) + np.outer(qb, wide), 0.3)
+    qa, qb = Q @ long, Q @ wide; La0 = np.abs(qa).max()
+    qb = qb * (1.0 + 0.10 * np.clip(-qa / La0, -1.0, 1.0))             # broader at its hind end
+    P = jag(c + np.outer(qa, long) + np.outer(qb, wide), 133, 0.035, 26)
+    w2, E2 = np.linalg.eigh(np.cov((P - P.mean(0)).T)); l2 = E2[:, 1] if E2[1, 1] > 0 else -E2[:, 1]
+    th = np.arctan2(l2[0], l2[1]) - np.arctan2(long[0], long[1])                # its axis kept the plate's
+    P = c + (P - c) @ np.array([[np.cos(th), np.sin(th)], [-np.sin(th), np.cos(th)]])
     M, reg = outline_map(P, margin=7.0)
     ground = B["M"].sample(B["Yb"], M.U, M.V)
     c = P.mean(0); Q = P - c
     a = (M.U - c[0]) * long[0] + (M.V - c[1]) * long[1]; b = (M.U - c[0]) * wide[0] + (M.V - c[1]) * wide[1]
     La, Lb = np.abs(Q @ long).max(), np.abs(Q @ wide).max()
-    facet = CONDYLE_LOWEST + 0.3 + 2.0 * (a / La) ** 2 + 1.0 * (b / Lb) ** 2 + 0.30 * b + 0.22 * uneven(M, 131, 2.2)   # (no lathe-turned surface)
+    facet = CONDYLE_LOWEST + 0.3 + 2.0 * (a / La) ** 2 + 1.0 * (b / Lb) ** 2 + 0.30 * b + 0.22 * uneven(M, 131, 2.2) + 0.12 * uneven(M, 132, 0.9)
+    facet = facet + 0.3 * np.exp(-((a / La + 0.05) / 0.07) ** 2) * np.clip(0.7 + 0.5 * uneven(M, 134, 1.5), 0.15, 1.3)   # the faint line across   # (no lathe-turned surface)
     # the facet has an edge: the surface turns over within a millimetre of its outline. From there the outer side drops
     # to the ground within 1.4 mm; the inner side slopes up to the great opening's edge over 4 mm
     W = 1.4 + 2.6 * smoothstep(-b / 3.0)
@@ -233,7 +239,7 @@ def cut(F, B, log=print):
     mouths = {}
     cut.through = []
 
-    def opening(name, poly, top, k, lip_=None, seed=0, funnel=0.6, wob=0.3, through=None, front_sharp=False, **kw):
+    def opening(name, poly, top, k, lip_=None, seed=0, funnel=0.6, wob=0.3, through=None, front_sharp=False, side=None, mouth=1.6, **kw):
         poly = np.asarray(poly, float)
         lean = kw.get("lean", (0.0, 0.0))
         M, reg = outline_map(poly, margin=4.0 + top * max(abs(lean[0]), abs(lean[1])))
@@ -241,7 +247,11 @@ def cut(F, B, log=print):
         rim = lip(M, seed + 7, funnel)
         if front_sharp:                                   # the edge sharp in front, the funnel wide behind
             rim = rim * (0.25 + 1.1 * smoothstep((poly.mean(0)[1] + 2.0 - M.V) / 4.0))
-        F.cut(Opening(M, reg, ys, top, rim=rim, mouth=1.6, wobble=(wob, seed), lid=LIDS.get(name), **kw), k)
+        if side is not None:                              # the edge rolls in deep on one side, hardly on the other: no countersunk ring
+            cc, a_ = poly.mean(0), np.radians(side)
+            pr = ((M.U - cc[0]) * np.cos(a_) + (M.V - cc[1]) * np.sin(a_)) / (0.5 * float(np.ptp(poly, 0).max()))
+            rim = rim * (0.03 + 1.6 * smoothstep(0.5 + 0.5 * pr) ** 1.5)
+        F.cut(Opening(M, reg, ys, top, rim=rim, mouth=mouth, wobble=(wob, seed), lid=LIDS.get(name), **kw), k)
         c = poly.mean(0)
         if lip_:
             mouths[name] = (poly, lip_[0], lip_[1])
@@ -265,13 +275,18 @@ def cut(F, B, log=print):
     zc, L = (zf + zb) / 2, (zf - zb) / 2
     t = np.linspace(0.0, np.pi, 61)
     gz = zc + L * np.cos(t)
-    gx = 13.6 * np.sin(t) ** 0.92 * (1.0 - 0.13 * np.cos(t))
-    bulge = 3.3 * np.exp(-((gz + 3.0) / 9.0) ** 2) * np.sin(t) ** 0.5          # the condyles' inner sides
+    gx = 13.6 * np.sin(t) ** 0.92 * (1.0 - 0.08 * np.cos(t))
+    bulge = 3.8 * np.exp(-((gz + 3.0) / 9.0) ** 2) * np.sin(t) ** 0.5          # the condyles' inner sides
     wav = ndimage.gaussian_filter1d(np.random.default_rng(130).standard_normal(len(t)), 3.0)
-    gx = gx + 0.35 * wav / (np.abs(wav).max() + 1e-9) * np.sin(t)              # its rim is not ruled
-    g = np.column_stack([gx - bulge, gz])
-    gr = np.column_stack([gx - 0.35 * bulge, gz])                               # (higher up, behind the condyles, the ring is wider)
-    r = gr.copy(); r[:, 0] += 1.5 * smoothstep((r[:, 1] + 12.8) / 6.0) * smoothstep(r[:, 0] / 5.0)
+    wav = 0.35 * wav / (np.abs(wav).max() + 1e-9) * np.sin(t)                  # its rim is not ruled
+    g = np.column_stack([gx - bulge + wav, gz])
+    # its upper edge, where the hind hollow's floor turns down into it: Fig. 193 traced (half widths, mm, from the
+    # basion back in twentieths of its length): broad and blunt in front, widest a little behind the middle. The wall
+    # between the two edges slopes: the condyles' inner sides in front, the floor's rounded edge behind. (Less here what
+    # the passage's taper and the blend add at the height the floor meets it.)
+    fr = (zf - gz) / (zf - zb)
+    rh = np.interp(fr, np.linspace(0.0, 1.0, 21), UPPER_193) - np.interp(fr, [0.0, 0.25, 0.5, 0.75, 1.0], [3.4, 3.4, 2.6, 0.9, 0.9])
+    r = np.column_stack([np.maximum(rh + 0.8 * wav, gx - bulge + wav), gz])
     g, r = whole(g), whole(r)
     M, reg = outline_map(np.concatenate([g, r]), cell=0.5, margin=11.0)
     F.cut(relief.Prism(M, (0, 2, 1), M.region(g), -46.0, -20.0, mirror=False), 1.4)
@@ -290,11 +305,11 @@ def cut(F, B, log=print):
     co = fair(mm(OVALE)).mean(0); ua = np.radians(-55.0); tt = np.linspace(0, 2 * np.pi, 14, endpoint=False)
     ov = co + np.outer(3.9 * np.cos(tt) * (1 + 0.08 * np.cos(tt)), [np.sin(ua), np.cos(ua)]) + np.outer(2.2 * np.sin(tt), [np.cos(ua), -np.sin(ua)])
     opening("oval foramen", jag(ov, 41, 0.07, 10), 17.0, 0.6, lip_=(0.35, 1.0), seed=41, funnel=0.6,
-            lean=(-0.04, -0.06), through=dict(grow=(1.0, 1.08)))
+            lean=(-0.04, -0.06), through=dict(grow=(1.0, 1.15)))
     # the spinous foramen behind and outside it: small, nearly round, "sometimes double"; not a drilled circle
     c = mm([SPINOSUM])[0]
-    opening("spinous foramen", jag(c + 1.2 * np.array(ROUNDISH) * np.array([1.0, 1.2]), 42, 0.12, 7), 18.0, 0.5, seed=42,
-            funnel=0.35, wob=0.18, through=dict(grow=(1.0, 1.0)))
+    opening("spinous foramen", jag(c + np.array(ROUNDISH) * np.array([1.35, 1.15]), 42, 0.12, 7), 18.0, 1.3, seed=42,
+            funnel=0.6, side=-40.0, mouth=2.6, wob=0.1, through=dict(grow=(1.1, 1.1)))     # (Fig. 187: 2.1 by 1.7 inside its drawn ring)
     # the ragged hole (p. 181: "a large and somewhat triangular aperture ... bounded in front by the great wing of the
     # sphenoid, behind by the apex of the petrous portion ... and medially by the body of the sphenoid and basilar
     # portion of the occipital"): a three-cornered gap, its broad side against the body and its point running out
@@ -302,7 +317,7 @@ def cut(F, B, log=print):
     lac_poly = jag([(14.2, 20.6), (16.6, 19.9), (19.4, 18.0), (21.4, 16.6), (23.0, 15.2), (21.0, 14.5), (18.4, 13.6), (16.0, 12.9),
                     (14.1, 13.3), (13.4, 15.2), (13.6, 18.2)], 187, 0.16, 16)
     lac = opening("ragged hole (lacerum)", lac_poly, 13.0, 0.6, lip_=(0.9, 1.5), seed=187, funnel=0.9, wob=0.45, taper=0.04,
-                  through=dict(grow=(1.0, 1.0), ragged=0.25,
+                  through=dict(grow=(1.0, 1.0), ragged=0.3, hole=0.85,
                   upper=[(14.6, 18.4), (16.4, 18.9), (18.6, 17.6), (19.8, 16.0), (18.9, 14.6), (16.9, 14.1), (15.0, 14.4), (14.0, 16.2)]))     # from above: part-floored, broken edged
     # the carotid canal (p. 140: "it ascends at first, and then, making a bend, runs horizontally forward and medialward"):
     # its mouth looks down: an uneven round-oval in the rough petrous bone, its edge sharper in front and eased behind, the
@@ -310,12 +325,12 @@ def cut(F, B, log=print):
     c0 = mm([CAROTID])[0]
     car = jag(c0 + np.array(ROUNDISH) * np.array([3.2, 2.7]), 7, 0.2, 11)
     y = float(Mb.sample(Yb, [c0[0]], [c0[1]])[0])
-    c = opening("carotid canal", car, 7.0, 0.7, lip_=(0.3, 0.8), seed=7, funnel=0.6, wob=0.4, taper=0.03, lean=(-0.22, 0.28), front_sharp=True, dome=(2.6, 7.0))      # (its roof a vault, not a flat floor)
+    c = opening("carotid canal", car, 7.0, 0.7, lip_=(0.3, 0.8), seed=7, funnel=0.6, wob=0.4, taper=0.03, lean=(-0.22, 0.28), front_sharp=True, dome=(1.4, 7.0))      # (its roof a vault, not a flat floor)
     yl = float(Mb.sample(Yb, [lac[0]], [lac[1]])[0])
     # (kept under the lid: its last part, the inner orifice at the petrous apex, is opened with the ragged hole by through())
     F.cut(Tube(np.array([(c[0] - 1.0, y + 4.5, c[1] + 1.2), (c[0] - 2.2, y + 6.6, c[1] + 2.6), (c[0] - 4.2, y + 7.3, c[1] + 4.6),
-                         (lac[0] + 0.6, yl + 1.8, lac[1] - 1.2)]), [(0, 2.4), (0.4, 2.1), (0.75, 2.3), (1, 2.1)],
-               [(0, 2.6), (0.5, 2.8), (1, 2.5)], up=(0, 1, 0)), 1.0)
+                         (lac[0] + 0.6, yl + 1.8, lac[1] - 1.2)]), [(0, 2.7), (0.4, 2.5), (0.75, 2.6), (1, 2.4)],
+               [(0, 2.9), (0.5, 3.0), (1, 2.8)], up=(0, 1, 0)), 1.0)
     # the jugular hollow: the plate's bean, vaulted for the vein's bulb, its edge uneven
     opening("jugular hollow", jag(fair(mm(JUGULAR_FOSSA)), 51, 0.08, 12), 7.0, 1.2, lip_=(0.7, 1.4), seed=51, funnel=0.6, wob=0.4,
             dome=(3.7, 7.0))
@@ -331,8 +346,8 @@ def cut(F, B, log=print):
     # the stylomastoid foramen (p. 181: "at the base of this process"), between the styloid and the mastoid: small, a
     # little drawn out toward the mastoid, its lip thin in front and rounded behind; the facial canal climbs from it
     c = mm([STYLOMASTOID])[0]
-    opening("stylomastoid foramen", jag(c + 1.2 * np.array(ROUNDISH)[::-1] * np.array([1.15, -0.95]), 61, 0.1, 7), 9.0, 0.5,
-            seed=61, funnel=0.5, wob=0.2, lean=(0.06, -0.08))
+    opening("stylomastoid foramen", jag(c + 1.2 * np.array(ROUNDISH)[::-1] * np.array([1.15, -0.95]), 61, 0.1, 7), 9.0, 0.9,
+            seed=61, funnel=0.6, side=-70.0, mouth=2.4, wob=0.2, lean=(0.06, -0.08))      # (Fig. 187: a dark disc 2.7 by 2.4)
     # the canal in the hollow behind the condyle (p. 131: the fossa "is sometimes perforated by the condyloid canal"; p.
     # 181: "on one or both sides"): small here; through() makes the right one the larger (the hollow is pressed in: press)
     c = mm([CONDYLAR], True)[0]
@@ -340,8 +355,8 @@ def cut(F, B, log=print):
             wob=0.2, lean=(-0.10, 0.45), through=dict(right_only=True, grow=(1.0, 1.75), top=14.0))
     # the hypoglossal canal: from above the condyle's middle, forward and outward, to its mouth in front of the condyle's outer side
     c = mm([HYPOGLOSSAL], True)[0]; y = float(Mb.sample(Yb, [c[0]], [c[1]])[0])
-    F.cut(Tube(np.array([(c[0] + 1.8, y - 1.2, c[1] + 1.5), (c[0], y + 0.8, c[1]), (11.0, -14.5, -3.0)]), [(0, 2.3), (0.5, 2.0), (1, 2.2)],
-               [(0, 1.8), (0.5, 1.6), (1, 1.75)], up=(0, 1, 0)), 0.8)
+    F.cut(Tube(np.array([(c[0] + 1.8, y - 1.2, c[1] + 1.5), (c[0], y + 0.8, c[1]), (10.0, -14.0, -3.5)]), [(0, 2.3), (0.5, 2.2), (1, 2.3)],
+               [(0, 1.85), (0.5, 1.8), (1, 1.85)], up=(0, 1, 0)), 0.8)
     log("opening: hypoglossal canal        mouth at x %.1f z %.1f" % (c[0], c[1]))
     if F.h <= 0.3:
         # three pinholes the plate marks, where the grid can carry them: the canaliculi for the tympanic nerve and the
@@ -365,7 +380,7 @@ def through(G, log=print):
             g = o["grow"][0 if s > 0 else 1]
             base = np.asarray(o.get("upper", o["poly"]), float)     # the upper mouth may have an outline of its own
             c = base.mean(0)
-            poly = jag(c + g * (base - c), o["seed"] + (0 if s > 0 else 500), o.get("ragged", 0.10), 13 if o.get("ragged") else 11)
+            poly = jag(c + g * o.get("hole", 1.0) * (base - c), o["seed"] + (0 if s > 0 else 500), o.get("ragged", 0.10), 13 if o.get("ragged") else 11)
             lean = o["lean"]
             if o.get("right_only"):
                 y0, top = o["ys"] - 3.0, o.get("top", 14.0) + 3.0             # a canal of its own, from below the surface
@@ -388,6 +403,13 @@ def through(G, log=print):
             Mf, rf = outline_map(poly + np.array(lean) * (yt - y0), margin=4.0)
             fl = Opening(Mf, rf, np.full(Mf.U.shape, yt + 0.5), 3.5, rim=lip(Mf, o["seed"] + (3 if s > 0 else 4), 0.9), mouth=3.5, below=4.0)
             G.cut(_Down(fl) if s > 0 else _Mirror(_Down(fl)), 0.8)
+            if o.get("hole"):
+                # the gap's floor (cartilage in life): a shallow broken-edged hollow over the whole gap, and only part
+                # of it open through
+                Pf = jag(c + g * (base - c), o["seed"] + (11 if s > 0 else 511), 0.3, 9) + np.array(lean) * (yt - y0)
+                Mh, rh_ = outline_map(Pf, margin=4.0)
+                hf = Opening(Mh, rh_, np.full(Mh.U.shape, yt + 0.5), 1.6, rim=lip(Mh, o["seed"] + (12 if s > 0 else 13), 0.7), mouth=1.6, below=3.0)
+                G.cut(_Down(hf) if s > 0 else _Mirror(_Down(hf)), 0.8)
             if not o.get("right_only"):
                 # and the floor's edge rounded over about a millimetre: no knife edge, no dark cut line
                 m = c + np.array(lean) * (yt - y0)
