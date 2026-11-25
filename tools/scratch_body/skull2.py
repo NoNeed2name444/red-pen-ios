@@ -724,6 +724,7 @@ def whole(F, log=print, rough=True, sinuses=True, inside=True):
             G.cut(Tube(Q, r), 0.4)
     if inside:
         whole.inner = inner.build(G, log=log)                # the cavity's own surface: ridges, fossae, the sinuses' and the arteries' grooves (inner.py)
+    foramina.through(G, log)                                  # the base's canals opened into the cavity, both sides, not alike (foramina.py)
     if sinuses:
         whole.sinuses = sinus.air(G, log)                    # the air sinuses: hollowed in the whole head, the two sides not alike
     temporal.relief(G, log)                                   # the temporal bone's small relief, each side with its own unevenness
