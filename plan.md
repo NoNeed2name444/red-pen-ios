@@ -4127,6 +4127,16 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     behind, the process and the palate's corner make a level straight
     band running outward from the hamulus; the outer plate's lower
     part still reads as a dark bar edge-on. Still regional builds only.
+    Repair 1 (pterygoid.py), accepted; task closed: the process is now
+    a wedge filling the notch between the two plates' lower ends, its
+    hind face grooved into the pterygoid fossa, its lower end sloping
+    down and outward to the tuberosity (Fig. 169, 187, 189); no level
+    band from behind; the outer plate's lower front is thicker and
+    runs into the tuberosity, so the bar is gone. Positions within 1
+    mm at x 17.6 to 22.6 (1.25 at x 15.5, set by the hamulus root);
+    fossa no shallower; clearances hold (tuberosity to plate 3.0).
+    Open, small: a 2 to 3 mm knob where the outer plate meets the
+    tuberosity; the second lesser foramen reads as a slit obliquely.
     Task C, repair 1 (head and neck accepted; task closed): the ring is
     gone. Each section under the head is solved to silhouette targets
     from Fig. 176 and 177: the hind edge runs straight into the head,
