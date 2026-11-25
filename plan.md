@@ -3852,6 +3852,22 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
   - [ ] Foot assembly frame: one frame from Fig. 268, 290 and 291 giving
     every tarsal bone's place and joint lines, with the conflicts
     between bones measured, before any bone is refitted.
+    Measured (foot_frame.py, traces/foot_frame.npz; accepted as a
+    measurement): the side plates' vertical is not Fig. 268's normal.
+    Fig. 290 is turned 18.8 degrees and Fig. 291 12.3 against the plan
+    view, so every height read from them as if upright is off by up to
+    7 mm. Registration residuals 1.0 mm rms on Fig. 268, within 2.7 mm
+    on the side plates. Causes: the talus has the wrong pose, not the
+    wrong size (15 degrees head-up, 5.6 mm lateral, 4.8 mm back; plan
+    gap 3.6 to 1.2 mm); the navicular's hollow was fitted to that
+    wrong talus; the cuboid sits about 14 mm too high and needs 14
+    degrees of roll (Fig. 291 alone, low confidence, with the third
+    cuneiform's 6 mm rise). No bone needs rescaling.
+    Order: talus to its target and the calcaneus placed; navicular's
+    talar hollow refitted to the talus there; cuboid and third
+    cuneiform together after re-reading Fig. 291 at 300 dpi; first and
+    second cuneiforms; then the navicular's cuneiform facets (its last
+    repair).
   - [ ] The metatarsals, phalanges; the foot together.
 - [ ] F11. 25 Nov, the owner: "switch back to the skull and mandible so we
   fix every single part of them especially the mandible and skull base";
