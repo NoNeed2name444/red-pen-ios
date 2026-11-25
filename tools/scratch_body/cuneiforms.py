@@ -78,7 +78,7 @@ def _centre(name):
 # nearest 200 points of the two surfaces ask, as far as the bone beside it allows. The third asks 5 mm medially and
 # gets none: the second stands there, and moved so far the third loses its medial face to it. It is left 5 mm off
 # the navicular's lateral end, an open defect: Fig. 268 draws it lateral of where the built navicular ends)
-NUDGE = {"first": (0.0, 0.0, -0.8), "second": (0.6, 0.0, -0.9), "third": (0.0, 0.0, -1.0)}
+NUDGE = {"first": (0.0, 0.0, -1.5), "second": (0.9, 0.0, -1.6), "third": (0.3, 0.0, -1.0)}
 PLACE = {n: _centre(n) + np.array(NUDGE[n]) for n in PLAN}
 # the cuboid's frame (midfoot.cuboid) in the navicular's: Fig. 268 puts its origin at pixel (190, 388); its height
 # is set so its facet for the third cuneiform lies against the third's (A4 in the task notes)
@@ -111,15 +111,15 @@ VIEWS = {
         dict(fig="Gray280", cap="antero-medial view", right=(0, 0, 1), up=(0, 1, 0), eye=(1, 0, 0), s=S0, u0=214, v0=258,
              pose=(14.00, -20.00, 0.00, 1.0, -1.42, 27.67)),
         dict(fig="Gray281", cap="postero-lateral view", right=(0, 0, -1), up=(0, 1, 0), eye=(-1, 0, 0), s=S0, u0=170, v0=230,
-             pose=(-11.01, -25.05, 0.00, 1.0, 12.44, 21.54)),
+             pose=(12.0, -21.74, 0.00, 1.0, 16.11, 24.63)),
     ],
     "third": [
         dict(fig="Gray282", cap="postero-medial view", right=(0, 0, 1), up=(0, 1, 0), eye=(1, 0, 0), s=S0, u0=550, v0=340,
-             pose=(14.00, 24.00, 0.00, 1.0, -11.63, -0.40),
+             pose=(14.00, 14.00, 0.00, 1.0, -11.63, -0.40),
              # the two label lines "For 2nd metatarsal" meet right of the bone and close a triangle on to it
              erase=[[(750, 232), (725, 290), (714, 305), (714, 322), (680, 392), (660, 432), (660, 470), (790, 470), (790, 232)]]),
         dict(fig="Gray283", cap="antero-lateral view", right=(0, 0, -1), up=(0, 1, 0), eye=(-1, 0, 0), s=S0, u0=405, v0=320,
-             pose=(-14.07, 18.07, 0.00, 1.0, 18.78, 10.98)),
+             pose=(12.0, 3.00, 0.00, 1.0, 22.86, 14.57)),
     ],
 }
 
@@ -166,15 +166,19 @@ SMOOTH = {
 MARKS = {
     "Gray278": [("dot", (205, 315), 0.55, -0.7), ("dot", (258, 352), 0.45, -0.6), ("dot", (172, 375), 0.4, -0.5),
                 ("dot", (248, 378), 0.5, -0.6), ("dot", (250, 405), 0.55, -0.7), ("dot", (140, 398), 0.4, -0.5),
-                ("dot", (95, 435), 0.35, -0.4), ("dot", (120, 300), 0.35, -0.4)],
+                ("dot", (95, 435), 0.35, -0.4), ("dot", (120, 300), 0.35, -0.4),
+                # the impression's sharp raised border, along its upper and hinder side where the plate rules it
+                ("line", [(150, 560), (149, 505), (183, 462), (214, 432), (252, 441), (300, 472), (338, 508)], 1.2, 0.45)],
     "Gray279": [("dot", (125, 497), 0.6, -0.7), ("dot", (172, 518), 0.5, -0.6), ("dot", (115, 330), 0.35, -0.4),
-                ("dot", (245, 432), 0.45, -0.5), ("dot", (210, 560), 0.35, -0.4)],
+                ("dot", (245, 432), 0.45, -0.5), ("dot", (210, 560), 0.35, -0.4),
+                # the rough hollow below the L-shaped surface, which the plate shades deep
+                ("area", [(182, 332), (240, 326), (298, 332), (316, 380), (308, 450), (270, 488), (222, 480), (186, 432), (176, 382)], -0.9, 1.5)],
     "Gray282": [("dot", (580, 340), 0.4, -0.5), ("dot", (548, 400), 0.35, -0.4), ("dot", (600, 300), 0.35, -0.4),
                 # "separated by a rough depression ... for an interosseous ligament"
-                ("area", [(560, 260), (600, 250), (650, 260), (660, 300), (640, 340), (600, 370), (560, 400), (540, 380), (530, 330), (545, 290)], -0.7, 1.4)],
+                ("area", [(560, 260), (600, 250), (650, 260), (660, 300), (640, 340), (600, 370), (560, 400), (540, 380), (530, 330), (545, 290)], -1.2, 1.4)],
     "Gray283": [("dot", (360, 400), 0.45, -0.5), ("dot", (400, 410), 0.35, -0.4), ("dot", (430, 380), 0.35, -0.4),
                 # "separated by a rough non-articular area ... for an interosseous ligament": a shallow hollow
-                ("area", [(320, 270), (380, 250), (430, 290), (470, 330), (460, 380), (400, 400), (340, 390), (315, 340)], -0.5, 1.6)],
+                ("area", [(320, 270), (380, 250), (430, 290), (470, 330), (460, 380), (400, 400), (340, 390), (315, 340)], -1.0, 1.6)],
     "Gray280": [("dot", (230, 330), 0.35, -0.4), ("dot", (262, 300), 0.35, -0.4)],
     "Gray281": [("dot", (70, 200), 0.3, -0.4), ("dot", (62, 240), 0.3, -0.4)],
 }
@@ -182,9 +186,15 @@ HULL_EASE = 0.5    # mm
 LNG_PAD = 3.0      # mm
 WMIN = {"first": 12.0, "second": 11.0, "third": 11.0}   # mm
 LOFT_EASE = 1.0    # mm
-GAP = 0.6          # mm left between neighbours where the plates bring them together
-ROUGH = 0.18       # mm
-FACET_SINK = -0.15  # mm: the joint surfaces a little below the rough bone round them
+GAP = 0.5          # mm left between neighbours where the plates bring them together
+ROUGH = 0.3        # mm
+ROUGH_DROP = 0.35  # mm: the rough bone below the joint surfaces, on the whole (with FACET_PROUD, 0.7 to 0.8)
+FACET_PROUD = 0.4  # mm: the joint surfaces above the bone they are set in
+MOAT = 0.45        # mm: the rough band round a traced (plate) facet, below the rough bone elsewhere
+RIM = 0.3          # mm: the rim along a joint surface's border
+SMOOTH_PROUD = 0.15  # mm: Gray's smooth non-articular impressions
+INK_GAIN = 0.35    # mm: the plate's drawing as relief on the rough bone (9 in 10 of it within this)
+END_SOFT = 1.5     # mm: the end faces' easing
 
 
 def traces(name):
@@ -204,6 +214,7 @@ def make_traces(refs):
             d = ndi.gaussian_filter(d + np.where(mask, 0.5, -0.5), 1.0) * px
             keep[v["fig"] + "_sdf"] = d.astype(np.float16); keep[v["fig"] + "_pose"] = np.array(pose, np.float32)
             keep[v["fig"] + "_mask"] = mask.astype(np.uint8)
+            keep[v["fig"] + "_ink"] = np.round(pm.ink_of(gray, mask, px) * 50).astype(np.int8)
     np.savez_compressed(os.path.join(HERE, "traces", "cuneiform_plates.npz"), **keep)
     return keep
 
@@ -259,6 +270,24 @@ def _outline(name, fig, P, tr, X, Y, Z, ease=0.5):
     return _read(ndi.gaussian_filter(d, ease / px), *_pixels(v, P[fig], X, Y, Z))
 
 
+def _ends(D, F, soft=None):
+    """The front and back faces eased. Both plates look along the bone from its sides, so each end face is where the
+    two outlines' walls, each straight along its own line of sight, meet: two planes and a straight ridge between
+    (the second's front face stood so, cut by a knife). Each end is read as a height over (x, y) (how far forward, or
+    back, the bone reaches in each column), that height eased over END_SOFT mm, weighted to the columns the bone fills
+    deeply, and the bone cut back to it: the ridge goes, the face is a gently curved one."""
+    soft = END_SOFT if soft is None else soft
+    ins = D < 0; got = ins.any(2); Zax = F.ax[2]; n = ins.shape[2]
+    zf = np.where(got, Zax[n - 1 - np.argmax(ins[:, :, ::-1], 2)], 0.0); zb = np.where(got, Zax[np.argmax(ins, 2)], 0.0)
+    w = np.clip((zf - zb) / max(float((zf - zb).max()) * 0.6, 1e-3), 0.0, 1.0) ** 2 * got
+    sg = soft / F.h
+    norm = np.maximum(ndi.gaussian_filter(w, sg), 1e-4)
+    zfs = ndi.gaussian_filter(zf * w, sg) / norm; zbs = ndi.gaussian_filter(zb * w, sg) / norm
+    Z = Zax[None, None, :]
+    cut = np.maximum(Z - zfs[:, :, None] - 0.15, zbs[:, :, None] - 0.15 - Z)
+    return sdf.smax(D, cut.astype(np.float32), 0.8).astype(np.float32)
+
+
 def _neighbour(Fn, at, X, Y, Z, soft=0.8):
     """Another bone's field (an object with D, lo, h; its origin at `at` in the navicular's frame) at this bone's
     points (given in the navicular's frame), eased so that its fine marks do not print on this bone."""
@@ -285,6 +314,7 @@ def cuneiform(name, h=0.3, log=print, upto="all", poses=None, neighbours=()):
     o = [_outline(name, f, P, tr, X, Y, Z) for f in V]
     within = np.maximum(o[0], o[1]); del o
     D = ndi.gaussian_filter(np.maximum(within, D), HULL_EASE / F.h).astype(np.float32)
+    D = _ends(D, F)
     if upto == "hull":
         F.D = np.clip(D, -12.0, 12.0).astype(np.float32); return F
     c = PLACE[name]; top, bot = np.array(HEIGHT[name]) - c[1]
@@ -319,39 +349,65 @@ def cuneiform(name, h=0.3, log=print, upto="all", poses=None, neighbours=()):
     for Fn, at in neighbours:
         Xn, Yn, Zn = X + c[0], Y + c[1], Z + c[2]
         Dn = _neighbour(Fn, at, Xn, Yn, Zn)
-        D = sdf.smax(D, GAP - Dn, 2.5)    # (eased: met sharply, the cut stood as a hard step round the joint surface)
+        D = sdf.smax(D, GAP - Dn, 1.2)    # (eased: met sharply, the cut stood as a hard step round the joint surface)
     F.D = np.clip(D, -12.0, 12.0).astype(np.float32); del D
     if upto == "forms":
         return F
-    # the joint surfaces: the whole faces (posterior and anterior) by the way they face, the others traced on the
-    # plates; each smooth and a little sunk below the rough bone round it, the step eased over a millimetre
+    # 3. The surfaces, as the plates draw them. Each joint surface is a smooth field standing FACET_PROUD above the
+    # rough bone round it, with a low rim (RIM) along its border where the rough bone begins; the rough bone is pitted
+    # and ridged, the ridges running as the engraver's lines run (the plate's fine drawing, pm.ink_of, laid on as
+    # relief where the plate faces the surface and only on rough bone). The whole faces (posterior, anterior) are found
+    # by the way they face, their border wandering (a cosine threshold alone is a ruler line along the bone's edge);
+    # the others are the fields traced inside each plate's outline. Everything is laid on through _shown (the points
+    # each plate sees, within a few mm behind the surface), so a field seen at a slant is laid as fully as one seen
+    # square, and each is eased out over the plate outline's last half millimetre.
+    rs = np.random.default_rng({"first": 1278, "second": 1280, "third": 1282}[name])
     g = np.gradient(ndi.gaussian_filter(F.D, 1.2 / F.h), F.h); nrm = np.sqrt(g[0] ** 2 + g[1] ** 2 + g[2] ** 2) + 1e-6
-    sm = np.zeros(F.D.shape, np.float32)
+    wan = ndi.gaussian_filter(rs.normal(size=F.D.shape).astype(np.float32), 1.6 / F.h); wan /= wan.std()
+    fac = np.zeros(F.D.shape, np.float32); fpl = np.zeros(F.D.shape, np.float32); fw = np.zeros(F.D.shape, np.float32)
     for e, cmin in FACES[name]:
         e = np.asarray(e, float); e /= np.linalg.norm(e)
-        sm = np.maximum(sm, _ss(((g[0] * e[0] + g[1] * e[1] + g[2] * e[2]) / nrm - cmin) / 0.2))
+        fac = np.maximum(fac, _ss(((g[0] * e[0] + g[1] * e[1] + g[2] * e[2]) / nrm - cmin - 0.07 * wan) / 0.12))
     del g, nrm
-    sm = ndi.gaussian_filter(sm, 0.6 / F.h)
+    sma = np.zeros(F.D.shape, np.float32); marks = np.zeros(F.D.shape, np.float32); ink = np.zeros(F.D.shape, np.float32)
     for f, v in V.items():
-        px = v["s"] * P[f][3]; sh = tr[f + "_sdf"].shape; q = _ss((-tr[f + "_sdf"].astype(np.float32) - 0.1) / 0.8)
-        polys = FACETS.get(f, []) + SMOOTH.get(f, [])
-        if polys:
-            sm = np.maximum(sm, _shown(F, v, P[f], _mask(polys, sh, 1.4 / px), deep=2.0))
+        px = v["s"] * P[f][3]; sh = tr[f + "_sdf"].shape; q = _ss((-tr[f + "_sdf"].astype(np.float32) - 0.05) / 0.5)
         if FACETS.get(f):
-            _lay(F, [v], P, {f: FACET_SINK * _ss((_mask(FACETS[f], sh, 0.8 / px) - 0.2) / 0.6) * q}, face=0.25)
+            fpl = np.maximum(fpl, _shown(F, v, P[f], _mask(FACETS[f], sh, 0.35 / px) * q, deep=2.5))
+        if SMOOTH.get(f):
+            sma = np.maximum(sma, _shown(F, v, P[f], _mask(SMOOTH[f], sh, 0.4 / px) * q, deep=2.5))
         if MARKS.get(f):
-            _lay(F, [v], P, {f: _marks_map(_pits(MARKS[f], px, seed=int(f[4:])), sh, px) * q}, face=0.45)
+            marks += _shown(F, v, P[f], _marks_map(_pits(MARKS[f], px, seed=int(f[4:])), sh, px) * q, deep=2.0)
+        if f + "_ink" in tr.files:
+            B = pm.basis(v, P[f][:3])
+            gg = np.gradient(ndi.gaussian_filter(F.D, 1.0 / F.h), F.h); nn = np.sqrt(gg[0] ** 2 + gg[1] ** 2 + gg[2] ** 2) + 1e-6
+            facing = _ss(((gg[0] * B[2][0] + gg[1] * B[2][1] + gg[2] * B[2][2]) / nn - 0.35) / 0.35); del gg, nn
+            if FACETS.get(f):
+                fw = np.maximum(fw, facing)
+            ink = np.where(facing > 0, np.maximum(ink * (1 - facing), 0) + facing * _shown(F, v, P[f], tr[f + "_ink"].astype(np.float32) / 50.0 * q, deep=1.5), ink)
+    fac = np.maximum(fac, fpl)
+    fac = np.clip(ndi.gaussian_filter(fac, 0.25 / F.h), 0.0, 1.0)
+    # the traced fields sit in the plates in a dark band of rough bone (the engraver's shading round each small facet):
+    # a shallow moat MOAT deep and about a millimetre wide round them, wandering with the bone
+    fpl = np.clip(ndi.gaussian_filter(fpl, 0.25 / F.h), 0.0, 1.0)
+    moat = np.clip(ndi.gaussian_filter(fpl, 0.7 / F.h) * 1.8 - fpl * 1.8, 0.0, 1.0) * (1.0 - fac) * fw * (0.75 + 0.25 * np.tanh(wan))
+    # (only where the plate looks at the bone squarely: at its outline the moat would pare the silhouette)
+    F.D += MOAT * moat; del fpl, moat, fw
+    rim = 4.0 * fac * (1.0 - fac) * _ss(fac * 4.0)
+    sm = np.maximum(fac, sma)
     F.smooth = np.clip(sm, 0.0, 1.0).astype(np.float32)
-    # the rough surfaces ("rough for the attachment of ligaments"): low uneven swellings, and small pits of every shape
-    # where a finer chance runs high; none on the joint surfaces
+    F.D -= FACET_PROUD * fac + RIM * rim + SMOOTH_PROUD * sma
+    F.D -= marks; del marks
+    rough = 1.0 - F.smooth
     sh3 = F.D.shape
-    n1 = ndi.gaussian_filter(rng.normal(size=sh3).astype(np.float32), 0.5 / F.h); n1 /= n1.std()
-    n2 = ndi.gaussian_filter(rng.normal(size=sh3).astype(np.float32), 1.6 / F.h); n2 /= n2.std()
-    n3 = ndi.gaussian_filter(rng.normal(size=sh3).astype(np.float32), 0.3 / F.h); n3 /= n3.std()
-    F.D += ROUGH * (0.35 * n1 + 0.5 * n2 + 1.4 * _ss((n3 - 2.3) / 0.6)) * (1.0 - F.smooth); del n1, n2, n3
+    n1 = ndi.gaussian_filter(rs.normal(size=sh3).astype(np.float32), 0.4 / F.h); n1 /= n1.std()
+    n2 = ndi.gaussian_filter(rs.normal(size=sh3).astype(np.float32), 1.4 / F.h); n2 /= n2.std()
+    n3 = ndi.gaussian_filter(rs.normal(size=sh3).astype(np.float32), 0.3 / F.h); n3 /= n3.std()
+    # (D grows outward: + sinks the surface. The rough bone stands ROUGH_DROP below the joint surfaces on the whole)
+    F.D += (ROUGH * (0.4 * n1 + 0.6 * n2 + 2.2 * _ss((n3 - 2.0) / 0.6)) + ROUGH_DROP - INK_GAIN * ink) * rough; del n1, n2, n3, ink
     # (and still clear of the neighbours after it)
     for Fn, at in neighbours:
-        F.D = sdf.smax(F.D, GAP - _neighbour(Fn, at, X + c[0], Y + c[1], Z + c[2]), 0.8).astype(np.float32)
+        F.D = sdf.smax(F.D, GAP - _neighbour(Fn, at, X + c[0], Y + c[1], Z + c[2]), 0.6).astype(np.float32)
     log("%s cuneiform: built from %s, its plan from Fig. 268" % (name, " and ".join(V)))
     return _one_piece(F)
 
