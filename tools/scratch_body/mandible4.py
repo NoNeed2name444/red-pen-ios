@@ -55,7 +55,7 @@ FRONT = [(37.3, -56.6), (36.4, -53.5), (36.5, -49.5), (37.2, -45.0), (38.3, -40.
          (31.8, -14.7), (27.9, -16.9), (24.0, -17.9), (20.6, -17.5), (17.5, -15.6), (14.8, -12.2), (13.0, -8.4), (11.5, -5.0)]
 HIND = [(5.5, -6.0), (4.9, -9.2), (4.5, -13.8), (4.1, -19.0), (3.6, -24.5), (3.2, -30.5), (2.8, -37.0), (2.5, -44.0), (2.4, -51.0),
         (2.6, -57.5), (3.0, -63.5), (3.9, -69.0), (6.0, -73.8), (10.0, -77.3)]
-BORDER_Y = [-89.0, -89.6, -89.7, -88.6, -86.4, -83.8, -81.0, -80.9, -81.2, -80.2, -79.0]      # the lower border's height at M2.B's points
+BORDER_Y = [-88.5, -89.4, -89.7, -88.5, -86.3, -83.7, -81.0, -80.8, -83.4, -81.6, -79.0]      # the lower border's height at M2.B's points
 # old outline point -> new (side view, z and y): the warp that carries everything drawn in the ramus's frame with the outline
 WARP_PAIRS = [((4.9, -9.2), (4.9, -9.2)), ((5.5, -6.0), (5.5, -6.0)), ((9.5, -5.9), (9.5, -5.9)), ((11.5, -5.0), (11.5, -5.0)), ((11.0, -1.5), (11.0, -1.5)),
               ((6.5, -15.7), (4.4, -15.2)), ((8.4, -21.4), (3.9, -21.2)), ((9.6, -26.2), (3.5, -26.2)), ((11.6, -31.2), (3.1, -31.2)),
@@ -135,12 +135,14 @@ def crest_line(S):
     fr = [f for f in teeth.packed(M2.LOWER_LINE, M2.LOWER_T, False) if f["side"] == "L"]
     sc = np.array([float(S.sn(f["position_mm"][0], f["position_mm"][2])[0]) for f in fr])
     yc = np.array([float(f["position_mm"][1]) for f in fr])
-    rise = [0.35, 0.35, 0.45, 0.55, 0.6, 0.6, 0.55, 0.5]                # at the midline, then between tooth k and k + 1 (more and the narrow
+    rise = [0.25, 0.25, 0.3, 0.35, 0.4, 0.4, 0.35, 0.3]                # at the midline, then between tooth k and k + 1 (more and the narrow
                                                                      # septa between the front teeth stood up as a row of spikes)
-    wob = np.random.default_rng(1918).uniform(-0.18, 0.18, 2 * len(fr) + 2)
+    wob = np.random.default_rng(1918).uniform(-0.1, 0.1, 2 * len(fr) + 2)
     ss, yy = [0.0], [yc[0] + rise[0] + wob[0]]
-    for k in range(len(fr)):
-        ss.append(sc[k] + wob[2 * k + 1] * 0.8); yy.append(yc[k] - 0.25 + 0.5 * wob[2 * k + 1])
+    nb = [0.5 * (yc[max(k - 1, 0)] + yc[min(k + 1, len(fr) - 1)]) for k in range(len(fr))]
+    up = [float(np.clip(0.5 * (nb[k] - yc[k]), 0.0, 1.0)) for k in range(len(fr))]   # (the canine's crest lies 2 mm under its neighbours':
+    for k in range(len(fr)):                                                      # the margin over it is raised half way, still under its neck)
+        ss.append(sc[k] + wob[2 * k + 1] * 0.8); yy.append(up[k] + yc[k] - 0.05 + 0.5 * wob[2 * k + 1])   # (about level: Gray's crest is a gentle wave, not a row of notches)
         if k + 1 < len(fr):
             m = 0.5 * (sc[k] + sc[k + 1]) + 0.6 * wob[2 * k + 2]
             ss.append(m); yy.append(max(yc[k], yc[k + 1]) + rise[k + 1] + wob[2 * k + 2])
@@ -233,10 +235,19 @@ def maps(S, log=print):
     gr = lambda z, y, r: gauss(M, zr(z, y), (r, r))
     mid = mid + 1.3 * gr(6.0, -74.0, 8.0) + 0.5 * gr(14.0, -77.0, 6.0)             # the angle turned outward (Gray: "inverted or everted")
     # outside: "flat and marked by oblique ridges to the Masseter", rough at the angle (Fig. 176)
-    for k, (pts, h) in enumerate((([(5.5, -69.0), (10.5, -62.5), (16.5, -55.0)], [0.8, 0.6, 0.15]), ([(9.0, -73.5), (15.0, -66.5), (21.5, -59.5)], [0.9, 0.7, 0.2]),
-                                  ([(14.0, -76.5), (20.5, -70.0), (27.0, -63.5)], [0.75, 0.55, 0.15]), ([(19.5, -78.0), (26.0, -73.0), (31.5, -68.0)], [0.55, 0.4, 0.1]),
-                                  ([(4.0, -61.0), (8.0, -55.0), (12.0, -48.5)], [0.5, 0.35, 0.1]), ([(11.0, -67.5), (14.5, -63.5)], [0.45, 0.2]))):
-        orr = orr + 0.6 * st(pts, [2.4, 2.1, 1.8][:len(pts)], h, 0.45, 11 + k)   # broad and low: ridges, not scratches
+    # (a few, of unequal length and not parallel, running down and back to the angle; a scatter of knots between them)
+    for k, (pts, r, h) in enumerate((([(16.0, -56.0), (10.5, -63.5), (5.5, -69.5)], [1.4, 1.6, 1.4], [0.3, 0.9, 0.6]),
+                                     ([(23.0, -62.0), (16.0, -69.5), (11.0, -75.5)], [1.2, 1.5, 1.3], [0.2, 0.8, 0.7]),
+                                     ([(28.5, -71.0), (23.0, -75.0), (18.5, -78.3)], [1.2, 1.4, 1.2], [0.15, 0.6, 0.45]),
+                                     ([(12.5, -49.0), (8.5, -55.5), (4.5, -61.5)], [1.1, 1.3, 1.1], [0.1, 0.5, 0.35]),
+                                     ([(31.0, -63.5), (27.5, -67.5)], [1.2, 1.0], [0.45, 0.1]))):
+        orr = orr + st(pts, r, h, 0.5, 11 + k)
+    rk = np.random.default_rng(1919)
+    for _ in range(16):
+        z0, y0 = rk.uniform(4.0, 30.0), rk.uniform(-79.0, -55.0)
+        orr = orr + rk.uniform(0.15, 0.35) * gauss(M, zr(z0, y0), (rk.uniform(0.6, 1.1), rk.uniform(0.6, 1.1)))
+        z1, y1 = rk.uniform(4.0, 28.0), rk.uniform(-79.0, -55.0)
+        irr = irr - rk.uniform(0.15, 0.35) * gauss(M, zr(z1, y1), (rk.uniform(0.6, 1.1), rk.uniform(0.6, 1.1)))
     # inside: the medial pterygoid's ridges at the angle, the ridge from the neck down to the lingula, the temporal crest
     for k, (pts, h) in enumerate((([(5.0, -64.0), (10.0, -57.5), (15.5, -51.0)], [0.75, 0.55, 0.12]), ([(8.0, -70.0), (14.5, -62.5), (21.0, -56.0)], [0.85, 0.6, 0.15]),
                                   ([(13.0, -74.5), (20.0, -67.5), (26.5, -61.5)], [0.7, 0.5, 0.12]), ([(18.5, -77.0), (25.0, -71.5), (30.0, -67.0)], [0.5, 0.35, 0.1]),
@@ -266,12 +277,13 @@ def maps(S, log=print):
     # 3 to 4 mm apart, joined at their roots; the lower pair (geniohyoidei) smaller and run together into a short median
     # ridge; all of them rough, a scatter of small knots of bone over each.
     d2 = lambda c, r: np.sqrt(((s_ - c[0]) / r[0]) ** 2 + ((M.V - c[1]) / r[1]) ** 2)
-    sp = 2.1 * np.exp(-d2((2.3, yc_ + 11.2), (1.1, 1.7)) ** 1.3) + 0.2 * np.exp(-d2((0.0, yc_ + 10.4), (1.2, 1.4)) ** 2)
-    sp = sp + 1.1 * np.exp(-d2((1.0, yc_ + 6.4), (0.9, 1.6)) ** 1.4) + 0.5 * np.exp(-d2((0.0, yc_ + 7.6), (0.8, 2.6)) ** 2)
+    # (each under 1.5 mm and run into the bone round it: taller, pointed ones read as pegs on a mound)
+    sp = 0.95 * np.exp(-d2((1.6, yc_ + 11.0), (1.0, 1.5)) ** 1.7) + 0.4 * np.exp(-d2((1.3, yc_ + 6.6), (0.7, 1.0)) ** 1.8)
+    sp = sp + 0.15 * np.exp(-d2((0.0, yc_ + 8.6), (0.6, 3.0)) ** 2)
     rk = np.random.default_rng(1773)
-    for _ in range(14):
-        c0 = (rk.uniform(0.0, 3.4), yc_ + rk.uniform(4.5, 13.0))
-        sp = sp + rk.uniform(0.15, 0.4) * np.exp(-d2(c0, (rk.uniform(0.5, 0.9), rk.uniform(0.5, 0.9))) ** 2) * (sp > 0.25)
+    for _ in range(18):
+        c0 = (rk.uniform(0.0, 2.8), yc_ + rk.uniform(5.0, 12.5))
+        sp = sp + rk.uniform(0.1, 0.25) * np.exp(-d2(c0, (rk.uniform(0.4, 0.7), rk.uniform(0.4, 0.7))) ** 2) * smoothstep((sp - 0.1) / 0.3)
     ib = ib - sp
     q = np.clip((M.V - yb(M.U)) / np.maximum(yt(M.U) - yb(M.U), 1.0), 0, 1.4)
     s = np.abs(M.U)
@@ -282,14 +294,14 @@ def maps(S, log=print):
     G2 = lambda c, r: np.exp(-(((s - c[0]) / r[0]) ** 2 + ((M.V - c[1]) / r[1]) ** 2))
     # mental protuberance: a triangle, its apex up toward the incisors, its base the lower border between the two tubercles
     hw = 11.0 * np.clip(1.0 - (M.V - (yc + 2.5)) / 14.0, 0.0, 1.0) + 0.5
-    tri = ndimage.gaussian_filter(smoothstep((hw - s) / 3.5) * smoothstep((M.V - (yc + 1.0)) / 4.0) * smoothstep((yc + 17.0 - M.V) / 6.0), 2.0)
-    outer = outer + 2.0 * tri
-    outer = outer + 1.3 * G2((10.5, yc + 4.4), (3.8, 3.2)) + 0.35 * G2((12.2, yc + 3.0), (2.2, 1.8))   # mental tubercles (a little lumpy)
+    tri = ndimage.gaussian_filter(smoothstep((hw - s) / 3.0) * smoothstep((M.V - (yc - 1.0)) / 4.0) * smoothstep((yc + 17.0 - M.V) / 5.0), 1.8)
+    outer = outer + 1.6 * tri
+    outer = outer + 1.0 * G2((9.8, yc + 4.0), (3.0, 2.6)) + 0.3 * G2((11.4, yc + 2.8), (1.8, 1.5))   # mental tubercles (a little lumpy)
     outer = outer - 0.3 * G2((0.0, yc + 2.8), (3.6, 2.4))                        # the protuberance's base, depressed in the centre
     outer = outer + stroke(M, [(0.0, yc + 12.5), (0.3, yc + 17.0), (-0.2, yc + 21.0), (0.1, float(yt(0.0)) - 2.0)], [1.2, 1.3, 1.3, 1.1], [0.2, 0.45, 0.4, 0.15], 0.25, 62)   # the symphysis's faint ridge above it
     # Gray 176: the symphysis stands upright under the incisors, the chin as far forward as the alveolar border, not set back under it
-    outer = outer + 4.0 * np.exp(-(s / 13.0) ** 2) * smoothstep((M.V - (yc + 1.5)) / 6.0) * smoothstep((yt(M.U) - 2.0 - M.V) / 7.0)
-    outer = outer - 1.0 * G2((6.5, yc + 19.0), (4.2, 4.0))                       # incisive fossa, under the incisors' roots
+    outer = outer + 3.6 * np.exp(-(s / 13.0) ** 2) * smoothstep((M.V - (yc - 4.0)) / 12.0) * smoothstep((yt(M.U) - 2.0 - M.V) / 7.0)   # (no edge to it: a window starting at the border drew a shelf across the chin)
+    outer = outer - 0.8 * G2((6.5, yc + 19.0), (3.8, 3.6))                       # incisive fossa, under the incisors' roots
     # the oblique line: faint in front, as Gray has it, and stronger toward the ramus, whose front border it becomes
     # (it runs on up into the ramus's front border, which now rises behind the third molar)
     outer = outer + stroke(M, [(12.5, yc + 5.0), (26.0, yb(26.0) + 6.5), (40.0, yb(40.0) + 12.0), (52.0, yb(52.0) + 17.0), (61.0, -58.8), (65.5, -54.5), (68.0, -49.5)],
@@ -317,8 +329,8 @@ def maps(S, log=print):
             i, j = M.ij(sg * sv, Pw[:, 1]); i, j = np.round(i).astype(int), np.round(j).astype(int)
             ok = (i >= 0) & (i < M.nu) & (j >= 0) & (j < M.nv)
             np.maximum.at(need_out, (i[ok], j[ok]), (nv + wall)[ok]); np.minimum.at(need_in, (i[ok], j[ok]), (nv - wall)[ok])
-    lift = ndimage.gaussian_filter(ndimage.maximum_filter(np.maximum(need_out - outer, 0.0), 11), 3.0)
-    sink = ndimage.gaussian_filter(ndimage.maximum_filter(np.maximum(ib - need_in, 0.0), 11), 3.0)
+    lift = ndimage.gaussian_filter(ndimage.maximum_filter(np.maximum(need_out - outer, 0.0), 17), 5.0)   # (broad: a narrow one read as a pimple)
+    sink = ndimage.gaussian_filter(ndimage.maximum_filter(np.maximum(ib - need_in, 0.0), 17), 5.0)
     log("jaw sheet: to clear the roots the cheek-side face is lifted by up to %.1f mm and the tongue-side by up to %.1f" % (lift.max(), sink.max()))
     outer = outer + 1.1 * lift
     ib = ib - 1.1 * sink
@@ -353,7 +365,7 @@ def maps(S, log=print):
     return dict(M=M, reg=reg, outer=outer, inner=irr, inner_body=ib, top=top, sunk=sunk, lip=lip, meet=meet, away=away, rad=rad, yb=yb, yt=yt, zs=zs, zy=zy, rim=yrim)
 
 
-def sockets(F, frames, yrim, S, wall=0.9, gap=0.3):
+def sockets(F, frames, yrim, S, wall=1.5, gap=0.3):
     """The sockets (teeth.seat's way: each the tooth's own shape `gap` mm larger), with the bone round them brought up to the
     scalloped margin (yrim) and not to a plane square to each tooth: teeth.seat's flat collars, one per tooth, stood above the
     body's top with square notches between them. The collars of bone run down the whole root, thinning toward its tip, and
@@ -378,10 +390,13 @@ def sockets(F, frames, yrim, S, wall=0.9, gap=0.3):
         fields.append((sl, socket, lz, root, cap))
     for sl, socket, lz, root, cap in fields:
         depth = -(lz + teeth.NECK_ABOVE_CREST)
-        thin = wall * np.clip(0.6 + depth / 6.0, 0.6, 1.0)
+        thin = wall * np.clip(0.85 + depth / 6.0, 0.85, 1.0)   # (a lip thinner than this was eaten down 2 mm by the rounding: the crest stood in notches)
         deep = np.clip((depth / root - 0.5) / 0.45, 0.0, 1.0)
         thin = thin * (1.0 - 0.7 * deep * deep * (3 - 2 * deep))
         sleeve = smax(socket - thin, cap, 0.7)
+        # (below the margin a sleeve stays inside the body's faces: a root's tip near the face stood out as a pimple)
+        wd = np.clip((depth - 4.0) / 3.0, 0.0, 1.0)
+        sleeve = np.maximum(sleeve, F.D[sl] - 0.2 - 30.0 * (1.0 - wd))
         F.D[sl] = smin(F.D[sl], sleeve, 1.6)
     for sl, socket, lz, root, cap in fields:
         F.D[sl] = smax(F.D[sl], -socket, 0.5)
@@ -393,16 +408,23 @@ def sockets(F, frames, yrim, S, wall=0.9, gap=0.3):
         F.add(sdf.Box(p - R[:, 2] * 9.0, (1.6, 4.0, 5.2), 1.2, R), k=0.6)
     for sl, socket, lz, root, cap in fields:
         F.D[sl] = smax(F.D[sl], -socket, 0.5)
-    # its crest, between two sockets cut by two roots, is still thinner than the grid holds (a jagged edge): round it, and the
-    # thin septa between the front teeth likewise (they stood as points), then cut the sockets once more, softly
+    # its crest, between two sockets cut by two roots, is still thinner than the grid holds (a jagged edge): round it (the thin
+    # septa and lips of the front teeth are rounded with the whole margin, below)
     for s in [f for f in frames if f["side"] == "L"]:
         R, p = teeth.frame(s)
         if "molar" in s["tooth"]:
             F.ease(p - R[:, 2] * 4.8, 3.2, 0.75)
-    fl = [f for f in frames if f["side"] == "L"]
-    for a_, b_ in zip(fl[:4], fl[1:5]):
-        F.ease(0.5 * (np.array(a_["position_mm"]) + np.array(b_["position_mm"])) + np.array([0.0, 0.4, 0.0]), 2.6, 0.55)
-    F.ease(np.array([0.0, fl[0]["position_mm"][1] + 0.4, fl[0]["position_mm"][2]]), 2.6, 0.55)
+    # The margin as a whole: the field smoothed in a band about the crest's height (septa and lips left by separate cuts met
+    # in square shoulders and read as a dark jagged line), then the sockets cut once more with a soft lip.
+    from scipy import ndimage
+    lo_ = np.min([[s_.start for s_ in sl] for sl, *_ in fields], 0); hi_ = np.max([[s_.stop for s_ in sl] for sl, *_ in fields], 0)
+    win = tuple(slice(int(a), int(b)) for a, b in zip(lo_, hi_))
+    A = F.D[win].astype(np.float32)
+    G = ndimage.gaussian_filter(np.clip(A, -20, 20), 0.45 / h, mode="nearest")
+    X, Y, Z = np.broadcast_arrays(*F.coords(win))
+    dy = Y - yrim(S.sn(X, Z)[0])
+    wb = np.clip((dy + 4.0) / 2.0, 0, 1) * np.clip((3.0 - dy) / 1.5, 0, 1); wb = wb * wb * (3 - 2 * wb)
+    F.D[win] = np.where(np.abs(A) < 15, A * (1 - wb) + G * wb, A)
     for sl, socket, lz, root, cap in fields:
         F.D[sl] = smax(F.D[sl], -socket, 0.4)
     return F
@@ -459,17 +481,19 @@ def build(h=0.5, log=print, seat=True):
     a = [(0, 3.0), (0.3, 2.7), (0.55, 2.0), (0.8, 1.5), (1, 1.25)]                           # across the face, and along it (b)
     b = [(0, 2.6), (0.3, 2.3), (0.55, 1.7), (0.8, 1.35), (1, 1.2)]
     a = [(t, v * rng.uniform(0.93, 1.07)) for t, v in a]; b = [(t, v * rng.uniform(0.9, 1.1)) for t, v in b]
-    F.cut(sdf.Tube(sdf.spline(P, 0.5), a, b, up=Wn[2]), k=0.9)                     # (the path's slant through the face draws the mouth out)
-    canal_in = (P[-1], sdf.unit(P[-1] - P[-2]))                                                # the funnel's bottom and the way it points: the canal goes on from here (structure.py)
     # the lingula: a flattened, tapering blade standing 1 to 1.5 mm proud of the face, broad at its root on the front lip
     (l0, n0), (l1, n1), (l2, n2) = fz(24.6, -44.0, -0.5), fz(23.5, -39.6, 0.2), fz(21.8, -35.8, 0.5)
     Lp = np.array([l0, l1, l2])
     F.add(sdf.Tube(sdf.spline(Lp, 0.4), [(0, 0.62), (0.6, 0.52), (1, 0.42)], [(0, 3.6), (0.45, 2.3), (0.8, 1.1), (1, 0.4)], up=n1), k=0.9)   # (a thin flat tongue: 1.2 mm thick, 6 wide at its root)
+    # (the lingula first and the funnel cut after: its root, left standing inside the mouth, read as a second flap and a crack)
+    F.cut(sdf.Tube(sdf.spline(P, 0.5), a, b, up=Wn[2]), k=0.9)                     # (the path's slant through the face draws the mouth out)
+    F.ease(P[2], 2.6, 0.5); F.ease(P[3], 2.4, 0.5)                                 # the funnel's throat smooth (no crack line where its walls met)
+    canal_in = (P[-1], sdf.unit(P[-1] - P[-2]))                                                # the funnel's bottom and the way it points: the canal goes on from here (structure.py)
 
     # ---- the tongue side of the chin: the mental spines (a pair above, a low ridge below) and the digastric fossae
     yc = float(W["yb"](0.0))
     p, w = face(0, yc + 1.8, False, s=9.0)
-    F.cut(sdf.Ellipsoid(p - 0.9 * w + np.array([0.0, -2.0, 0.0]), (6.2, 2.2, 3.2), sdf.rot((0, 1, 0), 18.0)), k=1.4)   # digastric fossa: an oval on the base's underside, behind
+    F.cut(sdf.Ellipsoid(p - 0.9 * w + np.array([0.0, -2.0, 0.0]), (6.2, 1.8, 3.0), sdf.rot((0, 1, 0), 18.0)), k=2.4)   # digastric fossa: an oval on the base's underside, behind
     sdf.ease_midline(F)
     frames = teeth.packed(M2.LOWER_LINE, M2.LOWER_T, False)
     if seat:
