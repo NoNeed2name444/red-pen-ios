@@ -60,6 +60,24 @@ def _near(X, Z, path):
     return d, t
 
 
+def _wave(X, Y, Z, seed, scale, n=7):
+    """A smooth wandering field of about unit spread, the same at any grid step: n plane waves in chance directions,
+    their lengths about `scale` mm. Used to bend a border that a rule would draw dead straight (bones do not run
+    straight) and to vary how sharp it is along its length."""
+    rng = np.random.default_rng(seed); out = 0.0
+    for _ in range(n):
+        d = rng.normal(size=3); d /= np.linalg.norm(d); k = 2.0 * np.pi / (scale * rng.uniform(0.7, 1.4))
+        out = out + np.cos(k * (d[0] * X + d[1] * Y + d[2] * Z) + rng.uniform(0.0, 2.0 * np.pi))
+    return (out * np.sqrt(2.0 / n)).astype(np.float32)
+
+
+def _sinterp(x, xp, fp, soft):
+    """np.interp eased over `soft` mm: a table's knots would else run across the bone as straight creases."""
+    t = np.arange(xp[0] - 3.0 * soft, xp[-1] + 3.0 * soft, 0.1)
+    f = ndi.gaussian_filter1d(np.interp(t, xp, fp), soft / 0.1, mode="nearest")
+    return np.interp(x, t, f).astype(np.float32)
+
+
 # Marks traced on the plates, in each plate's own pixels: what a plate draws that no outline shows and no rule gives.
 # ("dot", (u, v), radius mm, height mm), ("line", [(u, v), ...], width mm, height mm), ("area", [(u, v), ...],
 # height mm, soft edge mm); a height below 0 is sunk (a foramen, a slit), above 0 raised (a tubercle, a rim).
@@ -69,8 +87,9 @@ CALC_MARKS = {
                 ("area", [(62, 95), (80, 84), (96, 92), (98, 120), (92, 150), (72, 152), (60, 125)], 1.0, 2.0)],
     "Gray266": [("dot", (305, 115), 0.5, -0.7), ("dot", (312, 130), 0.45, -0.7), ("dot", (265, 95), 0.4, -0.5),    # vascular foramina
                 ("line", [(160, 88), (185, 90), (207, 93)], 1.2, 0.6),                # the sinus tarsi's lateral rim, a clear light edge
-                # the line the plate draws along the posterior facet's lateral margin
-                ("line", [(247, 33), (240, 50), (230, 68), (220, 82), (214, 93)], 0.8, -0.4)],
+                # (the line the plate draws along the posterior facet's lateral margin is the facet's own edge, which
+                # the facet's lip gives; cut in as a groove it read as a scratch, and is left out)
+                ],
     "Gray267": [("dot", (215, 178), 0.55, -0.9),                                      # the foramen in the medial surface
                 # the eminence low on the medial side in front
                 ("area", [(296, 180), (305, 171), (322, 170), (331, 182), (328, 198), (314, 206), (300, 200)], 1.4, 1.5),
@@ -98,6 +117,29 @@ def _marks_map(items, shape, px):
         elif kind == "line":
             pts = [at(u, v) for u, v in (sdf.spline(np.asarray(where, float), 2.0) if len(where) > 2 else where)]
             dr.line(pts, fill=255, width=max(1, int(round(a / px * k)))); height, soft = b, 0.35 * a
+        else:
+            dr.polygon([at(u, v) for u, v in sdf.spline(np.asarray(where, float), 2.0, closed=True)], fill=255); height, soft = a, b
+        m = np.asarray(im.resize((W, H), Image.BOX), np.float32) / 255.0
+        d += height * ndi.gaussian_filter(m, soft / px)
+    return d
+
+
+def _marks_soft(items, shape, px):
+    """As _marks_map, but as bone has them: a foramen a bowl, not a drilled hole with a flat floor and sheer sides;
+    a line (a slit, a rim) thinning out to nothing at its two ends, not a rod of one width with round ends."""
+    from PIL import Image, ImageDraw
+    k = 3; H, W = shape; d = np.zeros((H, W), np.float32)
+    at = lambda u, v: ((u + 0.5) * k, (v + 0.5) * k)
+    for kind, where, a, b in items:
+        im = Image.new("L", (W * k, H * k), 0); dr = ImageDraw.Draw(im)
+        if kind == "dot":
+            (cx, cy), r = at(*where), 0.7 * a / px * k; dr.ellipse([cx - r, cy - r, cx + r, cy + r], fill=255); height, soft = 1.2 * b, 0.6 * a
+        elif kind == "line":
+            pts = [at(u, v) for u, v in sdf.spline(np.asarray(where, float), 0.5)]; n = len(pts)
+            for i in range(n - 1):
+                t = (i + 0.5) / (n - 1.0); wd = a / px * k * (0.25 + 0.75 * np.sin(np.pi * t) ** 0.7)
+                dr.line([pts[i], pts[i + 1]], fill=255, width=max(1, int(round(wd))))
+            height, soft = b, 0.45 * a
         else:
             dr.polygon([at(u, v) for u, v in sdf.spline(np.asarray(where, float), 2.0, closed=True)], fill=255); height, soft = a, b
         m = np.asarray(im.resize((W, H), Image.BOX), np.float32) / 255.0
@@ -256,6 +298,39 @@ def emboss(F, tr, views, poses, gain=1.0, log=None):
     return F
 
 
+def _emboss_eased(F, tr, views, poses, gain=1.0, log=None, apart=0.8, over=1.5):
+    """emboss, but where the plates that see a point disagree on how far to move it (by `apart` mm and more, between
+    their weighted spread), what they move is eased together over `over` mm: there the surface would else go from one
+    plate's height to the other's within the millimetre in which the edge turns from one eye to the other."""
+    reach = RELIEF["cap"] + (RELIEF["fine"][3] if RELIEF["fine"] else 0.0)
+    D = F.D; idx = np.nonzero(np.abs(D) < reach + 1.5)
+    g = np.gradient(ndi.gaussian_filter(D, 1.0 / F.h), F.h)
+    n = np.stack([c[idx] for c in g], 1); n /= np.maximum(np.linalg.norm(n, axis=1), 1e-9)[:, None]; del g
+    P = np.stack([F.ax[k][idx[k]] for k in range(3)], 1).astype(np.float64)
+    _JOB.update(F=F, tr={k: tr[k] for k in tr.files}, views={v["fig"]: v for v in views}, poses=poses)
+    out = [_plate_relief(v["fig"]) for v in views]
+    _JOB.clear(); F.relief = {}; ease = _unhidden(F, idx); cs, ws = [], []
+    for v, (fig, d, depth, (a, b, L, r2)) in zip(views, out):
+        pose = poses[fig]; B = pm.basis(v, pose[:3]); hit = ~np.isnan(depth); F.relief[fig] = d
+        if log:
+            log("  %s: light from right %.2f up %.2f eye %.2f (tone = %.2f + %.2f n.L, explains %.2f); relief %.1f to %.1f mm"
+                % (fig, L[0], L[1], L[2], a, b, r2, d.min(), d.max()))
+        u, r = _pixels(v, pose, P[:, 0], P[:, 1], P[:, 2])
+        front = _read(np.where(hit, depth, -1e3), u, r); face = n @ B[2]
+        wt = ease(_ss((P @ B[2] - front + max(4.0, reach + 1.0)) / 2.5)) * _ss((face - 0.1) / 0.4)
+        cs.append((_read(d, u, r) * face).astype(np.float32)); ws.append(wt.astype(np.float32))
+    cs, ws = np.array(cs), np.array(ws); wsum = ws.sum(0)
+    mean = (ws * cs).sum(0) / np.maximum(wsum, 1e-6)
+    spread = np.sqrt((ws * (cs - mean) ** 2).sum(0) / np.maximum(wsum, 1e-6))
+    move = (ws * cs).sum(0) / np.maximum(wsum, 1.0); del cs, ws
+    vol = np.zeros(D.shape, np.float32); vol[idx] = move; on = np.zeros(D.shape, np.float32); on[idx] = 1.0
+    s = over / F.h; eased = ndi.gaussian_filter(vol, s)[idx] / np.maximum(ndi.gaussian_filter(on, s)[idx], 1e-3); del vol, on
+    a = np.zeros(D.shape, np.float32); a[idx] = _ss(spread / apart)
+    a = ndi.gaussian_filter(a, s)[idx]                       # the easing itself comes in gradually
+    D[idx] -= gain * (move + a * (eased - move))
+    return F
+
+
 def calcaneus(h=0.4, log=print, relief=1.0, upto="all", poses=None, ink=INK):
     """upto="hull" stops at the bare solid inside the outlines of Fig. 264 and the two side plates (what the plates'
     poses are fitted on, dev/fit_plates.py); `poses` tries other poses than the traces were made at ({fig: pose})."""
@@ -287,7 +362,14 @@ def calcaneus(h=0.4, log=print, relief=1.0, upto="all", poses=None, ink=INK):
     # side"; Fig. 266 shades the lower third of the lateral surface dark right to the front)
     Rb = ndi.gaussian_filter1d(np.interp(F.ax[2], [0.0, 40.0, 62.0, 72.0, 80.0], [11.0, 11.0, 10.0, 7.5, 4.0]), 4.0 / h)[None, None, :]
     R = R + (Rb - R) * _ss((20.0 - Y) / 10.0) * _ss((6.0 - X) / 8.0)
-    D = _round_meet(plan, side, R); del plan, side
+    D = _round_meet(plan, side, R)
+    # (the edges where the faces meet neither run dead straight nor are rounded alike all along, as an outline carried
+    # through the bone would leave them: along each the bone stands up to half a millimetre out or in, over some 9 mm,
+    # so the edge wanders and is sharp in one place and broad in the next. Only near an edge (where both outlines are
+    # close), and as much out as in, so the outlines lie no farther from the plates' on the mean. Widening the
+    # rounding itself instead, by as much, ran over whole faces as lumps.)
+    D = D + 0.3 * _wave(X, Y, Z, 31, 9.0) * _ss(np.minimum(plan, side) / R + 1.0)
+    del plan, side
     if upto == "hull":
         F.D = np.clip(D, -12.0, 12.0).astype(np.float32); return F
     p4 = P["Gray264"]
@@ -330,11 +412,13 @@ def calcaneus(h=0.4, log=print, relief=1.0, upto="all", poses=None, ink=INK):
     D = _cut(D, (Y - top[:, None, :]) / np.sqrt(1.0 + gx ** 2 + gz ** 2)[:, None, :], edge)
     # 2b. the sustentaculum is a shelf: under it the wall falls back into the groove for the flexor hallucis longus
     # (the shelf thinner toward its free edge, and never less than 5 mm of bone left under the upper surface)
-    wall = np.interp(zp3, [30.0, 38, 42, 46, 50, 58, 64, 70, 74, 80], [40.0, 40, 15.5, 17.0, 18.5, 18.0, 16.5, 17.0, 17.5, 40])
+    # (the cut comes in from behind gradually and from clear of the wall: begun at once, 2 mm short of the wall, it
+    # left a seam down the wall at z 42; its tables are eased so that their knots draw no lines across the bone)
+    wall = _sinterp(zp3, [30.0, 38, 42, 46, 50, 58, 64, 70, 74, 80], [40.0, 30.0, 21.0, 18.0, 18.5, 18.0, 16.5, 17.0, 17.5, 40], 1.5)
     # (Fig. 267 draws the shelf's free border as a face 6 to 7 mm tall that falls forward: under pixels (270, 135),
     # (285, 145) and (300, 152) its lower edge stands 36.7, 34.3 and 32.4 mm up; in front of z 60 the shelf is a
     # thinner ledge under the middle facet's fore end. The groove is deeper at the shelf's root.)
-    under = np.interp(Z, [42.0, 45, 49, 52, 55, 58, 61, 66, 72], [42.5, 41.0, 38.3, 36.2, 33.8, 31.9, 32.5, 34.5, 36.5]) - 2.0 * (1.0 - _ss((xp3 - 19.0) / 9.0))
+    under = _sinterp(Z, [42.0, 45, 49, 52, 55, 58, 61, 66, 72], [42.5, 41.0, 38.3, 36.2, 33.8, 31.9, 32.5, 34.5, 36.5], 1.0) - 2.0 * (1.0 - _ss((xp3 - 19.0) / 9.0))
     under = np.minimum(under, top[:, None, :] - 5.0)
     D = _cut(D, sdf.smin(xp3 - wall, under - Y, 3.0), edge); del wall, under, edge
     # 2c. the medial surface is deeply hollowed below and behind the shelf; the trochlear process is a knob at mid height
@@ -354,24 +438,35 @@ def calcaneus(h=0.4, log=print, relief=1.0, upto="all", poses=None, ink=INK):
     out = np.interp(zt, [42.0, 46, 52, 58, 61], [-40.0, -14.5, -13.6, -12.5, -40])
     D = sdf.smax(D, out - xp3, 1.0); del out, zt
     D = sdf.smin(D, _tube(X, Y, Z, [(-14.0, 31.4, 44.5), (-15.1, 31.5, 48.5), (-15.4, 31.0, 53.0), (-15.2, 29.6, 56.6), (-14.7, 26.6, 57.8),
-                                    (-13.6, 23.6, 58.0)], [1.4, 1.9, 2.1, 2.0, 1.8, 1.3]), 1.4)
+                                    (-13.6, 23.6, 58.0)], [1.4, 1.9, 2.1, 2.0, 1.8, 1.3]), 2.0)    # (eased in over 2 mm: at 1.4 its foot was a dark pen line)
     # (the pit under the crest is no round hole: Fig. 266 draws it flat-topped under the crest, widest behind, and
     # narrowing downward and forward into the groove; two unequal hollows run together, and the groove begins wide)
-    D = sdf.smax(D, -Ellipsoid((-13.3, 27.0, 48.6), (3.1, 2.6, 3.6), rot((1, 0, 0), 18.0))(X, Y, Z), 1.6)
-    D = sdf.smax(D, -Ellipsoid((-13.4, 25.2, 51.6), (2.7, 3.0, 2.6), rot((1, 0, 0), -25.0))(X, Y, Z), 1.6)
+    # (their rims eased over 2.4 mm: a crisp oval rim read as a capsule pressed into the wall)
+    D = sdf.smax(D, -Ellipsoid((-13.3, 27.0, 48.6), (3.1, 2.6, 3.6), rot((1, 0, 0), 18.0))(X, Y, Z), 2.4)
+    D = sdf.smax(D, -Ellipsoid((-13.4, 25.2, 51.6), (2.7, 3.0, 2.6), rot((1, 0, 0), -25.0))(X, Y, Z), 2.4)
     D = sdf.smax(D, -_tube(X, Y, Z, [(-13.8, 25.2, 52.0), (-13.9, 23.4, 54.8), (-14.0, 21.3, 58.0), (-11.0, 19.3, 64.0), (-7.5, 17.2, 70.0)],
-                           [2.7, 2.4, 2.0, 1.9, 1.6]), 1.5)
+                           [2.7, 2.4, 2.0, 1.9, 1.6]), 2.2)
     # (the lateral process of the tuberosity: Fig. 266 draws it a rounded knob at the lower hind corner of the lateral
     # surface, 22 mm from the back, with a shallow hollow between it and the hinder surface)
-    D = sdf.smin(D, Ellipsoid((-10.2, 6.8, 23.5), (3.2, 4.2, 4.6))(X, Y, Z), 1.5)
-    D = sdf.smax(D, -Ellipsoid((-10.0, 10.2, 16.2), (2.6, 4.0, 5.0))(X, Y, Z), 2.0)
+    # (the wall there stands at x -12 to -13: set at x -10 the hollow went 5 mm in and left a sheer wall in front of
+    # it at z 19, which read as a tooth with a crescent cut behind it, and the knob stood no more than half a
+    # millimetre proud. Now the knob stands 1.5 mm out, the hollow is 2 mm deep, both eased in over 2.5 to 3 mm.)
+    D = sdf.smin(D, Ellipsoid((-11.5, 6.8, 23.5), (3.2, 4.2, 4.6))(X, Y, Z), 2.5)
+    D = sdf.smax(D, -Ellipsoid((-13.0, 10.2, 16.2), (2.6, 4.0, 5.0))(X, Y, Z), 3.0)
     # 2d. the tuberosity's hinder surface and its two processes below stand a little proud of the body, marked off by a
     # line: on the upper surface it runs across 20 mm from the back (Fig. 264), on the sides nearer the back and
     # slanting forward as it goes down (Fig. 267), below it bounds the two processes with the notch between them (Fig. 265)
     sn = np.sin(np.arctan2(Y - 22.0, X - 2.0)); up = np.maximum(sn, 0.0) ** 1.5; down = np.maximum(-sn, 0.0) ** 1.5
     # (Fig. 265 has the two processes' front border 30 mm from the back, the notch between them a little behind it)
     line = 11.0 + 9.0 * up + (19.5 + 0.05 * (X - 2.0) - 3.0 * np.exp(-((X + 2.0) / 4.0) ** 2)) * down
-    D = D - (0.5 + 1.2 * down) * _ss((line - Z) / 1.5); del sn, up, down, line
+    # (no such line is ruled: it wanders a millimetre or so either way, is a clear step in one place and a
+    # slope over 4 mm in the next, and stands higher and lower along its length)
+    line = line + 1.2 * _wave(X, Y, Z, 41, 18.0)
+    # (on the two sides, where no plate draws it as a line, it is a low slope: kept sheer there it ran down the
+    # medial and lateral faces as a crack, and cut a sickle beside the lateral process)
+    side = 1.0 - np.abs(sn); wid = 2.0 * np.exp(0.4 * _wave(X, Y, Z, 42, 12.0)) * (1.0 + 1.5 * side)
+    D = D - (0.5 + 1.2 * down) * (1.0 - 0.6 * side) * np.exp(0.3 * _wave(X, Y, Z, 43, 15.0)) * _ss((line - Z) / wid)
+    del sn, up, down, line, wid, side
     F.D = np.clip(D, -12.0, 12.0).astype(np.float32)
     # the three surfaces for the talus are smooth (no grain on them): their outlines, as Fig. 264 draws them
     from PIL import Image, ImageDraw
@@ -379,12 +474,24 @@ def calcaneus(h=0.4, log=print, relief=1.0, upto="all", poses=None, ink=INK):
     for poly in CALC_FACETS:
         ImageDraw.Draw(im).polygon([(87.0 + x / 0.225, 421.0 - z / 0.225) for x, z in sdf.spline(np.asarray(poly, float), 0.4, closed=True)], fill=255)
     m = _read(ndi.gaussian_filter(np.asarray(im, np.float32) / 255.0, 1.2), *_pixels(V["Gray264"], p4, X, Y, Z))
-    m = m * _ss((Y - top[:, None, :] + 5.0) / 2.0); F.D -= 0.6 * _ss((m - 0.25) / 0.5)                 # each stands a little proud, with a rim
+    m = m * _ss((Y - top[:, None, :] + 5.0) / 2.0)
+    # each stands a little proud, its margin a rounded lip (a step 0.6 mm tall over a quarter of a millimetre read as
+    # a wire laid round it), the lip a little higher in some places than in others
+    m2 = _read(ndi.gaussian_filter(np.asarray(im, np.float32) / 255.0, 4.0), *_pixels(V["Gray264"], p4, X, Y, Z)) * _ss((Y - top[:, None, :] + 5.0) / 2.0)
+    F.D -= (0.5 + 0.15 * _wave(X, Y, Z, 51, 6.0)) * _ss(m2 / 0.8)
     F.smooth = np.maximum(m, _ss((Z - 76.0) / 2.0) + 0.0 * m).astype(np.float32)
-    lay(F, pm.CALCANEUS, P, {f: _marks_map(m, tr[f + "_sdf"].shape, V[f]["s"] * P[f][3]) for f, m in CALC_MARKS.items()})
+    # (the rough faces are not flat between their borders: they swell and sink a tenth or two of a millimetre over
+    # some 15 mm, as much out as in; shorter or deeper waves read as hammered metal)
+    F.D += 0.1 * _wave(X, Y, Z, 61, 15.0) * (1.0 - F.smooth)
+    lay(F, pm.CALCANEUS, P, {f: _marks_soft(m, tr[f + "_sdf"].shape, V[f]["s"] * P[f][3]) for f, m in CALC_MARKS.items()})
     # 3. the plates' relief
     if relief:
-        emboss(F, tr, pm.CALCANEUS, P, relief, log)
+        # (where two plates see one edge they can ask for very different heights, Fig. 264 a 1.5 mm swell on top of the
+        # tuberosity, Fig. 267 a 1.4 mm hollow under it on the medial face; as the edge turns from one eye to the other
+        # the surface went from the one to the other in a millimetre and drew the edge as a crack. What the plates
+        # move is eased together over a millimetre and a half there, and only there: eased all over, it took the relief
+        # off thin parts such as the shelf, whose two faces' reliefs ran together.)
+        _emboss_eased(F, tr, pm.CALCANEUS, P, relief, log)
     # 4. the plates' fine drawing: the streaks, pits and rough patches each plate draws on the faces it shows
     if ink:
         lay(F, pm.CALCANEUS, P, {f: tr[f + "_ink"].astype(np.float32) * (ink / 50.0) for f in V}, shared=True, rough=True)

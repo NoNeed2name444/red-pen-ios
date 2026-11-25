@@ -3748,8 +3748,15 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     from pixel to pixel in the shading solver, creases along the relief's
     limit (now bent over to it, limit 2 mm, one stage), and cross-hatched
     ink laid on as dimples (all but left out; streaks run 4 mm).
-    Still open: the medial wall is too flat (Gray: "deeply concave"), the
-    borders between faces run too straight, a seam under the shelf at z 42.
+    Later that day, by a worker and passed in review: the seam under the
+    shelf (the cut now comes in gradually), the straight borders (edges
+    wander, the tuberosity's line varies from a step to a slope), a crack
+    where two plates' relief disagreed, label leader lines laid on as
+    grooves, the lateral process as a tooth. Outlines as before (mean 0.8
+    to 1.1 mm from each plate's).
+    Still open: the medial wall is too flat (Gray: "deeply concave"); the
+    shelf's tip falls short of Fig. 267's outline; the tendon groove and
+    the sole's cuboid band are weak; softer than the engravings overall.
   - [ ] Talus, the cuboid and the navicular: started 25 Nov, side by side
     with the heel bone (the owner: "u can run multiple bones at once"),
     each in a file of its own (talus.py, midfoot.py).

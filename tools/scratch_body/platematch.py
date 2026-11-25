@@ -337,6 +337,25 @@ def tone_of(gray, mask, px, fine=0.9):
 
 
 
+def leader_lines(gray, least=25, widest=4, contrast=0.18):
+    """A plate's label lines, also where they cross the hatching (upright_lines finds them only on open paper and
+    light tone): columns a few pixels wide that are darker than the columns 3 pixels either side of them, run
+    together over some 12 pixels up and down, for at least `least` pixels. A mask."""
+    dark = 1.0 - gray.astype(np.float32) / 255.0
+    col = ndi.gaussian_filter1d(dark, 12, axis=0)
+    c = col - 0.5 * (ndi.shift(col, (0, 3), order=0, mode="nearest") + ndi.shift(col, (0, -3), order=0, mode="nearest"))
+    lab, n = ndi.label(c > contrast); out = np.zeros(gray.shape, bool); H = gray.shape[0]
+    for i, sl in enumerate(ndi.find_objects(lab), 1):
+        if sl[0].stop - sl[0].start >= least and sl[1].stop - sl[1].start <= widest:
+            out[sl] |= lab[sl] == i
+            # followed on up and down its own column while it stays a third as clear (in dark hatching it fades)
+            u0, u1 = max(sl[1].start - 1, 0), sl[1].stop + 1
+            for step, v in ((-1, sl[0].start - 1), (1, sl[0].stop)):
+                while 0 <= v < H and c[v, u0:u1].max() > contrast / 3.0:
+                    out[v, u0 + 1:u1 - 1] = True; v += step
+    return ndi.binary_dilation(out, np.ones((1, 3), bool))
+
+
 def ink_of(gray, mask, px, lo=0.4, hi=2.0, along=4.0, crossed=0.3):
     """A plate's fine drawing as relief to lay on the model: what of its tone lies between lo and hi mm across, light
     for raised and dark for sunk, run together over `along` mm in the direction of the plate's own lines wherever
@@ -362,6 +381,13 @@ def ink_of(gray, mask, px, lo=0.4, hi=2.0, along=4.0, crossed=0.3):
     band = one * 1.6 * run / ws + (1.0 - one) * crossed * band
     band = band / np.percentile(np.abs(band[inside]), 90)
     ease = np.clip(ndi.distance_transform_edt(inside) * px / 1.2, 0.0, 1.0)
+    # a label line came through as a dead straight groove down the bone (Fig. 267, the line to the sulcus for the
+    # flexor hallucis longus, lost among the hatching where upright_lines does not see it): within a millimetre of
+    # any label line the ink is filled in from beside it
+    near = np.clip(ndi.distance_transform_edt(~(line | leader_lines(gray))) * px / 1.0, 0.0, 1.0)
+    near = near * near * (3.0 - 2.0 * near)
+    fill = ndi.gaussian_filter(band * near, 1.0 / px) / np.maximum(ndi.gaussian_filter(near, 1.0 / px), 1e-3)
+    band = near * band + (1.0 - near) * fill
     return (np.clip(band, -2.5, 2.5) * ease * ease * (3.0 - 2.0 * ease)).astype(np.float32)
 
 
