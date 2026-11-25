@@ -49,9 +49,15 @@ pm.PLATES.setdefault("talus", TALUS)          # for the dev tools (trace_plates.
 # Read off the plates under a pixel grid (each plate's own pixels).
 # Fig. 270, from above: the trochlea's lateral border (where it turns down into the facet for the lateral malleolus and,
 # behind, into the narrow facet for the inferior transverse ligament) and its medial border, as (row, column)
-TROCH_LAT_270 = [(160, 150), (175, 150), (200, 152), (250, 158), (285, 168), (312, 185), (330, 198)]
-# its front border (the edge with the neck, notched in the middle where the neck's upper surface runs back), (column, row)
-TROCH_FRONT_270 = [(140, 176), (150, 172), (175, 160), (200, 155), (225, 158), (245, 168), (258, 178), (270, 170), (285, 160), (300, 162), (310, 166)]
+TROCH_LAT_270 = [(165, 142), (180, 140), (205, 140), (255, 144), (280, 153), (305, 170), (318, 185), (328, 200)]
+# the whole trochlea as Fig. 270 draws it (column, row): wider in front, its lateral border curved, its hind corners
+# rounded, its front border notched where the neck's upper surface runs back into it
+TROCH_270 = [(150, 172), (140, 182), (140, 205), (144, 255), (153, 280), (170, 305), (185, 318), (200, 327), (230, 330),
+             (260, 326), (280, 318), (292, 305), (298, 280), (298, 220), (296, 172), (285, 160), (270, 168), (258, 177),
+             (245, 168), (225, 158), (200, 155), (175, 160)]
+# the small pits of the neck's rough upper surface, Fig. 270 (column, row)
+NECK_PITS_270 = [(240, 137), (255, 150), (265, 131), (270, 157), (285, 138), (275, 145), (245, 160), (265, 167), (231, 128),
+                 (292, 127), (252, 128), (281, 152)]
 TROCH_MED_270 = [(160, 296), (220, 298), (280, 297), (305, 290), (330, 284)]
 # Fig. 273: the facet for the lateral malleolus is a triangle with its apex down, on the lateral process; its lower
 # border, read on the model drawn in the plate's frame, stands (z, y mm): 33 mm up at its front corner (column 125),
@@ -65,7 +71,11 @@ MID_FACET_271 = [(52, 170), (70, 152), (98, 150), (114, 170), (112, 200), (96, 2
 ANT_FACET_271 = [(66, 92), (100, 80), (134, 92), (136, 132), (112, 142), (76, 138)]
 LIG_FACET_271 = [(16, 105), (40, 82), (64, 96), (64, 168), (44, 190), (20, 168)]
 # Fig. 272, medial: the pear-shaped facet for the medial malleolus, broad in front, under the trochlea's medial border
-MED_FACET_272 = [(180, 98), (205, 78), (245, 62), (285, 66), (300, 85), (304, 108), (288, 118), (262, 108), (228, 106), (198, 110)]
+MED_FACET_272 = [(181, 89), (189, 75), (209, 59), (239, 53), (269, 61), (287, 77), (290, 95), (281, 111), (269, 113), (253, 105),
+                 (241, 97), (219, 95), (195, 97)]
+# Fig. 273, lateral: the triangular facet for the lateral malleolus (column, row), apex down on the lateral process
+LAT_FACET_273 = [(120, 74), (150, 65), (200, 51), (250, 67), (272, 92), (265, 115), (250, 145), (225, 158), (200, 163),
+                 (180, 167), (160, 160), (140, 135), (122, 92)]
 
 
 def _mask(shape, polys, ease):
@@ -121,11 +131,16 @@ def talus(h=0.4, log=print, relief=0.0, upto="all", poses=None, ink=foot.INK):
 
     # 1. inside the plates' outlines: the two plans (above, below) and the two sides
     plan = sdf.smax(outline("Gray270"), outline("Gray271"), 1.5)
-    side = sdf.smax(outline("Gray273"), outline("Gray272"), 1.5)
-    R = ndi.gaussian_filter1d(np.interp(F.ax[2], [0.0, 6.0, 14.0, 34.0, 42.0, 50.0, 60.0], [3.0, 4.0, 5.0, 5.0, 5.0, 7.0, 8.0]), 3.0 / h)[None, None, :]
+    # (at the head Fig. 272's outline stops 1.5 to 2 mm short of where the other three plates agree the head ends: there
+    # the three are followed and Fig. 272 is let go, up to 3 mm)
+    side = sdf.smax(outline("Gray273"), outline("Gray272") - (0.0 if upto == "hull" else 3.0) * _ss((Z - 46.0) / 4.0), 1.5)
+    R = ndi.gaussian_filter1d(np.interp(F.ax[2], [0.0, 6.0, 14.0, 34.0, 42.0, 50.0, 60.0], [3.0, 4.0, 5.0, 5.0, 5.0, 5.5, 5.0]), 3.0 / h)[None, None, :]
     D = _round_meet(plan, side, R); del plan, side
     if upto == "hull":
         F.D = np.clip(D, -12.0, 12.0).astype(np.float32); return F
+    # (the eased outlines and the rounding pull the head's front in by 1.5 to 2 mm against Figs. 270, 271 and 273: let
+    # it out again there)
+    D = D - 1.6 * _ss((Z - 53.0) / 4.0)
 
     xs = F.ax[0][:, None]; zs = F.ax[2][None, :]
     v270 = V["Gray270"]; p270 = P["Gray270"]; s270 = v270["s"] * p270[3]
@@ -141,36 +156,41 @@ def talus(h=0.4, log=print, relief=0.0, upto="all", poses=None, ink=foot.INK):
     u_top = _line(r2, TROCH_LAT_270)
     sil = tr["Gray270_sdf"].astype(np.float32) < 0
     rows = np.arange(sil.shape[0]); first = np.where(sil.any(1), np.argmax(sil, 1), 400).astype(float)
-    u_out = np.interp(r2, rows, ndi.gaussian_filter1d(ndi.minimum_filter1d(first, 5), 3.0)) - 10.0    # past the outline
+    u_out = np.interp(r2, rows, ndi.gaussian_filter1d(ndi.minimum_filter1d(first, 5), 7.0)) - 10.0    # past the outline
     x_edge = (u_top[0] - v270["u0"] - p270[4]) * s270                    # the trochlea's lateral border, x at each z
     xe = np.clip(np.round((x_edge - F.lo[0]) / h), 0, F.n[0] - 1).astype(int)
     y_edge = top[xe, np.arange(F.n[2])]                                  # and its height there
     y_edge = ndi.gaussian_filter1d(y_edge, 1.5 / h)
     y_low = ndi.gaussian_filter1d(np.interp(F.ax[2], [a for a, _ in FACET_LOW], [b for _, b in FACET_LOW]), 1.5 / h)
     t = np.clip((y_edge - Y) / np.maximum(y_edge - y_low, 3.0), 0.0, 1.0)
-    wz = _bump(Z, 7.0, 11.0, 37.0, 41.0)
+    wz = _bump(Z, 2.0, 6.0, 37.0, 41.0)      # (behind, the border curves in and the slope with it: the trochlea narrows)
     u_lat = u_out[:, None, :] + (u_top[:, None, :] - u_out[:, None, :]) * (1.0 - t ** 1.7) * wz
     D = sdf.smax(D, (u_lat - u2[:, None, :]) * s270, 2.0); del u_lat
-    lat_facet = ndi.gaussian_filter((wz * _ss((0.9 - t) / 0.15) * _ss((t + 0.1) / 0.1)).astype(np.float32), 0.8 / h); del t
+    del t
 
     # 2b. the trochlea: "slightly concave from side to side": a hollow 1 mm deep down its middle, between the borders
     # Fig. 270 draws (it is broader in front than behind, as the plate's outline already has it)
     u_med = _line(r2, TROCH_MED_270)
     q = np.clip(1.0 - ((u2 - 0.5 * (u_top + u_med)) / (0.5 * (u_med - u_top))) ** 2, 0.0, 1.0)
     wt = _bump(zs, 7.0, 12.0, 36.0, 41.0)
-    near_top = _ss((Y - (tops - 7.0)) / 4.0)
-    D = D + (1.0 * q * wt)[:, None, :] * near_top
+    near_top = _ss((Y - (tops - 9.0)) / 7.0)        # (a displacement eased in over less than about three times its size folds the surface)
+    D = D + (1.5 * q * wt)[:, None, :] * near_top
     # in front of its border the upper surface falls away to the neck: the border as Fig. 270 draws it, notched in
     # the middle (the side outlines alone would leave it a straight edge across)
-    fr = np.asarray(TROCH_FRONT_270, float); zf = np.interp(u2[:, :1], fr[:, 0], fr[:, 1])
-    zf = (v270["v0"] + p270[5] - zf) * s270                              # the row as z
-    zf = ndi.gaussian_filter1d(zf[:, 0], 1.0 / h)[:, None]
-    D = D + (2.2 * _ss((zs - zf) / 4.0) * (1.0 - _ss((zs - 47.0) / 4.0)))[:, None, :] * near_top
-    trochlea = ((q > 0.0) * wt)[:, None, :] * _ss((Y - (top[:, None, :] - 3.0)) / 1.5)
+    # behind and medially it ends where its outline in Fig. 270 ends (the side outlines alone would square it off)
+    tm = _mask(tr["Gray270_sdf"].shape, [TROCH_270], 0.5) > 0.5
+    dtro = (ndi.distance_transform_edt(~tm) - ndi.distance_transform_edt(tm)) * s270
+    dtro = _read(ndi.gaussian_filter(dtro, 1.5), u2, r2)                   # mm outside the trochlea's outline, on the plan
+    # (on the lateral side only at the two corners: between them the facet's own slope is the border)
+    mid = _bump(zs, 10.0, 16.0, 33.0, 38.0)
+    away = _ss(dtro / 5.0) * (1.0 - mid * (1.0 - _ss((u2 - u_top - 6.0) / 4.0))) * (1.0 - _ss((zs - 46.0) / 3.0))
+    D = D + ((1.4 + 3.0 * _ss((16.0 - zs) / 5.0)) * away)[:, None, :] * near_top     # (in front a gentle fall to the neck)
+    trochlea = _ss((0.3 - dtro) / 0.6)[:, None, :] * _ss((Y - (tops - 5.0)) / 3.0)
 
     # 2c. the head: "large, oval, and convex", looking forward and medialward; the plans' box is rounded to an oval
     # 34 by 27 mm across (Fig. 270's and 273's head), its long axis falling medially (Fig. 272: the medial end lower)
-    E = Ellipsoid((5.0, 13.0, 45.0), (19.0, 14.5, 18.0), rot((0, 1, 0), 22.0) @ rot((0, 0, 1), -18.0))(X, Y, Z)
+    Rh = rot((0, 1, 0), 22.0) @ rot((0, 0, 1), -18.0); ch = np.array((5.0, 13.0, 45.5))
+    E = Ellipsoid(ch, (20.5, 14.5, 20.5), Rh)(X, Y, Z)
     D = D + (sdf.smax(D, E, 2.5) - D) * _ss((Z - 40.0) / 5.0); del E
 
     # 2d. below. The posterior calcaneal surface is "deeply concave in the direction of its long axis which runs
@@ -188,22 +208,25 @@ def talus(h=0.4, log=print, relief=0.0, upto="all", poses=None, ink=foot.INK):
     half = max(float(np.abs(sd[mpost > 0.5]).max()), 8.0)
     lift = 3.0 * np.clip(1.0 - (sd / half) ** 2, 0.0, 1.0) * _ss((mpost - 0.2) / 0.5)
     lift = ndi.gaussian_filter(lift, 2.5 / h)
-    D = D + lift[:, None, :] * _ss((los + 7.0 - Y) / 4.0)      # the underside moved up, its sides with it
+    D = D + lift[:, None, :] * _ss((los + 10.0 - Y) / 8.0)      # the underside moved up, its sides with it
     # the sulcus tali: "a deep groove ... runs obliquely forward and lateralward, becoming gradually broader and deeper
     # in front", between the middle and the posterior surfaces (Fig. 271's rough band; Fig. 273 looks into its wide
     # lateral end under the neck, in front of the lateral process)
-    path = [(7.5, 22.0), (2.0, 26.0), (-5.0, 30.0), (-12.0, 33.5), (-18.5, 36.0), (-23.0, 37.0)]
+    path = [(7.5, 22.0), (2.0, 26.0), (-5.0, 30.0), (-12.0, 33.5), (-17.5, 35.8), (-20.0, 36.5)]
     d, t = foot._near(xs, zs, path)
-    deep = np.interp(t, [0.0, 0.3, 0.7, 1.0], [1.2, 2.2, 3.6, 4.5]); wide = np.interp(t, [0.0, 0.5, 1.0], [2.0, 3.2, 4.8])
-    sul = deep * np.exp(-(d / wide) ** 2) * _ss((t - 0.0) / 0.08)
-    D = D + sul[:, None, :] * _ss((los + deep[:, None, :] + 6.0 - Y) / 4.0); del d, t, sul
+    deep = np.interp(t, [0.0, 0.3, 0.7, 1.0], [2.0, 3.2, 4.4, 4.8]); wide = np.interp(t, [0.0, 0.5, 1.0], [2.4, 3.6, 4.8])
+    sul = deep * np.exp(-(d / wide) ** 2) * _ss(t / 0.3) * _ss((xs + 17.0) / 7.0)
+    D = D + sul[:, None, :] * _ss((los + deep[:, None, :] + 9.0 - Y) / 8.0); del d, t, sul
 
     # 2e. the posterior process. All four plates draw its lateral tubercle as the hindmost point of the bone, and the
     # four outlines' common part keeps only the stump of it (they disagree there by a millimetre or so: the tip read off
     # Fig. 270 at (205, 343), Fig. 273 at (305, 132), Fig. 271 at (155, 354) and Fig. 272 at (141, 135) lies, by least
     # squares, at x -6.2, y 20.0, z 2.9, within 1 mm of each plate's ray): "a prominent tubercle" is put back there, a
     # blunt knob broader than it is tall, run into the body
-    D = sdf.smin(D, Ellipsoid((-4.6, 18.0, 9.8), (5.5, 4.5, 6.6), rot((0, 0, 1), -15.0) @ rot((1, 0, 0), 25.0))(X, Y, Z), 5.0)
+    # (a low ridge across the back, run broadly into the body and down into the posterior calcaneal surface's hind end)
+    D = sdf.smin(D, Ellipsoid((-5.0, 18.0, 8.6), (6.5, 4.0, 5.5), rot((0, 0, 1), -20.0) @ rot((1, 0, 0), 20.0))(X, Y, Z), 7.0)
+    # and the smaller medial tubercle, below and medial of the groove (Fig. 270 at (280, 322), Fig. 272 at (178, 172))
+    D = sdf.smin(D, Ellipsoid((8.0, 13.5, 11.5), (3.5, 2.2, 4.5))(X, Y, Z), 6.0)
 
     # 2e. behind: "the posterior surface is narrow, and traversed by a groove running obliquely downward and
     # medialward ... for the Flexor hallucis longus"; lateral to it the larger (lateral) tubercle, medial the smaller.
@@ -211,33 +234,56 @@ def talus(h=0.4, log=print, relief=0.0, upto="all", poses=None, ink=foot.INK):
     # upper end at (159, 128)
     ins = D < 0; first_z = np.where(ins.any(2), np.argmax(ins, 2), F.n[2] - 1)
     zb = _fill(np.where(ins.any(2), F.ax[2][first_z], np.nan), 2.5 / h)
-    groove = [(0.0, 29.0), (2.0, 23.0), (4.0, 18.0), (6.0, 13.0), (7.5, 9.0)]
+    groove = [(1.6, 28.0), (2.6, 23.0), (3.7, 18.0), (4.6, 14.5)]
     xa = F.ax[0][:, None]; ya = F.ax[1][None, :]
     d, t = foot._near(xa, ya, groove)
-    g = 1.8 * np.exp(-(d / 2.8) ** 2) * _ss(t / 0.15) * _ss((1.0 - t) / 0.15) * _ss((15.0 - zb) / 3.0)
-    D = D + g[:, :, None] * _ss((zb[:, :, None] + 6.0 - Z) / 3.0); del d, t, g
+    g = 2.6 * np.exp(-(d / 2.4) ** 2) * _ss(t / 0.35) * _ss((1.0 - t) / 0.35) * _ss((16.0 - zb) / 3.0)
+    D = D + g[:, :, None] * _ss((zb[:, :, None] + 9.0 - Z) / 8.0) * _ss((Y - 9.0) / 4.0); del d, t, g
 
+    D = ndi.gaussian_filter(D, 0.5 / h)          # (the cuts' last voxel-sized kinks would print as speckle)
     F.D = np.clip(D, -12.0, 12.0).astype(np.float32); del D
     F = _one_piece(F)
 
-    # 3. the joint surfaces are smooth: the trochlea, the two malleolar facets, the head with its surface for the
-    # navicular, and the three calcaneal surfaces with the one for the plantar calcaneonavicular ligament below
+    # 3. the joint surfaces: the trochlea, the two malleolar facets, the head's surface for the navicular, and below the
+    # three calcaneal surfaces with the one for the plantar calcaneonavicular ligament, each where its plate draws its
+    # border. A joint surface is smooth (eased over a millimetre, no grain or plate ink) and ends at a rim: the rough
+    # bone round it stands half a millimetre lower.
     lo2, top2 = _surface_maps(F, F.D); lo2 = _fill(lo2, 1.0 / h)
-    under = _ss((lo2[:, None, :] + 3.0 - Y) / 1.5)
-    m_under = np.maximum(np.maximum(below([POST_FACET_271], lo2 + 1.0), below([MID_FACET_271], lo2 + 1.0)),
-                         below([ANT_FACET_271, LIG_FACET_271], lo2 + 1.0))[:, None, :] * under
-    v272 = V["Gray272"]; m272 = _mask(tr["Gray272_sdf"].shape, [MED_FACET_272], 2.0)
-    m_med = _read(m272, *_pixels(v272, P["Gray272"], X, Y, Z)) * _ss((X - 6.0) / 2.0)
-    head = _ss((Z - 47.0) / 3.0)
-    sm = np.zeros(F.D.shape, np.float32)
-    for m in (trochlea * _bump(Z, 7.0, 10.0, 38.0, 41.0), lat_facet, m_med, head, m_under):
-        sm = np.maximum(sm, np.broadcast_to(m, F.D.shape))
-    F.smooth = np.clip(sm, 0.0, 1.0).astype(np.float32); del sm
-    del m_under, m_med, lat_facet, trochlea
+    under = _ss((lo2[:, None, :] + 4.5 - Y) / 3.0)      # (every gate eased over millimetres: a sharp one prints the grid as dots)
+    def below2(polys):
+        m = _mask(shape271, polys, 4.0)
+        return _read(m, *_pixels(v271, p271, xs, lo2 + 1.0, zs))[:, None, :] * under
+    m_under = np.maximum(np.maximum(below2([POST_FACET_271]), below2([MID_FACET_271])), below2([ANT_FACET_271, LIG_FACET_271]))
+    v272 = V["Gray272"]; m_med = _read(_mask(tr["Gray272_sdf"].shape, [MED_FACET_272], 4.0), *_pixels(v272, P["Gray272"], X, Y, Z))
+    m_med = m_med * _ss((X - 5.0) / 3.0) * _ss((tops - 1.0 - Y) / 2.5)
+    v273 = V["Gray273"]; m_lat = _read(_mask(tr["Gray273_sdf"].shape, [LAT_FACET_273], 4.0), *_pixels(v273, P["Gray273"], X, Y, Z))
+    m_lat = m_lat * _ss((-7.0 - X) / 3.0) * _ss((tops - 1.0 - Y) / 2.5)
+    along = ((X - ch[0]) * Rh[0, 2] + (Y - ch[1]) * Rh[1, 2] + (Z - ch[2]) * Rh[2, 2])
+    m_nav = _ss((along - 9.0) / 1.2)
+    M = np.zeros(F.D.shape, np.float32)
+    for m in (trochlea, m_med, m_lat, m_nav, m_under):
+        M = np.maximum(M, np.broadcast_to(m, F.D.shape))
+    del m_under, m_med, m_lat, m_nav, trochlea, along
+    M = ndi.gaussian_filter(_ss((M - 0.25) / 0.5).astype(np.float32), 0.7 / h)
+    Ds = ndi.gaussian_filter(F.D, 0.8 / h); F.D += (Ds - F.D) * ndi.gaussian_filter(M, 0.6 / h); del Ds
+    ring = np.clip(2.5 * ndi.gaussian_filter(M, 0.9 / h), 0.0, 1.0)
+    F.D += 0.6 * ring * (1.0 - M); del ring
+    F.smooth = M
     # 4. the plates' relief (off by default: the hollows are cut from Gray's text, not chased in the engraving's tone)
     if relief:
         emboss(F, tr, TALUS, P, relief, log)
     if ink:
-        lay(F, TALUS, P, {f: tr[f + "_ink"].astype(np.float32) * (ink / 50.0) for f in V}, shared=True, rough=True)
+        # (not where a plate sees the surface edge-on and its ink would be drawn out into streaks: the neck's upper
+        # surface in Fig. 270, the posterior surface in all four; the neck's small pits are laid on as marks instead)
+        maps = {f: tr[f + "_ink"].astype(np.float32) * (ink / 50.0) for f in V}
+        cut = {"Gray270": [[(195, 95), (310, 95), (310, 178), (195, 178)], [(190, 318), (300, 318), (300, 370), (190, 370)]],
+               "Gray271": [[(100, 330), (200, 330), (200, 380), (100, 380)]],
+               "Gray272": [[(120, 100), (200, 100), (200, 200), (120, 200)]],
+               "Gray273": [[(262, 80), (330, 80), (330, 170), (262, 170)]]}
+        for f, polys in cut.items():
+            maps[f] = maps[f] * (1.0 - _mask(maps[f].shape, polys, 4.0))
+        lay(F, TALUS, P, maps, shared=True, rough=True)
+    pits = [("dot", q, 0.5 + 0.08 * (i % 3), -0.25 - 0.05 * (i % 4)) for i, q in enumerate(NECK_PITS_270)]
+    lay(F, TALUS, P, {"Gray270": foot._marks_map(pits, tr["Gray270_sdf"].shape, V["Gray270"]["s"] * P["Gray270"][3])})
     log("talus: built from its four plates")
     return _one_piece(F)
