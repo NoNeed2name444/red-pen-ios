@@ -3770,6 +3770,22 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     Next try is a new task, not a third repair: build the body from
     cross-sections taken across the pulley, not from the plate outlines'
     common solid.
+    Cuboid, 25 Nov: accepted against the bar after two repair rounds
+    (Fig. 274 mean gap 0.51 mm, Fig. 275 0.52 mm). The surface for the
+    heel bone has its rim, the tuberosity its oval facet, the rough bone
+    its irregular pits; the ruled lines, the toothed edge and the dashed
+    seam are gone. Open: at the lower left of Fig. 275 the outline stays
+    up to 4 mm inside because Fig. 274 and Fig. 268 stop the bone there
+    (the plates disagree); the upper surface is a little lumpy; the
+    medial view's front top corner is squarish.
+    Navicular, 25 Nov: two repair rounds used, not accepted. Right: the
+    Fig. 276 outline (0.13 mm) and the three facets with their ridges.
+    Wrong: a block edge along the upper surface's front border, a torn
+    dark margin on the sole side and a seam on the lateral side (the
+    facet and rim layers seen edge-on); fine streaks on the upper surface
+    that come from the shared grain step in foot.py; and Fig. 277 (the
+    surface for the talus) is still not fetched or fitted. Next try is a
+    new task once Fig. 277 is in hand.
   - [ ] The cuneiforms, metatarsals, phalanges; the foot together.
 - [ ] F8. Mesh checks, the neck and down, the muscles, the woman, and where
   the from-scratch model goes in the app.
