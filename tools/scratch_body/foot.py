@@ -40,6 +40,22 @@ CALC_FACETS = [[(-7.7, 57.8), (-0.2, 58.9), (6.6, 58.1), (12.6, 58.5), (16.0, 57
 CALC_SPLIT = [(40, 14.0), (44, 15.5), (48, 18.0), (52, 18.8), (58, 17.5), (61, 13.0), (64, 10.0), (70, 9.0), (80, 8.0)]      # (z, x)
 CALC_SULCUS = [(18.6, 45.5), (18.8, 52.0), (17.5, 58.0), (12.0, 61.0), (4.0, 62.0), (-4.0, 62.5)]                              # (x, z)
 
+# The calcaneus's place in the foot: foot_frame.py's frame (the navicular's: x medial, y up, z forward, mm), frame point =
+# CALC_AT_R @ bone point + CALC_AT_T. foot_frame.TARGET["calcaneus"], this bone fitted rigidly to its outlines in
+# Fig. 268, 290 and 291 through that frame's registration (2.1 / 2.5 / 2.5 mm mean): its front up 23 degrees in the frame
+# (8 standing), turned 8.5 degrees laterally. Only the pose: the bone's own field is untouched. With the talus at its
+# own target (talus.AT_*) the two do not overlap and the sinus tarsi is open (4.6 mm at its narrowest along the sulcus),
+# but only the anterior facet bears (median gap 3.9 mm; the posterior 8.3, the middle 6.4): no rigid pose of this
+# bone seats all three without leaving the plates (seated by pose alone it moves 14 degrees and 12 mm and its outlines
+# go to 6 to 9 mm), so the two bones' facets disagree in shape, not in place (T-foot-seat, 25 Nov).
+CALC_AT_R = ((0.9852, 0.0851, -0.1484), (-0.0196, 0.9179, 0.3963), (0.1700, -0.3876, 0.9060))
+CALC_AT_T = (-19.49, -70.74, -78.39)
+
+
+def calc_at():
+    """(R, t) of the calcaneus in the foot frame, R made exactly orthonormal."""
+    u, _, vt = np.linalg.svd(np.asarray(CALC_AT_R, float)); return u @ vt, np.asarray(CALC_AT_T, float)
+
 
 def _ss(t):
     t = np.clip(t, 0.0, 1.0); return t * t * (3.0 - 2.0 * t)

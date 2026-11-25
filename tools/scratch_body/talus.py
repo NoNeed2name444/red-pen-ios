@@ -80,6 +80,30 @@ MED_FACET_272 = [(181, 89), (189, 75), (209, 59), (239, 53), (269, 61), (287, 77
 LAT_FACET_273 = [(120, 74), (150, 65), (200, 51), (250, 67), (272, 92), (265, 115), (250, 145), (225, 158), (200, 163),
                  (180, 167), (160, 160), (140, 135), (122, 92)]
 
+# Its place in the foot: foot_frame.py's frame (the navicular's: x medial, y up, z forward, mm), frame point =
+# AT_R @ bone point + AT_T. foot_frame.TARGET["talus"], this bone fitted rigidly to its outlines in Fig. 268, 290 and 291
+# through that frame's registration (T-foot-seat, 25 Nov; outline gaps 1.17 / 2.99 / 2.24 mm mean). It replaces the
+# pose the navicular's round seated it at (turned -5 degrees about y, t (-8.17, -13.21, -59.99): its head in the
+# navicular's hollow, the body 15 degrees too far head-down, 5.6 mm too medial, 4.8 mm too far forward; 3.6 / 4.0 /
+# 4.3 mm against the three plates). Only the pose: the bone's own field is untouched.
+AT_R = ((0.9969, -0.0754, -0.0212), (0.0784, 0.9638, 0.2549), (0.0012, -0.2558, 0.9667))
+AT_T = (-8.82, -20.14, -58.76)
+# The head's articular surface as an ellipsoid in this bone's frame (the front 9 mm facing forward fitted, 0.4 mm rms):
+# centre, axes (columns), semi-axes; midfoot.NAV_HEAD_* is this carried by AT_R, AT_T.
+HEAD_C = (3.405, 17.251, 36.003)
+HEAD_AX = ((0.8399, 0.5364, -0.0826), (-0.5427, 0.8301, -0.1278), (0.0, 0.1522, 0.9884))
+HEAD_R = (21.6, 16.58, 25.0)
+
+
+def at():
+    """(R, t) of the bone in the foot frame, R made exactly orthonormal."""
+    u, _, vt = np.linalg.svd(np.asarray(AT_R, float)); return u @ vt, np.asarray(AT_T, float)
+
+
+def to_foot(P):
+    """This bone's points (..., 3) in the foot frame."""
+    R, t = at(); return np.asarray(P, float) @ R.T + t
+
 
 def _neck_pits():
     """The neck's small pits: Fig. 270's traced ones and, round them, more scattered thinner toward the head and the

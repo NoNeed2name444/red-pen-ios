@@ -433,10 +433,19 @@ NAV_ROUGH7 = [
 # grown by the joint's gap. (So seated, the talus lies 11 mm lower than Fig. 290's outline of its body puts it, which
 # the outline of this bone and its talar ring in Fig. 277 cannot give way to: an open conflict between the plates and
 # the talus's head height.)
-NAV_HEAD_C = (-1.64, 4.04, -24.42)       # mm, this frame
-NAV_HEAD_AX = [[0.837, 0.548, 0.004], [-0.543, 0.83, -0.128], [-0.073, 0.105, 0.992]]   # its axes (columns) in this frame
-NAV_HEAD_R = (21.6, 16.58, 25.0)         # mm
+# T-foot-seat, 25 Nov: the talus moved to its place in foot_frame's assembly (talus.AT_*: 15 degrees head-up, 5.6 mm
+# lateral, 4.8 mm back), and the hollow follows it. It is now cut by the talus itself there (NAV_HEAD_FROM, its field
+# eased over NAV_HEAD_EASE): the ellipsoid above, carried to the new place, stood 1 to 1.5 mm off the head's flatter
+# front in the middle of the face (the hollow's floor 2.5 to 3 mm from the head there). The ellipsoid is kept, refitted
+# to the head at its place where it faces this bone inside Fig. 277's border (0.37 mm rms; the old one carried there
+# 0.54), for NAV_HEAD_FROM = "ellipsoid"; old values: centre (-1.64, 4.04, -24.42), axes ((0.837, 0.548, 0.004),
+# (-0.543, 0.83, -0.128), (-0.073, 0.105, 0.992)), semi-axes (21.6, 16.58, 25.0).
+NAV_HEAD_C = (-18.64, 13.484, -23.044)   # mm, this frame
+NAV_HEAD_AX = [[-0.3432, 0.44, -0.8298], [-0.0461, 0.8745, 0.4828], [0.9381, 0.204, -0.2799]]   # its axes (columns) in this frame
+NAV_HEAD_R = (17.45, 16.48, 32.01)       # mm
 NAV_GAP = 1.3                            # mm
+NAV_HEAD_FROM = "talus"                  # the hollow is cut by the talus itself at its place in the foot (talus.AT_*)
+NAV_HEAD_EASE = 1.2                      # mm: the talus's field eased over this much first (its own small unevenness not printed in the hollow)
 # The hind faces of the three cuneiforms as cuneiforms.py poses them (its PLACE, the second and third at Fig. 268's
 # joint lines, read 25 Nov), each bone as its own plates build it before it is cut to its neighbours: a smooth surface
 # fitted to the face (0.46, 0.42 and 0.61 mm rms), in this frame: w = q0 + q1 a + q2 b + q3 a^2 + q4 ab + q5 b^2 along
@@ -461,6 +470,8 @@ NAV_CLEAR = 0.8          # mm: the least gap to them and to the talus's head onc
 NAV_CLEAR_BLEND = 1.5    # mm (taken back over less, the raised rim and ridges were cut off along a straight crease)
 NAV_PLAN_EASE = 1.2      # mm
 NAV_PLAN_OUT = 0.9       # mm
+NAV_PLAN_BACK = (0.5, -5.0, 7.0)   # mm the plan's back border (the joint line with the talus) is taken in, from x to x (eased over
+                                   # 2 mm): the head seated 4 mm further forward used to take that off; without it the plan went to 0.74 mm
 NAV_SIDE_GIVE = 4.0      # mm
 NAV_SIDE_FRONT = 1.5     # mm
 NAV_TUB = (10.5, -13.5, -4.0)            # the tuberosity's centre: Fig. 268's medial bulge (x 14.6 at z -1.7), Fig. 290's lowest point behind
@@ -469,8 +480,14 @@ TALAR_EASE = 2.0    # mm over which the hollow rises into its rim
 TALAR_FREE = 6.0    # mm outside the border within which the hollow is the head's own shape: the head is still in the bone there, at the lateral end most, and a hollow stopped short of it was cut again at the end into a trench along the lateral rim (a dark slit)
 TALAR_LIP = 0.45    # mm: the rim at the border
 TALAR_RIM = 1.0     # mm: the hollow is gone this far below the dorsal surface's top
-TALAR_RIM_EASE = 4.0   # mm below that over which it rises into the rim
-TALAR_FLARE = 2.5   # mm: the hollow's mouth opened by this much 3 mm outside the border
+TALAR_RIM_EASE = 1.5   # mm below that over which it rises into the rim (4: with the head at its place, 2 mm higher, the
+                       # upper half of the hollow was left uncut until the last clearing, and the rough layers' pits stayed in it)
+TALAR_FLARE = 0.0   # mm: the hollow's mouth opened by this much 3 mm outside the border (2.5 cut a trench along the lateral
+                    # end, where the head at its place runs past the border: a dark slit)
+TALAR_CLEAR_REACH = 40.0  # mm outside the border within which the bone is kept clear of the head at the end: all of it (the
+                          # head at its place reaches 2 to 4 mm past the border at the lateral end; kept clear only within
+                          # 5 mm, the bone there ran 0.6 mm into it and the cut's edge stood as a dark slit)
+TALAR_PIT_HOLD = 1.0   # how the layers' pits fade near the head: hw ** this (0 kept them all)
 TALAR_GAPFADE = 0.3   # mm beyond the joint's least gap from where the layers fade in
 TALAR_CLEAR_BLEND = 1.5   # mm: what the layers raised into the head's gap is taken back over this much (over half a millimetre the lip was cut into a sheer wall, a dark slit along the lateral rim)
 TALAR_TUB = [(400, 401), (480, 401), (560, 398), (615, 386), (640, 362), (648, 330), (641, 292)]   # the ring's stretch along the tuberosity, Fig. 277
@@ -543,7 +560,7 @@ def navicular(h=0.3, log=print, relief=1.0, upto="all", poses=None, ink=INK):
     # forward, the notch where the first two cuneiforms meet: let out a little, so Fig. 268's front rules there.
     # The plan's borders are eased over a millimetre only, so its notch where the first two cuneiforms meet stays; and
     # let out by what the meeting of the solids and the easing below take off a convex border, so the plan keeps its line)
-    D = sdf.smax(_slab(NAV_PLAN, X, Z, ease=NAV_PLAN_EASE) - NAV_PLAN_OUT, _slab(NAV_SIDE, Y, Z, across=1, give=lambda y: NAV_SIDE_GIVE * _ss((y + 2.0) / 4.0), give_front=NAV_SIDE_FRONT), 2.5)
+    D = sdf.smax(_slab(NAV_PLAN, X, Z, ease=NAV_PLAN_EASE, give=lambda x: -NAV_PLAN_BACK[0] * _ss((x - NAV_PLAN_BACK[1] + 2.0) / 2.0) * _ss((NAV_PLAN_BACK[2] + 2.0 - x) / 2.0)) - NAV_PLAN_OUT, _slab(NAV_SIDE, Y, Z, across=1, give=lambda y: NAV_SIDE_GIVE * _ss((y + 2.0) / 4.0), give_front=NAV_SIDE_FRONT), 2.5)
     fig = "Gray276"; px = V[fig]["s"] * P[fig][3]; B6 = pm.basis(V[fig], P[fig][:3])
     d = tr[fig + "_sdf"].astype(np.float32) * (P[fig][3] / tr[fig + "_pose"][3])
     o6 = _read(ndi.gaussian_filter(d, 1.3 / px), *_pixels(V[fig], P[fig], X, Y, Z))
@@ -673,18 +690,42 @@ def navicular(h=0.3, log=print, relief=1.0, upto="all", poses=None, ink=INK):
         _lay(F, [V[fig]], P, {fig: tr[fig + "_ink"].astype(np.float32) * (ink / 50.0) * q6 * (1.0 - fm)}, face=0.55, shared=True, rough=True)
     # (nothing the layers raise is let into the talus's head's gap: faded out as the surface comes near the head, so
     # the cut below has nothing left to take there; cut at the end, the lip and rough bone raised there stood as a
-    # sheer wall, a dark slit along the lateral rim)
-    dl = F.D - D_forms; hw = _ss((_head(X, Y, Z, 0.0) - NAV_CLEAR - TALAR_GAPFADE) / 1.2) * _ss((fin + 5.0) / 3.0) + (1.0 - _ss((fin + 5.0) / 3.0))
-    F.D = (D_forms + np.maximum(dl, 0.0) + np.minimum(dl, 0.0) * hw).astype(np.float32); del dl, hw, D_forms
+    # sheer wall, a dark slit along the lateral rim. Nor what they sink: the hollow reaches past Fig. 277's border
+    # where the head stands higher than that plate's ring, and the rough bone's pits laid there stayed in the hollow
+    # as marks, deeper than the cut below)
+    dl = F.D - D_forms; wr = _ss((fin + TALAR_CLEAR_REACH) / 3.0); hw = _ss((_head(X, Y, Z, 0.0) - NAV_CLEAR - TALAR_GAPFADE) / 1.2) * wr + (1.0 - wr); del wr
+    F.D = (D_forms + np.maximum(dl, 0.0) * hw ** TALAR_PIT_HOLD + np.minimum(dl, 0.0) * hw).astype(np.float32); del dl, hw, D_forms
     # (what the layers raised into a joint's gap is taken back: no part of the bone runs into the talus's head or a
     # cuneiform; met over half a millimetre, so no edge is left where it was)
-    F.D = _clear(F.D, X, Y, Z, NAV_CLEAR, head=_ss((fin + 5.0) / 3.0), blend=NAV_CLEAR_BLEND)
+    F.D = _clear(F.D, X, Y, Z, NAV_CLEAR, head=_ss((fin + TALAR_CLEAR_REACH) / 3.0), blend=NAV_CLEAR_BLEND)
     log("navicular: built from Fig. 276 and 277, its plan from Fig. 268 and its side from Fig. 290")
     return _one_piece(F)
 
 
+_TALUS = {}
+
+
+def _talus_field():
+    """The talus as talus.py builds it (no plate ink, no relief), eased over NAV_HEAD_EASE mm: (field, lo, h)."""
+    if "F" not in _TALUS:
+        import talus
+        T = talus.talus(0.4, log=lambda *a: None, relief=0.0, ink=0.0)
+        _TALUS["F"] = (ndi.gaussian_filter(np.asarray(T.D, np.float32), NAV_HEAD_EASE / T.h), np.asarray(T.lo, float), float(T.h))
+    return _TALUS["F"]
+
+
 def _head(X, Y, Z, grow):
-    """The talus's head (NAV_HEAD_*) grown by `grow` mm, as a field: below 0 inside."""
+    """The talus's head grown by `grow` mm, as a field: below 0 inside. NAV_HEAD_FROM "talus": the talus itself at its
+    place in the foot (talus.at()); "ellipsoid": the ellipsoid NAV_HEAD_*."""
+    if NAV_HEAD_FROM == "talus":
+        import talus
+        D, lo, h = _talus_field(); R, t = talus.at()
+        sh = np.broadcast(X, Y, Z).shape; out = np.empty(sh, np.float32)
+        Xb, Yb, Zb = (np.broadcast_to(a, sh) for a in (X, Y, Z))
+        for i in range(0, sh[0], 16):                     # in slabs: the whole grid's coordinates at once are large
+            P = np.stack([Xb[i:i + 16] - t[0], Yb[i:i + 16] - t[1], Zb[i:i + 16] - t[2]], -1) @ R      # into the talus's frame
+            out[i:i + 16] = ndi.map_coordinates(D, [(P[..., k] - lo[k]) / h for k in range(3)], order=1, mode="constant", cval=12.0)
+        return out - grow
     rr = (np.stack(np.broadcast_arrays(X - NAV_HEAD_C[0], Y - NAV_HEAD_C[1], Z - NAV_HEAD_C[2]), -1) @ np.asarray(NAV_HEAD_AX)).astype(np.float32)
     ab = np.asarray(NAV_HEAD_R) + grow
     return (np.sqrt((rr[..., 0] / ab[0]) ** 2 + (rr[..., 1] / ab[1]) ** 2 + (rr[..., 2] / ab[2]) ** 2) - 1.0) * ab.min()

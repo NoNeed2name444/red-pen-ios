@@ -3868,6 +3868,21 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     cuneiform together after re-reading Fig. 291 at 300 dpi; first and
     second cuneiforms; then the navicular's cuneiform facets (its last
     repair).
+    Step 1 (talus.py, foot.py, midfoot.py; kept, not accepted): talus
+    and calcaneus posed at the frame's targets (talus on Fig. 268 3.60
+    to 1.17 mm mean, 290 3.95 to 2.99, 291 4.27 to 2.24; bone shapes
+    bit-identical), the navicular's hollow cut by the talus head there:
+    rim whole (least 1.0 mm all round, was 0.14), slit and pits gone,
+    joint overlap 0, median gap 1.10, facing area 603 mm2. Not met: the
+    talus floats over the calcaneus (posterior facet 8.3 mm apart,
+    middle 6.4; only the anterior bears) and no pose seats it: the
+    talus's facets span 32 mm centre to centre, the calcaneus's 19, so
+    one bone's facets are misbuilt. A bar still crosses the navicular's
+    hollow low down and the hollow fills less of the face than Fig.
+    277 draws. The talus target may be 2 to 3 mm too far back.
+  - [ ] Subtalar joint: find from each bone's own plates which facets
+    are misplaced (calcaneus Fig. 264 to 267, talus Fig. 270 to 273),
+    reshape that bone, seat the joint.
   - [ ] The metatarsals, phalanges; the foot together.
 - [ ] F11. 25 Nov, the owner: "switch back to the skull and mandible so we
   fix every single part of them especially the mandible and skull base";
