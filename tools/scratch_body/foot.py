@@ -105,6 +105,21 @@ def _marks_map(items, shape, px):
     return d
 
 
+def _unhidden(F, idx, over=1.2):
+    """Eases a plate's say on what it sees (1 where nothing stands in front of a point, 0 where something does) to
+    nothing over about two millimetres toward the edge of what it sees. Where a nearer part hides the surface, the say
+    stops along that part's shadow line; a say that stops dead prints the line on the bone as a step and, where the
+    line grazes the surface, as a grid of dots the size of the model's own grid (the medial wall under the shelf had
+    three such grids)."""
+    got = np.zeros(F.D.shape, np.float32); got[idx] = 1.0
+    norm = np.maximum(ndi.gaussian_filter(got, over / F.h)[idx], 1e-3); del got
+
+    def ease(say):
+        vol = np.zeros(F.D.shape, np.float32); vol[idx] = say
+        return np.minimum(say, _ss(2.0 * ndi.gaussian_filter(vol, over / F.h)[idx] / norm - 1.0))
+    return ease
+
+
 def lay(F, views, poses, maps, shared=False, rough=False):
     """Pictures of heights (mm, each the size of its plate: {fig: map}) set on the model where each plate has them:
     every point of the surface a plate sees squarely takes that plate's height, measured along the surface's own
@@ -114,7 +129,7 @@ def lay(F, views, poses, maps, shared=False, rough=False):
     g = np.gradient(ndi.gaussian_filter(D, 1.0 / F.h), F.h)
     n = np.stack([c[idx] for c in g], 1); n /= np.maximum(np.linalg.norm(n, axis=1), 1e-9)[:, None]; del g
     P = np.stack([F.ax[k][idx[k]] for k in range(3)], 1).astype(np.float64)
-    total = np.zeros(len(P), np.float32); wsum = np.zeros(len(P), np.float32)
+    total = np.zeros(len(P), np.float32); wsum = np.zeros(len(P), np.float32); ease = _unhidden(F, idx)
     for v in views:
         m = maps.get(v["fig"])
         if m is None:
@@ -123,7 +138,7 @@ def lay(F, views, poses, maps, shared=False, rough=False):
         depth, _ = pm.cast(F, B, px, v["u0"] + pose[4], v["v0"] + pose[5], m.shape[::-1], normals=False)
         u, r = _pixels(v, pose, P[:, 0], P[:, 1], P[:, 2])
         front = _read(np.where(np.isnan(depth), -1e3, depth), u, r)
-        wt = _ss((P @ B[2] - front + 3.0) / 2.0) * _ss((n @ B[2] - 0.1) / 0.3)
+        wt = ease(_ss((P @ B[2] - front + 3.0) / 2.0)) * _ss((n @ B[2] - 0.1) / 0.3)
         total += (wt * _read(m, u, r)).astype(np.float32); wsum += wt.astype(np.float32)
     if shared:
         total /= np.maximum(wsum, 1.0)
@@ -185,7 +200,7 @@ def _round_meet(a, b, R):
 
 
 INK = 0.25        # mm: how far the plates' fine drawing stands in and out of the surface (9 in 10 of it within this)
-RELIEF = dict(smooth=0.08, hold=0.002, cap=3.5, fine=(4.0, 0.03, 0.004, 1.0), rounds=140)      # how platematch.shading_relief is run
+RELIEF = dict(smooth=0.08, hold=0.002, cap=2.0, fine=None, rounds=140)      # how platematch.shading_relief is run
 PROCS = 1         # the plates' reliefs one after another (side by side in four processes was slower here: 156 s against 60)
 _JOB = {}
 
@@ -227,7 +242,7 @@ def emboss(F, tr, views, poses, gain=1.0, log=None):
             out = pool.map(_plate_relief, [v["fig"] for v in views])
     else:
         out = [_plate_relief(v["fig"]) for v in views]
-    _JOB.clear(); F.relief = {}
+    _JOB.clear(); F.relief = {}; ease = _unhidden(F, idx)
     for v, (fig, d, depth, (a, b, L, r2)) in zip(views, out):
         pose = poses[fig]; B = pm.basis(v, pose[:3]); hit = ~np.isnan(depth); F.relief[fig] = d
         if log:
@@ -235,7 +250,7 @@ def emboss(F, tr, views, poses, gain=1.0, log=None):
                 % (fig, L[0], L[1], L[2], a, b, r2, d.min(), d.max()))
         u, r = _pixels(v, pose, P[:, 0], P[:, 1], P[:, 2])
         front = _read(np.where(hit, depth, -1e3), u, r); face = n @ B[2]
-        wt = _ss((P @ B[2] - front + max(4.0, reach + 1.0)) / 2.5) * _ss((face - 0.1) / 0.4)
+        wt = ease(_ss((P @ B[2] - front + max(4.0, reach + 1.0)) / 2.5)) * _ss((face - 0.1) / 0.4)
         total += (wt * _read(d, u, r) * face).astype(np.float32); wsum += wt.astype(np.float32)
     D[idx] -= gain * total / np.maximum(wsum, 1.0)
     return F

@@ -3742,7 +3742,18 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     the shelf) and the lateral view (the pocket under the trochlear process)
     are the least like; shading alike 0.4 to 0.7 bare, 0.6 to 0.7 with
     relief and ink (1 would be the same picture).
-  - [ ] Talus, the other tarsals, metatarsals, phalanges; the foot together.
+    25 Nov, marks the layers themselves left, found and taken out: grids
+    of dots on the medial wall (a plate's relief stopped dead along the
+    shelf's shadow line; it now fades out over two millimetres), a zigzag
+    from pixel to pixel in the shading solver, creases along the relief's
+    limit (now bent over to it, limit 2 mm, one stage), and cross-hatched
+    ink laid on as dimples (all but left out; streaks run 4 mm).
+    Still open: the medial wall is too flat (Gray: "deeply concave"), the
+    borders between faces run too straight, a seam under the shelf at z 42.
+  - [ ] Talus, the cuboid and the navicular: started 25 Nov, side by side
+    with the heel bone (the owner: "u can run multiple bones at once"),
+    each in a file of its own (talus.py, midfoot.py).
+  - [ ] The cuneiforms, metatarsals, phalanges; the foot together.
 - [ ] F8. Mesh checks, the neck and down, the muscles, the woman, and where
   the from-scratch model goes in the app.
 

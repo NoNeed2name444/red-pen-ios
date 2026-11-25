@@ -233,6 +233,9 @@ def light_of(tone, N, w, lift=40.0, b=0.9):
     return a, b, L, r2
 
 
+SAW = None        # a list here collects, for each plate solved, how many mm of pixel-by-pixel zigzag were taken out
+
+
 def shading_relief(tone, N, depth, w, px, a, b, L, hollow=HOLLOW, smooth=0.03, hold=0.002, cap=3.5, fine=(4.0, 0.012, 0.004, 1.5), rounds=200, test=None):
     """How far each pixel's surface must be moved toward the eye (mm) for the model, drawn as the plates are drawn, to
     take the plate's lights and darks: the least movement (hold), smoothly spread (smooth), that makes
@@ -295,7 +298,16 @@ def shading_relief(tone, N, depth, w, px, a, b, L, hollow=HOLLOW, smooth=0.03, h
         return np.where(n > 0, s / np.maximum(n, 1), fill)
 
     N2 = np.stack([half(N[..., i].astype(float)) for i in range(3)], -1); N2 /= np.maximum(np.linalg.norm(N2, axis=2), 1e-6)[..., None]
-    d2 = level(half(T), N2, half(depth.astype(float), np.nan), half(w), 2.0 * px, None, rounds, smooth, hold, -cap, cap)
+    # solved within 1.6 times the cap and then bent over to the cap: a relief that stops dead at its limit leaves the
+    # limit's contour on the bone as a crease
+    d2 = level(half(T), N2, half(depth.astype(float), np.nan), half(w), 2.0 * px, None, rounds, smooth, hold, -1.6 * cap, 1.6 * cap)
+    d2 = cap * np.tanh(d2 / cap)
+    if SAW is not None:
+        SAW.append(float(np.abs(d2 - ndi.convolve1d(ndi.convolve1d(d2, [0.25, 0.5, 0.25], 0, mode="nearest"), [0.25, 0.5, 0.25], 1, mode="nearest")).max()))
+    # A dark no turn of a face can give is also reached by a surface that zigzags from one pixel to the next (every
+    # face of it steep); that prints a regular grid of dimples on the bone. Each pixel is averaged with its neighbours,
+    # which takes exactly that zigzag out and leaves anything two pixels (about a millimetre) across.
+    d2 = ndi.convolve1d(ndi.convolve1d(d2, [0.25, 0.5, 0.25], 0, mode="nearest"), [0.25, 0.5, 0.25], 1, mode="nearest")
     d0 = np.zeros((H, W)); up = np.repeat(np.repeat(d2, 2, 0), 2, 1); d0[:up.shape[0], :up.shape[1]] = up
     d0 = np.clip(ndi.gaussian_filter(d0, 0.8), -cap, cap)
     if not fine:
@@ -325,11 +337,12 @@ def tone_of(gray, mask, px, fine=0.9):
 
 
 
-def ink_of(gray, mask, px, lo=0.4, hi=2.0, along=2.0):
+def ink_of(gray, mask, px, lo=0.4, hi=2.0, along=4.0, crossed=0.3):
     """A plate's fine drawing as relief to lay on the model: what of its tone lies between lo and hi mm across, light
     for raised and dark for sunk, run together over `along` mm in the direction of the plate's own lines wherever
-    they keep one direction (an engraver's lines follow the fibre of the bone's surface: streaks, not pits) and left
-    as it is where they do not (pits, foramina, rough patches). 90 in 100 of it lie within -1 to 1; nothing within a
+    they keep one direction (an engraver's lines follow the fibre of the bone's surface: streaks, not pits) and all
+    but left out (`crossed` of it kept) where they do not: there the plate is cross-hatched for a dark, and its ink
+    laid on as relief is a grid of dimples no bone has. 90 in 100 of it lie within -1 to 1; nothing within a
     millimetre of the outline, whose ink is no relief."""
     g = no_text(gray); line = upright_lines(g) & ndi.binary_dilation(mask, iterations=3); g = g.astype(np.float32)
     wl = (~line).astype(np.float32); g = np.where(line, ndi.gaussian_filter(g * wl, 2.0) / np.maximum(ndi.gaussian_filter(wl, 2.0), 1e-3), g)
@@ -346,7 +359,7 @@ def ink_of(gray, mask, px, lo=0.4, hi=2.0, along=2.0):
     for k in range(-n, n + 1):
         wk = np.exp(-0.5 * (2.0 * k / n) ** 2); ws += wk
         run += wk * ndi.map_coordinates(band, [yy + k * dy, xx + k * dx], order=1, mode="nearest")
-    band = one * 1.6 * run / ws + (1.0 - one) * band
+    band = one * 1.6 * run / ws + (1.0 - one) * crossed * band
     band = band / np.percentile(np.abs(band[inside]), 90)
     ease = np.clip(ndi.distance_transform_edt(inside) * px / 1.2, 0.0, 1.0)
     return (np.clip(band, -2.5, 2.5) * ease * ease * (3.0 - 2.0 * ease)).astype(np.float32)
