@@ -3863,6 +3863,15 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     the plate anchored on the teeth, both Fig. 176 and CT put the joint
     head about 5 mm lower than the skull's joint holds it (Fig. 176 also
     4 mm further back); fixing that means moving the skull's joint.
+    Task B, repair 1 (partly accepted): the outline now follows the
+    plate's engraved line (mean gap 0.7 mm outside the joint head; lower
+    border 0.3, chin 0.6, front border 0.2, hind border 0.7), the chin is
+    1.3 mm from the plate's (was 7.6 low), the foramen is an oval mouth,
+    the pit under the head is a shallow hollow. Open, and held until the
+    owner answers on the joint because they come from it: the neck (8 mm
+    off the plate, a faint line down its outer side, a small head on a
+    broad column from the side), the hind border still rounded like a
+    column from behind, the coronoid narrow. One repair round is left.
 - [ ] F8. Mesh checks, the neck and down, the muscles, the woman, and where
   the from-scratch model goes in the app.
 

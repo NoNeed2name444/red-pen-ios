@@ -73,15 +73,21 @@ FRONT_A = [(37.3, -56.6), (36.4, -53.5), (36.5, -49.5), (37.2, -45.0), (38.3, -4
 HIND_A = [(5.5, -6.0), (5.0, -9.2), (4.6, -13.8), (3.6, -19.0), (2.4, -24.5), (1.4, -30.5), (0.8, -37.0), (0.6, -44.0), (0.8, -51.0),
           (1.3, -57.5), (2.2, -63.5), (3.5, -69.0), (5.8, -73.8), (10.0, -77.3)]
 BORDER_Y_A = [-88.8, -89.4, -89.7, -88.5, -86.3, -83.7, -81.0, -80.8, -83.4, -81.6, -79.0]
-FRONT = [(45.5, -56.6), (43.8, -54.8), (42.6, -52.0), (42.0, -47.5), (42.4, -40.0), (42.7, -34.8), (42.5, -29.6), (42.2, -24.6),
-         (41.4, -19.6), (40.3, -15.6), (39.3, -12.6), (38.6, -11.1), (37.9, -10.7), (36.9, -11.4), (35.6, -13.4), (33.5, -16.4),
-         (30.8, -19.4), (27.6, -21.4), (24.2, -22.2), (21.2, -21.4), (19.2, -18.8), (17.8, -14.6), (15.8, -9.4), (12.6, -4.6)]
-HIND = [(5.5, -6.0), (5.0, -9.2), (4.7, -13.8), (5.1, -19.4), (6.2, -25.5), (7.8, -32.0), (9.2, -38.0), (10.1, -44.5), (10.2, -51.0),
-        (10.0, -57.5), (10.4, -63.6), (11.5, -69.4), (12.6, -72.4), (14.2, -74.4)]
-BORDER_Y = [-88.8, -89.4, -89.7, -88.5, -86.0, -82.6, -79.6, -78.2, -77.0, -76.0, -75.0]      # the lower border's height at M2.B's points
+# (repair 1) The side profile traced from the plate's engraved line itself (the hand trace snapped to the ink, stair steps
+# eased out), not drawn by eye: in that frame the hind border is a long S (full under the neck, a shallow hollow at mid
+# height, full and a little turned out at the angle); the coronoid a broad triangle, its front edge convex and its hind
+# edge hollow, running into a notch deepest nearer the condyle; the front border stands over the third molar's hind end
+# and meets the margin behind that tooth. Near the joint the plate is carried by its condyle's offset from this one
+# (4.8 mm forward, 5.6 up), fading over 12 to 34 mm along the line from the condyle's top, so the head and neck stay.
+FRONT = [(41.6, -53.6), (39.4, -51.0), (38.8, -47.0), (39.0, -43.0), (39.5, -39.0), (40.4, -35.3), (41.4, -31.6), (42.0, -28.0),
+         (42.0, -24.6), (41.7, -20.9), (41.1, -17.1), (40.0, -13.7), (38.2, -10.8), (35.8, -11.7), (34.8, -15.6), (32.8, -19.2),
+         (29.8, -21.9), (26.5, -23.9), (23.0, -24.2), (19.9, -22.6), (18.0, -19.4), (17.3, -14.8), (15.9, -9.4), (12.6, -4.6)]
+HIND = [(5.5, -6.0), (5.0, -9.2), (4.6, -13.8), (4.9, -18.6), (5.3, -24.3), (5.9, -30.3), (7.2, -36.1), (8.5, -41.9), (9.2, -47.9),
+        (9.6, -53.7), (8.4, -59.4), (9.3, -65.2), (10.6, -71.0), (14.3, -74.9)]
+BORDER_Y = [-85.4, -85.4, -85.0, -84.1, -82.1, -79.7, -78.0, -79.4, -78.7, -77.2, -74.8]      # the lower border's height at M2.B's points (the plate's)
 REGRID_PAIRS = (list(zip(FRONT_A, FRONT)) + list(zip(HIND_A, HIND))
-                + [((z, a), (z, b)) for z, a, b in ((16.5, -81.6, -76.0), (22.0, -83.4, -77.0), (31.0, -80.8, -78.2), (42.0, -81.0, -79.6),
-                                                     (54.0, -83.7, -82.6), (64.5, -86.3, -86.0))]
+                + [((z, a), (z, b)) for z, a, b in ((16.5, -81.6, -77.2), (22.0, -83.4, -78.7), (31.0, -80.8, -79.4), (42.0, -81.0, -78.0),
+                                                     (54.0, -83.7, -79.7), (64.5, -86.3, -82.1))]
                 + [((p[0], p[1]), (p[0], p[1])) for p in ((9.5, -5.9), (11.5, -5.0), (11.0, -1.5), (55.0, -60.0), (58.0, -72.0), (74.0, -80.0))])
 _REGRID = {}
 
@@ -259,19 +265,27 @@ def maps(S, log=print):
     zy = lambda z, y: tuple(sy(ramus3(*warp(z, y)))[0])             # (a point drawn on the old outline, carried to the new: its s and y)
     zs = lambda z, y: zy(z, y)[0]
     TH = [  # (z, y, thickness) on the side view
-        (8.5, -12, 6.2), (9.5, -20, 5.7), (11.5, -30, 5.5), (14.5, -40, 5.5), (14.0, -50, 5.6), (13.0, -60, 5.6),     # hind border
-        (16, -65, 5.3), (23, -69.5, 5.2), (34, -74.5, 6.0), (44, -78.5, 7.4),                                   # angle and lower border
-        (30, -27, 2.6), (28, -38, 4.4), (28, -50, 4.4), (30, -60, 4.6), (21, -45, 3.8), (36, -40, 3.6), (36, -28, 2.8), (21, -30, 3.0),
+        (8.5, -12, 6.2), (9.5, -20, 5.7), (11.5, -30, 5.6), (14.5, -40, 5.6), (14.0, -50, 5.3), (13.0, -60, 4.9),     # hind border (repair 1: thinning
+        (16, -65, 4.5), (23, -69.5, 4.3),                                                                    # toward the angle: from behind it read as a rod)
+        (34, -74.5, 6.0), (44, -78.5, 7.4),                                   # angle and lower border
+        (30, -27, 2.6), (28, -38, 4.0), (28, -50, 3.9), (30, -60, 3.8), (21, -45, 3.8), (36, -40, 3.6), (36, -28, 2.8), (21, -30, 3.6),
         (45, -20, 3.2), (44.5, -30, 3.6), (43.0, -40, 4.2), (43.5, -48, 5.0),                                   # front border
-        (41, -10, 2.8), (39.5, -7, 2.3), (26, -23, 2.2), (20, -21, 2.6), (31, -21, 2.2),                        # coronoid, notch
+        (41, -10, 2.8), (39.5, -7, 2.3), (26, -23, 2.6), (20, -21, 3.4), (31, -21, 2.2),                        # coronoid, notch
         (9.5, -9, 6.6), (12, -14, 5.6), (14.5, -9.5, 5.8), (17.0, -13.0, 4.6), (20.0, -15.5, 3.4), (13.0, -20.0, 5.4)]   # (the neck's front passes into the notch without a groove)                                                                         # neck
     # (task B) the ramus is narrower behind than it was, and the hind border's thickness fell off within a few mm into the
     # thin middle: from behind it read as a rod with a crease along its front. The fall is spread over 8 to 10 mm (points on
     # this outline, 5 to 6 mm in front of the hind border).
     zn = lambda z, y: tuple(sy(ramus3(z, y))[0])
-    TH_B = [(11.0, -22.0, 5.2), (13.4, -32.0, 4.9), (15.3, -42.0, 4.7), (15.6, -52.0, 4.7), (15.8, -61.0, 4.8), (17.5, -68.0, 4.8)]
+    TH_B = [(11.0, -22.0, 5.2), (13.4, -32.0, 4.6), (15.3, -42.0, 4.6), (16.0, -52.0, 4.5), (16.0, -61.0, 4.2), (17.5, -68.0, 3.9)]
     th = M.thin_plate(np.array([(*zy(z, y), t) for z, y, t in TH] + [(*zn(z, y), t) for z, y, t in TH_B]), weight=20.0, tension=0.05)
     th = np.clip(th, 2.0, 8.0)
+    # (repair 1) Toward its edge the hind border thins (to 62 % at the edge, over 9 mm), below the neck: at an even thickness to
+    # the edge, rounded, it read from behind as a rod with a crease along its front. Now its section is a low swelling a few
+    # mm in from a blunter edge, and lower down it thins toward the angle.
+    from scipy.spatial import cKDTree as _KD
+    hl = sdf.spline(hind, 0.25)
+    dh = _KD(hl).query(np.column_stack([np.abs(M.U).ravel(), M.V.ravel()]))[0].reshape(M.U.shape)
+    th = th * (1 - 0.38 * (1 - smoothstep(dh / 9.0)) * smoothstep((-18.0 - M.V) / 10.0))
     g = lambda z, y, r: gauss(M, zy(z, y), (r, r))
     # Seen from in front the jaw's side is no upright ruled line (the owner, 14 November: "it shouldn't be perfectly straight in
     # sides"). An earlier build turned the angle 0.8 mm out and hollowed the ramus 0.8 above it, which together undid the
@@ -279,6 +293,8 @@ def maps(S, log=print):
     # 1 mm for every 8 of height, 121 mm across the joint heads to 98 across the angles), a little hollow under the neck and
     # a little full over the masseter's ridges, and turns in to the lower border round the angle.
     mid = mid - 1.0 * g(40.0, -8.0, 9.0)                                     # the coronoid tip held in a little (curved out, it stood out from above as a spur)
+    mid = mid - 0.9 * gauss(M, zn(41.0, -24.0), (5.0, 10.0)) + 0.5 * gauss(M, zn(32.0, -20.0), (5.0, 9.0))                   # (repair 1: the coronoid's base held in a little: with the front border
+                                                                             # traced back to the plate's, it stood out of the plan view's line as a corner)
     mid = mid - 0.15 * g(17.0, -38.0, 12.0) + 0.6 * g(11.0, -24.0, 9.0) + 0.3 * g(17.0, -55.0, 9.0)   # (task B: gentler; the hind border read as a rod)
     orr, irr = mid + th / 2, mid - th / 2
     # The ramus's markings, drawn on the new outline (side-view z, y): every one a stroke that wanders a little, swells and
@@ -286,7 +302,8 @@ def maps(S, log=print):
     zr = lambda z, y: tuple(sy(ramus3(*regrid(z, y)))[0])       # (drawn on task A's outline, carried to this one)
     st = lambda pts, r, h, wob=0.3, seed=0: stroke(M, [zr(z, y) for z, y in pts], r, h, wob, seed)
     gr = lambda z, y, r: gauss(M, zr(z, y), (r, r))
-    mid = mid + 0.7 * gr(8.0, -71.0, 13.0) + 0.3 * gr(16.0, -76.0, 10.0)           # the angle turned outward (Gray: "inverted or everted"), broadly
+    ev = 1.4 * gr(8.0, -71.0, 13.0) + 0.4 * gr(16.0, -76.0, 10.0)                   # the angle turned outward (Gray: "inverted or everted"), broadly
+    orr, irr = orr + ev, irr + ev                                                   # (repair 1: it was added to mid after the faces were taken from it, so did nothing)
     # outside: "flat and marked by oblique ridges to the Masseter", rough at the angle (Fig. 176)
     # (Fig. 176: a few short, faint, broken oblique marks low at the angle only, each fading out at both ends; none in the
     # middle of the ramus, nothing parallel or evenly spaced. A raked row of welts read as artificial.)
@@ -309,7 +326,7 @@ def maps(S, log=print):
     irr = irr - st([(9.2, -15.5), (12.8, -22.5), (17.5, -29.0), (21.8, -34.6)], [2.6, 2.6, 2.2, 1.6], [0.9, 1.0, 0.7, 0.35], 0.3, 41)     # neck to lingula
     irr = irr - st([(37.5, -10.0), (38.2, -21.0), (36.8, -32.0), (35.0, -42.0), (34.0, -50.0)], [2.0, 2.2, 2.4, 2.4, 2.2], [0.7, 1.0, 1.0, 0.8, 0.5], 0.25, 42)   # temporal crest
     irr = irr - 0.7 * gr(24.0, -46.0, 5.0)                                          # bone over the canal where it enters
-    irr = irr + st([(19.8, -41.8), (22.6, -47.0), (26.2, -52.5), (30.8, -57.8), (36.0, -62.0)], [1.6, 1.6, 1.5, 1.3, 1.1], [0.5, 0.45, 0.35, 0.2, 0.0], 0.25, 43)   # mylohyoid groove (a shallow furrow)
+    irr = irr + st([(23.0, -45.6), (25.6, -49.6), (29.0, -54.0), (33.0, -58.4), (37.0, -62.0)], [1.0, 1.05, 1.0, 0.9, 0.8], [0.5, 0.45, 0.35, 0.2, 0.0], 0.2, 43)   # (repair 1: a fine line from the foramen's lower edge)   # mylohyoid groove (a shallow furrow)
 
     # the cheek-side face: the body's, passing into the ramus's (which reaches forward highest up: the oblique line)
     gs, gy = np.meshgrid(np.arange(74.0, 111.0, 6.0), np.arange(-92.0, 1.0, 6.0), indexing="ij")
@@ -351,13 +368,13 @@ def maps(S, log=print):
     G2 = lambda c, r: np.exp(-(((s - c[0]) / r[0]) ** 2 + ((M.V - c[1]) / r[1]) ** 2))
     # mental protuberance: a triangle, its apex up toward the incisors, its base the lower border between the two tubercles
     hw = 11.0 * np.clip(1.0 - (M.V - (yc + 2.5)) / 14.0, 0.0, 1.0) + 0.5
-    tri = ndimage.gaussian_filter(smoothstep((hw - s) / 3.5) * smoothstep((M.V - (yc - 1.0)) / 4.0) * smoothstep((yc + 17.0 - M.V) / 5.0), 2.4)
+    tri = ndimage.gaussian_filter(smoothstep((hw - s) / 3.5) * smoothstep((M.V - (yc + 1.0)) / 5.0) * smoothstep((yc + 18.0 - M.V) / 5.0), 2.4)
     outer = outer + 1.4 * tri
-    outer = outer + 1.0 * G2((9.8, yc + 4.0), (3.0, 2.6)) + 0.3 * G2((11.4, yc + 2.8), (1.8, 1.5))   # mental tubercles (a little lumpy)
+    outer = outer + 1.0 * G2((9.8, yc + 5.0), (3.0, 2.6)) + 0.3 * G2((11.4, yc + 3.8), (1.8, 1.5))   # mental tubercles (a little lumpy)
     outer = outer - 0.12 * G2((0.0, yc + 2.8), (4.0, 2.8))                        # the protuberance's base, depressed in the centre
     outer = outer + stroke(M, [(0.0, yc + 12.5), (0.3, yc + 17.0), (-0.2, yc + 21.0), (0.1, float(yt(0.0)) - 2.0)], [1.2, 1.3, 1.3, 1.1], [0.2, 0.45, 0.4, 0.15], 0.25, 62)   # the symphysis's faint ridge above it
     # Gray 176: the symphysis stands upright under the incisors, the chin as far forward as the alveolar border, not set back under it
-    outer = outer + 3.6 * np.exp(-(s / 13.0) ** 2) * smoothstep((M.V - (yc - 4.0)) / 12.0) * smoothstep((yt(M.U) - 2.0 - M.V) / 7.0)   # (no edge to it: a window starting at the border drew a shelf across the chin)
+    outer = outer + 3.6 * np.exp(-(s / 13.0) ** 2) * smoothstep((M.V - (yc - 1.0)) / 11.0) * smoothstep((yt(M.U) - 2.0 - M.V) / 7.0)   # (repair 1: from 1 mm under the border, not 4: the chin's underside rounds back)   # (no edge to it: a window starting at the border drew a shelf across the chin)
     outer = outer - 0.5 * G2((6.5, yc + 18.5), (5.0, 4.8))                       # incisive fossa, under the incisors' roots
     # the oblique line: faint in front, as Gray has it, and stronger toward the ramus, whose front border it becomes
     # (it runs on up into the ramus's front border, which now rises behind the third molar)
@@ -426,7 +443,7 @@ def maps(S, log=print):
 
     # the rim's roundness: the lower border broad, the hind border and angle rounded, the notch and coronoid thin, the tooth-bearing margin 2 mm
     edge = [(0.0, yb(0.0), 4.6), (20.0, yb(20.0), 4.2), (45.0, yb(45.0), 3.8), (70.0, yb(70.0), 3.2)]
-    edge += [(*zy(z, y), r) for z, y, r in ((15.5, -66, 2.6), (11.5, -55, 2.7), (12, -37, 2.7), (8, -20, 2.8), (7, -9, 3.0),
+    edge += [(*zy(z, y), r) for z, y, r in ((15.5, -66, 1.7), (11.5, -55, 1.8), (12, -37, 2.1), (8, -20, 2.7), (7, -9, 3.0),   # (repair 1: hind border's round under its half-thickness)
                                               (26, -21, 1.1), (39.5, -6, 1.2), (46, -20, 1.5), (45.5, -40, 1.8), (48, -56, 2.0))]
     edge += [(sv, yt(sv), 1.3) for sv in (0.0, 15.0, 30.0, 45.0)]                 # the margin thin and rounded
     rad = M.thin_plate(np.array(sym(np.array(edge)), float), weight=10.0, tension=0.3)
@@ -532,14 +549,24 @@ def build(h=0.5, log=print, seat=True):
                              + 0.25 * (ctr - on(10.3, -13.5)) * np.array([1, 0, 0]),
                              ctr + np.array([0.5, -3.0, 0.1])]), 0.8)
     # (side to side the neck is half as wide again as from front to back all the way up: it was a round rod below the head)
-    F.add(sdf.Tube(P, [(0, 3.6), (0.35, 3.9), (0.7, 5.0), (0.88, 6.8), (1, 8.0)], [(0, 3.4), (0.35, 3.3), (0.7, 3.3), (1, 3.4)], up=axis), k=5.0)                                     # (k 5: at 3.2 its edge read as a crease down the ramus)
+    F.add(sdf.Tube(P, [(0, 2.4), (0.35, 3.0), (0.7, 4.7), (0.88, 6.8), (1, 8.0)], [(0, 3.4), (0.35, 3.3), (0.7, 3.3), (1, 3.4)], up=axis), k=5.0)                                     # (k 5: at 3.2 its edge read as a crease down the ramus)
     F.add(sdf.Ellipsoid(ctr, c["half"], R), k=1.6)                                                    # the head: convex from before backward and from side to side
     F.add(sdf.Ellipsoid(ctr + R @ np.array([1.5, 0.35, -0.4]), (6.0, 4.0, 3.5), R), k=1.2)          # (its top a little fuller toward the outer end: oblong, not a lens)
     F.add(sdf.Ellipsoid(ctr + R @ np.array([8.0, -2.5, 0.7]), (2.0, 2.3, 1.9)), k=1.0)               # the tubercle at its outer end (temporomandibular ligament)
     # the ridges that "descend from the forepart and sides of the condyle" on to the neck
     for a0, a1, r0 in (((-5.5, -2.8, 2.4), (-2.6, -9.5, 2.4), 1.0), ((5.8, -2.8, 1.8), (2.8, -10.0, 1.4), 0.9), ((0.8, -3.2, 3.0), (0.4, -8.5, 2.6), 0.7)):
         F.add(sdf.Tube(np.array([ctr + R @ np.array(a0), ctr + R @ np.array(a1)]), [(0, r0), (1, 0.5 * r0)]), k=1.4)
-    F.cut(sdf.Ellipsoid(ctr + R @ np.array([-1.4, -5.0, 5.4]), (3.6, 2.7, 1.6), R), k=1.6)           # the hollow on the front of the neck (lateral pterygoid; shallow: deeper it read as a slot under the head)
+    # the hollow on the front of the neck for the lateral pterygoid (Fig. 177): a shallow rough depression, 1.2 mm at most,
+    # its edge eased. Placed by the neck's own surface (found along the neck's forward direction), not by a fixed depth: a
+    # fixed one read as a drilled hole under the head.
+    from scipy.ndimage import map_coordinates
+    fwd = R @ np.array([0.0, 0.0, 1.0]); c0 = ctr + R @ np.array([-1.4, -5.6, 0.0])
+    tt = np.arange(0.0, 12.0, 0.1); ray = c0[None, :] + tt[:, None] * fwd[None, :]
+    dv = map_coordinates(F.D, ((ray - np.asarray(F.lo, float)) / F.h).T, order=1)
+    surf = c0 + tt[int(np.argmax(dv > 0))] * fwd
+    F.cut(sdf.Ellipsoid(surf + (3.0 - 1.2) * fwd, (4.2, 3.2, 3.0), R), k=1.2)
+    F.ease(surf - 0.6 * fwd, 4.0, 0.7)
+    log("jaw: pterygoid fovea on the neck surface at %s" % np.round(surf, 1).tolist())
 
     # ---- the tongue side of the ramus: the mandibular foramen "about its center", oblique: a funnel whose mouth, longer than
     # wide, faces up and back and toward the tongue, and which runs down and forward into the bone. On the front of its mouth
@@ -547,15 +574,15 @@ def build(h=0.5, log=print, seat=True):
     # opening; behind and below, the notch from which the mylohyoid groove runs down and forward (drawn in maps).
     fz = lambda z, y, l=0.0: face(z, y, False, lift=l, raw=True)
     rng = np.random.default_rng(1771)
-    path = [fz(18.4, -36.6, 2.8), fz(19.7, -39.2, 1.5), fz(21.0, -42.0, 0.0), fz(23.3, -45.6, -1.6), fz(25.6, -48.7, -2.8)]
+    path = [fz(19.6, -37.4, 3.4), fz(20.8, -39.8, 1.8), fz(21.8, -41.9, 0.0), fz(23.1, -44.2, -1.5), fz(25.4, -48.0, -2.1)]   # (its bottom 2 mm under the face: deeper, it came through the ramus's 4.5 mm)   # (repair 1: steeper in, 45 degrees: a long slant drew the mouth out into a slit)
     P = np.array([p for p, w in path]); Wn = np.array([w for p, w in path])
-    a = [(0, 3.0), (0.3, 2.7), (0.55, 2.0), (0.8, 1.5), (1, 1.25)]                           # across the face, and along it (b)
-    b = [(0, 2.6), (0.3, 2.3), (0.55, 1.7), (0.8, 1.35), (1, 1.2)]
+    a = [(0, 2.4), (0.3, 2.2), (0.55, 1.8), (0.8, 1.4), (1, 1.2)]                           # across the face, and along it (b)
+    b = [(0, 2.9), (0.3, 2.5), (0.55, 1.9), (0.8, 1.4), (1, 1.2)]
     a = [(t, v * rng.uniform(0.93, 1.07)) for t, v in a]; b = [(t, v * rng.uniform(0.9, 1.1)) for t, v in b]
     # the lingula: a flattened, tapering blade standing 1 to 1.5 mm proud of the face, broad at its root on the front lip
-    (l0, n0), (l1, n1), (l2, n2) = fz(24.6, -44.0, -0.5), fz(23.5, -39.6, 0.2), fz(21.8, -35.8, 0.5)
+    (l0, n0), (l1, n1), (l2, n2) = fz(25.0, -43.8, -0.6), fz(24.3, -41.6, 0.1), fz(23.5, -39.6, 0.5)   # (repair 1: short, at the mouth's front: a long blade along it read as a hooked line)
     Lp = np.array([l0, l1, l2])
-    F.add(sdf.Tube(sdf.spline(Lp, 0.4), [(0, 0.62), (0.6, 0.52), (1, 0.42)], [(0, 3.6), (0.45, 2.3), (0.8, 1.1), (1, 0.4)], up=n1), k=0.9)   # (a thin flat tongue: 1.2 mm thick, 6 wide at its root)
+    F.add(sdf.Tube(sdf.spline(Lp, 0.4), [(0, 0.6), (0.6, 0.5), (1, 0.4)], [(0, 2.8), (0.5, 1.8), (0.85, 0.9), (1, 0.4)], up=n1), k=1.0)   # (a thin flat tongue: 1.2 mm thick, 6 wide at its root)
     # (the lingula first and the funnel cut after: its root, left standing inside the mouth, read as a second flap and a crack)
     F.cut(sdf.Tube(sdf.spline(P, 0.5), a, b, up=Wn[2]), k=0.9)                     # (the path's slant through the face draws the mouth out)
     F.ease(P[2], 2.6, 0.5); F.ease(P[3], 2.4, 0.5)                                 # the funnel's throat smooth (no crack line where its walls met)
@@ -608,6 +635,8 @@ ZONES = [   # name, centre, radii, extra grain (mm), pits per mm2 (surface.py)
     ("coronoid process (temporalis)", (-47, -14, 40), (5, 10, 7), 0.025, 0.0),
     ("joint head", (51, -4, 9.5), (11, 4.5, 6), -0.03, -0.02),
     ("joint head", (-51, -4, 9.5), (11, 4.5, 6), -0.03, -0.02),
+    ("pterygoid fovea", (50.5, -11.5, 13.5), (3.5, 2.5, 2.5), 0.03, 0.0),
+    ("pterygoid fovea", (-50.5, -11.5, 13.5), (3.5, 2.5, 2.5), 0.03, 0.0),
 ]
 
 
