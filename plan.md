@@ -4137,6 +4137,20 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     fossa no shallower; clearances hold (tuberosity to plate 3.0).
     Open, small: a 2 to 3 mm knob where the outer plate meets the
     tuberosity; the second lesser foramen reads as a slit obliquely.
+    Base openings, attempt 1 (foramina.py; kept, repair to follow),
+    against Fig. 187 and 193: foramen spinosum no longer a drilled
+    ring (small uneven opening, canal leaning to the middle fossa);
+    spine of the sphenoid added; foramen lacerum brought from 10.6 by
+    6.9 to about 6.5 by 5, ragged, upper mouth on Fig. 193; carotid
+    canal has its own mouth, rises, bends and opens into the lacerum's
+    hind wall; the magnum's front rim is thick and rounded and the
+    clivus one slope (the 3 mm step and the side ledge are gone).
+    Not accepted: the spine reads as a peg; the carotid mouth and the
+    stylomastoid foramen read as round pits; a faint notch on the
+    clivus. For other files: inner.py (petrosal groove sealed inside
+    bone on the right, internal acoustic meatus about 5 mm behind
+    Fig. 193, ruled creases on the petrous crest, middle fossa floor
+    13 to 17 mm thick at the ovale), sinus.py (sella a hard box).
     Task C, repair 1 (head and neck accepted; task closed): the ring is
     gone. Each section under the head is solved to silhouette targets
     from Fig. 176 and 177: the hind edge runs straight into the head,

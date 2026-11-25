@@ -45,7 +45,7 @@ LACERUM = [(1050, 1883), (1059, 1854), (1073, 1842), (1092, 1844), (1107, 1854),
 JUGULAR_FOSSA = [(777, 2121), (807, 2102), (848, 2096), (890, 2102), (932, 2117), (957, 2137), (969, 2167), (961, 2183),
                  (948, 2196), (907, 2200), (865, 2198), (823, 2187), (794, 2171), (780, 2146)]
 JUGULAR_SLOT = [(975, 2100), (1000, 2085), (1012, 2100), (1014, 2140), (1005, 2165), (985, 2180), (965, 2175), (960, 2150), (966, 2120)]
-CAROTID = (942, 2033)             # its mouth is 7.0 by 5.9 mm on the plate
+CAROTID = (937, 2017)             # the middle of the ring the plate draws round its mouth, 6.7 by 7.3 mm (the dark inside it 7.0 by 5.9)
 SPINOSUM, STYLOMASTOID, CONDYLAR, HYPOGLOSSAL = (818, 1890), (709, 2209), (1040, 2475), (1050, 2056)
 TYMPANIC_CANALICULUS, MASTOID_CANALICULUS, COCHLEAR_AQUEDUCT = (890, 2081), (813, 2135), (961, 2125)
 # the cleft between the petrous part and the occipital, from the ragged hole back to the jugular opening; and the
@@ -147,6 +147,31 @@ class Opening:
         return d.astype(np.float32)
 
 
+class _Passage:
+    """The great opening's passage above its lower edge: outline g (the lower edge) at y0 going over into r (the upper
+    edge, Fig. 193) by y0 + 6, its front on the clivus line (the sphenoid's body's, sinus.SELLA, run down to the rim at
+    z zf), its sides and back drawn apart by up to 3.9 mm at the top y1."""
+    def __init__(self, M, g, r, zf, y0, y1):
+        import sinus
+        self.M, self.cg, self.cr, self.zf, self.y0, self.y1 = M, M.smooth(g), M.smooth(r), zf, y0, y1
+        S = np.array(sinus.SELLA[:4], float)                         # the clivus: (z, y) from the rim's height up
+        self.cy = np.concatenate([[y0], S[:, 1]]); self.cz = np.concatenate([[zf], S[:, 0]]) - zf
+        lo = np.array([M.U.min(), y0, M.V.min()]); hi = np.array([M.U.max(), y1, M.V.max() + float(np.interp(y1, self.cy, self.cz))])
+        self.bounds = (lo, hi)
+
+    def __call__(self, X, Y, Z):
+        u, y, v = np.broadcast_arrays(X, Y, Z)
+        t = np.clip((y - self.y0) / (self.y1 - self.y0), 0.0, 1.0)
+        w = 1.0 - smoothstep((np.abs(u) - 7.0) / 3.0)                      # (beside the clivus the walls lean as they did, 0.25 mm forward per mm up)
+        vv = v - w * np.interp(np.clip(y, self.y0, self.y1), self.cy, self.cz) - (1.0 - w) * 0.25 * np.clip(y - self.y0, 0.0, self.y1 - self.y0)
+        a = smoothstep((y - self.y0) / 6.0)
+        d = (1.0 - a) * self.M.smooth_sample(self.cg, u, vv) + a * self.M.smooth_sample(self.cr, u, vv)
+        e = self.M.outside(u, vv)
+        d = np.where(e > 0, np.maximum(d, e), d)
+        d = d - 3.9 * t * np.maximum(smoothstep((self.zf - 2.0 - vv) / 6.0), smoothstep((np.abs(u) - 7.0) / 3.0))    # (the front stays on the clivus, as wide as the clivus is)
+        return np.maximum(d, np.maximum(self.y0 - y, y - self.y1)).astype(np.float32)
+
+
 def condyles(F, B, log=print):
     """The condyle on the plate's own facet outline: a facet convex from front to back and from side to side, looking
     down and a little outward; its inner side slopes up to the edge of the great opening (the plate shows that slope
@@ -237,7 +262,7 @@ def cut(F, B, log=print):
     Returns the outlines, for press() to sink each mouth's lip a little. What through() needs is kept on cut.through."""
     Mb, Yb = B["M"], B["Yb"]
     mouths = {}
-    cut.through = []
+    cut.through = []; cut.sides = []
 
     def opening(name, poly, top, k, lip_=None, seed=0, funnel=0.6, wob=0.3, through=None, front_sharp=False, side=None, mouth=1.6, **kw):
         poly = np.asarray(poly, float)
@@ -252,6 +277,15 @@ def cut(F, B, log=print):
             pr = ((M.U - cc[0]) * np.cos(a_) + (M.V - cc[1]) * np.sin(a_)) / (0.5 * float(np.ptp(poly, 0).max()))
             rim = rim * (0.03 + 1.6 * smoothstep(0.5 + 0.5 * pr) ** 1.5)
         F.cut(Opening(M, reg, ys, top, rim=rim, mouth=mouth, wobble=(wob, seed), lid=LIDS.get(name), **kw), k)
+        # this half is mirrored to make the other: each side's mouth gets a lip of its own afterwards (through()), a
+        # shallow cut on an outline broken with a seed of that side's, so the two mouths' small irregularities differ
+        for sd, sds in (((1, 600), (-1, 700)) if name not in ("jugular hollow", "stylomastoid foramen") else ()):     # (not beside the styloid's root)
+            Mv, rv = outline_map(jag(poly, seed + sds, 0.08, 9), margin=3.0)
+            a_ = np.random.default_rng(seed + sds).uniform(0, 2 * np.pi); cc = poly.mean(0)        # (its lip rolls in on one side, a side of its own: no ring)
+            pr = ((Mv.U - cc[0]) * np.cos(a_) + (Mv.V - cc[1]) * np.sin(a_)) / (0.5 * float(np.ptp(poly, 0).max()))
+            rv_ = lip(Mv, seed + sds + 1, min(0.3, 0.1 * float(np.ptp(poly, 0).min()))) * (0.1 + 1.4 * smoothstep(0.5 + 0.5 * pr) ** 1.5)
+            cut.sides.append((sd, Opening(Mv, rv, Mb.sample(Yb, Mv.U, Mv.V), 1.6, rim=rv_,
+                                          mouth=1.4, lean=lean, below=3.0, taper=0.45), 0.5))     # (it narrows into the canal within the 1.6 mm: no shelf inside)
         c = poly.mean(0)
         if lip_:
             mouths[name] = (poly, lip_[0], lip_[1])
@@ -290,10 +324,17 @@ def cut(F, B, log=print):
     g, r = whole(g), whole(r)
     M, reg = outline_map(np.concatenate([g, r]), cell=0.5, margin=11.0)
     F.cut(relief.Prism(M, (0, 2, 1), M.region(g), -46.0, -20.0, mirror=False), 1.4)
-    # Above its edge the passage is no chimney. In front its wall is the clivus, which leans forward as it rises (about
-    # 65 degrees to the Frankfurt plane, Fig. 194: 0.45 mm forward for each mm up); the side walls draw apart a little;
-    # the back wall stands, and the floor of the hind hollow of the cranial cavity begins a few mm above it.
-    F.cut(relief.Prism(M, (0, 2, 1), M.region(r), -21.5, -2.0, mirror=False, taper=-3.9, lean=(0.0, 0.25)), 2.5)
+    # Above its edge the passage is no chimney. In front its wall is the clivus, which leans forward as it rises (Fig. 194);
+    # the side walls draw apart a little; the back wall stands, and the floor of the hind hollow of the cranial cavity begins
+    # a few mm above it. The front wall follows the clivus of the sphenoid's body (sinus.SELLA) down to the rim, so the two
+    # are one surface (a wall leaning at its own slope stood 3 mm proud of it, a step 19 mm above the rim); the outline
+    # goes over from the lower edge's to the upper's in the first 6 mm, so the condyles' inner sides are a slope and not a
+    # ledge with a groove along it seen from above.
+    F.cut(_Passage(M, M.region(g), M.region(r), zf, -21.5, -2.0), 2.5)
+    # The front rim itself (the basion and a centimetre either side of it) is a thick rounded edge (Fig. 194: the
+    # basilar part's cut ends blunt), not the wedge the underside and the clivus met in: the field is eased over it.
+    for p_, r_ in (((0.0, -21.8, zf + 0.6), 4.2), ((4.2, -21.9, zf - 0.1), 3.6), ((7.8, -22.4, zf - 2.0), 3.0)):
+        F.ease(p_, r_, 1.0)
     mouths["great opening"] = (g, 0.5, 1.6)
     i = int(np.argmax(g[:, 0])); front = g[g[:, 1] > g[:, 1].max() - 13.0]
     log("opening: great opening %.1f mm long, %.1f wide (widest at z %.1f), %.1f wide 6 mm behind its front" % (
@@ -305,32 +346,60 @@ def cut(F, B, log=print):
     co = fair(mm(OVALE)).mean(0); ua = np.radians(-55.0); tt = np.linspace(0, 2 * np.pi, 14, endpoint=False)
     ov = co + np.outer(3.9 * np.cos(tt) * (1 + 0.08 * np.cos(tt)), [np.sin(ua), np.cos(ua)]) + np.outer(2.2 * np.sin(tt), [np.cos(ua), -np.sin(ua)])
     opening("oval foramen", jag(ov, 41, 0.07, 10), 17.0, 0.6, lip_=(0.35, 1.0), seed=41, funnel=0.6,
-            lean=(-0.04, -0.06), through=dict(grow=(1.0, 1.15)))
-    # the spinous foramen behind and outside it: small, nearly round, "sometimes double"; not a drilled circle
+            lean=(0.05, 0.08), through=dict(grow=(1.0, 1.15)))      # (it climbs a little forward and outward: Fig. 193 has its upper mouth 3 to 4 mm ahead of the lower)
+    # the spine of the sphenoid (p. 149: "the angular spine ... projects downward", the sphenomandibular ligament's
+    # attachment): a short blunt point hanging from the wing's hind corner, behind and outside the spinous foramen, at
+    # the plate's red-marked tip (Fig. 187, page 790, 1993: x 35.4, z 8.9); it stands inside the jaw's socket's inner
+    # edge. Its length (3 mm) is ours.
+    sp0, sp1 = np.array([34.0, 12.4]), np.array([35.3, 9.3])
+    y0_, y1_ = (float(Mb.sample(Yb, [q[0]], [q[1]])[0]) for q in (sp0, sp1))
+    F.add(Tube(sdf.spline(np.array([(sp0[0] - 0.3, y0_ + 1.5, sp0[1] + 0.8), (sp0[0], y0_ - 0.3, sp0[1]), (0.5 * (sp0[0] + sp1[0]) + 0.3, 0.5 * (y0_ + y1_) - 1.3, 0.5 * (sp0[1] + sp1[1]) - 0.2),
+                                     (sp1[0] + 0.2, y1_ - 2.2, sp1[1])]), 0.5), [(0, 2.0), (0.35, 1.8), (0.75, 1.35), (1, 1.05)], [(0, 3.3), (0.35, 2.7), (0.75, 1.9), (1, 1.3)],
+               up=(0.35, 0.0, -0.94)), 2.0)          # (a blade more than a cone: flattened across, its tip blunt, run into the wing)
+    # the spinous foramen at the spine's root, behind and outside the oval one: small and "sometimes double" (p. 147), its
+    # outline a little egg (Fig. 187: 2.0 by 1.8 mm inside the ring the engraver drew round it; Fig. 193, from above, the
+    # same), no ring: its edge is thin and sharp in front and on the inner side and the canal leans up, forward and
+    # outward (it reaches the middle hollow's floor 4 mm further forward and 3 further out, where Fig. 193 has it), so
+    # that from below its hind and outer wall is seen running in and the mouth has a lip on one side only
     c = mm([SPINOSUM])[0]
-    opening("spinous foramen", jag(c + np.array(ROUNDISH) * np.array([1.35, 1.15]), 42, 0.12, 7), 18.0, 1.3, seed=42,
-            funnel=0.6, side=-40.0, mouth=2.6, wob=0.1, through=dict(grow=(1.1, 1.1)))     # (Fig. 187: 2.1 by 1.7 inside its drawn ring)
+    spn = c + np.array([(1.05, 0.25), (0.75, 0.85), (0.1, 1.08), (-0.6, 0.85), (-1.0, 0.2), (-0.85, -0.55), (-0.25, -1.0), (0.55, -0.8)]) * np.array([0.95, 0.86])
+    opening("spinous foramen", jag(spn, 42, 0.10, 8), 18.0, 0.5, lip_=(0.25, 0.7), seed=42, funnel=0.45, side=-60.0, mouth=1.6, wob=0.12,
+            lean=(0.16, 0.25), through=dict(grow=(1.35, 1.45)))
     # the ragged hole (p. 181: "a large and somewhat triangular aperture ... bounded in front by the great wing of the
     # sphenoid, behind by the apex of the petrous portion ... and medially by the body of the sphenoid and basilar
     # portion of the occipital"): a three-cornered gap, its broad side against the body and its point running out
     # backward and outward between the wing and the petrous apex, its edges broken
-    lac_poly = jag([(14.2, 20.6), (16.6, 19.9), (19.4, 18.0), (21.4, 16.6), (23.0, 15.2), (21.0, 14.5), (18.4, 13.6), (16.0, 12.9),
-                    (14.1, 13.3), (13.4, 15.2), (13.6, 18.2)], 187, 0.16, 16)
-    lac = opening("ragged hole (lacerum)", lac_poly, 13.0, 0.6, lip_=(0.9, 1.5), seed=187, funnel=0.9, wob=0.45, taper=0.04,
-                  through=dict(grow=(1.0, 1.0), ragged=0.3, hole=0.85,
-                  upper=[(14.6, 18.4), (16.4, 18.9), (18.6, 17.6), (19.8, 16.0), (18.9, 14.6), (16.9, 14.1), (15.0, 14.4), (14.0, 16.2)]))     # from above: part-floored, broken edged
+    # The plate's gap is 5.4 by 3.5 mm from below (Fig. 187, the dark between the petrous apex and the basilar part) and
+    # 7 by 4.6 from above (Fig. 193): it was cut 10.6 by 6.9, a clean triangle with an even rounded funnel. Now the
+    # outline is the old three-cornered one brought to the plates' size, broken twice over (a few big bays and spurs, then
+    # finer teeth), with hardly any funnel on its hind and outer side (the petrous apex's rough broken end) and a soft one
+    # against the body; it climbs a little forward and outward to the upper mouth where Fig. 193 has it.
+    tri = np.array([(14.2, 20.6), (16.6, 19.9), (19.4, 18.0), (21.4, 16.6), (23.0, 15.2), (21.0, 14.5), (18.4, 13.6), (16.0, 12.9),
+                    (14.1, 13.3), (13.4, 15.2), (13.6, 18.2)])
+    tri = np.array([17.0, 16.6]) + (tri - tri.mean(0)) * np.array([0.6, 0.52])
+    lac_poly = jag(jag(tri, 187, 0.20, 9), 188, 0.09, 23)
+    lac = opening("ragged hole (lacerum)", lac_poly, 13.0, 0.6, lip_=(0.7, 1.1), seed=187, funnel=0.5, wob=0.45, taper=0.03, side=200.0,
+                  mouth=2.0, lean=(0.06, 0.12),
+                  through=dict(grow=(1.25, 1.32), ragged=0.3, hole=0.9, search_from=-4.0,
+                  upper=[(15.6, 19.0), (17.4, 19.7), (19.6, 18.6), (20.6, 17.0), (19.9, 15.6), (17.9, 15.1), (16.0, 15.4), (15.0, 17.2)]))     # from above: part-floored, broken edged
     # the carotid canal (p. 140: "it ascends at first, and then, making a bend, runs horizontally forward and medialward"):
     # its mouth looks down: an uneven round-oval in the rough petrous bone, its edge sharper in front and eased behind, the
     # wall leaning forward and inward from the start so that the bend is seen from below (no ring: it read as a pipe fitting)
+    # Its mouth is its own, on the petrous underside, a ridge of bone between it and the jugular hollow behind and a
+    # broad bar between it and the ragged hole in front and inside. The canal first climbs nearly straight up for 8 mm
+    # (the vertical part), turns through a bend and runs forward and inward nearly level (the horizontal part), rising
+    # only a little, to the petrous apex, where it opens into the upper part of the ragged hole from behind and outside,
+    # above the gap's floor (Fig. 193: "Orifice of carotid canal", beside the sphenoid's body).
     c0 = mm([CAROTID])[0]
-    car = jag(c0 + np.array(ROUNDISH) * np.array([3.2, 2.7]), 7, 0.2, 11)
+    car = jag(c0 + np.array(ROUNDISH) * np.array([3.3, 2.9]), 7, 0.14, 11)
     y = float(Mb.sample(Yb, [c0[0]], [c0[1]])[0])
-    c = opening("carotid canal", car, 7.0, 0.7, lip_=(0.3, 0.8), seed=7, funnel=0.6, wob=0.4, taper=0.03, lean=(-0.22, 0.28), front_sharp=True, dome=(1.4, 7.0))      # (its roof a vault, not a flat floor)
+    c = opening("carotid canal", car, 7.5, 0.7, lip_=(0.3, 0.8), seed=7, funnel=0.5, wob=0.4, taper=0.03, lean=(-0.03, 0.05), side=135.0)     # (its hind edge, the ridge against the jugular hollow, sharp; the funnel in front and inside, where the canal goes on)
     yl = float(Mb.sample(Yb, [lac[0]], [lac[1]])[0])
-    # (kept under the lid: its last part, the inner orifice at the petrous apex, is opened with the ragged hole by through())
-    F.cut(Tube(np.array([(c[0] - 1.0, y + 4.5, c[1] + 1.2), (c[0] - 2.2, y + 6.6, c[1] + 2.6), (c[0] - 4.2, y + 7.3, c[1] + 4.6),
-                         (lac[0] + 0.6, yl + 1.8, lac[1] - 1.2)]), [(0, 2.7), (0.4, 2.5), (0.75, 2.6), (1, 2.4)],
-               [(0, 2.9), (0.5, 3.0), (1, 2.8)], up=(0, 1, 0)), 1.0)
+    to = np.array([lac[0] + 1.6, yl + 4.0, lac[1] - 0.6])                     # its inner orifice, in the ragged hole's hind and outer wall
+    bend = sdf.spline(np.array([(c[0] - 0.1, y + 3.0, c[1] + 0.2), (c[0] - 0.3, y + 6.0, c[1] + 0.6), (c[0] - 1.0, y + 8.2, c[1] + 1.6),
+                                (c[0] - 2.8, y + 9.0, c[1] + 3.4), (0.5 * (c[0] + to[0]) - 0.6, 0.5 * (y + 9.0 + to[1]), 0.5 * (c[1] + to[2]) + 0.6), tuple(to)]), 0.4)
+    F.cut(Tube(bend, [(0, 2.6), (0.3, 2.4), (0.6, 2.35), (1, 2.2)], [(0, 2.8), (0.3, 2.6), (0.6, 2.5), (1, 2.3)], up=(0, 1, 0)), 0.8)
+    log("opening: carotid canal bends at y %.1f, its inner orifice at x %.1f y %.1f z %.1f" % (y + 8.6, to[0], to[1], to[2]))
     # the jugular hollow: the plate's bean, vaulted for the vein's bulb, its edge uneven
     opening("jugular hollow", jag(fair(mm(JUGULAR_FOSSA)), 51, 0.08, 12), 7.0, 1.2, lip_=(0.7, 1.4), seed=51, funnel=0.6, wob=0.4,
             dome=(3.7, 7.0))
@@ -339,15 +408,15 @@ def cut(F, B, log=print):
     # the slot the plate draws there half as large again and run into the hollow's inner third; it climbs back and
     # inward into the hind hollow of the cavity. through() opens it there, sets the intrajugular processes across it
     # and makes the right one the larger
-    s0 = mm(JUGULAR_SLOT); s0 = s0.mean(0) + 1.4 * (s0 - s0.mean(0))
+    s0 = mm(JUGULAR_SLOT); s0 = s0.mean(0) + np.array([1.4, 1.0]) * (s0 - s0.mean(0))      # (half as large again across, not forward: in front of it the ridge to the carotid canal)
     jf = jag(np.vstack([s0[:6], [(26.4, -3.8), (28.0, -1.6), (27.6, 1.6), (25.4, 2.6)]]), 52, 0.12, 13)
     opening("jugular foramen", jf, 17.0, 0.9, lip_=(0.5, 1.0), seed=52, funnel=0.5, wob=0.45, lean=(-0.30, -0.25),
             through=dict(grow=(1.0, 1.22), spur=True))
     # the stylomastoid foramen (p. 181: "at the base of this process"), between the styloid and the mastoid: small, a
     # little drawn out toward the mastoid, its lip thin in front and rounded behind; the facial canal climbs from it
     c = mm([STYLOMASTOID])[0]
-    opening("stylomastoid foramen", jag(c + 1.2 * np.array(ROUNDISH)[::-1] * np.array([1.15, -0.95]), 61, 0.1, 7), 9.0, 0.9,
-            seed=61, funnel=0.6, side=-70.0, mouth=2.4, wob=0.2, lean=(0.06, -0.08))      # (Fig. 187: a dark disc 2.7 by 2.4)
+    opening("stylomastoid foramen", jag(c + 1.2 * np.array(ROUNDISH)[::-1] * np.array([1.15, -0.95]), 61, 0.16, 8), 9.0, 0.9,
+            seed=61, funnel=0.4, side=-70.0, mouth=1.5, wob=0.2, lean=(0.06, -0.08))      # (its funnel was a countersunk ring 2.4 mm deep)      # (Fig. 187: a dark disc 2.7 by 2.4)
     # the canal in the hollow behind the condyle (p. 131: the fossa "is sometimes perforated by the condyloid canal"; p.
     # 181: "on one or both sides"): small here; through() makes the right one the larger (the hollow is pressed in: press)
     c = mm([CONDYLAR], True)[0]
@@ -387,8 +456,9 @@ def through(G, log=print):
                 yt = y0 + top
             else:
                 y0 = LIDS[o["name"]] - 2.5
+                sh = np.array(lean) * (y0 - o["ys"]); c = c + sh; poly = poly + sh      # (where the canal cut from below has got to by then: it leans)
                 # up the canal's line to the cavity: the first 2 mm of air above the lid
-                ys_ = np.arange(LIDS[o["name"]], LIDS[o["name"]] + 28.0, 0.25)
+                ys_ = np.arange(o.get("search_from", LIDS[o["name"]]), LIDS[o["name"]] + 28.0, 0.25)     # (the ragged hole's search starts above the carotid canal, which opens into it)
                 px = s * (c[0] + lean[0] * (ys_ - y0)); pz = c[1] + lean[1] * (ys_ - y0)
                 dd = sample_field(G.D, G.lo, G.h, np.column_stack([px, ys_, pz]))
                 air = dd > 0.0
@@ -413,7 +483,7 @@ def through(G, log=print):
             if not o.get("right_only"):
                 # and the floor's edge rounded over about a millimetre: no knife edge, no dark cut line
                 m = c + np.array(lean) * (yt - y0)
-                G.ease((s * m[0], yt - 0.5, m[1]), 3.0 + 0.5 * float(np.ptp(poly, 0).max()), 0.9)
+                G.ease((s * m[0], yt - 0.5, m[1]), 3.0 + 0.5 * float(np.ptp(poly, 0).max()), min(0.9, 0.12 * float(np.ptp(poly, 0).min())))     # (gently on a small canal: smoothed as much it closed)
             found.append("%s (%s) from y %.1f up to %.1f" % (o["name"], "left" if s > 0 else "right", y0, yt))
             if o.get("spur"):
                 # the intrajugular processes (p. 131: "a bony spicule ... which projects lateralward above the hypoglossal
@@ -426,7 +496,9 @@ def through(G, log=print):
                 for P, r_ in ((P1, [(0, 0.95), (1, 0.55)]), (P2, [(0, 0.8), (1, 0.45)])):
                     P = P * np.array([s, 1.0, 1.0]) + (0 if s > 0 else np.array([-0.3, 0.2, 0.4]))
                     G.add(Tube(P, r_), 0.6, keep=3)
-    log("base openings carried through into the cavity: " + "; ".join(found))
+    for sd, op, k in getattr(cut, "sides", []):
+        G.cut(op if sd > 0 else _Mirror(op), k)
+    log("base openings carried through into the cavity: " + "; ".join(found) + "; %d mouths given a lip of their own side" % len(getattr(cut, "sides", [])))
 
 
 def press(F, B, mouths, log=print):
