@@ -3928,6 +3928,23 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     with the bones' own plates rules there; a bone may be stretched
     smoothly up to 12% to fill the whole, since Gray's single-bone
     plates carry no common scale.
+    Step 1, repair 1 (foot_whole.py, traces/foot_whole_warps.json),
+    saved, failed; the supervisor's ruling was the wrong way: the
+    seven single builds, each moved and stretched smoothly within 12%
+    and 2.5 mm and solved together, cannot be brought to fit. Keeping
+    their own shape leaves the main joints 2.5 to 14 mm open and the
+    whole 2 mm off the plates; forcing the joints pins every limit and
+    still leaves 4 to 10 mm. The single bones' facets disagree with
+    their partners in shape, not only place (talus on heel bone 5 to
+    10 mm; the third cuneiform's traced cuboid facet faces up and back
+    14 mm from the cuboid, so that build or its tracing is turned
+    wrong). So the separately built bones cannot be the base. Task
+    closed. Next, a new task and the owner's method taken literally:
+    model the tarsus as one solid straight from the four whole-foot
+    plates (each bone's own visible outline in each of the four views
+    gives its territory; the drawn joint lines in two or more views
+    give each joint surface), cut it, and only then lay each bone's
+    own-plate detail onto its piece.
   - [ ] The metatarsals, phalanges; the foot together.
 - [ ] F11. 25 Nov, the owner: "switch back to the skull and mandible so we
   fix every single part of them especially the mandible and skull base";

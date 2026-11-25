@@ -1,36 +1,24 @@
-"""foot_whole.py: the right tarsus built WHOLE, as one solid, then cut along its joints into its seven bones.
+"""foot_whole.py: the right tarsus built whole, its seven bones warped together into one fitted set.
 
 The owner, 25 Nov: "let's change the approach for complex bone collections. make the full foot bones then we separate
-them." Built so far one by one (foot.py, talus.py, midfoot.py, cuneiforms.py) and then posed, the bones never fitted:
-the talus stood 7 mm over the calcaneus, the two bones' facets disagreed by 5 to 14 mm, neighbours ran into each other.
-Here a joint is ONE surface and the two bones' faces are that surface moved half a joint space to either side, so they
-fit by construction.
-
-Plates (Gray, Anatomy of the Human Body, 20th ed., 1918, public domain): the foot assembled, Fig. 268 (from above), 269
-(from below), 290 (medial), 291 (lateral), through foot_frame.py's registration (269 is registered here, on 268); each
-bone's own plates (264 to 267 calcaneus, 270 to 273 talus, 274/275 cuboid, 276/277 navicular, 278 to 283 cuneiforms)
-through the single-bone builds, which are only sources of shape here, not the assembly.
-
-Frame: foot_frame.py's (right foot, x medial, y up, z forward, mm; the origin the navicular's middle).
-
-The build (whole()):
-  1. each single-bone build is set at its place in the foot (POSE: foot_frame.TARGET, the navicular where it stands)
-     and sampled on one grid; their union is where the bone's own plates give the shape the assembly plates cannot see
-     (the sinus tarsi's walls, the sole's hollows, the joint faces' curvature);
-  2. the joint network (JOINTS, joint_surfaces()): each joint one surface. Its form inside the foot (ball, saddle, convex
-     along one axis) is the two bones' facing surfaces' middle, fitted as a quadric (or the talar head's ellipsoid), with
-     the sign of each curvature checked against Gray's text; its trace on the outside (where it meets the air) is moved
-     and tilted onto the joint lines drawn in Fig. 268/290/291, lifted on to the solid;
-  3. the solid is made whole across each joint: between the two bones, over the joint's extent, it is filled up to the
-     surface from both sides (where the posed bones stand apart, as the talus over the calcaneus) and the posed bones'
-     overlap is split by the surface; the sinus tarsi and tarsal canal are kept open (a hollow shaped on the calcaneal
-     and talar sulci) and so are the non-articular spaces between neighbours (whatever the posed bones leave open);
-  4. the whole solid's outline is drawn on to the four assembly plates (outline_push): where its silhouette lies outside
-     or inside a plate's, the surface there (only where it is seen edge on in that plate) is moved to the plate's;
-  5. the cut (bones()): the whole solid is split in a fixed order of surfaces (CUTS) and each bone is the whole solid on
-     its side of every surface it borders, moved back half the joint space (GAP / 2) and rounded into the joint (EDGE).
-bones() returns each bone and the assembled set in the foot frame; later code (metatarsals, phalanges) adds bones to
-POSE, JOINTS and CUTS and to the same grid.
+them." Attempt 1 (commit d1e9d46) built one solid, pushed its rim on to the assembly plates and cut it along shared joint
+surfaces: the joints fitted but the bones' surfaces were spoilt (flat walls, terraces, waffled cut faces). The repair
+(supervisor's rulings R-a to R-f, 25 Nov):
+  - every free surface is the bone's own single build (foot.py, talus.py, midfoot.py, cuneiforms.py, from its own
+    plates), moved only by a smooth warp: a pose, a stretch along its own axes (each within +/-12 %) and a
+    low-frequency displacement (no feature shorter than about 10 mm, at most 2.5 mm). Gray's single-bone plates carry
+    no common scale and come from different specimens: the assembly plates rule proportions and places, the own
+    plates rule form;
+  - the seven warps are solved together (solve_affine, fit_disp): the union on to the outlines of Fig. 268 (from above),
+    269 (from below), 290 (medial) and 291 (lateral); the facing facets of each joint GAP apart over their true contact
+    (the facets as the bones' own plates outline them); each warp small;
+  - each joint is one shared surface only over that contact (share_joints): the two faces are put on the surface where
+    the two bones are equally far, set back GAP / 2 each, the pull fading out JOINT_FADE mm beyond the facet's edge.
+    Outside the contacts each bone keeps its own surface: no extrusion, no cut walls.
+Plates: Gray, Anatomy of the Human Body, 20th ed., 1918, public domain. Frame: foot_frame.py's (right foot, x medial,
+y up, z forward, mm; the origin the navicular's middle); foot_frame.TARGET gives the warps' starting poses only.
+bones() returns each bone and the assembled set in the foot frame; the solved warps are kept in WARPS_FILE. Later bones
+(metatarsals) join by adding to BONES, their facets to _facet_sources() and their plates' joint lines.
 """
 import os
 import pickle
@@ -44,34 +32,20 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 BONES = ("calcaneus", "talus", "navicular", "cuboid", "first", "second", "third")
 
 GAP = 1.2          # mm: the joint space in the dry articulated foot (both faces together), half on each bone
-EDGE = 0.9         # mm: how far a joint face is rounded into the bone's outer surface (no saw-cut edges)
 H = 0.5            # mm: the grid
 BOX = ((-62.0, -74.0, -98.0), (34.0, 34.0, 44.0))   # the tarsus in the foot frame, with room round it
 
 _ORTH = lambda R: (lambda u, s, vt: u @ vt)(*np.linalg.svd(np.asarray(R, float)))
 
 
-# ---------------------------------------------------------------------------------------------------- 1. the bones set
-# Moves on top of foot_frame.TARGET: {bone: (turn axis, degrees, pivot (foot frame), then a shift mm)}.
-# The third cuneiform: Fig. 291 draws its dorsolateral border at y 9.5 to 11.5 mm (pixels (250, 61) to (281, 50)) with
-# the second's dorsal strip above it at 19.5, where the target pose holds the third's top at 20 to 23 (the target
-# raised it 6.3 mm over cuneiforms.HEIGHT on the evidence of that plate's upper half only, foot_frame.TARGET): it is
-# set 5 mm lower, nearly back to the height cuneiforms.py gives it. (Rolled instead, lateral side down, its sole swung
-# under the second.)
-POSE_TURN = {"third": ((0.0, 0.0, 1.0), 0.0, (-22.0, 20.0, 15.0), (0.0, -5.0, 0.0))}
-
-
+# ---------------------------------------------------------------------------------------------------- 1. the bones
 def pose(name):
-    """(R, t): foot point = R @ own point + t. foot_frame.TARGET (each bone fitted to Fig. 268/290/291), the navicular
-    where it stands (it defines the frame; its target is within the side plates' reading error, foot_frame.TARGET),
-    then POSE_TURN."""
+    """(R, t): foot point = R @ own point + t, where the warps start: foot_frame.TARGET (each bone fitted to Fig.
+    268/290/291), the navicular where it stands (it defines the frame)."""
     if name == "navicular":
         R, t = np.eye(3), np.zeros(3)
     else:
         R, t = ff.pose(name); R = _ORTH(R)
-    if name in POSE_TURN:
-        ax, deg, c, sh = POSE_TURN[name]; Q = sdf.rot(ax, deg); c = np.asarray(c, float)
-        R, t = Q @ R, Q @ (t - c) + c + np.asarray(sh, float)
     return R, t
 
 
@@ -134,6 +108,7 @@ def posed(G, R, t, lo, n, h):
         P = np.stack([np.full_like(Yg, lo[0] + h * i), Yg, Zg], -1)
         out[i] = sample(G, (P - t) @ R)
     return out
+
 
 
 # ------------------------------------------------------------------------------------------------ the assembly plates
@@ -240,153 +215,11 @@ def outline_gap(fig, model, plate=None, care=None):
     return float(d.mean()), float(np.percentile(d, 90)), ea, eb
 
 
-# -------------------------------------------------------------------------------------------------- 2. the joints
-# One surface a joint. a, b: the two bones (the surface's normal runs from a to b; g < 0 on a's side). form: "head" the
-# talar head's ellipsoid (talus.HEAD_*, fitted on its articular front 0.4 mm rms), moved onto the drawn joint lines;
-# "quad" a quadric height over the joint's plane, its curvature from `curv` (the bone whose own plates show that face
-# best, Gray's text naming its form), its place and tilt from the drawn joint lines. patch: where the joint is: the
-# calcaneus's own facets as Fig. 264 outlines them (CALC_FACETS: 0 posterior, 1 middle, 2 anterior), or "facing" (where
-# the two posed bones' surfaces face each other within `reach` mm). form_check: Gray's words for the surface, tested on
-# the fitted curvatures (seen from a): "convex": bulging toward b... along the long axis; "saddle"; "concave".
-JOINTS = {
-    "TN":   dict(a="talus", b="navicular", form="head", traces={"Gray268": ("talus", "navicular"), "Gray290": ("talus", "navicular"),
-                                                                "Gray291": ("talus", "navicular")},
-                 gray="p. 268: the head 'oval ... articulates with the navicular' (a ball in the navicular's hollow)"),
-    "TCp":  dict(a="calcaneus", b="talus", form="quad", curv="calcaneus", patch=("calc", (0,)), check="convex",
-                 traces={"Gray291": ("talus", "calcaneus", "posterior")},
-                 gray="p. 265: the calcaneus's posterior facet 'convex from behind forward'; p. 268: the talus's 'deeply "
-                      "concave in the direction of its long axis which runs forward and lateralward at about 45 degrees'"),
-    "TCm":  dict(a="calcaneus", b="talus", form="quad", curv="calcaneus", patch=("calc", (1, 2)), check="concave",
-                 traces={"Gray290": ("talus", "calcaneus"), "Gray291": ("talus", "calcaneus")},
-                 gray="p. 268: the talus's middle facet 'slightly convex', the anterior on the head: the calcaneus's two "
-                      "carry it as a shallow cup"),
-    "CC":   dict(a="calcaneus", b="cuboid", form="quad", curv="calcaneus", patch="facing", check="saddle", hollow=(-1.0, -1.0, 0.0),
-                 traces={"Gray268": ("calcaneus", "cuboid"), "Gray291": ("calcaneus", "cuboid")},
-                 gray="p. 265: 'concave from above downward and lateralward, and convex in a direction at right angles'"),
-    "NC1":  dict(a="navicular", b="first", form="quad", curv="navicular", patch="facing", check="convex",
-                 traces={"Gray268": ("navicular", "first"), "Gray290": ("navicular", "first")},
-                 gray="p. 270: the navicular's front 'convex from side to side', in three facets"),
-    "NC2":  dict(a="navicular", b="second", form="quad", curv="navicular", patch="facing", check="convex",
-                 traces={"Gray268": ("navicular", "second"), "Gray290": ("navicular", "second")}, gray="as NC1"),
-    "NC3":  dict(a="navicular", b="third", form="quad", curv="navicular", patch="facing", check="convex",
-                 traces={"Gray268": ("navicular", "third"), "Gray291": ("navicular", "third")}, gray="as NC1"),
-    "NCu":  dict(a="cuboid", b="navicular", form="quad", curv=None, patch="facing", check=None,
-                 traces={"Gray268": ("navicular", "cuboid"), "Gray291": ("navicular", "cuboid")},
-                 gray="p. 270: the navicular's lateral surface 'occasionally' a facet for the cuboid; mostly ligament"),
-    "C3Cu": dict(a="cuboid", b="third", form="quad", curv=None, patch="facing", check=None,
-                 traces={"Gray268": ("third", "cuboid"), "Gray291": ("third", "cuboid")},
-                 gray="p. 273: the third cuneiform's lateral surface, a facet for the cuboid behind"),
-    "C12":  dict(a="second", b="first", form="quad", curv=None, patch="facing", check=None,
-                 traces={"Gray268": ("first", "second"), "Gray290": ("first", "second")},
-                 gray="p. 272: the first cuneiform's lateral surface, an L-shaped facet for the second"),
-    "C23":  dict(a="third", b="second", form="quad", curv=None, patch="facing", check=None,
-                 traces={"Gray268": ("second", "third"), "Gray291": ("second", "third")},
-                 gray="p. 273: the second's lateral surface, the third's medial"),
-}
-# The cut: the whole split in this order, each surface a blend of the listed joints' (A's side negative).
-CUTS = [
-    ("chopart",   ("calcaneus", "talus"), ("navicular", "cuboid", "first", "second", "third"), ("TN", "CC")),
-    ("subtalar",  ("calcaneus",), ("talus",), ("TCp", "TCm")),
-    ("cuboid",    ("cuboid",), ("navicular", "first", "second", "third"), ("NCu", "C3Cu")),
-    ("cuneonav",  ("navicular",), ("first", "second", "third"), ("NC1", "NC2", "NC3")),
-    ("medial",    ("second", "third"), ("first",), ("C12",)),
-    ("lateral",   ("third",), ("second",), ("C23",)),
-]
+
+def _ss(t):
+    t = np.clip(t, 0.0, 1.0); return t * t * (3.0 - 2.0 * t)
 
 
-def _calc_facet_own(G, which):
-    """The calcaneus's upper facets (CALC_FACETS, Fig. 264) as points of its own surface: those facing up whose Fig. 264
-    pixel falls inside the traced border, the topmost over each plan cell."""
-    import foot, platematch as pm
-    from PIL import Image, ImageDraw
-    idx = np.argwhere(np.abs(G.D) < 0.5 * G.h); P = G.lo + G.h * idx
-    gr = np.stack([sample(G, P + k) - sample(G, P - k) for k in np.eye(3) * G.h], 1); n = gr / (np.linalg.norm(gr, axis=1)[:, None] + 1e-9)
-    tr = foot.traces("calcaneus"); V = {v["fig"]: v for v in pm.CALCANEUS}; p4 = np.asarray(tr["Gray264_pose"], float)
-    u, v = foot._pixels(V["Gray264"], p4, P[:, 0], P[:, 1], P[:, 2])
-    shp = tr["Gray264_sdf"].shape; out = []
-    for i in which:
-        poly = [(87.0 + x / 0.225, 421.0 - z / 0.225) for x, z in sdf.spline(np.asarray(foot.CALC_FACETS[i], float), 0.4, closed=True)]
-        im = Image.new("L", shp[::-1], 0); ImageDraw.Draw(im).polygon(poly, fill=255); m = np.asarray(im) > 0
-        k = (ndi.map_coordinates(m.astype(np.float32), [v, u], order=0) > 0.5) & (n[:, 1] > 0.3)
-        Q = P[k]; key = np.round(Q[:, [0, 2]]).astype(int); top = {}
-        for kk, y in zip(map(tuple, key), Q[:, 1]):
-            top[kk] = max(top.get(kk, -1e9), y)
-        out.append(Q[np.array([y > top[kk] - 2.0 for kk, y in zip(map(tuple, key), Q[:, 1])])])
-    return np.vstack(out)
-
-
-def _grad_at(D, lo, h, P):
-    G = Grid(D, lo, h)
-    g = np.stack([sample(G, P + k) - sample(G, P - k) for k in np.eye(3) * h], 1)
-    return g / (np.linalg.norm(g, axis=1)[:, None] + 1e-9)
-
-
-def contact(Dp, a, b, lo, h, reach=14.0):
-    """Points of the middle surface between two posed bones where they face each other (|d_a - d_b| small, d_a + d_b
-    below `reach`, their normals opposed): (points, the normal from a to b at each)."""
-    A, B = Dp[a], Dp[b]
-    m = (np.abs(A - B) < 0.6 * h) & (A + B < reach)
-    idx = np.argwhere(m); P = lo + h * idx
-    if len(P) == 0:
-        return P, P
-    na = _grad_at(A, lo, h, P); nb = _grad_at(B, lo, h, P)
-    k = (na * nb).sum(1) < -0.6
-    n = na - nb; n /= np.linalg.norm(n, axis=1)[:, None] + 1e-9
-    return P[k], n[k]
-
-
-class Quad:
-    """A joint surface: a quadric height over a plane. g(x) < 0 on a's side, scaled to about unit slope."""
-    def __init__(self, o, E, c):
-        self.o = np.asarray(o, float); self.E = np.asarray(E, float); self.c = np.asarray(c, float)   # E rows: e1, e2, n
-
-    def uvw(self, P):
-        q = np.asarray(P, float) - self.o; return q @ self.E[0], q @ self.E[1], q @ self.E[2]
-
-    def height(self, u, v):
-        c = self.c; return c[0] + c[1] * u + c[2] * v + c[3] * u * u + c[4] * u * v + c[5] * v * v
-
-    def __call__(self, P):
-        u, v, w = self.uvw(P); c = self.c
-        gu = c[1] + 2 * c[3] * u + c[4] * v; gv = c[2] + c[4] * u + 2 * c[5] * v
-        return ((w - self.height(u, v)) / np.sqrt(1.0 + gu * gu + gv * gv)).astype(np.float32)
-
-    def curvatures(self):
-        """Principal curvatures (1/mm) of the height at the patch's middle and their directions in the frame: positive
-        = the surface curls toward b (concave seen from b, convex seen from a)."""
-        Hm = np.array([[2 * self.c[3], self.c[4]], [self.c[4], 2 * self.c[5]]]); k, V = np.linalg.eigh(Hm)
-        return k, [V[0, i] * self.E[0] + V[1, i] * self.E[1] for i in range(2)]
-
-
-class Head:
-    """The talonavicular surface: the talar head's ellipsoid (talus.HEAD_*) carried into the frame and moved by `shift`
-    and grown by `grow` mm; g < 0 inside (the talus's side)."""
-    def __init__(self, shift=(0.0, 0.0, 0.0), grow=0.0):
-        import talus
-        R, t = pose("talus")
-        self.c = R @ np.asarray(talus.HEAD_C, float) + t + np.asarray(shift, float)
-        self.ax = R @ np.asarray(talus.HEAD_AX, float); self.r = np.asarray(talus.HEAD_R, float) + grow
-        self.shift = np.asarray(shift, float); self.grow = grow
-
-    def __call__(self, P):
-        """Behind the head's middle (along its long axis, forward) all is the talus's side; in front, the ellipsoid."""
-        E = sdf.Ellipsoid(self.c, self.r, self.ax); P = np.asarray(P, float)
-        f = self.ax[:, 2] if self.ax[2, 2] > 0 else -self.ax[:, 2]
-        return np.minimum(E(P[..., 0], P[..., 1], P[..., 2]), (P - self.c) @ f).astype(np.float32)
-
-
-def lift(fig, pix, G, reach=3.0):
-    """Points drawn on a plate (pixels) carried on to the solid G: along each one's line of sight, the first point where
-    the line enters the solid, or where it passes closest to it (within `reach` mm: a drawn joint line falls on the
-    joint's gap). Returns (points (n, 3), found (n,))."""
-    B, s, u0, v0 = view(fig); pix = np.asarray(pix, float)
-    P0 = (pix[:, 0] - u0)[:, None] * s * B[0] + (v0 - pix[:, 1])[:, None] * s * B[1]
-    corners = G.lo + np.array([[i, j, k] for i in (0, 1) for j in (0, 1) for k in (0, 1)]) * (G.n - 1) * G.h
-    t = corners @ B[2]; ts = np.arange(t.max(), t.min(), -0.5 * G.h)
-    D = np.stack([sample(G, P0 + tk * B[2], cval=50.0) for tk in ts], 1)       # (n, steps)
-    inside = D < 0; first = np.where(inside.any(1), inside.argmax(1), D.argmin(1))
-    ok = inside.any(1) | (D.min(1) < reach)
-    return P0 + ts[first][:, None] * B[2], ok
 
 
 def _resample(P, step):
@@ -396,351 +229,394 @@ def _resample(P, step):
     return np.array(out)
 
 
-def joint_traces(name, G):
-    """The joint lines drawn for a joint, lifted on to the solid G: {fig: (points, found)}."""
-    out = {}
-    for fig, key in JOINTS[name]["traces"].items():
-        J = ff.JOINTS268 if fig == "Gray268" else ff.JOINTS_SIDE[fig]
-        pts = J.get(tuple(key)) or J.get(tuple(key[:2][::-1]) + tuple(key[2:]))
-        if pts is None or len(pts) < 2:
-            continue
-        out[fig] = lift(fig, _resample(pts, 1.0), G)
-    return out
+
+# -------------------------------------------------------------------------------- 2. the joints' true contact areas
+# Each joint's facets as the bones' own plates outline them (the single-bone modules' tracings, in each plate's own
+# pixels), lifted on to the bone's own surface where that plate sees it. A joint: (a, b, [(bone, plate, polygon) or
+# (bone, "face", (direction, least cosine))]). Where only one bone's facet is traced (the navicular's for the talar
+# head, the cuboid's for the calcaneus), the other side's contact is the surface facing it.
+def _facet_sources():
+    import foot, talus, midfoot, cuneiforms as cu
+    calc = [[(87.0 + x / 0.225, 421.0 - z / 0.225) for x, z in p] for p in foot.CALC_FACETS]
+    nav, cub, F = midfoot.NAV_FACETS["Gray276"], midfoot.CUB_FACETS, cu.FACETS
+    return {
+        "TN": ("talus", "navicular", [("navicular", "Gray277", midfoot.NAV_TALAR)]),
+        "TCp": ("talus", "calcaneus", [("talus", "Gray271", talus.POST_FACET_271), ("calcaneus", "Gray264", calc[0])]),
+        "TCm": ("talus", "calcaneus", [("talus", "Gray271", talus.MID_FACET_271), ("talus", "Gray271", talus.ANT_FACET_271),
+                                       ("calcaneus", "Gray264", calc[1]), ("calcaneus", "Gray264", calc[2])]),
+        "CC": ("calcaneus", "cuboid", [("cuboid", "Gray275", cub["Gray275"][0])]),
+        "NC1": ("navicular", "first", [("navicular", "Gray276", nav[0]), ("first", "face", cu.FACES["first"][0])]),
+        "NC2": ("navicular", "second", [("navicular", "Gray276", nav[1]), ("second", "Gray281", F["Gray281"][1][0])]),
+        "NC3": ("navicular", "third", [("navicular", "Gray276", nav[2]), ("third", "Gray282", F["Gray282"][0][0])]),
+        "NCu": ("navicular", "cuboid", [("navicular", "Gray276", nav[3]), ("cuboid", "Gray274", cub["Gray274"][1])]),
+        "C3Cu": ("third", "cuboid", [("cuboid", "Gray274", cub["Gray274"][0]), ("third", "Gray283", F["Gray283"][2][0])]),
+        "C12": ("first", "second", [("first", "Gray279", F["Gray279"][1][0]), ("second", "Gray280", F["Gray280"][0][0])]),
+        "C23": ("second", "third", [("second", "Gray281", F["Gray281"][0][0]), ("third", "Gray282", F["Gray282"][1][0])]),
+    }
 
 
-def _plane(P, toward):
-    o = P.mean(0); _, _, vt = np.linalg.svd(P - o, full_matrices=False); n = vt[2]
-    if n @ toward < 0:
-        n = -n
-    e1 = vt[0]; e2 = np.cross(n, e1)
-    return o, np.array([e1, e2, n])
+def _grad(G, P):
+    g = np.stack([sample(G, P + k) - sample(G, P - k) for k in np.eye(3) * G.h], 1)
+    return g / (np.linalg.norm(g, axis=1)[:, None] + 1e-9)
 
 
-def _quadfit(u, v, w, wt=None, cmax=1.0 / 12.0):
-    A = np.stack([np.ones_like(u), u, v, u * u, u * v, v * v], 1); wt = np.ones_like(u) if wt is None else wt
-    c = np.linalg.lstsq(A * wt[:, None], w * wt, rcond=None)[0]
-    k = np.linalg.eigvalsh(np.array([[2 * c[3], c[4]], [c[4], 2 * c[5]]]))
-    if np.abs(k).max() > cmax:                    # a patch too small to hold its curvature: held to a gentler one
-        c[3:] *= cmax / np.abs(k).max()
-    return c
+def _thin(P, step):
+    """One point a cell of `step` mm (the first met)."""
+    k = np.floor(P / step).astype(np.int64); _, i = np.unique(k, axis=0, return_index=True); return np.sort(i)
 
 
-def fit_joint(name, Dp, lo, h, G, own=None, log=print):
-    """The joint's surface (Quad or Head) and its patch points, fitted as JOINTS says. G: the union of the posed bones
-    (what the drawn joint lines are lifted on to). Returns dict(surf, patch, traces, report)."""
-    J = JOINTS[name]; a, b = J["a"], J["b"]
-    T = joint_traces(name, G)
-    TP = np.vstack([p[k] for p, k in T.values()]) if T else np.zeros((0, 3))
-    rep = {"traces": {f: int(k.sum()) for f, (p, k) in T.items()}}
-    if J["form"] == "head":
-        from scipy.optimize import minimize
-        P, nrm = contact(Dp, a, b, lo, h, reach=10.0)
-        f = lambda x: float(np.mean(Head(x[:3], x[3])(TP) ** 2) + 0.01 * np.sum(x[:3] ** 2) + 0.05 * x[3] ** 2)
-        x = minimize(f, np.zeros(4), method="Powell").x
-        surf = Head(x[:3], x[3]); rep.update(shift=np.round(x[:3], 2).tolist(), grow=round(float(x[3]), 2),
-                                             trace_rms=round(float(np.sqrt(np.mean(surf(TP) ** 2))), 2))
-        return dict(surf=surf, patch=P, traces=T, report=rep)
-    # the patch and its plane
-    if isinstance(J["patch"], tuple):
-        R, t = pose("calcaneus"); P = _calc_facet_own(own["calcaneus"], J["patch"][1]) @ R.T + t
-        toward = np.array([0.0, 1.0, 0.0])
-    else:
-        P, nrm = np.zeros((0, 3)), None
-        for reach in (6.0, 10.0, 16.0, 24.0):
-            P, nrm = contact(Dp, a, b, lo, h, reach)
-            if len(P) > 150:
-                break
-        if len(TP):                                   # the facing part near the joint's drawn lines, not elsewhere
-            from scipy.spatial import cKDTree
-            d, _ = cKDTree(TP).query(P); keep = d < 15.0
-            if keep.sum() > 50:
-                P, nrm = P[keep], nrm[keep]
-        toward = nrm.mean(0)
-    o, E = _plane(P, toward)
-    q = P - o; u, v, w = q @ E[0], q @ E[1], q @ E[2]
-    c = _quadfit(u, v, w)
-    if J.get("curv"):                                 # the curvature of that bone's own face over the patch
-        Gb = Grid(Dp[J["curv"]], lo, h); s = 1.0 if J["curv"] == a else -1.0
-        lo2 = P.min(0) - 6; hi2 = P.max(0) + 6
-        sl = tuple(slice(max(0, int((lo2[k] - lo[k]) / h)), int((hi2[k] - lo[k]) / h) + 1) for k in range(3))
-        idx = np.argwhere(np.abs(Dp[J["curv"]][sl]) < 0.6 * h) + np.array([x.start for x in sl]); Q = lo + h * idx
-        nq = _grad_at(Dp[J["curv"]], lo, h, Q)
-        qq = Q - o; uq, vq, wq = qq @ E[0], qq @ E[1], qq @ E[2]
+def surface(G, step):
+    """A bone's own surface as points about `step` mm apart, with outward normals."""
+    idx = np.argwhere(np.abs(G.D) < 0.6 * G.h); P = G.lo + G.h * idx
+    P = P[_thin(P, step)]; n = _grad(G, P); P = P - sample(G, P)[:, None] * n
+    return P.astype(np.float64), n
+
+
+def facet_points(own, P, n, bone, fig, poly):
+    """The bone's surface points (own frame) inside a facet traced on one of its own plates, where that plate sees them;
+    or, for ("face", (direction, cosine)), where the surface faces that way."""
+    import platematch as pm
+    from PIL import Image, ImageDraw
+    if fig == "face":
+        d, c = poly; d = np.asarray(d, float) / np.linalg.norm(d); return n @ d >= c
+    v, mask, p = [t for t in own_views(bone) if t[0]["fig"] == fig][0]
+    B = pm.basis(v, p[:3]); px = v["s"] * p[3]; u0, v0 = v["u0"] + p[4], v["v0"] + p[5]; H, Wd = mask.shape
+    depth, _ = pm.cast(own[bone], B, px, u0, v0, (Wd, H), normals=False)
+    u = u0 + (P @ B[0]) / px; w = v0 - (P @ B[1]) / px; e = P @ B[2]
+    ui = np.clip(np.round(u).astype(int), 0, Wd - 1); wi = np.clip(np.round(w).astype(int), 0, H - 1)
+    seen = np.nan_to_num(depth[wi, ui], nan=-1e9) - e < 1.0
+    im = Image.new("L", (Wd, H), 0); ImageDraw.Draw(im).polygon([tuple(map(float, q)) for q in poly], fill=1)
+    inside = np.asarray(im)[wi, ui] > 0
+    return seen & inside & (n @ B[2] > 0.0)
+
+
+def prep(own, step=1.5, fstep=1.0, log=print):
+    """Each bone's surface (thinned to `step` mm for the outlines and overlaps) and its facets (to `fstep`), own frame."""
+    data = {}
+    for b in BONES:
+        P, n = surface(own[b], fstep); keep = _thin(P, step)
         from scipy.spatial import cKDTree
-        dd, _ = cKDTree(np.stack([u, v], 1)).query(np.stack([uq, vq], 1))
-        k = (dd < 1.5) & (s * (nq @ E[2]) > 0.5) & (np.abs(wq) < 10.0)
-        if k.sum() > 30:
-            cb = _quadfit(uq[k], vq[k], wq[k]); c[3:] = cb[3:]
-            rep["curv_points"] = int(k.sum())
-    else:                                             # no face to read a curvature from: about flat (Gray: plane facets)
-        c[3:] *= 0.25
-    chk = J.get("check"); fixed = []
-    if chk:                                           # Gray's words for the form win over the build's face
-        Hm = np.array([[2 * c[3], c[4]], [c[4], 2 * c[5]]]); k, V = np.linalg.eigh(Hm); k0 = k.copy()
-        if chk == "convex":
-            k = -np.abs(k)
-        elif chk == "concave":
-            k = np.abs(k)
-        elif chk == "saddle":
-            d = np.asarray(J["hollow"], float); d = np.array([d @ E[0], d @ E[1]]); d /= np.linalg.norm(d) + 1e-9
-            m = max(np.abs(k).mean(), 1.0 / 25.0); V = np.array([d, [-d[1], d[0]]]).T; k = np.array([m, -m])
-        if not np.allclose(k, k0):
-            Hm = V @ np.diag(k) @ V.T; c[3], c[4], c[5] = Hm[0, 0] / 2, Hm[0, 1], Hm[1, 1] / 2
-            fixed = ["curvature set to Gray's form (%s): radii %s -> %s" % (chk, np.round(1 / k0, 1).tolist(), np.round(1 / k, 1).tolist())]
-    # place and tilt from the drawn lines (and the patch's middle surface, a third of the weight)
-    if len(TP):
-        qt = TP - o; ut, vt_, wt = qt @ E[0], qt @ E[1], qt @ E[2]
-        near = np.abs(wt - (c[0] + c[1] * ut + c[2] * vt_ + c[3] * ut ** 2 + c[4] * ut * vt_ + c[5] * vt_ ** 2)) < 10.0
-        ut, vt_, wt = ut[near], vt_[near], wt[near]
+        data[b] = dict(P=P, n=n, coarse=keep, c=P.mean(0), facets={}, tree=cKDTree(P))
+    for j, (a, b, src) in _facet_sources().items():
+        for bone, fig, poly in src:
+            d = data[bone]; m = facet_points(own, d["P"], d["n"], bone, fig, poly)
+            d["facets"][j] = np.union1d(d["facets"].get(j, np.zeros(0, int)), np.nonzero(m)[0]).astype(int)
+    log("  facets: " + ", ".join("%s %s %d" % (j, b, len(i)) for b in BONES for j, i in data[b]["facets"].items()))
+    return data
+
+
+# ------------------------------------------------------------------------------------------- 3. the warps, together
+# Each bone's own build is carried into the foot by a smooth warp: foot point = Q R0 (c + e^sig (x - c) - c) + C0 + dlt
+# + disp(...): its pose (R0, t0 from foot_frame.TARGET, then turned by Q about its middle C0 and shifted dlt), a stretch
+# e^sig along its own three axes (each within +/-12 %: Gray's single-bone plates carry no common scale), and a
+# low-frequency displacement (DISP_STEP-mm lattice, DISP_SIGMA-mm Gaussians, normalised; no feature shorter than
+# about 10 mm, nowhere more than DISP_MAX mm). The seven are solved together (solve_affine, then fit_disp): the union
+# on to the four assembly plates' outlines, the facing facets of each joint GAP apart, each warp small.
+STRETCH = 0.12
+DISP_STEP, DISP_SIGMA, DISP_MAX = 12.0, 7.0, 2.5
+WARPS_FILE = os.path.join(HERE, "traces", "foot_whole_warps.json")
+
+
+def _rot(w):
+    from scipy.spatial.transform import Rotation
+    return Rotation.from_rotvec(np.asarray(w, float)).as_matrix()
+
+
+def warp0(data):
+    out = {}
+    for b in BONES:
+        R0, t0 = pose(b); c = data[b]["c"]
+        out[b] = dict(R0=R0, t0=t0, c=c, C0=R0 @ c + t0, w=np.zeros(3), dlt=np.zeros(3), sig=np.zeros(3), nodes=None, coef=None)
+    return out
+
+
+def _disp(Wb, Y):
+    if Wb.get("nodes") is None:
+        return np.zeros_like(Y)
+    out = np.empty_like(Y); N = np.asarray(Wb["nodes"]); Cf = np.asarray(Wb["coef"])
+    for i in range(0, len(Y), 50000):
+        d2 = ((Y[i:i + 50000, None, :] - N[None]) ** 2).sum(-1); f = np.exp(-d2 / (2 * DISP_SIGMA ** 2)) + 1e-12
+        out[i:i + 50000] = (f @ Cf) / f.sum(1)[:, None]
+    return out
+
+
+def fwd(Wb, x, disp=True):
+    Q = _rot(Wb["w"]); xs = (x - Wb["c"]) * np.exp(Wb["sig"])
+    Y = xs @ (Q @ Wb["R0"]).T + Wb["C0"] + Wb["dlt"]
+    return Y + _disp(Wb, Y) if disp else Y
+
+
+def inv(Wb, X, disp=True):
+    if disp and Wb.get("nodes") is not None:
+        Y = X - _disp(Wb, X); Y = X - _disp(Wb, Y); Y = X - _disp(Wb, Y)
     else:
-        ut = vt_ = wt = np.zeros(0)
-    curv = lambda uu, vv: c[3] * uu ** 2 + c[4] * uu * vv + c[5] * vv ** 2
-    A = np.concatenate([np.stack([np.ones_like(ut), ut, vt_], 1), np.stack([np.ones_like(u), u, v], 1)])
-    y = np.concatenate([wt - curv(ut, vt_), w - curv(u, v)])
-    wgt = np.concatenate([np.full(len(ut), 1.0 / max(len(ut), 1)), np.full(len(u), (0.5 if len(ut) else 1.0) / len(u))])
-    c[:3] = np.linalg.lstsq(A * np.sqrt(wgt)[:, None], y * np.sqrt(wgt), rcond=None)[0]
-    surf = Quad(o, E, c)
-    k, dirs = surf.curvatures()
-    rep.update(n=len(P), normal=np.round(E[2], 2).tolist(), radii=[round(float(1.0 / x), 1) if abs(x) > 1e-4 else None for x in k],
-               trace_rms=round(float(np.sqrt(np.mean(surf(TP) ** 2))), 2) if len(TP) else None,
-               patch_rms=round(float(np.sqrt(np.mean(surf(P) ** 2))), 2))
-    if chk:
-        rep["gray"] = chk + (": " + fixed[0] if fixed else ": as built")
-    return dict(surf=surf, patch=P, traces=T, report=rep)
+        Y = X
+    Q = _rot(Wb["w"]); xs = (Y - Wb["C0"] - Wb["dlt"]) @ (Q @ Wb["R0"])
+    return Wb["c"] + xs / np.exp(Wb["sig"])
 
 
-# --------------------------------------------------------------------------------------- 3. the whole solid and the cut
-def _ss(t):
-    t = np.clip(t, 0.0, 1.0); return t * t * (3.0 - 2.0 * t)
+def dist(own, Wb, b, X, far=None):
+    """Bone b's (warped) signed distance at foot points X, mm (the own field's, scaled by the stretch's mean); beyond
+    the own field's reach (it is clipped at 12 mm), with `far` (b's own surface points), the distance to the nearest
+    of them."""
+    xo = inv(Wb, X); g = sample(own[b], xo, cval=30.0).astype(float)
+    if far is not None:
+        o = np.abs(g) >= 9.0
+        if o.any():
+            g[o] = far.query(xo[o])[0]
+    return g * float(np.exp(np.mean(Wb["sig"])))
 
 
-def _on_surface(surf, P, iters=3):
-    """Points carried on to a joint surface along its slope."""
-    P = np.asarray(P, float).copy()
-    for _ in range(iters):
-        g = surf(P); gr = np.stack([surf(P + k) - surf(P - k) for k in np.eye(3) * 0.25], 1) / 0.5
-        P -= (g / np.maximum((gr ** 2).sum(1), 1e-6))[:, None] * gr
-    return P
+def normals_fwd(Wb, n):
+    m = (n / np.exp(Wb["sig"])) @ (_rot(Wb["w"]) @ Wb["R0"]).T
+    return m / np.linalg.norm(m, axis=1)[:, None]
 
 
-def _sub(lo, h, n, a, b, pad):
-    """The grid's window over the box a..b (mm) widened by pad."""
-    return tuple(slice(max(0, int(np.floor((a[k] - pad - lo[k]) / h))), min(int(n[k]), int(np.ceil((b[k] + pad - lo[k]) / h)) + 1))
-                 for k in range(3))
+class Plates:
+    """The four assembly plates' outlines for the solve: each plate's signed distance (mm, + outside the foot) over its
+    tarsal part, and points along its outline there (1 mm apart)."""
+    def __init__(self, figs=("Gray268", "Gray269", "Gray290", "Gray291")):
+        self.f = {}
+        for fig in figs:
+            m, care = plate_mask(fig); s = view(fig)[1]
+            sd = (ndi.distance_transform_edt(~m) - ndi.distance_transform_edt(m)) * s
+            cut = ndi.binary_dilation(_edge(care), iterations=3)
+            e = np.argwhere(_edge(m & care) & ~cut)[:, ::-1].astype(float)
+            e = e[_thin(np.c_[e, np.zeros(len(e))] * s, 1.0)]
+            self.f[fig] = dict(sd=sd, care=care, E=e, s=s, B=view(fig))
 
 
-def frame_of(surf):
-    """A joint surface's own frame: origin and rows e1, e2, n (n from a toward b)."""
-    if isinstance(surf, Quad):
-        return surf.o, surf.E
-    f = surf.ax[:, 2] if surf.ax[2, 2] > 0 else -surf.ax[:, 2]
-    return surf.c + f * surf.r[2], np.array([surf.ax[:, 0], surf.ax[:, 1], f])
-
-
-def patch_map(J, Dp, a, b, lo, h, reach=8.0, near=None, step=0.5, half=32.0):
-    """Where the joint is, as a map over its plane: along each line across the surface (along n), is there bone a
-    within `reach` mm behind the surface and bone b within `reach` in front? Kept: the piece of that map that holds
-    `near` (points (u, v)) or else the largest. Returns dict(o, E, ax, mask, r (mm outside the patch), w (the surface's
-    height along each line))."""
-    surf = J["surf"]; o, E = frame_of(surf)
-    ax = np.arange(-half, half + 1e-6, step); Uu, Vv = np.meshgrid(ax, ax, indexing="ij")
-    ws = np.arange(-30.0, 30.0 + 1e-6, 0.5)
-    base = o + Uu[..., None] * E[0] + Vv[..., None] * E[1]
-    g = np.stack([surf(base + w * E[2]) for w in ws], -1)                      # (nu, nv, nw)
-    cross = (g[..., :-1] < 0) & (g[..., 1:] >= 0)
-    has = cross.any(-1); k = np.argmax(cross, -1)
-    g0 = np.take_along_axis(g, k[..., None], -1)[..., 0]; g1 = np.take_along_axis(g, (k + 1)[..., None], -1)[..., 0]
-    wsurf = ws[k] + 0.5 * g0 / np.minimum(g0 - g1, -1e-6)
-    Ga, Gb = Grid(Dp[a], lo, h), Grid(Dp[b], lo, h)
-    S = base + wsurf[..., None] * E[2]
-    ta = np.arange(0.0, reach + 1e-6, 0.5)
-    da = np.min(np.stack([sample(Ga, S - t * E[2]) for t in ta]), 0); db = np.min(np.stack([sample(Gb, S + t * E[2]) for t in ta]), 0)
-    m = has & (da < 0) & (db < 0)
-    m = ndi.binary_opening(ndi.binary_closing(m, iterations=2), iterations=1)
-    lab, nl = ndi.label(m)
-    if nl > 1:
-        if near is not None and len(near):
-            iu = np.clip(np.round((near[:, 0] + half) / step).astype(int), 0, len(ax) - 1)
-            iv = np.clip(np.round((near[:, 1] + half) / step).astype(int), 0, len(ax) - 1)
-            d = ndi.distance_transform_edt(lab == 0, return_indices=True)[1]
-            hits = lab[d[0][iu, iv], d[1][iu, iv]]; keep = np.unique(hits[hits > 0])
-        else:
-            keep = [1 + int(np.argmax(ndi.sum(m, lab, range(1, nl + 1))))]
-        m = np.isin(lab, keep)
-    r = ndi.distance_transform_edt(~m) * step - ndi.distance_transform_edt(m) * step
-    return dict(o=o, E=E, ax=ax, step=step, half=half, mask=m, r=r.astype(np.float32), w=wsurf, reach=reach,
-                area=float(m.sum() * step * step))
-
-
-def patch_points(PM):
-    m = PM["mask"]; iu, iv = np.nonzero(m); E = PM["E"]
-    return PM["o"] + PM["ax"][iu][:, None] * E[0] + PM["ax"][iv][:, None] * E[1] + PM["w"][iu, iv][:, None] * E[2]
-
-
-def patch_r(PM, X, g, cap=40.0):
-    """mm from a joint's patch along its surface (0 on it) at points X, whose distance from the surface is g: the
-    distance to the patch's points with the part across the surface taken out."""
+def residuals(own, data, W, plates, wj=1.0, wo=1.0, wr=3.0, sil=None, jn=60.0):
+    """The solve's residuals (mm-like): outline (model outside the plate; plate outline far from the model), joints
+    (facet to the other bone minus GAP), overlaps (any point nearer than 0.8 mm to another bone), the warp's size."""
     from scipy.spatial import cKDTree
-    if "tree" not in PM:
-        P = patch_points(PM); PM["tree"] = cKDTree(P[:: max(1, len(P) // 6000)])
-    d, _ = PM["tree"].query(X.reshape(-1, 3), distance_upper_bound=cap, workers=4)
-    d = np.where(np.isinf(d), cap, d).reshape(X.shape[:-1])
-    return np.sqrt(np.maximum(d * d - g * g, 0.0)).astype(np.float32)
+    r = []; X = {b: fwd(W[b], data[b]["P"][data[b]["coarse"]], disp=True) for b in BONES}
+    for fig, p in plates.f.items():
+        B, s, u0, v0 = p["B"]; pts = []
+        for b in BONES:
+            Xb = X[b] if sil is None else X[b][sil[fig][b]]
+            pts.append(np.stack([u0 + Xb @ B[0] / s, v0 - Xb @ B[1] / s], 1))
+        U = np.concatenate(pts); H, Wd = p["sd"].shape
+        Uc = np.clip(U, 0, [Wd - 1, H - 1]); ok = p["care"][Uc[:, 1].astype(int), Uc[:, 0].astype(int)]
+        sd = ndi.map_coordinates(p["sd"], [U[:, 1], U[:, 0]], order=1, mode="nearest")
+        out = np.maximum(sd, 0.0) * ok; r.append(out / np.sqrt(len(out)) * np.sqrt(len(p["E"])))
+        d, _ = cKDTree(U[ok]).query(p["E"]); r.append(np.maximum(d * s - 0.8, 0.0))
+        # the union's own outline (points drawn, closed over the joint spaces): where it lies inside the plate's
+        m = np.zeros((H, Wd), bool); ui = Uc.astype(int); m[ui[:, 1], ui[:, 0]] = True
+        k = int(np.ceil(1.2 / s)); m = ndi.binary_fill_holes(ndi.binary_closing(np.pad(m, k), iterations=k))[k:-k, k:-k]
+        rim = ndi.binary_dilation(_edge(m), iterations=1)[ui[:, 1], ui[:, 0]] & ok
+        r.append(np.maximum(-sd, 0.0) * rim / np.sqrt(len(sd)) * np.sqrt(len(p["E"])))
+    for j, (a, b, _) in _facet_sources().items():
+        for x, y in ((a, b), (b, a)):
+            i = data[x]["facets"].get(j)
+            if i is None or not len(i):
+                continue
+            Px = fwd(W[x], data[x]["P"][i]); g = dist(own, W[y], y, Px, far=data[y]["tree"])
+            r.append(wj * np.clip(g - GAP, -4.0, 4.0) * np.sqrt(jn / len(i)))
+    for ia in range(len(BONES)):
+        for ib in range(ia + 1, len(BONES)):
+            a, b = BONES[ia], BONES[ib]; g = dist(own, W[b], b, X[a])
+            r.append(wo * np.maximum(0.8 - g, 0.0) * (g < 25))
+    for b in BONES:
+        r.append(wr * np.r_[W[b]["sig"] / 0.06, np.degrees(W[b]["w"]) / 3.0, W[b]["dlt"] / 4.0])
+    return np.concatenate(r)
 
 
-def bridge(Wd, Dp, J, PM, a, b, lo, h, soft=0.8):
-    """Make the solid whole across a joint: over its patch, each bone is carried on along the joint's normal up to the
-    surface (as far as `reach`), so the two meet there whatever space the posed bones left. Wd changed in place."""
-    m = PM["mask"]
-    if not m.any():
-        return
-    iu, iv = np.nonzero(m); E = PM["E"]; o = PM["o"]
-    U2 = PM["ax"][iu]; V2 = PM["ax"][iv]; Wz = PM["w"][iu, iv]
-    P = o + U2[:, None] * E[0] + V2[:, None] * E[1] + Wz[:, None] * E[2]
-    sl = _sub(lo, h, Wd.shape, P.min(0), P.max(0), PM["reach"] + 3.0)
-    X = np.stack(grid_points(lo, Wd.shape, h, sl), -1)
-    g = J["surf"](X); r = patch_r(PM, X, g) - 0.5
-    Ga, Gb = Grid(Dp[a][sl], lo + h * np.array([x.start for x in sl]), h), Grid(Dp[b][sl], lo + h * np.array([x.start for x in sl]), h)
-    ts = np.arange(0.0, PM["reach"] + 1e-6, 0.5 * h)
-    fa = np.min(np.stack([sample(Ga, X - t * E[2]) for t in ts]), 0)
-    fb = np.min(np.stack([sample(Gb, X + t * E[2]) for t in ts]), 0)
-    ba = sdf.smax(sdf.smax(fa, g, soft), r, soft); bb = sdf.smax(sdf.smax(fb, -g, soft), r, soft)
-    Wd[sl] = np.minimum(Wd[sl], np.minimum(ba, bb).astype(np.float32))
+def _pack(W):
+    return np.concatenate([np.r_[W[b]["w"], W[b]["dlt"], W[b]["sig"]] for b in BONES])
 
 
-def cut_field(Js, PMs, Dp, cut, lo, h, n, fall=3.0, deep=14.0):
-    """One cut's surface over the grid: away from the joints, the middle surface between the two sets of posed bones;
-    over each joint's patch (and `fall` mm beyond), that joint's surface, within `deep` mm of it. Unit slope."""
-    A = np.min(np.stack([Dp[b] for b in cut[1]]), 0); B = np.min(np.stack([Dp[b] for b in cut[2]]), 0)
-    g = 0.5 * (A - B); del A, B
-    num = np.zeros(g.shape, np.float32); den = np.zeros(g.shape, np.float32)
-    for j in cut[3]:
-        P = patch_points(PMs[j])
-        if not len(P):
+def _unpack(W, v):
+    for k, b in enumerate(BONES):
+        q = v[9 * k: 9 * k + 9]; W[b]["w"], W[b]["dlt"], W[b]["sig"] = q[:3].copy(), q[3:6].copy(), q[6:].copy()
+    return W
+
+
+def _silhouette_sets(data, W, plates, cos=0.45):
+    """Per plate, each bone's points that can stand on its outline (their surface seen nearly edge on)."""
+    out = {}
+    for fig, p in plates.f.items():
+        e = p["B"][0][2]; out[fig] = {}
+        for b in BONES:
+            nn = normals_fwd(W[b], data[b]["n"][data[b]["coarse"]]); out[fig][b] = np.abs(nn @ e) < cos
+    return out
+
+
+def solve_affine(own, data, W, plates, log=print, rounds=3, nfev=25):
+    from scipy.optimize import least_squares
+    lo = np.concatenate([np.r_[[-0.35] * 3, [-15.0] * 3, [np.log(1 - STRETCH)] * 3] for _ in BONES])
+    hi = np.concatenate([np.r_[[0.35] * 3, [15.0] * 3, [np.log(1 + STRETCH)] * 3] for _ in BONES])
+    for k in range(rounds):
+        sil = _silhouette_sets(data, W, plates)
+        f = lambda v: residuals(own, data, _unpack(W, v), plates, sil=sil)
+        v0 = np.clip(_pack(W), lo + 1e-9, hi - 1e-9)
+        res = least_squares(f, v0, bounds=(lo, hi), loss="soft_l1", f_scale=1.0, max_nfev=nfev, diff_step=1e-3, x_scale="jac")
+        _unpack(W, res.x); log("  warp solve round %d: cost %.1f (%d evaluations)" % (k + 1, res.cost, res.nfev))
+    return W
+
+
+def contact_sets(own, data, W, reach=4.0):
+    """Each joint's contact on both bones (foot frame): the traced facets, and on a bone without a tracing for it, its
+    surface points facing the other's facet within `reach` mm."""
+    from scipy.spatial import cKDTree
+    out = {}
+    for j, (a, b, _) in _facet_sources().items():
+        S = {}
+        for x in (a, b):
+            i = data[x]["facets"].get(j)
+            S[x] = None if i is None or not len(i) else i
+        for x, y in ((a, b), (b, a)):
+            if S[x] is None and S[y] is not None:
+                Py = fwd(W[y], data[y]["P"][S[y]]); Px = fwd(W[x], data[x]["P"])
+                d, _ = cKDTree(Py).query(Px); nx = normals_fwd(W[x], data[x]["n"])
+                g = dist(own, W[y], y, Px, far=data[y]["tree"])
+                S[x] = np.nonzero((d < reach) & (g < reach))[0]
+        out[j] = S
+    return out
+
+
+def fit_disp(own, data, W, contact, log=print, lam=0.3):
+    """The low-frequency displacement: each bone's facet points moved half the way to GAP from the other bone, points
+    inside another bone moved out, the rest held; a ridge fit of the lattice's vectors, each capped at DISP_MAX."""
+    rep = {}
+    for b in BONES:
+        d = data[b]; X = fwd(W[b], d["P"][d["coarse"]], disp=False); want = np.zeros_like(X); wt = np.full(len(X), lam)
+        Xf = fwd(W[b], d["P"], disp=False); nf = normals_fwd(W[b], d["n"]); ci = d["coarse"]
+        lut = -np.ones(len(d["P"]), int); lut[ci] = np.arange(len(ci))
+        for j, (a, c, _) in _facet_sources().items():
+            if b not in (a, c):
+                continue
+            o = c if b == a else a; i = contact[j][b]
+            if i is None or not len(i):
+                continue
+            g = dist(own, W[o], o, Xf[i], far=data[o]["tree"]); dv = 0.5 * (g - GAP)[:, None] * nf[i]
+            X = np.vstack([X, Xf[i]]); want = np.vstack([want, dv]); wt = np.r_[wt, np.ones(len(i))]
+        for o in BONES:
+            if o == b:
+                continue
+            g = dist(own, W[o], o, Xf[ci]); m = g < 0.8
+            if m.any():
+                gr = np.stack([dist(own, W[o], o, Xf[ci][m] + k) - dist(own, W[o], o, Xf[ci][m] - k) for k in np.eye(3) * 0.5], 1)
+                gr /= np.linalg.norm(gr, axis=1)[:, None] + 1e-9
+                X = np.vstack([X, Xf[ci][m]]); want = np.vstack([want, (0.8 - g[m])[:, None] * gr]); wt = np.r_[wt, np.ones(m.sum())]
+        lo, hi = Xf.min(0) - 6.0, Xf.max(0) + 6.0
+        ax = [np.arange(lo[k], hi[k] + DISP_STEP, DISP_STEP) for k in range(3)]
+        N = np.stack(np.meshgrid(*ax, indexing="ij"), -1).reshape(-1, 3)
+        f = np.exp(-((X[:, None, :] - N[None]) ** 2).sum(-1) / (2 * DISP_SIGMA ** 2)) + 1e-12; f /= f.sum(1)[:, None]
+        A = f * wt[:, None]; M = A.T @ f + 1e-2 * np.eye(len(N))
+        Cf = np.linalg.solve(M, A.T @ want)
+        nr = np.linalg.norm(Cf, axis=1); Cf *= np.minimum(1.0, DISP_MAX / np.maximum(nr, 1e-9))[:, None]
+        W[b]["nodes"], W[b]["coef"] = N, Cf
+        dd = np.linalg.norm(_disp(W[b], Xf), axis=1); rep[b] = (round(float(np.median(dd)), 2), round(float(dd.max()), 2))
+    log("  displacement (median, max mm): " + ", ".join("%s %s" % kv for kv in rep.items()))
+    return rep
+
+
+def save_warps(W, path=WARPS_FILE):
+    import json
+    keep = {b: {k: (np.asarray(v).tolist() if v is not None else None) for k, v in W[b].items()} for b in BONES}
+    json.dump(keep, open(path, "w"))
+
+
+def load_warps(path=WARPS_FILE):
+    import json
+    d = json.load(open(path)); return {b: {k: (np.asarray(v, float) if v is not None else None) for k, v in d[b].items()} for b in BONES}
+
+
+# ------------------------------------------------------------------------- 4. the bones on one grid, joints shared
+def place(own, W, h=H, pad=4.0):
+    """Each warped bone on the foot grid (BOX, h): its own field read through the inverse warp over its own box (the
+    displacement read off a 2 mm lattice), 30 elsewhere."""
+    lo = np.asarray(BOX[0], float); n = (np.ceil((np.asarray(BOX[1]) - lo) / h)).astype(int) + 1; out = {}
+    for b in BONES:
+        G = own[b]; C = np.array(list(np.ndindex(2, 2, 2)), float) * (G.n - 1) * G.h + G.lo
+        Y = fwd(W[b], C, disp=False); a = np.maximum(((Y.min(0) - pad - lo) / h).astype(int), 0)
+        z = np.minimum(((Y.max(0) + pad - lo) / h).astype(int) + 1, n)
+        D = np.full(tuple(n), 30.0, np.float32)
+        ax = [lo[k] + h * np.arange(a[k], z[k]) for k in range(3)]
+        if W[b].get("nodes") is not None:       # the displacement on a coarse lattice, read between its points
+            cl = [np.arange(ax[k][0] - 2, ax[k][-1] + 4, 2.0) for k in range(3)]
+            L = np.stack(np.meshgrid(*cl, indexing="ij"), -1); dl = _disp(W[b], L.reshape(-1, 3)).reshape(L.shape)
+        g = float(np.exp(np.mean(W[b]["sig"]))); Yg, Zg = np.meshgrid(ax[1], ax[2], indexing="ij")
+        for ii, x in enumerate(ax[0]):
+            X = np.stack([np.full_like(Yg, x), Yg, Zg], -1).reshape(-1, 3)
+            if W[b].get("nodes") is not None:
+                Yx = X.copy()
+                for _ in range(3):
+                    q = [(Yx[:, k] - cl[k][0]) / 2.0 for k in range(3)]
+                    dd = np.stack([ndi.map_coordinates(dl[..., k], q, order=1, mode="nearest") for k in range(3)], 1)
+                    Yx = X - dd
+                xo = inv(W[b], Yx, disp=False)
+            else:
+                xo = inv(W[b], X, disp=False)
+            D[a[0] + ii, a[1]:z[1], a[2]:z[2]] = (sample(G, xo) * g).reshape(Yg.shape)
+        out[b] = Grid(D, lo, h)
+    return out
+
+
+JOINT_FADE = 4.0    # mm outside a facet's edge over which the shared surface's pull fades to nothing
+
+
+def share_joints(parts, own, data, W, contact, log=print):
+    """Inside each joint's contact the two faces are put on ONE surface (where the two bones are as far from one as
+    from the other) set back GAP / 2 on each side; the pull fades to nothing JOINT_FADE mm outside the facet's edge, so
+    there is no flat face and no step. Returns what each joint's faces were moved (median, max mm)."""
+    from scipy.spatial import cKDTree
+    rep = {}
+    for j, (a, b, _) in _facet_sources().items():
+        K = []; moved = []
+        for x, y in ((a, b), (b, a)):
+            i = contact[j][x]
+            if i is None or not len(i):
+                continue
+            Px = fwd(W[x], data[x]["P"][i]); K.append(Px)
+            moved.append(np.abs(0.5 * (sample(parts[y], Px) - GAP)))
+        if not K:
             continue
-        sl = _sub(lo, h, n, P.min(0), P.max(0), deep + fall + 2.0)
-        X = np.stack(grid_points(lo, n, h, sl), -1)
-        gj = Js[j]["surf"](X); r = patch_r(PMs[j], X, gj)
-        w = (_ss((fall - r) / fall) * _ss((deep - np.abs(gj)) / 4.0)).astype(np.float32)
-        num[sl] += w * gj; den[sl] += w
-    w0 = np.clip(1.0 - den, 0.0, 1.0)
-    g = (num + w0 * g) / (den + w0 + 1e-6)
-    gr = np.gradient(g, h); mag = np.sqrt(sum(x * x for x in gr)); del gr
-    return (g / np.clip(mag, 0.5, 2.0)).astype(np.float32)
+        T = cKDTree(np.vstack(K)); A, B = parts[a].D, parts[b].D
+        zone = (np.minimum(A, B) < 6.0) & (np.maximum(A, B) < 10.0)
+        idx = np.argwhere(zone); P = parts[a].lo + parts[a].h * idx
+        d, _ = T.query(P, distance_upper_bound=JOINT_FADE + 8.0); d = np.minimum(d, 99.0)
+        w = 1.0 - _ss((d - 1.0) / JOINT_FADE)
+        da, db = A[zone], B[zone]; mid = 0.5 * (da - db)
+        A[zone] = ((1 - w) * da + w * (mid + 0.5 * GAP)).astype(np.float32)
+        B[zone] = ((1 - w) * db + w * (-mid + 0.5 * GAP)).astype(np.float32)
+        m = np.concatenate(moved); rep[j] = (round(float(np.median(m)), 2), round(float(m.max()), 2), round(float(np.percentile(m, 95)), 2))
+    log("  joint faces moved to the shared surface (median, max, p95 mm): " + ", ".join("%s %s" % kv for kv in rep.items()))
+    return rep
 
 
-def path(bone):
-    """The cuts that bound a bone, with the side it lies on: [(cut index, +1 for the A side, -1 for B)]."""
-    out = []
-    for i, c in enumerate(CUTS):
-        if bone in c[1]:
-            out.append((i, 1.0))
-        elif bone in c[2]:
-            out.append((i, -1.0))
-    return out
+def keep_one(G):
+    """The largest piece of a bone (and its count of pieces before)."""
+    lab, k = ndi.label(G.D < 0)
+    if k > 1:
+        big = 1 + int(np.argmax(ndi.sum(np.ones_like(lab), lab, range(1, k + 1))))
+        G.D[(lab > 0) & (lab != big)] = 0.6
+    return k
 
 
-def cut_bone(Wd, gcuts, bone, gap=GAP, edge=EDGE):
-    """A bone: the whole solid on its side of every surface it borders, half the joint space back from it, rounded into
-    the joint's edge."""
-    D = Wd.copy()
-    for i, s in path(bone):
-        D = sdf.smax(D, s * gcuts[i] + 0.5 * gap, edge)
-    lab, nl = ndi.label(D < 0)                    # one piece: crumbs the cut leaves of a neighbour's overlap are dropped
-    if nl > 1:
-        keep = 1 + int(np.argmax(ndi.sum(D < 0, lab, range(1, nl + 1))))
-        D[(lab != keep) & (D < 0)] = 0.5 * GAP
-    return D.astype(np.float32)
-
-
-def whole(h=H, cache=None, log=print, push=True, tune=True):
-    """The tarsus as one solid and its joint surfaces: dict(W=whole field, lo, h, posed={bone: field}, joints={name:
-    fit}, cuts=[surface fields], report)."""
-    t0 = time.time()
-    own = own_fields(cache, log)
-    lo = np.asarray(BOX[0], float); n = np.ceil((np.asarray(BOX[1]) - lo) / h).astype(int) + 1
-    Dp = {b: posed(own[b], *pose(b), lo, n, h) for b in BONES}
-    U = np.min(np.stack([Dp[b] for b in BONES]), 0)
-    log("  the seven bones set and sampled: %.0f s" % (time.time() - t0))
-    G = Grid(U, lo, h); Js = {}
-    for j in JOINTS:
-        Js[j] = fit_joint(j, Dp, lo, h, G, own, log)
-    log("  joint surfaces fitted: %.0f s" % (time.time() - t0))
-    PMs = {}
-    for j in JOINTS:
-        a, b = JOINTS[j]["a"], JOINTS[j]["b"]; J = Js[j]
-        o, E = frame_of(J["surf"]); TP = np.vstack([p[k] for p, k in J["traces"].values()]) if J["traces"] else np.zeros((0, 3))
-        near = np.stack([(TP - o) @ E[0], (TP - o) @ E[1]], 1) if len(TP) else None
-        PMs[j] = patch_map(J, Dp, a, b, lo, h, reach=JOINTS[j].get("reach", 8.0), near=near)
-    Wd = U.copy()
-    for j in JOINTS:
-        bridge(Wd, Dp, Js[j], PMs[j], JOINTS[j]["a"], JOINTS[j]["b"], lo, h)
-    log("  bridged across the joints: %.0f s" % (time.time() - t0))
-    out = dict(W=Wd, lo=lo, h=h, n=n, posed=Dp, joints=Js, patches=PMs, own=own,
-               report=dict(patch_mm2={j: round(PMs[j]["area"]) for j in JOINTS}))
-    if push:
-        outline_push(out, log=log)
-        log("  outlines drawn on to the plates: %.0f s" % (time.time() - t0))
-    out["cuts"] = [cut_field(Js, PMs, Dp, c, lo, h, n) for c in CUTS]
-    if tune:
-        tune_joints(out, log=log)
-        for j in JOINTS:                     # the solid made whole again up to the moved surfaces
-            a, b = JOINTS[j]["a"], JOINTS[j]["b"]
-            PMs[j] = patch_map(Js[j], Dp, a, b, lo, h, reach=JOINTS[j].get("reach", 8.0), near=None if not PMs[j]["mask"].any() else
-                               np.stack([(patch_points(PMs[j]) - frame_of(Js[j]["surf"])[0]) @ frame_of(Js[j]["surf"])[1][k] for k in (0, 1)], 1))
-            bridge(Wd, Dp, Js[j], PMs[j], a, b, lo, h)
-        out["cuts"] = [cut_field(Js, PMs, Dp, c, lo, h, n) for c in CUTS]
-        log("  joints tuned to the drawn lines: %.0f s" % (time.time() - t0))
-    log("  cut surfaces: %.0f s" % (time.time() - t0))
-    return out
-
-
-def bones(h=H, cache=None, log=print, built=None):
-    """Each bone of the tarsus, cut from the whole, in the foot frame: ({bone: Grid}, the assembled set as one Grid (the
-    least of the seven), the whole build)."""
-    B = built or whole(h, cache, log)
-    out = {b: Grid(cut_bone(B["W"], B["cuts"], b), B["lo"], B["h"]) for b in BONES}
-    asm = Grid(np.min(np.stack([g.D for g in out.values()]), 0), B["lo"], B["h"])
-    return out, asm, B
-
-
-PUSH_ROUNDS = 5       # each round: Fig. 268, 269, 290, 291 in turn
-PUSH_MAX = 5.0        # mm a round may move the surface
-PUSH_FIGS = ("Gray268", "Gray269", "Gray290", "Gray291")
-
-
-def _sdist(m, s):
-    return ((ndi.distance_transform_edt(~m) - ndi.distance_transform_edt(m)) * s).astype(np.float32)
-
-
-def outline_push(B, log=print, rounds=None, figs=PUSH_FIGS, band=7.0):
-    """Draw the whole solid's outline on to the assembly plates: in each plate, where the solid's silhouette lies off the
-    plate's (over the plate's tarsal part), the surface that makes that stretch of silhouette (seen edge on: its normal
-    across the line of sight, its pixel near the silhouette) is moved in or out by the distance between the two
-    outlines. The plates are taken in turn, so where they disagree the solid ends between them."""
-    Wd = B["W"]; lo, h = B["lo"], B["h"]; rep = {}
-    PL = {f: plate_mask(f) for f in figs}
-    for rnd in range(rounds or PUSH_ROUNDS):
-        for f in figs:
-            G = Grid(Wd, lo, h); plate, care = PL[f]; Bv, s, u0, v0 = view(f)
-            dep, _ = cast(G, f, size=(plate.shape[1], plate.shape[0]), sub=1)
-            k = int(np.ceil(1.0 / s)); m = ndi.binary_fill_holes(ndi.binary_closing(np.pad(~np.isnan(dep), k), iterations=k))[k:-k, k:-k]
-            sm = _sdist(m, s); sp = _sdist(plate, s)
-            # where the plate's outline is not the tarsus's (beyond the tarsometatarsal line), nothing is asked
-            delta = np.clip(sp - sm, -PUSH_MAX, PUSH_MAX) * ndi.gaussian_filter(care.astype(np.float32), 4.0)
-            delta = ndi.gaussian_filter(delta, 1.0 / s)
-            idx = np.argwhere(np.abs(Wd) < band); P = lo + h * idx
-            nrm = _grad_at(Wd, lo, h, P); ce = np.abs(nrm @ Bv[2])
-            u = u0 + (P @ Bv[0]) / s; v = v0 - (P @ Bv[1]) / s
-            smp = ndi.map_coordinates(sm, [v, u], order=1, mode="nearest"); dl = ndi.map_coordinates(delta, [v, u], order=1, mode="nearest")
-            wt = (1.0 - ce ** 2) ** 2 * np.exp(-(smp / 2.5) ** 2)
-            dW = np.zeros(Wd.shape, np.float32); dW[tuple(idx.T)] = (dl * wt).astype(np.float32)
-            dW = ndi.gaussian_filter(dW, 0.8 / h)
-            Wd += dW
-            if rnd == 0 or rnd == (rounds or PUSH_ROUNDS) - 1:
-                rep["%s round %d" % (f, rnd + 1)] = round(outline_gap(f, m, plate, care)[0], 2)
-    B["report"]["outline_push"] = rep
-    log("  outline push: " + ", ".join("%s %.2f" % kv for kv in rep.items()))
+def bones(h=H, cache=None, log=print, solve=False):
+    """The seven bones in the foot frame: ({bone: Grid}, the assembled set (a Grid: the union), report). With solve, the
+    warps are solved afresh (and kept in WARPS_FILE); otherwise read from it."""
+    t = time.time(); own = own_fields(cache, log=log); data = prep(own, log=log); rep = {}
+    if solve or not os.path.exists(WARPS_FILE):
+        W = warp0(data); plates = Plates()
+        solve_affine(own, data, W, plates, log=log); log("  warps solved: %.0f s" % (time.time() - t))
+        contact = contact_sets(own, data, W); rep["disp"] = fit_disp(own, data, W, contact, log=log)
+        save_warps(W)
+    else:
+        W = load_warps()
+    contact = contact_sets(own, data, W)
+    parts = place(own, W, h); log("  bones placed: %.0f s" % (time.time() - t))
+    rep["moved"] = share_joints(parts, own, data, W, contact, log=log)
+    rep["pieces"] = {b: keep_one(parts[b]) for b in BONES}
+    rep["warps"] = {b: dict(stretch_pct=np.round(100 * (np.exp(W[b]["sig"]) - 1), 1).tolist(),
+                            turn_deg=round(float(np.degrees(np.linalg.norm(W[b]["w"]))), 1), shift_mm=np.round(W[b]["dlt"], 1).tolist())
+                    for b in BONES}
+    A = Grid(np.min(np.stack([parts[b].D for b in BONES]), 0), parts[BONES[0]].lo, h)
+    rep.update(W=W, data=data, contact=contact, own=own)
+    log("  built: %.0f s" % (time.time() - t))
+    return parts, A, rep
 
 
 # ------------------------------------------------------------------------------------------------------- 4. pictures
@@ -813,11 +689,20 @@ def section(parts, axis, at, lo2, hi2, px=0.1, whole=None):
     return img
 
 
+# Fig. 290, re-read at five times (25 Nov): foot_frame's talus-calcaneus line ((122, 93) to (158, 106)) follows the
+# under edge of the sustentaculum tali, the groove for the flexor hallucis longus below it, not a joint. The medial
+# talocalcaneal (middle facet) joint is the line above the sustentaculum, where the talus's dark underside meets the
+# sustentaculum's pale upper border.
+TC290 = {("talus", "calcaneus", "middle"): [(106, 86), (118, 84), (130, 83), (140, 86), (150, 93)]}
+
+
 def drawn_lines(fig):
     """The joint lines drawn in a plate, as {(a, b): pixels} (tarsal pairs only)."""
     J = ff.JOINTS268 if fig == "Gray268" else ff.JOINTS_SIDE.get(fig, {})
     if fig == "Gray269":
         J = JOINTS269
+    if fig == "Gray290":        # R-d: the line first read as the talocalcaneal joint runs under the sustentaculum
+        J = {k: v for k, v in J.items() if k != ("talus", "calcaneus")}; J.update(TC290)
     return {k: np.asarray(v, float) for k, v in J.items() if k[0] in BONES and k[1] in BONES and len(v) > 1}
 
 
@@ -836,70 +721,6 @@ def joint_line_gaps(fig, lab, names, s):
     return out
 
 
-def _move(surf, a, b=0.0, c=0.0):
-    """A joint surface moved a mm along its normal (and tilted by b, c mm a mm along e1, e2)."""
-    if isinstance(surf, Quad):
-        cc = surf.c.copy(); cc[0] += a; cc[1] += b; cc[2] += c; return Quad(surf.o, surf.E, cc)
-    o, E = frame_of(surf); return Head(surf.shift + a * E[2], surf.grow)
-
-
-TUNE_CAP = 3.0      # mm: the most a joint surface is moved from its fit to bring its outer trace on to the drawn lines
-
-
-def tune_joints(B, rounds=2, damp=0.8, log=print):
-    """Bring each joint's outer trace on to the lines the plates draw for it: the bones are cut and drawn in each plate,
-    the built meeting line is compared with the drawn one point by point, and the surface is moved along its normal
-    (and tilted) by what that asks, at most TUNE_CAP mm in all. What is left is reported (plates that disagree with the
-    bones' own shapes or with each other)."""
-    Js = B["joints"]; lo, h, n = B["lo"], B["h"], B["n"]; moved = {j: np.zeros(3) for j in JOINTS}
-    Gw = Grid(B["W"], lo, h)
-    for rnd in range(rounds):
-        parts = {b: Grid(cut_bone(B["W"], B["cuts"], b), lo, h) for b in BONES}; names = list(parts)
-        asks = {j: [] for j in JOINTS}
-        for fig in ("Gray268", "Gray269", "Gray290", "Gray291"):
-            img, lab = render(parts, fig); Bv, s, u0, v0 = view(fig); wdt = max(2, int(np.ceil(1.8 / s)))
-            for key, L in drawn_lines(fig).items():
-                a, b = key[:2]; j = [k for k, J in JOINTS.items() if {J["a"], J["b"]} == {a, b}]
-                if not j:
-                    continue
-                j = ("TCp" if len(key) > 2 and key[2] == "posterior" else "TCm") if {a, b} == {"talus", "calcaneus"} else j[0]
-                e = meet_line(lab, names.index(a), names.index(b), wdt)
-                if not e.any():
-                    continue
-                dist, ind = ndi.distance_transform_edt(~e, return_indices=True)
-                P = _resample(L, 1.0); iu = np.clip(np.round(P[:, 0]).astype(int), 0, lab.shape[1] - 1); iv = np.clip(np.round(P[:, 1]).astype(int), 0, lab.shape[0] - 1)
-                ok = dist[iv, iu] * s < 8.0
-                if ok.sum() < 3:
-                    continue
-                du = (ind[1][iv, iu] - iu)[ok] * s; dv = (ind[0][iv, iu] - iv)[ok] * s
-                Dm = du[:, None] * Bv[0] - dv[:, None] * Bv[1]                     # built line minus drawn, in the frame
-                X, found = lift(fig, P[ok], Gw)
-                o, E = frame_of(Js[j]["surf"]); nn = E[2]; npj = nn - (nn @ Bv[2]) * Bv[2]; k2 = float(npj @ npj)
-                if k2 < 0.15:
-                    continue
-                delta = -(Dm @ npj) / k2                                           # move the surface by this along n
-                q = X - o
-                asks[j].append(np.stack([q @ E[0], q @ E[1], delta], 1)[found[: len(X)]])
-        rep = {}
-        for j, L in asks.items():
-            if not L:
-                continue
-            A = np.vstack(L); uu, vv, dd = A.T
-            if np.ptp(uu) > 8 or np.ptp(vv) > 8:
-                M = np.stack([np.ones_like(uu), uu - uu.mean(), vv - vv.mean()], 1)
-                _, b_, c_ = np.linalg.lstsq(M, dd, rcond=None)[0]; b_, c_ = np.clip([b_, c_], -0.15, 0.15)
-                a_ = float(np.mean(dd - b_ * uu - c_ * vv))
-            else:
-                a_, b_, c_ = float(np.mean(dd)), 0.0, 0.0
-            step = damp * np.array([a_, b_, c_]); tot = moved[j] + step
-            tot[0] = np.clip(tot[0], -TUNE_CAP, TUNE_CAP); step = tot - moved[j]; moved[j] = tot
-            Js[j]["surf"] = _move(Js[j]["surf"], *step)
-            rep[j] = round(float(np.mean(dd)), 2)
-        log("  joints tuned (round %d, mean asked mm): %s" % (rnd + 1, rep))
-        B["cuts"] = [cut_field(Js, B["patches"], B["posed"], c, lo, h, n) for c in CUTS]
-    B["report"]["joint_moves"] = {j: np.round(m, 2).tolist() for j, m in moved.items()}
-
-
 # ------------------------------------------------------------------------------------------------ 5. checks (A2, A3)
 def own_views(bone):
     """A bone's own plates: [(view, traced outline mask, pose the single-bone build was read at)]."""
@@ -915,12 +736,14 @@ def own_views(bone):
     return [(v, tr[v["fig"] + "_sdf"] < 0, np.asarray(tr[v["fig"] + "_pose"], float)) for v in V]
 
 
-def to_own(G, bone, like):
-    """A bone (a Grid in the foot frame) carried back into its own frame, on the grid of `like` (its own build)."""
-    R, t = pose(bone); out = np.empty(tuple(like.n), np.float32)
-    ys, zs = like.ax[1], like.ax[2]; Yg, Zg = np.meshgrid(ys, zs, indexing="ij")
+def to_own(G, Wb, like):
+    """A bone (a Grid in the foot frame) carried back into its own frame through its warp's pose and stretch only (its
+    affine part; what the displacement and the shared joints changed stays), on the grid of `like` (its own build)."""
+    out = np.empty(tuple(like.n), np.float32); g = float(np.exp(np.mean(Wb["sig"])))
+    Yg, Zg = np.meshgrid(like.ax[1], like.ax[2], indexing="ij")
     for i in range(like.n[0]):
-        P = np.stack([np.full_like(Yg, like.ax[0][i]), Yg, Zg], -1); out[i] = sample(G, P @ R.T + t)
+        P = np.stack([np.full_like(Yg, like.ax[0][i]), Yg, Zg], -1).reshape(-1, 3)
+        out[i] = (sample(G, fwd(Wb, P, disp=False)) / g).reshape(Yg.shape)
     return Grid(out, like.lo, like.h)
 
 
@@ -955,21 +778,6 @@ def own_plate_gaps(F, bone, shift=6):
                 continue
             taken.append(P[i]); worst.append((int(P[i][1]), int(P[i][0]), round(float(d[i]), 1), str(kind[i])))
         out[v["fig"]] = (round(mean, 2), worst)
-    return out
-
-
-def articular_gaps(parts, B):
-    """A2: for each joint, the gap between its two cut bones over its patch (the place where the two posed bones face
-    each other across the surface): the share of the patch where it lies within 0.8 to 2.0 mm, and its median."""
-    out = {}
-    for j, J in JOINTS.items():
-        P = patch_points(B["patches"][j])
-        if not len(P):
-            out[j] = None; continue
-        P = _on_surface(B["joints"][j]["surf"], P[:: max(1, len(P) // 3000)])
-        g = sample(parts[J["a"]], P) + sample(parts[J["b"]], P)
-        out[j] = dict(n=len(P), within=round(float(np.mean((g >= 0.8) & (g <= 2.0))), 3), median=round(float(np.median(g)), 2),
-                      p5=round(float(np.percentile(g, 5)), 2), p95=round(float(np.percentile(g, 95)), 2))
     return out
 
 
