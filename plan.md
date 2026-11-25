@@ -3854,6 +3854,15 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     plane, CT 104), angle about 90 (CT 120), 76 mm tall (CT 61), 93.5 mm
     across the angles (CT 100). Task B rebuilds the side profile from
     Fig. 176 anchored by the tooth row and the joint head.
+    Task B, round 1 (not accepted, kept): the ramus leans (101 degrees),
+    angle 109 (plate 105, CT 120), 99.5 mm across the angles, the corners
+    seen from above and below are gone (largest turn 10.5 degrees per
+    5 mm, was 27). Still wrong: the ramus borders and the coronoid are
+    ruler-straight, the lower border and chin sit 3 to 8 mm below the
+    plate, a pit under the joint head. Open question for the owner: with
+    the plate anchored on the teeth, both Fig. 176 and CT put the joint
+    head about 5 mm lower than the skull's joint holds it (Fig. 176 also
+    4 mm further back); fixing that means moving the skull's joint.
 - [ ] F8. Mesh checks, the neck and down, the muscles, the woman, and where
   the from-scratch model goes in the app.
 
