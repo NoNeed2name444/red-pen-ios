@@ -3760,6 +3760,16 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
   - [ ] Talus, the cuboid and the navicular: started 25 Nov, side by side
     with the heel bone (the owner: "u can run multiple bones at once"),
     each in a file of its own (talus.py, midfoot.py).
+    Talus, 25 Nov: two repair rounds used, not accepted. Right: all four
+    outlines (mean gap 0.62 to 0.75 mm), the three surfaces for the heel
+    bone with their rims, the groove between them, the tendon groove
+    behind. Wrong: the pulley surface for the tibia is still close to a
+    box (near-straight top from behind, a crease along its front-lateral
+    border, a near-vertical medial wall); the hind tubercle is a knob; the
+    medial ankle facet does not read; the neck's rough bone is a band.
+    Next try is a new task, not a third repair: build the body from
+    cross-sections taken across the pulley, not from the plate outlines'
+    common solid.
   - [ ] The cuneiforms, metatarsals, phalanges; the foot together.
 - [ ] F8. Mesh checks, the neck and down, the muscles, the woman, and where
   the from-scratch model goes in the app.
