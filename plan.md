@@ -4081,6 +4081,23 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     the midline between the central incisor sockets (seen in the left
     three-quarter bone-only view; may be the mirror seam or the view's
     own cut, to be checked first); make.py line 164.
+    Palate's hind border (palate.py, skull2.py), accepted with open
+    items: read at 300 dpi, Fig. 996 puts the posterior nasal spine
+    12.6 mm behind the third molars' line with the border concave to
+    either side (9.9 mm at its shallowest); built 12.3, every point
+    within 0.5 mm (was 5.7). The choanae's lower edge and the nose
+    floor follow; transverse suture moved to the plate's place; the
+    two lesser palatine foramina now open on the pyramidal process
+    (they were being filled by pterygoid.py); the cliff behind the
+    greater foramen is a slope. Tooth row, sockets, bite, clearances
+    unchanged. Plate conflict, ruled: Fig. 187 draws the spine only
+    7.8 mm behind the third molar; the plates' palatine plates are the
+    same length, they differ in where the teeth sit. Fig. 996 rules
+    because the tooth row was fitted to it. Open: pterygoid.py's
+    pyramidal process must move back 3 to 4 mm to follow, is still a
+    squared block and now shows a sharp notch; the vomer's foot ends 8
+    mm short of the spine (nose.py); bones.py line 258 still carries
+    the old border; no whole-skull build was run (needs 13 GB).
     Task C, repair 1 (head and neck accepted; task closed): the ring is
     gone. Each section under the head is solved to silhouette targets
     from Fig. 176 and 177: the hind edge runs straight into the head,

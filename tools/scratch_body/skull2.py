@@ -654,6 +654,7 @@ def build(h=1.0, log=print, box=None):
     F.add(Ellipsoid((27.7, -34.6, 45.0), (6.1, 6.4, 4.8)), 3.5)
     F.add(Ellipsoid((27.5, -24.0, 45.5), (6.0, 13.0, 5.3)), 4.5)
     build.midline.append(("median palatine", build.palate["median"], 0.85, max(0.3, 0.7 * h)))
+    build.midline.append(("median palatine, hind", build.palate["median hind"], 0.85, max(0.3, 0.7 * h)))
     # joint socket for the mandible, ear hole, groove behind the mastoid, foramen magnum
     base.socket_cut(F, B)                      # the socket's shape is the base relief's own; this clears the arch's root out of it
     temporal.ear_hole(F, log)                  # the ear hole as the plate draws it, with its lip, its wall and the small process in front of it
@@ -715,6 +716,7 @@ def build(h=1.0, log=print, box=None):
     build.midsolids = [(nose.septum(h, log), 0.8)]
     # the pterygoid process's two plates, the wall that joins them in front, the hook (thin curved sheets, none of them a bar)
     build.pterygoid = pterygoid.build(F, log)
+    palate.lesser(F, log)                                   # the lesser palatine foramina, on the pyramidal process just added
     # the anterior nasal spine: the floor's crest drawn out into a point in front of the opening's lower rim (a thin spike, taller than wide)
     # (a wedge: deep where it leaves the rim, thinning evenly to a point no finer than the grid can carry, so it does not end in a bead)
     # Seen from the side (Fig. 188) it is a three-cornered blade: its upper edge runs on level from the rim, its lower edge slopes up to the point.
@@ -742,9 +744,11 @@ def whole(F, log=print, rough=True, sinuses=True, inside=True):
     for name, P, amp, r in getattr(build, "midline", []):
         if len(P) > 2:
             sg = plates.SAGITTAL if name == "sagittal" else None       # deep teeth in its front two-thirds, shallow behind
-            Q = surface.wander_line(P, amp, rng, **(dict(wave=sg["wave"], drift=sg["drift"], depth=lambda u: sg["hind"] + (1 - sg["hind"]) *
+            Q = surface.wander_line(P, amp, np.random.default_rng(196) if name.endswith(", hind") else rng, **(dict(wave=sg["wave"], drift=sg["drift"], depth=lambda u: sg["hind"] + (1 - sg["hind"]) *
                                                          (1 - np.clip((u - 0.6) / 0.14, 0, 1))) if sg else {}))
             whole.midlines[name] = Q
+            if name.endswith(", hind"):                          # one suture for bones.py: its hind part (cut with a wander of its own) and its front
+                whole.midlines[name[:-6]] = np.concatenate([Q, whole.midlines.get(name[:-6], Q[:0])])
             G.cut(Tube(Q, r), 0.4)
     if inside:
         whole.inner = inner.build(G, log=log)                # the cavity's own surface: ridges, fossae, the sinuses' and the arteries' grooves (inner.py)
