@@ -3885,6 +3885,16 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     off the plate, a faint line down its outer side, a small head on a
     broad column from the side), the hind border still rounded like a
     column from behind, the coronoid narrow. One repair round is left.
+    Owner, 25 Nov, on lowering the joint: "don't lower". The joint stays.
+    Task B, repair 2 (last; kept, task closed partly accepted): the line
+    down the outer ramus is gone (it came from a sudden change of
+    curvature in the centre sheet), the neck's front edge is concave
+    into the notch, the coronoid broader with a convex front edge, the
+    hind border tapers in section. Not met and passed to a new task C
+    with another method (head and neck rebuilt from sections): from the
+    side the joint head is a small knob at the top front of a broad
+    column, the hind border still reads as a column from behind, a
+    smooth swelling inside the angle, masseter ridges knobbly.
   - Temporal bone (temporal.py), task A round 1 (not accepted, kept): the
     mastoid is a leaning cone on Fig. 188's outline instead of a ball
     (side outline within 0.9 mm, was 2.8), the styloid a slender 25 mm

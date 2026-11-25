@@ -34,7 +34,9 @@ import mandible2 as M2
 import skull, teeth, surface
 from mandible3 import Sheet, Ribbon, sheet, smin, gauss, near_line
 
-BACK_L, OUT_S0, OUT_L = 58.0, 28.0, 64.0         # the lengths over which body passes into ramus (tongue side, cheek side)
+BACK_L, OUT_S0, OUT_L = 58.0, 28.0, 80.0         # the lengths over which body passes into ramus (tongue side, cheek side)
+# (repair 2: OUT_L 64 to 80. The cheek-side blend's end, where its bend stops at once, lay at s 92, 10 mm in front of the hind
+# border: on the ramus a ruled line from under the neck to mid-height. It now ends behind the border.)
 LEAN = 0.060                                   # the ramus plane's lean outward per mm of height (98 to 100 mm across the angles)
 ES4 = sdf.unit((-0.31, 0.0, 0.95))             # the ramus plane's run seen from above: its front a little nearer the midline
 O4 = np.array([52.2, -12.0, 10.5])            # a point of the ramus plane (at the neck)
@@ -80,8 +82,8 @@ BORDER_Y_A = [-88.8, -89.4, -89.7, -88.5, -86.3, -83.7, -81.0, -80.8, -83.4, -81
 # and meets the margin behind that tooth. Near the joint the plate is carried by its condyle's offset from this one
 # (4.8 mm forward, 5.6 up), fading over 12 to 34 mm along the line from the condyle's top, so the head and neck stay.
 FRONT = [(41.6, -53.6), (39.4, -51.0), (38.8, -47.0), (39.0, -43.0), (39.5, -39.0), (40.4, -35.3), (41.4, -31.6), (42.0, -28.0),
-         (42.0, -24.6), (41.7, -20.9), (41.1, -17.1), (40.0, -13.7), (38.2, -10.8), (35.8, -11.7), (34.8, -15.6), (32.8, -19.2),
-         (29.8, -21.9), (26.5, -23.9), (23.0, -24.2), (19.9, -22.6), (18.0, -19.4), (17.3, -14.8), (15.9, -9.4), (12.6, -4.6)]
+         (42.0, -24.6), (41.7, -20.9), (41.1, -17.1), (40.5, -13.8), (37.6, -10.6), (35.3, -12.0), (34.8, -15.6), (32.8, -19.2),
+         (29.8, -21.9), (26.5, -23.9), (23.0, -24.2), (19.8, -22.5), (17.2, -19.3), (15.6, -14.6), (13.9, -9.4), (12.6, -4.6)]   # (repair 2: the neck narrows under the head)
 HIND = [(5.5, -6.0), (5.0, -9.2), (4.6, -13.8), (4.9, -18.6), (5.3, -24.3), (5.9, -30.3), (7.2, -36.1), (8.5, -41.9), (9.2, -47.9),
         (9.6, -53.7), (8.4, -59.4), (9.3, -65.2), (10.6, -71.0), (14.3, -74.9)]
 BORDER_Y = [-85.4, -85.4, -85.0, -84.1, -82.1, -79.7, -78.0, -79.4, -78.7, -77.2, -74.8]      # the lower border's height at M2.B's points (the plate's)
@@ -134,6 +136,23 @@ def use():
     ET = np.array([LEAN, 1.0, 0.0])
     MB.ES = ES4
     MB.O, MB.ET = O4, sdf.unit(ET - (ET @ MB.ES) * MB.ES)
+
+
+def sheet4():
+    """mandible3's sheet line, eased behind the angle (repair 2). Its spline bends by steps at each traced point and runs on
+    straight behind the last; 6 mm out from it, on the ramus, those steps showed as a ruled line down the cheek side at
+    z 15 from the neck to the angle. Behind z 34 the line is smoothed over 2.75 mm (more moved the joint head's lower edge) (in front it is as it was)."""
+    B = np.array(M2.B, float)[:, [0, 2]]
+    e = sdf.unit(B[-1] - B[-3])
+    P = np.concatenate([B[:0:-1] * np.array([-1.0, 1.0]), B, B[-1] + np.outer([7.0, 14.0, 22.0, 30.0], e)])
+    Q = sdf.spline(P, 0.25)
+    Qs = np.column_stack([ndimage.gaussian_filter1d(Q[:, 0], 11.0, mode="nearest"), ndimage.gaussian_filter1d(Q[:, 1], 11.0, mode="nearest")])
+    w = smoothstep((34.0 - Q[:, 1]) / 10.0) * (Q[:, 0] > 0)
+    Q = Q * (1 - w[:, None]) + Qs * w[:, None]
+    k0 = int(np.argmin(np.abs(Q[:, 0]) + 1e3 * (np.abs(Q[:, 1] - B[0, 1]) > 3)))
+    d = np.concatenate([[0], np.cumsum(np.linalg.norm(np.diff(Q, axis=0), axis=1))])
+    keep = (d > d[k0] - 16.0) & (d < d[-1] - 8.0)
+    return Sheet(Q[keep], d[k0] - d[keep][0])
 
 
 def smoothstep(t):
@@ -265,13 +284,13 @@ def maps(S, log=print):
     zy = lambda z, y: tuple(sy(ramus3(*warp(z, y)))[0])             # (a point drawn on the old outline, carried to the new: its s and y)
     zs = lambda z, y: zy(z, y)[0]
     TH = [  # (z, y, thickness) on the side view
-        (8.5, -12, 6.2), (9.5, -20, 5.7), (11.5, -30, 5.6), (14.5, -40, 5.6), (14.0, -50, 5.3), (13.0, -60, 4.9),     # hind border (repair 1: thinning
+        (8.5, -12, 6.4), (9.5, -20, 6.2), (11.5, -30, 5.8), (14.5, -40, 5.1), (14.0, -50, 4.6), (13.0, -60, 4.4),     # hind border (repair 1: thinning
         (16, -65, 4.5), (23, -69.5, 4.3),                                                                    # toward the angle: from behind it read as a rod)
-        (34, -74.5, 6.0), (44, -78.5, 7.4),                                   # angle and lower border
+        (34, -74.5, 5.0), (44, -78.5, 6.6),                                   # angle and lower border
         (30, -27, 2.6), (28, -38, 4.0), (28, -50, 3.9), (30, -60, 3.8), (21, -45, 3.8), (36, -40, 3.6), (36, -28, 2.8), (21, -30, 3.6),
         (45, -20, 3.2), (44.5, -30, 3.6), (43.0, -40, 4.2), (43.5, -48, 5.0),                                   # front border
-        (41, -10, 2.8), (39.5, -7, 2.3), (26, -23, 2.6), (20, -21, 3.4), (31, -21, 2.2),                        # coronoid, notch
-        (9.5, -9, 6.6), (12, -14, 5.6), (14.5, -9.5, 5.8), (17.0, -13.0, 4.6), (20.0, -15.5, 3.4), (13.0, -20.0, 5.4)]   # (the neck's front passes into the notch without a groove)                                                                         # neck
+        (41, -10, 2.2), (39.5, -7, 1.6), (26, -23, 2.6), (20, -21, 3.4), (31, -21, 2.2),                        # coronoid, notch
+        (9.5, -9, 6.6), (12, -14, 6.4), (14.5, -9.5, 5.8), (17.0, -13.0, 4.6), (20.0, -15.5, 3.4), (13.0, -20.0, 6.0)]   # (the neck's front passes into the notch without a groove)                                                                         # neck
     # (task B) the ramus is narrower behind than it was, and the hind border's thickness fell off within a few mm into the
     # thin middle: from behind it read as a rod with a crease along its front. The fall is spread over 8 to 10 mm (points on
     # this outline, 5 to 6 mm in front of the hind border).
@@ -285,7 +304,7 @@ def maps(S, log=print):
     from scipy.spatial import cKDTree as _KD
     hl = sdf.spline(hind, 0.25)
     dh = _KD(hl).query(np.column_stack([np.abs(M.U).ravel(), M.V.ravel()]))[0].reshape(M.U.shape)
-    th = th * (1 - 0.38 * (1 - smoothstep(dh / 9.0)) * smoothstep((-18.0 - M.V) / 10.0))
+    th = th * (1 - 0.45 * (1 - smoothstep(dh / 11.0)) * smoothstep((-18.0 - M.V) / 10.0))   # (repair 2: 55 % at the edge, over 11 mm)
     g = lambda z, y, r: gauss(M, zy(z, y), (r, r))
     # Seen from in front the jaw's side is no upright ruled line (the owner, 14 November: "it shouldn't be perfectly straight in
     # sides"). An earlier build turned the angle 0.8 mm out and hollowed the ramus 0.8 above it, which together undid the
@@ -293,7 +312,7 @@ def maps(S, log=print):
     # 1 mm for every 8 of height, 121 mm across the joint heads to 98 across the angles), a little hollow under the neck and
     # a little full over the masseter's ridges, and turns in to the lower border round the angle.
     mid = mid - 1.0 * g(40.0, -8.0, 9.0)                                     # the coronoid tip held in a little (curved out, it stood out from above as a spur)
-    mid = mid - 0.9 * gauss(M, zn(41.0, -24.0), (5.0, 10.0)) + 0.5 * gauss(M, zn(32.0, -20.0), (5.0, 9.0))                   # (repair 1: the coronoid's base held in a little: with the front border
+    mid = mid - 2.0 * gauss(M, zn(41.0, -22.0), (5.0, 10.0)) + 0.5 * gauss(M, zn(32.0, -20.0), (5.0, 9.0))                   # (repair 1: the coronoid's base held in a little: with the front border
                                                                              # traced back to the plate's, it stood out of the plan view's line as a corner)
     mid = mid - 0.15 * g(17.0, -38.0, 12.0) + 0.6 * g(11.0, -24.0, 9.0) + 0.3 * g(17.0, -55.0, 9.0)   # (task B: gentler; the hind border read as a rod)
     orr, irr = mid + th / 2, mid - th / 2
@@ -302,7 +321,7 @@ def maps(S, log=print):
     zr = lambda z, y: tuple(sy(ramus3(*regrid(z, y)))[0])       # (drawn on task A's outline, carried to this one)
     st = lambda pts, r, h, wob=0.3, seed=0: stroke(M, [zr(z, y) for z, y in pts], r, h, wob, seed)
     gr = lambda z, y, r: gauss(M, zr(z, y), (r, r))
-    ev = 1.4 * gr(8.0, -71.0, 13.0) + 0.4 * gr(16.0, -76.0, 10.0)                   # the angle turned outward (Gray: "inverted or everted"), broadly
+    ev = 1.7 * gr(8.0, -71.0, 13.0) + 0.4 * gr(16.0, -76.0, 10.0)                   # the angle turned outward (Gray: "inverted or everted"), broadly
     orr, irr = orr + ev, irr + ev                                                   # (repair 1: it was added to mid after the faces were taken from it, so did nothing)
     # outside: "flat and marked by oblique ridges to the Masseter", rough at the angle (Fig. 176)
     # (Fig. 176: a few short, faint, broken oblique marks low at the angle only, each fading out at both ends; none in the
@@ -312,6 +331,13 @@ def maps(S, log=print):
                                      ([(19.5, -69.5), (15.8, -73.6), (12.6, -76.2)], [0.9, 1.1, 0.8], [0.0, 0.28, 0.0]),
                                      ([(27.5, -73.0), (25.2, -75.4), (23.4, -77.4)], [0.8, 0.9, 0.7], [0.0, 0.2, 0.0]))):
         orr = orr + st(pts, r, h, 0.45, 11 + k)
+    # (repair 2) a few more, higher on the masseter's field, as Fig. 176 draws them: short, uneven, running down and back,
+    # each fading at both ends (the outer face was blank but for grain)
+    for k, (pts, r, h) in enumerate((([(22.0, -56.0), (18.5, -62.0), (15.5, -67.0)], [0.8, 1.0, 0.8], [0.0, 0.3, 0.0]),
+                                     ([(28.0, -62.0), (25.0, -68.5), (22.5, -72.5)], [0.8, 1.1, 0.8], [0.0, 0.36, 0.05]),
+                                     ([(17.0, -50.0), (15.6, -53.0), (14.8, -55.5)], [0.7, 0.8, 0.7], [0.0, 0.2, 0.0]),
+                                     ([(33.5, -68.0), (31.8, -71.0), (30.5, -73.5)], [0.8, 0.9, 0.8], [0.0, 0.25, 0.0]))):
+        orr = orr + st(pts, r, h, 0.5, 21 + k)
     rk = np.random.default_rng(1919)
     for _ in range(7):
         z0, y0 = rk.uniform(4.0, 22.0), rk.uniform(-79.0, -67.0)
@@ -319,12 +345,15 @@ def maps(S, log=print):
         z1, y1 = rk.uniform(4.0, 22.0), rk.uniform(-79.0, -64.0)
         irr = irr - rk.uniform(0.08, 0.18) * gauss(M, zr(z1, y1), (rk.uniform(0.6, 1.0), rk.uniform(0.6, 1.0)))
     # inside: the medial pterygoid's marks at the angle, as faint and as few; the ridge from the neck down to the lingula, the temporal crest
-    for k, (pts, r, h) in enumerate((([(13.5, -60.5), (9.0, -66.0), (6.0, -69.5)], [0.9, 1.2, 0.9], [0.0, 0.32, 0.0]),
+    for k, (pts, r, h) in enumerate((([(13.5, -60.5), (9.0, -66.0), (6.0, -69.5)], [0.9, 1.2, 0.9], [0.0, 0.5, 0.0]),
+                                     ([(19.0, -58.0), (14.5, -64.5), (10.5, -70.5)], [0.8, 1.1, 1.0], [0.0, 0.3, 0.45]),
+                                     ([(26.5, -66.0), (22.0, -71.5), (19.0, -75.5)], [0.8, 1.0, 0.9], [0.0, 0.25, 0.4]),
                                      ([(20.5, -66.5), (16.5, -71.5), (13.5, -74.8)], [0.9, 1.0, 0.8], [0.0, 0.25, 0.0]),
                                      ([(9.5, -72.5), (7.5, -74.5)], [0.8, 0.7], [0.2, 0.0]))):
         irr = irr - st(pts, r, h, 0.45, 31 + k)
     irr = irr - st([(9.2, -15.5), (12.8, -22.5), (17.5, -29.0), (21.8, -34.6)], [2.6, 2.6, 2.2, 1.6], [0.9, 1.0, 0.7, 0.35], 0.3, 41)     # neck to lingula
     irr = irr - st([(37.5, -10.0), (38.2, -21.0), (36.8, -32.0), (35.0, -42.0), (34.0, -50.0)], [2.0, 2.2, 2.4, 2.4, 2.2], [0.7, 1.0, 1.0, 0.8, 0.5], 0.25, 42)   # temporal crest
+    irr = irr + 0.8 * gauss(M, zn(16.0, -66.0), (8.0, 7.0))                        # (repair 2) the medial pterygoid's field at the angle a shallow hollow, not a swelling
     irr = irr - 0.7 * gr(24.0, -46.0, 5.0)                                          # bone over the canal where it enters
     irr = irr + st([(23.0, -45.6), (25.6, -49.6), (29.0, -54.0), (33.0, -58.4), (37.0, -62.0)], [1.0, 1.05, 1.0, 0.9, 0.8], [0.5, 0.45, 0.35, 0.2, 0.0], 0.2, 43)   # (repair 1: a fine line from the foramen's lower edge)   # mylohyoid groove (a shallow furrow)
 
@@ -362,6 +391,7 @@ def maps(S, log=print):
     q = np.clip((M.V - yb(M.U)) / np.maximum(yt(M.U) - yb(M.U), 1.0), 0, 1.4)
     s = np.abs(M.U)
     w_out = evenstep((s - OUT_S0 - 12.0 * (1 - np.minimum(q, 1.0))) / OUT_L)   # (long: the cheek side widens into the ramus with no elbow)
+    w_out = w_out + (1 - w_out) * smoothstep((M.V + 28.0) / 14.0)              # (repair 2: the ramus's own face from under the neck up, as before)
     outer = ob * (1 - w_out) + orr * w_out
     # the chin and the oblique line (Fig. 176); all of it before the roots' clearance is taken below
     yc = float(yb(0.0))
@@ -421,7 +451,8 @@ def maps(S, log=print):
     # offset from the ramus as it stood at that tooth, and gives it up over BACK_L mm, not 16: the swelling that bridges
     # the two faces is long and low.)
     sA = s3 - 9.0                                                   # (from the third molar's middle back)
-    back = 1 - evenstep((s - sA) / BACK_L)                          # (ending well in front of the hind border at every height)
+    back = 1 - evenstep((s - sA) / (BACK_L * (0.5 + 0.5 * smoothstep(qq / 0.8))))   # (ending well in front of the hind border at every height;
+    # repair 2: low down over half the length, so that no long swelling stands on the angle's inner side seen from below)
     iA = int(np.argmin(np.abs(M.U[:, 0] - sA))); iB = int(np.argmin(np.abs(M.U[:, 0] - (sA - 3.0))))
     slope = (ib[iA] - ib[iB]) / max(float(M.U[iA, 0] - M.U[iB, 0]), 0.5)
     cell = float(M.U[1, 0] - M.U[0, 0])
@@ -443,8 +474,10 @@ def maps(S, log=print):
 
     # the rim's roundness: the lower border broad, the hind border and angle rounded, the notch and coronoid thin, the tooth-bearing margin 2 mm
     edge = [(0.0, yb(0.0), 4.6), (20.0, yb(20.0), 4.2), (45.0, yb(45.0), 3.8), (70.0, yb(70.0), 3.2)]
-    edge += [(*zy(z, y), r) for z, y, r in ((15.5, -66, 1.7), (11.5, -55, 1.8), (12, -37, 2.1), (8, -20, 2.7), (7, -9, 3.0),   # (repair 1: hind border's round under its half-thickness)
-                                              (26, -21, 1.1), (39.5, -6, 1.2), (46, -20, 1.5), (45.5, -40, 1.8), (48, -56, 2.0))]
+    edge += [(*zy(z, y), r) for z, y, r in ((15.5, -66, 1.2), (11.5, -55, 1.2), (12, -37, 1.4), (8, -20, 2.4), (7, -9, 3.0),   # (repair 1: hind border's round under its half-thickness)
+                                              (26, -21, 1.1), (39.5, -6, 0.8), (46, -20, 1.5), (45.5, -40, 1.8), (48, -56, 2.0))]
+    edge += [(*zn(z, y), r) for z, y, r in ((14.8, -14.5, 2.6), (16.6, -19.0, 2.0))]   # (repair 2: the neck's front edge well rounded:
+    # at 1.5 mm its corner ran down the neck's outer side as a line)
     edge += [(sv, yt(sv), 1.3) for sv in (0.0, 15.0, 30.0, 45.0)]                 # the margin thin and rounded
     rad = M.thin_plate(np.array(sym(np.array(edge)), float), weight=10.0, tension=0.3)
     log("jaw sheet: body faces through %d and %d traced points, ramus thickness through %d" % (len(out_pts), len(in_pts), len(TH)))
@@ -518,7 +551,7 @@ def sockets(F, frames, yrim, S, wall=1.5, gap=0.3):
 
 def build(h=0.5, log=print, seat=True):
     use()
-    S = sheet()
+    S = sheet4()
     W = maps(S, log)
     M = W["M"]
     F = sdf.Field([0, -103, -4], [68, 5, 101], h)
