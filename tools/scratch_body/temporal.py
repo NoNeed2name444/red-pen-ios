@@ -159,7 +159,7 @@ def mastoid(F, log=print):
     # the notch's lateral lip: Fig. 187 draws it at x 46 where the notch begins (z -14); the cone's front-inner foot is filled out
     # toward it, low down and on the medial side only (the side outline is not touched)
     F.add(Ellipsoid((48.9, -27.2, -14.3), (1.9, 3.4, 2.6)), 1.4, keep=4)
-    mastoid_rough(F, CONE)
+    mastoid_relief(F)
     # the mastoid foramen: a small oblique canal through the bone near its hind border, in front of the occipitomastoid suture
     # (Gray, p. 141: "Near the posterior border of this region is the mastoid foramen"); it opens on the surface as an oval
     # with a short groove leading from it upward and backward (the vein's and the artery's way), not as a punched round hole
@@ -177,52 +177,50 @@ def mastoid(F, log=print):
         % (-tip[1], -tip[0], 9.4, 11.2, float(xo[reg < 0].max())))
 
 
-def _frame(t, n):
-    """Columns: t made square to n, n, and their cross."""
-    n = n / np.linalg.norm(n); t = t - n * (t @ n); t = t / np.linalg.norm(t)
-    return np.column_stack([t, n, np.cross(t, n)])
-
-
-def mastoid_rough(F, axis, seed=431):
+def mastoid_relief(F, seed=431):
     """The mastoid's outer and hind face are rough with the attachments of the sternocleidomastoid, splenius capitis and
-    longissimus capitis (Fig. 187 hatches the outer face down to the tip). Low ridges running mostly along the process, some across, with pits between
-    them, of mixed sizes, thickest toward the tip and the hind border; none on the medial face (the notch's wall)."""
+    longissimus capitis (Fig. 187 hatches the outer face down to the tip): many fine, low, overlapping striae running obliquely
+    down and forward with the sternocleidomastoid's fibres, and a few small vascular pits. Nothing stands out singly; the
+    outline moves by less than 0.2 mm. Done as a relief on the field near the surface (a displacement of 0.05 to 0.15 mm),
+    not as solids added: band-limited noise, long (3 to 8 mm) along the fibres and narrow (0.4 to 1 mm) across them, under an
+    envelope that is strongest toward the tip and the hind border and fades to nothing at the region's edges."""
+    sl = F.window((49.0, -37.0, -37.0), (66.0, -12.0, -6.0))
+    if sl is None:
+        return
+    X, Y, Z = (np.asarray(a, np.float64) for a in np.broadcast_arrays(*F.coords(sl)))
+    D = F.D[sl]
+    band = np.abs(D) < 1.4
+    if not band.any():
+        return
     rng = np.random.default_rng(seed)
-    L = spline(np.array(axis, float), 0.5); n_ = len(L)
-    def surf(c, d):
-        r = np.arange(0.0, 14.0, 0.2)
-        P = c[None, :] + r[:, None] * d[None, :]
-        dd = sdf.sample_field(F.D, F.lo, F.h, P)
-        k = np.nonzero((dd[:-1] < 0) & (dd[1:] >= 0))[0]
-        return P[k[-1]] if len(k) else None
-    def sample(bias_tip):
-        t = rng.beta(2.2, 1.2) if bias_tip else rng.uniform(0.0, 1.0)
-        i = min(int(t * (n_ - 1)), n_ - 2); c = L[i]; ax = L[i + 1] - L[i]; ax /= np.linalg.norm(ax)
-        th = rng.uniform(0.05, 1.25) * np.pi / 2                # from the lateral face (0) round the hind border (pi/2), not onto the notch
-        e1 = np.array([1.0, 0.0, 0.0]); e2 = np.array([0.0, -0.25, -1.0])
-        d = np.cos(th) * e1 + np.sin(th) * e2; d = d - ax * (d @ ax); d /= np.linalg.norm(d)
-        p = surf(c, d)
-        return (p, d, ax, t, th) if p is not None and -31.0 < p[1] < -16.0 else None      # (not on the blunt tip itself: it keeps its place)
-    ridges = pits = 0
-    for _ in range(230):
-        s = sample(True)
-        if s is None:
-            continue
-        p, n, ax, t, th = s
-        w = 0.55 + 0.35 * t + 0.25 * np.clip(th / (np.pi / 2), 0, 1.2)          # stronger toward the tip and the hind border
-        if rng.uniform() < 0.62:
-            ang = rng.normal(0.0, 0.55) if rng.uniform() < 0.75 else rng.uniform(1.0, 1.6)
-            tt = np.cos(ang) * ax + np.sin(ang) * np.cross(n, ax)
-            r = np.array([rng.uniform(1.1, 3.2), rng.uniform(0.5, 0.85), rng.uniform(0.3, 0.65)])
-            hgt = rng.uniform(0.1, 0.28) * w
-            F.add(Ellipsoid(p + n * (hgt - r[1]), r, _frame(tt, n)), 0.45)
-            ridges += 1
-        else:
-            r = rng.uniform(0.3, 0.55) * np.array([rng.uniform(1.0, 1.8), 1.0, 1.0])
-            tt = rng.normal(size=3)
-            F.cut(Ellipsoid(p + n * (r[1] - rng.uniform(0.12, 0.28) * w), r, _frame(tt, n)), 0.25)
-            pits += 1
-    return ridges, pits
+    P = np.column_stack([X[band], Y[band], Z[band]])
+    def striae(fibre, along, across, seed_):
+        f = np.asarray(fibre, float); f /= np.linalg.norm(f)
+        e2 = np.cross(f, (1.0, 0.0, 0.0)); e2 /= np.linalg.norm(e2); e3 = np.cross(f, e2)
+        Q = P @ np.column_stack([f, e2, e3])
+        c = 0.25; q0 = Q.min(0) - 3 * along; n = np.ceil((Q.max(0) + 3 * along - q0) / c).astype(int) + 1
+        G = np.random.default_rng(seed_).standard_normal(n).astype(np.float32)
+        fine = ndimage.gaussian_filter(G, (along / c, across / c, across / c))
+        coarse = ndimage.gaussian_filter(G, (2.5 * along / c, 2.5 * across / c, 2.5 * across / c))
+        N = fine - coarse                                        # band-limited: no broad swellings that would move the outline
+        v = ndimage.map_coordinates(N, ((Q - q0) / c).T, order=1)
+        return v / (v.std() + 1e-9)
+    # mostly down and forward (the sternocleidomastoid), some steeper (splenius, longissimus) at the hind border
+    n = 0.75 * striae((0.0, -0.78, 0.62), 1.3, 0.22, seed) + 0.45 * striae((0.0, -0.93, 0.36), 0.9, 0.3, seed + 1)
+    n = 1.4 * np.tanh(n / 1.4)
+    x, y, z = P.T
+    env = (smoothstep((x - 52.0) / 3.0)                         # the outer face and the hind border, not the notch's wall
+           * smoothstep((-13.0 - y) / 4.0) * smoothstep((y + 35.5) / 2.0)      # fading out at the top and under the tip
+           * smoothstep((-10.5 - z) / 2.5) * smoothstep((z + 36.0) / 3.0))     # and at the front border and behind
+    amp = 0.06 + 0.06 * smoothstep((-20.0 - y) / 10.0) + 0.03 * smoothstep((-19.0 - z) / 7.0)     # strongest at the tip and hind border
+    dD = -amp * env * n
+    # a few small vascular pits, eased at the rim
+    cand = np.nonzero((np.abs(D[band]) < 0.3) & (env > 0.5))[0]
+    for i in rng.choice(cand, size=min(22, len(cand)), replace=False) if len(cand) else []:
+        c = P[i]; s = rng.uniform(0.3, 0.45); dep = rng.uniform(0.1, 0.18)
+        dD += dep * np.exp(-np.sum((P - c) ** 2, axis=1) / (2 * s * s))
+    D[band] = D[band] + dD.astype(np.float32)
+    F.D[sl] = D
 
 
 def behind_crest(F):
@@ -262,6 +260,10 @@ def behind_crest(F):
     top = np.minimum(np.full(X.shape, -12.5), ye + 4.0)
     bot = np.where((ye_raw < -20.5) | (ye_raw > -10.5), top + 1.0, yt * wf + np.maximum(yt, ye + 0.3) * (1 - wf))   # (nothing where there was no plate)
     F.add(Slab(M, (0, 2, 1), top, bot, reg, round=0.5), 0.5)
+    # two small notches in the crest's edge, unequal, where the plate's border is broken
+    for xn, dy, rz in ((47.4, 0.75, 1.1), (44.9, 0.55, 0.8)):
+        i = int(round((xn - M.u0) / M.cell))
+        F.cut(Ellipsoid((xn, yc[i] - 0.15, zc[i] - 0.2), (0.45, dy + 0.15, rz)), 0.2)
 
 
 def ear_hole(F, log=print):
@@ -297,14 +299,14 @@ def ear_hole(F, log=print):
     # straight plate leaning back to z -6 at the canal, with a rounded bar of a border; its inner end ran on past the root,
     # and where it met the styloid the two webbed into a fan.) The border is thin and rough: its height and thickness change
     # every two or three millimetres, no two stretches alike.
-    # Seen from below the crest is one line that wanders forward and back by a millimetre over every 3 to 6 (it was ruled
-    # straight, and with the outer end's lower outline 4 mm behind it read as two rails), and it is thicker and rougher out at
-    # the canal than in at the root, where it thins and then splits round the styloid
-    TP = [(53.4, -12.4, -3.4), (51.6, -12.7, -2.2), (49.8, -12.9, -2.3), (48.0, -13.0, -1.35), (46.2, -13.1, -1.25), (44.4, -13.3, -2.0),
-          (42.9, -13.5, -1.35), (41.9, -13.7, -1.0), (41.0, -13.9, -0.6), (40.1, -14.0, 0.2), (39.2, -13.9, 0.9),
+    # Seen from below the crest is one nearly straight, slightly bowed line (Fig. 187) that strays forward and back by 0.2 to
+    # 0.4 mm at uneven spacing, with two small notches cut in it below (it was ruled straight, then an even wave); it is
+    # thicker out at the canal than in at the root, where it thins and splits round the styloid (the sheath: styloid())
+    TP = [(53.4, -12.4, -3.4), (51.6, -12.7, -2.3), (49.8, -12.9, -1.55), (48.0, -13.0, -1.2), (47.1, -13.05, -1.3), (46.2, -13.1, -1.55),
+          (44.4, -13.3, -1.3), (42.9, -13.5, -1.6), (41.9, -13.7, -1.15), (41.0, -13.9, -0.6), (40.1, -14.0, 0.2), (39.2, -13.9, 0.9),
           (38.4, -13.7, 1.9), (37.6, -13.5, 2.9)]          # (and on inward toward the carotid canal, as it was)
     TPa = [(0, 5.1), (0.12, 5.45), (0.24, 5.45), (0.36, 5.8), (0.46, 5.6), (0.55, 5.75), (0.67, 6.15), (0.76, 6.4), (0.83, 5.7), (0.92, 5.0), (1, 4.8)]
-    TPb = [(0, 1.5), (0.12, 1.3), (0.22, 1.6), (0.34, 1.35), (0.46, 1.2), (0.58, 1.05), (0.68, 1.0), (0.77, 1.3), (0.88, 1.1), (1, 1.2)]
+    TPb = [(0, 1.5), (0.12, 1.05), (0.22, 1.15), (0.34, 1.35), (0.46, 1.2), (0.58, 1.05), (0.68, 1.0), (0.77, 1.3), (0.88, 1.1), (1, 1.2)]
     F.add(Tube(spline(TP, 0.6), TPa, TPb, up=(0.0, 0.985, 0.17), taper=-0.2), 1.8, keep=4)
     behind_crest(F)
     # the petrotympanic fissure: a fine cleft across the fossa's back wall where the tympanic plate meets the squama, 5 to 6 mm
@@ -347,6 +349,33 @@ def ear_hole(F, log=print):
         % (np.ptp(q[:, 0]), np.ptp(q[:, 1]), min(BAND_X), max(BAND_X), -min(p[1] for p in TYMPANIC_SIDE)))
 
 
+class _Sheath:
+    """A thin curved shell about a short axis A-B: radius r_in..r_in+t, over the front and outer side only, its lower rim oblique
+    (lowest in front) and uneven."""
+    def __init__(self, A, B, r_in=(2.25, 1.75), t=0.8, wrap=0.15):
+        self.A, self.B = np.asarray(A, float), np.asarray(B, float)
+        self.r_in, self.t, self.wrap = r_in, t, wrap
+        r = max(r_in) + t + 1.0
+        self.bounds = (np.minimum(self.A, self.B) - r, np.maximum(self.A, self.B) + r)
+    def __call__(self, X, Y, Z):
+        X, Y, Z = np.broadcast_arrays(X, Y, Z)
+        AB = self.B - self.A; Lq = np.linalg.norm(AB); ax = AB / Lq
+        R = np.stack([X - self.A[0], Y - self.A[1], Z - self.A[2]], -1)
+        s = R @ ax; tq = np.clip(s / Lq, 0.0, 1.0)
+        rad = R - tq[..., None] * AB
+        rho = np.linalg.norm(rad, axis=-1)
+        ri = self.r_in[0] + (self.r_in[1] - self.r_in[0]) * tq
+        shell = np.maximum(ri - rho, rho - ri - self.t)
+        n = np.array([0.72, 0.0, 0.69]); n = n - ax * (n @ ax); n /= np.linalg.norm(n)
+        side = -(rad @ n) / np.maximum(rho, 1e-6) - self.wrap          # < 0 on the front-outer side
+        side = side * np.maximum(rho, 0.5)
+        e2 = np.cross(ax, n)
+        ang = np.arctan2(rad @ e2, rad @ n)
+        low = Lq * (0.63 + 0.12 * np.cos(ang) + 0.04 * np.sin(3.1 * ang + 0.7))   # the rim: lowest in front, uneven
+        ends = np.maximum(-s, s - low)
+        return np.maximum(np.maximum(shell, side), ends).astype(np.float32)
+
+
 def styloid(F, log=print):
     """The styloid process: a tapering thorn, a little flattened, never quite straight, its root in the tympanic part's sheath."""
     # Gray (p. 145): "The styloid process is slender, pointed, and of varying length; it projects downward and forward". It was a
@@ -358,6 +387,9 @@ def styloid(F, log=print):
     F.add(Tube(P, [(0, 2.4), (0.16, 2.25), (0.3, 1.6), (0.42, 1.38), (0.55, 1.3), (0.66, 1.08), (0.78, 0.95), (0.9, 0.78), (1, 0.62)],
                [(0, 2.2), (0.16, 2.05), (0.3, 1.45), (0.44, 1.32), (0.56, 1.12), (0.68, 1.06), (0.8, 0.86), (0.91, 0.74), (1, 0.6)],
                up=(1, 0, 0.25)), 0.7, keep=3)
+    # the vaginal process (Fig. 187 "Vagin. proc."): the tympanic plate's crest, at its inner end, splits and runs down as a thin
+    # sheath round the front and outer side of the styloid's root, standing a little off it, its lower rim oblique and uneven
+    F.add(_Sheath((41.15, -15.0, -1.95), (40.6, -22.2, 0.35)), 0.4, keep=2)      # (it grows out of the plate: no top edge)
     L = np.linalg.norm(np.diff(P, axis=0), axis=1).sum()
     log("styloid process: %.0f mm long, its tip %.1f mm below the Frankfurt plane" % (L, -STYLOID[-1][1]))
 

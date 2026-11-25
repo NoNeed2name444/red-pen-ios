@@ -3921,6 +3921,15 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     notch's lip within 1.5 mm. Wrong: the crest waves evenly like a
     drawn wave, and the mastoid's new roughness is warts and a hooked
     pit instead of low ridges. One repair round is left.
+    Repair 2 (last; partly accepted): accepted are the mastoid (cone on
+    Fig. 188's outline, side border within 0.9 mm, fine oblique striae,
+    no warts, blunt tip, foramen), the slender styloid, the tympanic
+    crest as one irregular line on Fig. 187's edge (0.2 mm at x 50),
+    the fissure; joint roof unchanged, nothing outside the region moved.
+    Not accepted: the new sheath round the styloid's root reads as a
+    cuff with an even rim (a single-item follow-up). Open, small: notch
+    lip at z -20 is 1.8 mm inside the plate; mastoid tip 2.4 mm from
+    Fig. 187's (uncertain reading).
 - [ ] F8. Mesh checks, the neck and down, the muscles, the woman, and where
   the from-scratch model goes in the app.
 
