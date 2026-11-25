@@ -394,7 +394,7 @@ def calcaneus(h=0.4, log=print, relief=1.0, upto="all", poses=None, ink=INK):
     floor = np.interp(zs, [56.9, 60, 64, 68, 70.5, 73, 79], [36.5, 36.3, 36.6, 37.3, 40.0, 41.8, 41.5]) + 1.0 * np.clip((xp + 8.0) / np.maximum(split + 8.0, 1.0), 0.0, 1.0) ** 1.5
     f = _ss((zp - 57.5) / 3.0); lateral = np.minimum(facet * (1.0 - f) + floor * f, free)
     b = _bump(zs, 40.0, 44.0, 68.0, 72.0)
-    shelf = (np.clip(42.0 - 0.21 * (zs - 58.0), 39.0, 44.5) - 0.08 * (xp - 18.0)) * b + free * (1.0 - b)
+    shelf = (np.clip(42.0 + 4.0 * (1.0 - _ss((zs - 58.0) / 8.0)) - 0.21 * (zs - 58.0), 39.0, 47.0) - 0.08 * (xp - 18.0)) * b + free * (1.0 - b)
     w = _ss((xp - split + 1.5) / 3.0); top = lateral * (1.0 - w) + shelf * w
     d, t = _near(xp, zp, CALC_SULCUS)
     # (the sulcus calcanei is "a deep depression continued backward and medialward in the form of a groove": Fig. 264
