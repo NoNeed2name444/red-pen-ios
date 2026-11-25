@@ -412,6 +412,9 @@ def maps(S, log=print):
     sym = lambda P: np.vstack([P, P * np.array([-1.0, 1.0, 1.0])])
     ob = ndimage.gaussian_filter(M.thin_plate(sym(out_pts), weight=20.0, tension=0.02), 3.0, mode="nearest")     # (1.5 mm: no pimple at a control point)
     ib = ndimage.gaussian_filter(M.thin_plate(sym(in_pts), weight=20.0, tension=0.02), 3.0, mode="nearest")
+    # (T-rows-refit) the tongue-side face smoothed up and down behind the canines: seen from below a long sharp line ran along it
+    wV = smoothstep((np.abs(M.U) - 14.0) / 10.0)
+    ib = ib * (1 - wV) + ndimage.gaussian_filter1d(ib, 6.0, axis=1, mode="nearest") * wV
     s_ = np.abs(M.U)
     H2 = lambda c, r: np.exp(-(((s_ - c[0]) / r[0]) ** 2 + ((M.V - c[1]) / r[1]) ** 2))
     yc_ = float(yb(0.0))
@@ -508,9 +511,15 @@ def maps(S, log=print):
     col = ndimage.gaussian_filter1d(ib[iA] + 0.0, 3.0 / cell); slope = ndimage.gaussian_filter1d(slope, 3.0 / cell)
     run = col[None, :] + slope[None, :] * (s - sA)                     # the body's face carried on as it was going there (its shelf's
     # edge eased: carried back as it stood, the ledge under the shelf ran on into the ramus as a long groove)
-    target = np.minimum(run * back + irr * (1 - back), irr)         # and handed over to the ramus's face (never thinner than the ramus)
+    target = smin(run * back + irr * (1 - back), irr, 3.0)          # and handed over to the ramus's face (never thinner than the ramus)
+    # (T-rows-refit) behind the third molar the handover is rounded, not a pointed ledge
+    wS = smoothstep((s - s3 + 2.0) / 6.0)
+    target = np.minimum(target * (1 - wS) + ndimage.gaussian_filter(target, (2.0 / cell, 3.5 / cell), mode="nearest") * wS, irr)
     wA = smoothstep((s - sA + 4.0) / 16.0)                         # (over 16 mm: over 8 it read from below as an elbow)
     ib = ib * (1 - wA) + target * wA
+    # (T-rows-refit) the lower part of the tongue-side face smoothed again after the handover (the line seen from below)
+    wq = (1 - smoothstep((qq - 0.40) / 0.25)) * smoothstep((s - 14.0) / 10.0)
+    ib = ib * (1 - wq) + ndimage.gaussian_filter1d(ndimage.gaussian_filter1d(ib, 8.0, axis=1, mode="nearest"), 4.0, axis=0, mode="nearest") * wq
     swell = (irr - target) * (1 - smoothstep((M.V - (yt(M.U) - 1.0)) / 16.0)) * smoothstep((s - (s3 - 1.0)) / 6.0) * (s >= sA)
     irr = irr - swell
     away = 40.0 * (1 - smoothstep((s - 40.0) / 8.0))                                 # in front of the second molar the ramus's face is nothing

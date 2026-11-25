@@ -67,10 +67,12 @@ LOWER = {"width": [5.0, 5.5, 7.0, 7.0, 7.0, 11.0, 10.5, 10.0], "crown": [9.0, 9.
          "labial tilt deg": [22, 20, 10, -6, -10, -14, -18, -20],
          "crest y": [-60.0, -60.0, -60.3, -58.0, -56.5, -54.2, -52.2, -50.7]}
 # the two arches seen from above: (x, z) of the middle of the alveolar crest, midline to behind the last molar
-UPPER_ARCH = [(0, 93.8), (5.1, 93.6), (11.0, 91.8), (15.3, 88.2), (18.4, 82.7), (21.6, 76.1), (23.5, 68.3), (25.0, 59.5),
-              (26.1, 50.1), (27.2, 40.4)]       # the upper one as skull2.UPPER_LINE (Gray 1918, Fig. 996)
-LOWER_ARCH = [(0, 91.4), (2.2, 91.3), (7.4, 90.4), (13.0, 87.6), (18.0, 82.6), (21.6, 76.0), (24.0, 67.4), (25.4, 57.0),
-              (26.0, 46.5), (26.4, 38.0), (26.9, 31.0)]       # the lower one as mandible2.LOWER_LINE (Gray 1918, Fig. 997)
+# (T-rows-refit: the lines the teeth are packed on, teeth.packed, as built; with this table's widths, as skull.sockets
+# spaces them, the sockets fall up to a few mm from the packed ones)
+UPPER_ARCH = [(0, 90.8), (11.6, 90.7), (15.7, 86.9), (19.5, 82.5), (22.7, 77.3), (25.0, 71.4), (25.9, 64.9), (26.6, 58.0),
+              (27.1, 51.1), (27.4, 44.2)]       # the upper one as skull2.UPPER_LINE (Gray 1918, Fig. 996)
+LOWER_ARCH = [(0, 88.3), (10.2, 86.1), (14.8, 83.8), (18.9, 80.9), (21.9, 76.4), (23.9, 71.0), (25.9, 65.2), (26.9, 59.0),
+              (27.5, 52.7), (28.0, 46.4), (28.5, 40.1)]       # the lower one as mandible2.LOWER_LINE (Gray 1918, Fig. 997)
 
 # ---- neck, head frame, mm -----------------------------------------------------------------------
 # each vertebra: body height (front), disc below it, depth and width of the body, forward tilt of

@@ -154,7 +154,8 @@ def build(h=0.5, log=print):
     dg, w = surface_point(line, 1.3, 0.10, False, 0.0)
     F.cut(sdf.Ellipsoid(dg - 1.5 * w, (6.0, 3.0, 3.2)), k=2.5)
     import skull
-    skull.cut_sockets(F, skull.sockets(L.LOWER_ARCH, L.LOWER, False), False)
+    import teeth, mandible2                                          # (the row as built: packed in contact on its line)
+    skull.cut_sockets(F, teeth.packed(L.LOWER_ARCH, mandible2.LOWER_T, False), False)
     return F, {"mental foramen": np.round(mf, 1).tolist(), "line": line}
 
 

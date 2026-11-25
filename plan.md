@@ -3998,6 +3998,21 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     smaller curve. Not yet done: both rows refitted with targets at the
     crowns, and the jaws' sockets rebuilt and checked, since the lower
     roots now bend the other way (socket walls move up to 6 mm).
+    Both rows refitted to the crowns (skull2.py, palate.py,
+    landmarks.py, mandible.py, mandible2.py, mandible4.py), kept, partly
+    accepted: crowns sit on Gray's arches (Fig. 996 upper: worst miss
+    1.27 mm at the second incisor, mean 0.87; Fig. 997 lower: worst
+    1.17, mean 0.73); upper front teeth bite outside the lower (overjet
+    2.6, overbite 3.1); bone round every socket (thinnest 0.64); width
+    across canines 33.2 upper, 26.3 lower; across first molars 49.2 and
+    47.3; joint not moved. Not met, repair 1: the body is 68.0 mm wide
+    at the first molar (bar 62 to 66, CT 64.7); about 1 mm of daylight
+    between upper and lower molars with the jaw shut; a shelf of bone
+    above the chin in front of the lower incisors; the turn near the
+    mental spines (11.8 and 13.8 degrees at x 4 and 6) not shown clear
+    of a crease; palate bone thin inside the upper second premolar and
+    outside the third molar. A chore: make.py line 164 still places
+    sockets by the old table, up to 2 mm from the packed teeth.
     Task C, repair 1 (head and neck accepted; task closed): the ring is
     gone. Each section under the head is solved to silhouette targets
     from Fig. 176 and 177: the hind edge runs straight into the head,

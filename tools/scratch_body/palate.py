@@ -27,12 +27,12 @@ from skull import arch
 # the free hind edge, from behind the last molar in to the spine at the midline (x, z): each half sweeps a little forward
 HIND = [(24.6, 39.6), (21.2, 39.2), (18.2, 39.7), (16.6, 41.2), (15.6, 43.0), (14.5, 44.2), (11.5, 45.0), (8.0, 45.3), (5.0, 44.9), (2.9, 44.2), (1.6, 43.3), (0.7, 42.5), (0.0, 42.2)]
 NECK_HALF = [3.1, 2.7, 3.7, 4.2, 4.2, 5.3, 5.3, 4.9]          # half of each tooth's thickness at the gum, lip side to tongue side (mm)
-FORAMEN = (16.8, 47.0)                                        # greater palatine foramen (x, z): inward of the third molar (Fig. 160)
-LESSER = [(17.5, 43.5), (19.3, 43.8)]
+FORAMEN = (17.7, 46.9)                                        # greater palatine foramen (x, z): inward of the third molar (Fig. 160)
+LESSER = [(18.2, 43.3), (20.0, 43.5)]
 # the suture across: from the midline outward, then back along the groove's inner side to the foramen
 TRANSVERSE = [(0.0, 56.1), (1.6, 56.4), (3.6, 55.9), (6.0, 55.4), (8.4, 55.2), (10.7, 54.9), (12.5, 54.3), (14.0, 52.6), (15.0, 50.5), (15.9, 48.9)]
 # the incisive fossa: a pear, broad in front, drawn out to a slit behind (left half of its outline)
-FOSSA = [(0.0, 87.6), (1.1, 87.3), (1.95, 86.2), (2.3, 84.6), (2.05, 82.8), (1.35, 81.2), (0.75, 79.8), (0.4, 78.6), (0.0, 78.0)]
+FOSSA = [(0.0, 84.6), (1.3, 84.3), (2.4, 83.2), (3.1, 81.6), (2.7, 79.8), (1.6, 78.2), (0.9, 76.8), (0.5, 75.6), (0.0, 75.0)]   # carried 3 mm back with the incisors (T-rows-refit)
 NOSE_FLOOR = -28.0                                            # the floor of the nose is never lower than this (it is nearly level)
 
 
@@ -80,8 +80,8 @@ def surface(line, table, h=0.5, log=print):
     half = np.concatenate([A, hind[1:]])
     reg = M.region(np.concatenate([half, half[-2:0:-1] * np.array([-1.0, 1.0])]))
     # ---- the vault: level at the gum, a steep wall, a nearly level roof
-    L = np.interp(M.V, [44, 70, 80, 91], [6.5, 7.0, 8.5, 9.5])
-    R = np.interp(M.V, [42, 50, 66, 72, 78, 83, 89, 95], [11.2, 11.8, 12.2, 11.6, 10.2, 8.4, 6.6, 5.2])
+    L = np.interp(M.V, [44, 68.3, 77, 88], [6.5, 7.0, 8.5, 9.5])
+    R = np.interp(M.V, [42, 50, 66, 69.5, 75, 80, 86, 92], [11.2, 11.8, 12.2, 11.6, 10.2, 8.4, 6.6, 5.2])
     t = np.clip((s - sb) / L, 0.0, 1.0)
     Yb = cy + 0.05 + R * (1.0 - (1.0 - t) ** 2.2) + 1.5 * smoothstep((s - sb - L) / 9.0)      # (the roof is not level from side to side: it rises a little more to the midline)
     # behind the last molar the tooth-bearing process ends rounded: its under side rises to the palatine bone's pyramidal process,
@@ -97,16 +97,16 @@ def surface(line, table, h=0.5, log=print):
     n3 = ndimage.gaussian_filter(rng.standard_normal(M.U.shape), 9.0); n3 /= n3.std()
     Yo = Yb.copy()
     # a low ridge along the midline, from the middle of the palate back to the spine
-    Yo -= 0.22 * np.exp(-(ax / (2.4 + 0.7 * n3)) ** 2) * smoothstep((72.0 - M.V) / 10.0) * np.clip(1.0 + 0.8 * n1, 0.0, 2.0)
+    Yo -= 0.22 * np.exp(-(ax / (2.4 + 0.7 * n3)) ** 2) * smoothstep((69.5 - M.V) / 10.0) * np.clip(1.0 + 0.8 * n1, 0.0, 2.0)
     # the palatine crest: across the palatine bone, 3 mm in front of its free edge; the spine at the midline
     Yo -= 0.3 * np.exp(-((dh - 3.0) / 1.0) ** 2) * smoothstep((ax - 2.5) / 3.5) * smoothstep((14.5 - ax) / 4.0) * (1.0 + 0.5 * n3) * (M.V > 44.0)
     Yo -= 0.35 * np.exp(-(ax / 1.6) ** 2 - ((M.V - 43.6) / 1.8) ** 2)
     # the groove forward from the greater palatine foramen at the foot of the side wall, the ridge on its inner side, a second fainter groove
-    run = smoothstep((M.V - FORAMEN[1] + 1.0) / 2.0) * smoothstep((82.0 - M.V) / 10.0)
+    run = smoothstep((M.V - FORAMEN[1] + 1.0) / 2.0) * smoothstep((79.0 - M.V) / 10.0)
     deep = np.interp(M.V, [46, 56, 70, 82], [1.15, 0.95, 0.6, 0.25]) * (1.0 + 0.25 * n1)
     Yo += run * deep * np.exp(-((wall - 3.6) / 1.05) ** 2)
     Yo -= run * 0.38 * np.exp(-((wall - 5.7) / 0.9) ** 2) * (1.0 + 0.5 * n1)
-    Yo += run * smoothstep((74.0 - M.V) / 6.0) * 0.32 * np.exp(-((wall - 7.6) / 0.9) ** 2)
+    Yo += run * smoothstep((71.5 - M.V) / 6.0) * 0.32 * np.exp(-((wall - 7.6) / 0.9) ** 2)
     # ---- the suture across (the one on the midline is cut after the halves are joined, with its own wander: surface.py)
     cross = wavy(TRANSVERSE, 0.75, 31)
     dc, _ = to_line(M, cross)
@@ -114,7 +114,7 @@ def surface(line, table, h=0.5, log=print):
     Yo += 0.5 * np.exp(-(dc / max(hw, 0.42)) ** 2)
     Yo = relief_mirror(M, Yo)                                 # the other side is this one mirrored
     log("palate: roof %.1f mm above the gum at the first molar, %.1f behind the canines; hind edge at z %.1f, spine at z %.1f" % (
-        at(M, Yb, 0.0, 66.0) - table["crest y"][5], at(M, Yb, 0.0, 84.0) - table["crest y"][2], HIND[6][1], HIND[-1][1]))
+        at(M, Yb, 0.0, 66.0) - table["crest y"][5], at(M, Yb, 0.0, 81.0) - table["crest y"][2], HIND[6][1], HIND[-1][1]))
     return dict(M=M, Yb=Yb, Yo=Yo, reg=reg, wall=wall, cross=cross, hind=hind, line=A)
 
 
@@ -155,8 +155,8 @@ def build(F, line, table, log=print):
     Mf, rf = foramina.outline_map(foramina.fair(pear, 0.2), cell=0.2, margin=3.0)
     ysf = M.sample(Yb, Mf.U, Mf.V)
     F.cut(foramina.Opening(Mf, rf, ysf, 6.5, rim=0.6 * np.ones(Mf.U.shape), mouth=2.4, taper=0.2, lean=(0.0, -0.3)), 0.5)
-    yf = at(M, Yb, 0.0, 83.5)
-    F.cut(sdf.Tube(np.array([(1.0, yf + 3.5, 83.2), (1.9, yf + 7.5, 81.8), (2.7, yf + 13.0, 79.6)]), 0.85), 0.4)
+    yf = at(M, Yb, 0.0, 80.5)
+    F.cut(sdf.Tube(np.array([(1.0, yf + 3.5, 80.2), (1.9, yf + 7.5, 78.8), (2.7, yf + 13.0, 76.6)]), 0.85), 0.4)
     # greater palatine foramen: an oval longer front to back, its canal running up and a little back; open forward into the groove
     c = np.array(FORAMEN); oval = foramina.ragged(c + np.array(foramina.ROUNDISH) * np.array([1.3, 2.35]), 53, 0.1, n=9)
     Mg, rg = foramina.outline_map(oval, cell=0.2, margin=3.0)
@@ -166,6 +166,6 @@ def build(F, line, table, log=print):
     log("palate: plate %.1f mm thick in the middle of each half at the first molar, %.1f on the midline; incisive fossa 3.9 by 7.5 mm" % (
         at(M, NF - Yb, 7.0, 66.0), at(M, NF - Yb, 0.0, 66.0)))
     P["NF"] = NF
-    zs = np.arange(44.2, 79.6, 0.4)                                       # the suture down the midline, for surface.py to cut
+    zs = np.arange(44.2, 76.6, 0.4)                                       # the suture down the midline, for surface.py to cut
     P["median"] = np.column_stack([np.zeros(len(zs)), M.sample(Yo, np.zeros(len(zs)), zs) - 0.12, zs])
     return P
