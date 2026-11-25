@@ -399,8 +399,13 @@ def cuboid(h=0.3, log=print, relief=1.0, upto="all", poses=None, ink=INK):
 NAV_PLAN = [((u - 377.0) * 0.208, (v - 440.0) * 0.208) for u, v in [
     (310, 398), (330, 402), (350, 406), (370, 408), (390, 405), (410, 397), (425, 391),        # behind, the talus's head
     (435, 400), (443, 415), (447, 432), (445, 450), (437, 465), (425, 477),                     # medial, the tuberosity
-    (410, 486), (390, 491), (365, 488), (340, 479), (318, 470),                                 # in front, the cuneiforms
-    (308, 455), (304, 430), (305, 410)]]                                                         # the lateral end
+    (410, 485), (398, 488), (385, 492), (372, 494), (360, 495),                                 # in front: the first cuneiform's, to the notch where
+    (352, 487), (340, 480), (320, 475), (305, 472), (292, 469),                                 # its joint with the second meets the border; the second's
+    (281, 457), (270, 441),                                                                     # the third's, out to the front lateral corner
+    (276, 428), (285, 414), (293, 403), (300, 397)]]                                            # the lateral border, oblique, along the cuboid
+# (the lateral border as Fig. 268 draws it: not a short upright end at x -15, as first read, but an oblique line along
+# the cuboid's medial border from (298, 396) to the front lateral corner at (270, 441), x -22.3, where the joints with the
+# third cuneiform and the cuboid meet; and in front the two cuneiform joints meet the border at u 358 (x -4.0) and 290 (x -18.1))
 NAV_SIDE = [((u - 210.0) * 0.49, (80.0 - v) * 0.49) for u, v in [
     (204, 44), (202, 60), (200, 77), (195, 85), (190, 90), (187, 101), (188, 110), (193, 116),   # behind, up to down
     (200, 118), (207, 116), (211, 110), (221, 94), (229, 77), (231, 64), (226, 47), (218, 43), (210, 42)]]   # in front
@@ -421,8 +426,39 @@ NAV_ROUGH7 = [
     ([(222, 180), (250, 120), (296, 72), (318, 85), (302, 200), (302, 330), (330, 385), (300, 380), (255, 330), (226, 260)], 45, 10),
     ([(565, 412), (610, 390), (652, 345), (690, 330), (712, 380), (712, 440), (690, 472), (640, 476), (590, 462)], 40, 9),
     ([(345, 410), (480, 412), (600, 404), (560, 440), (470, 452), (400, 455), (345, 432)], 20, 5)]
-TALAR_OUT = 5.0     # mm: how far the head is pushed back outside the talar surface's border (no hollow there)
-TALAR_EASE = 3.0    # mm inside the border over which the hollow comes to its full depth
+# The surface for the talus is cut by the talus's own head (talus.py, accepted): an ellipsoid fitted to its articular
+# surface (the front 9 mm that faces forward: 0.4 mm rms), its oval standing 33 degrees from horizontal, lateral end up,
+# turned 5 degrees about the vertical as Fig. 268 lays the talus, and seated where Fig. 277's border of the surface (the
+# ring NAV_TALAR, carried on to this bone in that plate's pose) lies on the head (1.1 mm rms). The hollow is that head
+# grown by the joint's gap. (So seated, the talus lies 11 mm lower than Fig. 290's outline of its body puts it, which
+# the outline of this bone and its talar ring in Fig. 277 cannot give way to: an open conflict between the plates and
+# the talus's head height.)
+NAV_HEAD_C = (-1.64, 4.04, -24.42)       # mm, this frame
+NAV_HEAD_AX = [[0.837, 0.548, 0.004], [-0.543, 0.83, -0.128], [-0.073, 0.105, 0.992]]   # its axes (columns) in this frame
+NAV_HEAD_R = (21.6, 16.58, 25.0)         # mm
+NAV_GAP = 1.3                            # mm
+# The hind faces of the three cuneiforms as cuneiforms.py poses them (its PLACE, read 25 Nov): each a smooth
+# surface fitted to the face (0.5, 0.3 and 0.7 mm rms), in this frame: w = q0 + q1 a + q2 b + q3 a^2 + q4 ab + q5 b^2
+# along n (toward this bone) at (a, b) along e1, e2 from c, over the face's extent a, b. Refit if those bones move.
+NAV_CUNE_FACES = {
+    "first": dict(c=(2.54, -0.74, 9.44), n=(0.019, 0.272, -0.962), e1=(1.0, 0.0, 0.02), e2=(0.005, -0.962, -0.272),
+                  q=(0.6993, 0.2332, -0.123, -0.1197, 0.0306, -0.0025), a=(-5.5, 4.9), b=(-9.3, 11.0)),
+    "second": dict(c=(-11.12, 6.94, 7.13), n=(0.278, -0.111, -0.954), e1=(0.96, 0.0, 0.28), e2=(-0.031, -0.994, 0.106),
+                   q=(1.076, -0.2072, -0.0106, -0.0315, 0.0174, -0.0243), a=(-8.5, 8.2), b=(-8.8, 9.5)),
+    "third": dict(c=(-19.17, 3.29, 1.96), n=(0.821, 0.071, -0.567), e1=(0.568, 0.0, 0.823), e2=(0.059, -0.997, -0.041),
+                  q=(1.5408, -0.3859, -0.072, -0.1682, -0.0491, -0.0266), a=(-4.8, 4.8), b=(-9.7, 11.4))}
+NAV_CUNE_GAP = 0.75      # mm: the joint's gap to them (the blend below adds to it)
+NAV_CUNE_WIN = 6.0       # mm beyond each face's extent over which its hold eases out, falling back as far (eased faster, its edge printed as a straight crease)
+NAV_CUNE_BLEND = 1.8     # mm over which each such face meets the rest of the bone (met sharply, it stood as a cut cliff)
+NAV_CLEAR = 0.8          # mm: the least gap to them and to the talus's head once the surface's layers are on
+NAV_CLEAR_BLEND = 1.5    # mm (taken back over less, the raised rim and ridges were cut off along a straight crease)
+NAV_PLAN_EASE = 1.2      # mm
+NAV_PLAN_OUT = 0.9       # mm
+NAV_SIDE_GIVE = 4.0      # mm
+NAV_SIDE_FRONT = 1.5     # mm
+NAV_TUB = (10.5, -13.5, -4.0)            # the tuberosity's centre: Fig. 268's medial bulge (x 14.6 at z -1.7), Fig. 290's lowest point behind
+TALAR_OUT = 5.0     # mm: how far the head is pushed back well outside the talar surface's border (no hollow there)
+TALAR_FREE = 0.5    # mm outside the border within which the hollow is the head's own shape, running out as the head curves away
 TALAR_LIP = 0.45    # mm: the rim at the border
 NAV_FRONT_R = 1.3   # mm: the front border's rounding
 NAV_LOW_R = 1.8     # mm more along its lower part
@@ -447,10 +483,13 @@ NAV_MARKS = {"Gray276": [
     ("area", [(267, 113), (279, 123), (282, 139), (275, 163), (255, 183), (235, 191), (223, 183), (219, 163), (223, 143), (235, 125), (251, 116)], -0.25, 0.9)]}
 
 
-def _slab(poly, a, z, across=0, step=0.2):
+def _slab(poly, a, z, across=0, step=0.2, ease=2.5, give=None, give_front=0.0):
     """How far a point lies behind a traced outline's back border or in front of its front border (mm, below 0
     between), the borders read along z at each value of the other coordinate (`across` says which of the outline's two
-    is that one: 0 for (x, z) outlines, 1 for (z, y)); beyond the outline's ends its end values hold."""
+    is that one: 0 for (x, z) outlines, 1 for (z, y)); beyond the outline's ends its end values hold. `ease`: mm over
+    which the borders are eased along the other coordinate; `give`: mm the back border is let out at each value of it
+    (where the plate's border is a joint line that a neighbour hides, not the bone's edge); `give_front`: mm the front
+    border is let out."""
     P = sdf.spline(np.asarray(poly, float), 0.4, closed=True)
     if across == 1:
         P = P[:, ::-1]
@@ -463,7 +502,10 @@ def _slab(poly, a, z, across=0, step=0.2):
     zbr = np.where(ok, zs[np.argmax(m, 1)], np.nan); zfr = np.where(ok, zs[m.shape[1] - 1 - np.argmax(m[:, ::-1], 1)], np.nan)
     grid = np.arange(lo[0], hi[0] + step, step)
     zb = np.interp(grid, rows[ok], zbr[ok]); zf = np.interp(grid, rows[ok], zfr[ok])
-    zb = ndi.gaussian_filter1d(zb, 2.5 / step, mode="nearest"); zf = ndi.gaussian_filter1d(zf, 2.5 / step, mode="nearest")
+    zb = ndi.gaussian_filter1d(zb, ease / step, mode="nearest"); zf = ndi.gaussian_filter1d(zf, ease / step, mode="nearest")
+    if give is not None:
+        zb = zb - give(grid)
+    zf = zf + give_front
     b = np.interp(a, grid, zb); f = np.interp(a, grid, zf)
     return np.maximum(b - z, z - f).astype(np.float32)
 
@@ -471,7 +513,7 @@ def _slab(poly, a, z, across=0, step=0.2):
 def navicular(h=0.3, log=print, relief=1.0, upto="all", poses=None, ink=INK):
     """upto="body": inside the plan (Fig. 268) and the side (Fig. 290), what Fig. 276's pose is fitted on; "hull":
     within Fig. 276's outline as well; "forms": with the forms cut by hand."""
-    F = Field((-22.0, -24.0, -16.0), (23.0, 24.0, 16.0), h)
+    F = Field((-27.0, -24.0, -16.0), (23.0, 24.0, 16.0), h)
     X, Y, Z = F.coords((slice(None),) * 3)
     V = {v["fig"]: v for v in NAVICULAR if v["fig"] == "Gray276"}
     tr = traces("navicular")
@@ -483,7 +525,13 @@ def navicular(h=0.3, log=print, relief=1.0, upto="all", poses=None, ink=INK):
     # Fig. 276 rules the bone's section across its line of sight; the plan and the side only say how far it reaches
     # back and forward at each x and at each height (their front and back borders), so the solid fills Fig. 276's
     # outline and lies within the other two where the pose is right.
-    D = sdf.smax(_slab(NAV_PLAN, X, Z), _slab(NAV_SIDE, Y, Z, across=1), 2.5)
+    # (Fig. 290's back border, above the bone's middle, is the joint line where the talus's head hides the bone: what of
+    # the lateral end lies further back there is out of that plate's sight, and Fig. 268's plan and the head rule it.
+    # Its front border is the joint with the first cuneiform, which hides what of the bone lies lateral of it and further
+    # forward, the notch where the first two cuneiforms meet: let out a little, so Fig. 268's front rules there.
+    # The plan's borders are eased over a millimetre only, so its notch where the first two cuneiforms meet stays; and
+    # let out by what the meeting of the solids and the easing below take off a convex border, so the plan keeps its line)
+    D = sdf.smax(_slab(NAV_PLAN, X, Z, ease=NAV_PLAN_EASE) - NAV_PLAN_OUT, _slab(NAV_SIDE, Y, Z, across=1, give=lambda y: NAV_SIDE_GIVE * _ss((y + 2.0) / 4.0), give_front=NAV_SIDE_FRONT), 2.5)
     fig = "Gray276"; px = V[fig]["s"] * P[fig][3]; B6 = pm.basis(V[fig], P[fig][:3])
     d = tr[fig + "_sdf"].astype(np.float32) * (P[fig][3] / tr[fig + "_pose"][3])
     o6 = _read(ndi.gaussian_filter(d, 1.3 / px), *_pixels(V[fig], P[fig], X, Y, Z))
@@ -504,26 +552,23 @@ def navicular(h=0.3, log=print, relief=1.0, upto="all", poses=None, ink=INK):
     f7 = "Gray277"; V7 = [v for v in NAVICULAR if v["fig"] == f7][0]; P7 = np.asarray((poses or {}).get(f7, tr[f7 + "_pose"]), float)
     px7 = V7["s"] * P7[3]; sh7 = tr[f7 + "_sdf"].shape
     # 2a. behind, the surface for the talus: "oval, concave, broader laterally than medially". Fig. 277 looks into
-    # it: its border is traced there (NAV_TALAR), and the hollow is cut only within it, deepest (the head as Fig. 268
-    # draws its front border, some 17 mm in radius from side to side) 2 to 3 mm inside the border and shallowing to
-    # nothing at it, so that what is left round it stands as a rim all round, as the plate draws it.
-    c = np.array([0.0, 0.0, -15.6]) + 2.0 * ax_
-    rr = (np.stack(np.broadcast_arrays(X - c[0], Y - c[1], Z - c[2]), -1) @ np.stack([ax_, B[1], [0.0, 0.0, 1.0]], 1)).astype(np.float32)
-    a = 17.5 + 1.2 * np.tanh(rr[..., 0] / 8.0)                       # the lateral half the broader
-    head = (np.sqrt((rr[..., 0] / a) ** 2 + (rr[..., 1] / 11.5) ** 2 + (rr[..., 2] / 13.0) ** 2) - 1.0) * 11.5; del rr, a
+    # it: its border is traced there (NAV_TALAR). The hollow is the talus's head grown by the joint's gap (NAV_HEAD_*),
+    # within the border and for TALAR_FREE beyond it, where the head curves away from the bone; further out none. The
+    # rim the plate draws round it is laid below (the lip on the border).
+    head = _head(X, Y, Z, NAV_GAP)
     fm = _mask([NAV_TALAR], sh7, 0.5) > 0.5
     fsd = ndi.gaussian_filter((ndi.distance_transform_edt(fm) - ndi.distance_transform_edt(~fm)).astype(np.float32), 0.6 / px7) * px7   # mm inside the border
     fin = _read(fsd, *_pixels(V7, P7, X, Y, Z))
-    head = head + TALAR_OUT * (1.0 - _ss((fin - 0.2) / TALAR_EASE))
+    head = head + TALAR_OUT * _ss((-fin - TALAR_FREE) / 2.0)
     D = sdf.smax(D, -head, 1.2); del head
     # 2b. the tuberosity, at the medial end, rounded, and reaching down and back past the body (Fig. 268 has it bulge
     # medially behind the first cuneiform, Fig. 290 low at the back of the bone, Fig. 276 as the thick rounded rim of
     # its left end, Fig. 277 as the low hind end of the bone's right side)
-    t = np.array([0.0, 0.0, -3.5]) - 15.0 * ax_ - 1.5 * B[1]
-    D = sdf.smin(D, Ellipsoid(tuple(t), (4.0, 4.8, 4.6), rot((0, 0, 1), -40.0))(X, Y, Z), TUB_BLEND)
+    t = np.asarray(NAV_TUB)
+    D = sdf.smin(D, Ellipsoid(tuple(t), (4.0, 4.8, 4.6), rot((0, 0, 1), -30.0))(X, Y, Z), TUB_BLEND)
     # (the plantar surface has a shallow groove lateral to the tuberosity, running from behind forward under the
     # tendon's slip: cut along the bone's lowest surface there)
-    g0 = t + 6.5 * ax_
+    g0 = t + np.array([-6.5, 0.0, 0.0])
     i0 = int(round((g0[0] - F.lo[0]) / F.h)); col = D[i0, :, :]; low = np.where((col < 0).any(0), F.ax[1][np.argmax(col < 0, 0)], np.nan)
     path = []
     for zz in (-5.0, -2.5, 0.0, 2.5):
@@ -534,7 +579,10 @@ def navicular(h=0.3, log=print, relief=1.0, upto="all", poses=None, ink=INK):
     # meet they leave a straight crease, which the dorsal view showed as rectangular steps: the whole is eased over a
     # millimetre)
     D = ndi.gaussian_filter(D, NAV_SOFT / F.h)
-    F.D = np.clip(D, -12.0, 12.0).astype(np.float32); del D, fin
+    # (and kept a joint's gap off the three cuneiforms as cuneiforms.py poses them: their hind faces stand a little
+    # inside Fig. 268's joint lines, the third's lower part further, where its postero-lateral angle runs back)
+    D = _clear(D, X, Y, Z, NAV_CUNE_GAP, blend=NAV_CUNE_BLEND)
+    F.D = np.clip(D, -12.0, 12.0).astype(np.float32); del D
     if upto == "forms":
         return F
     # 3. the joint surfaces in front ("subdivided by two ridges into three facets"), smooth; the two ridges between
@@ -595,8 +643,36 @@ def navicular(h=0.3, log=print, relief=1.0, upto="all", poses=None, ink=INK):
         F.D = (D0 + (F.D - D0) * _shown(F, V[fig], P[fig], q6, deep=3.0)).astype(np.float32); del D0
     if ink:
         _lay(F, [V[fig]], P, {fig: tr[fig + "_ink"].astype(np.float32) * (ink / 50.0) * q6}, face=0.55, shared=True, rough=True)
+    # (what the layers raised into a joint's gap is taken back: no part of the bone runs into the talus's head or a
+    # cuneiform; met over half a millimetre, so no edge is left where it was)
+    F.D = _clear(F.D, X, Y, Z, NAV_CLEAR, head=_ss((fin + 3.0) / 1.5), blend=NAV_CLEAR_BLEND)
     log("navicular: built from Fig. 276 and 277, its plan from Fig. 268 and its side from Fig. 290")
     return _one_piece(F)
+
+
+def _head(X, Y, Z, grow):
+    """The talus's head (NAV_HEAD_*) grown by `grow` mm, as a field: below 0 inside."""
+    rr = (np.stack(np.broadcast_arrays(X - NAV_HEAD_C[0], Y - NAV_HEAD_C[1], Z - NAV_HEAD_C[2]), -1) @ np.asarray(NAV_HEAD_AX)).astype(np.float32)
+    ab = np.asarray(NAV_HEAD_R) + grow
+    return (np.sqrt((rr[..., 0] / ab[0]) ** 2 + (rr[..., 1] / ab[1]) ** 2 + (rr[..., 2] / ab[2]) ** 2) - 1.0) * ab.min()
+
+
+def _clear(D, X, Y, Z, gap, head=None, blend=0.5):
+    """D kept `gap` mm off the hind faces of the three cuneiforms (NAV_CUNE_FACES) and, where `head` (a
+    weight) is 1, off the talus's head: each a smooth surface, met over half a millimetre and only where the bone
+    reaches it. (The head's ellipsoid is the talus only over its joint surface: the weight keeps it to Fig. 277's
+    border of that surface and 3 mm round it; beyond, at the lateral end, it would take off what Fig. 268 draws.)"""
+    for f in NAV_CUNE_FACES.values():
+        c, n, e1, e2 = (np.asarray(f[k], np.float32) for k in ("c", "n", "e1", "e2"))
+        P = np.stack(np.broadcast_arrays(X - c[0], Y - c[1], Z - c[2]), -1).astype(np.float32)
+        a, b, w = P @ e1, P @ e2, P @ n; del P
+        q = f["q"]; face = q[0] + q[1] * a + q[2] * b + q[3] * a * a + q[4] * a * b + q[5] * b * b
+        m = NAV_CUNE_WIN
+        win = _ss((a - f["a"][0] + m) / m) * _ss((f["a"][1] + m - a) / m) * _ss((b - f["b"][0] + m) / m) * _ss((f["b"][1] + m - b) / m)
+        D = sdf.smax(D, (face + gap - w - NAV_CUNE_WIN * (1.0 - win)).astype(np.float32), blend)
+    if head is not None:
+        D = sdf.smax(D, -_head(X, Y, Z, gap) - 20.0 * (1.0 - head), min(blend, 0.5))
+    return D.astype(np.float32)
 
 
 def _rough7(patches, rng):

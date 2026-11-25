@@ -3827,7 +3827,19 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
   - [ ] The navicular is reopened (accepted on Fig. 276 and 277 only): on
     Fig. 268, a right foot, its front outer corner stops 6 to 8 mm
     short, so the third cuneiform is 3.4 mm from touching it. Size is
-    right; the tilt and the plan outline are wrong. Task B running.
+    right; the tilt and the plan outline are wrong.
+    Task B round 1 (not accepted, kept): tilt alone cannot fix it (width
+    plus height stays 66 mm at any roll; the plates need 74): the
+    missing 7 mm is the outer end, which Fig. 276 foreshortens. Refitted
+    with its facet ridges on Fig. 268's joint lines: plan gap mean 0.68
+    mm (was 1.67), worst 2.0 (was 7.3), corner at x -20.7 (was -14.8),
+    no overlap with talus, cuboid or cuneiforms, third cuneiform 1.1 mm
+    off. Wrong: facets are creased slabs, a slit on the talar hollow's
+    rim, a shelf edge in front. Found on the way: the second and third
+    cuneiforms were nudged back 1 to 1.6 mm to reach the old short
+    navicular (to be reset), and the talus seated in the navicular sits
+    about 11 mm lower than Fig. 290 and 268 draw it: the foot needs one
+    assembly frame from Fig. 268, 290 and 291 before more bones.
   - [ ] The metatarsals, phalanges; the foot together.
 - [ ] F11. 25 Nov, the owner: "switch back to the skull and mandible so we
   fix every single part of them especially the mandible and skull base";
