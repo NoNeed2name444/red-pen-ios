@@ -23,8 +23,8 @@ from relief import Map, Slab
 SEPTUM = [   # the bony partition seen from the side: (z, y), closed, starting under the tip of the nasal bones
     (104.0, 8.5), (97.0, 3.2), (89.0, -3.2), (81.5, -9.2), (76.5, -12.6),      # front edge of the perpendicular plate, down and back to the gap's corner
     (81.0, -16.4), (87.0, -21.0), (93.0, -25.0), (97.6, -27.3),                 # front edge of the vomer, down and forward to the crest behind the spine
-    (98.0, -30.5), (84.0, -30.5), (77.0, -29.4), (71.0, -27.0), (60.0, -26.0), (50.0, -25.9), (43.6, -26.5),   # its foot, sunk in the crest along the floor: never below the palate's own middle
-    (42.6, -24.4), (40.9, -21.4), (39.0, -17.6), (36.9, -14.2),  # the vomer's free hind edge: hollowed ("free, concave"), up and back
+    (98.0, -30.5), (84.0, -30.5), (77.0, -29.4), (71.0, -27.0), (60.0, -26.0), (50.0, -25.9), (43.6, -26.3), (38.4, -26.4),   # its foot, sunk in the crest along the floor: never below the palate's own middle
+    (37.2, -25.0), (36.9, -22.6), (36.5, -19.8), (35.9, -16.8), (35.0, -13.9),  # the vomer's free hind edge: hollowed ("free, concave"), up and back from close before the posterior nasal spine (Fig. 187)
     (34.5, -11.3), (32.4, -9.3), (30.8, -8.0),                                  # under the sphenoid's body (Fig. 187: the wings end at z 28)
     (29.5, -5.0), (45.0, -2.0), (47.0, 16.0), (49.0, 18.6), (82.0, 18.6), (91.0, 15.0), (100.0, 12.0),      # sunk under the sphenoid's body, the roof (the plate over the olfactory cleft, sinus.cleft) and the nasal bones
 ]

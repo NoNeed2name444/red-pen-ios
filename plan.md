@@ -4115,6 +4115,18 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     squared block and now shows a sharp notch; the vomer's foot ends 8
     mm short of the spine (nose.py); bones.py line 258 still carries
     the old border; no whole-skull build was run (needs 13 GB).
+    Pyramidal process, vomer's foot, bones map (pterygoid.py, nose.py,
+    bones.py, palate.py), kept, not accepted: the process and the
+    plates' lower ends moved back up to 3 mm and now stand within 1 mm
+    of Fig. 996 at x 17.6 to 22.6; the notch is gone; the process is a
+    rounded wedge; the outer plate's lower hind corner no longer
+    sticks back as a rod (Fig. 189); the vomer's hind edge reaches the
+    spine; bones.py reads palate.HIND and paints the new hind palate
+    as palatine bone. Border, teeth, bite unchanged; clearances to the
+    last molar and tuberosity grew. Not accepted, repair 1: seen from
+    behind, the process and the palate's corner make a level straight
+    band running outward from the hamulus; the outer plate's lower
+    part still reads as a dark bar edge-on. Still regional builds only.
     Task C, repair 1 (head and neck accepted; task closed): the ring is
     gone. Each section under the head is solved to silhouette targets
     from Fig. 176 and 177: the hind edge runs straight into the head,

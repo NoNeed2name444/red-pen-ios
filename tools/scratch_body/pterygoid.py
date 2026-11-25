@@ -26,14 +26,16 @@ from relief import Map, Slab
 # ---- outlines on the side view, (z, y), closed: from the root's hind end down the free hind border, along the lower border, up the front
 LATERAL = [
     (26.0, -5.0), (26.5, -8.0), (27.5, -10.6), (28.9, -13.0), (30.3, -15.4), (31.5, -17.8), (32.3, -20.2),       # hind border: hollowed above
-    (31.6, -22.0), (32.6, -23.5), (32.9, -26.2), (32.5, -28.4), (32.9, -29.6), (31.8, -32.0), (30.8, -33.9), (31.3, -35.8),   # a small point half-way down, a notch below it; the lower corner turned back
-    (33.0, -36.7), (34.9, -36.0), (36.8, -37.0), (38.9, -36.5), (41.0, -37.4), (43.0, -37.1),                    # lower border, not a ruled line
+    (31.6, -22.0), (32.6, -23.5), (32.9, -26.2), (33.0, -28.4), (33.1, -29.6), (33.3, -32.0), (33.0, -33.0), (33.6, -34.0),   # a small point half-way down; the lower corner turned back a little (Fig. 189), not a rod
+    (35.0, -35.0), (36.8, -36.4), (38.9, -36.5), (41.0, -37.4), (43.0, -37.1),                    # lower border, rising back to the corner, not a ruled line
     (44.2, -34.0), (44.2, -20.0), (44.2, -5.0)]                                                                  # (its front, from z 41, is sunk in the wall that joins the plates)
 MEDIAL = [
     (27.0, -5.0), (27.9, -8.8), (28.6, -10.4), (29.9, -12.6), (31.3, -15.6), (32.4, -18.8), (33.1, -22.2),       # hind border: from the tubercle at its root
     (33.9, -25.6), (35.1, -28.9), (36.5, -31.8), (37.6, -34.4), (38.2, -36.6), (38.3, -38.3),                    # down and forward, a slow S, to the hook
-    (39.5, -38.3), (40.9, -37.0), (42.3, -35.3), (43.6, -33.5), (44.8, -31.8),                                   # lower border: up and forward from the hook to the palate's hind edge
-    (45.6, -30.2), (46.3, -28.7), (50.5, -28.2), (50.5, -5.0)]        # (in front of the palate's hind edge it ends inside the palate's plate, a millimetre above the mouth's roof: it showed there as a bump)                                                   # carried forward above the palate as the palatine's upright plate (the nose's side wall)
+    (39.5, -38.3)]
+# its lower border from the hook up to the palate's hind corner, as it now stands (not moved back with the rest below)
+MEDIAL_FOOT = [(37.0, -37.2), (37.4, -35.6), (37.9, -33.6), (38.6, -31.4), (39.6, -29.6), (41.5, -28.9),
+               (46.3, -28.7), (50.5, -28.2), (50.5, -5.0)]        # (in front of the palate's hind edge it ends inside the palate's plate, a millimetre above the mouth's roof: it showed there as a bump)                                                   # carried forward above the palate as the palatine's upright plate (the nose's side wall)
 
 # ---- where each sheet lies: (z, y, x of its middle) points; a smooth surface is drawn through them.
 # The outer plate is turned outward more and more toward its hind border and its lower end ("everted"): seen from behind it
@@ -49,8 +51,15 @@ MEDIAL_X = [
     (28.5, -8.0, 13.0), (30.5, -14.0, 13.9), (32.6, -20.0, 14.3), (34.5, -27.0, 13.8), (36.8, -32.0, 13.9), (38.2, -37.5, 14.7)]
 HAMULUS = [(14.7, -36.8, 38.5), (14.8, -39.4, 38.7), (15.5, -41.6, 38.6), (16.8, -42.6, 38.2), (17.9, -42.4, 37.7)]
 FISSURE = [(26.0, -4.0, 43.6), (25.2, -10.0, 42.5), (24.4, -16.0, 41.8), (24.3, -21.0, 41.9), (24.6, -25.0, 42.3)]
-PYRAMID = ((17.6, -34.3, 41.6), (3.9, 3.5, 2.5))       # the palatine's pyramidal process (centre, half-sizes; turned 28 degrees about the upright)
-SCAPHOID = ((15.3, -9.6, 29.6), (1.5, 3.0, 2.3))      # the small boat-shaped hollow at the inner plate's root, between the two lips of its hind border
+# The process's lower part stands further back than first drawn: the palate's hind border was moved back to Fig. 996's place
+# (palate.HIND: spine 12.6 mm behind the third molars' crown line), and Fig. 187 has the plates' lower ends and the pyramidal process
+# level with the posterior nasal spine (the hamulus a little behind it). Everything below y -22 is carried back, up to BACK mm
+# from y -34 down; the root and the fissure stay.
+BACK = 3.0
+
+
+def back(z, y):
+    return z - BACK * smoothstep((-22.0 - y) / 12.0)
 
 
 def smoothstep(t):
@@ -58,18 +67,35 @@ def smoothstep(t):
     return t * t * (3 - 2 * t)
 
 
+LATERAL = [(back(z, y), y) for z, y in LATERAL]
+MEDIAL = [(back(z, y), y) for z, y in MEDIAL] + MEDIAL_FOOT
+LATERAL_X = [(back(z, y), y, x) for z, y, x in LATERAL_X]
+MEDIAL_X = [(back(z, y), y, x) for z, y, x in MEDIAL_X]
+HAMULUS = [(x, y, back(z, y)) for x, y, z in HAMULUS]
+# the palatine's pyramidal process: a rounded wedge from the palate's hind outer corner and the tuberosity, backward and a little
+# outward and down into the angle between the two plates' lower ends; its hind face, broad and rounded, level with the spine
+# (Fig. 996: 12.7 to 13 mm behind the third molars 17 to 20 mm out; Fig. 169: below the level of the horizontal plate).
+# (x, y, z) along its middle, its half-height and half-width at each
+PYRAMID = ([(18.2, -33.2, 43.2), (19.0, -34.4, 40.0), (19.3, -34.6, 37.4)], [2.9, 2.4, 1.6], [4.0, 4.0, 3.8])
+
+
+def pyramid():
+    return Tube(np.array(PYRAMID[0], float), [(0, PYRAMID[1][0]), (0.5, PYRAMID[1][1]), (1, PYRAMID[1][2])], [(0, PYRAMID[2][0]), (0.5, PYRAMID[2][1]), (1, PYRAMID[2][2])])
+SCAPHOID = ((15.3, -9.6, 29.6), (1.5, 3.0, 2.3))      # the small boat-shaped hollow at the inner plate's root, between the two lips of its hind border
+
+
 class Web:
     """The bone that joins the two plates in front: the front wall of the hollow between them (below, where the plates
     part, the palatine's pyramidal process fills the cleft). Its hind face is the hollow's floor."""
     def __init__(self, M, xm, xl):
         self.M, self.cm, self.cl = M, M.smooth(xm), M.smooth(xl)
-        self.bounds = (np.array([11.0, -39.0, 38.5]), np.array([25.0, -4.0, 45.5]))
+        self.bounds = (np.array([11.0, -39.0, 38.5 - BACK]), np.array([25.0, -4.0, 45.5]))
 
     def __call__(self, X, Y, Z):
         x, y, z = np.broadcast_arrays(np.abs(X), Y, Z)
         a = self.M.smooth_sample(self.cm, z, y); b = self.M.smooth_sample(self.cl, z, y)
-        zw = 40.6 + 0.9 * smoothstep((-14.0 - y) / 20.0)
-        d = np.maximum(np.maximum(a - x, x - b), np.maximum(zw - z, z - 44.6))
+        zw = back(40.6 + 0.9 * smoothstep((-14.0 - y) / 20.0), y)
+        d = np.maximum(np.maximum(a - x, x - b), np.maximum(zw - z, z - back(44.6, y)))
         d = np.maximum(d, np.maximum(y + 5.0, -35.0 - y))
         return (0.8 * d).astype(np.float32)
 
@@ -99,7 +125,7 @@ def build(F, log=print):
     # the palatine bone's pyramidal process: the rounded wedge that fills the cleft between the two plates' lower ends, behind the
     # palate's hind corner and inside the upper jaw's tuberosity (p. 168: "received into the angular interval between the lower
     # extremities of the pterygoid plates"); its hind face is the lowest part of the hollow between the plates
-    F.add(sdf.Ellipsoid(PYRAMID[0], PYRAMID[1], sdf.rot((0, 1, 0), 28.0)), 2.2)
+    F.add(pyramid(), 3.0)
     F.add(Tube(spline(np.array(HAMULUS, float), 0.5), [(0, 1.35), (0.5, 1.15), (1, 0.9)]), 0.9, keep=3)       # (at 1 mm and less it read as a wire from below)
     F.cut(sdf.Ellipsoid(*SCAPHOID), 0.8)
     # the cleft between the upper jaw's back and the outer plate's front border (pterygomaxillary fissure, Fig. 189): open above,

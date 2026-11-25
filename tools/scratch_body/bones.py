@@ -24,7 +24,7 @@ from scipy import ndimage, sparse
 import sdf
 from sdf import spline, Ellipsoid
 from relief import Map
-import pterygoid, nose
+import pterygoid, nose, palate
 
 C = np.array([0.0, 45.0, -2.0])           # the centre the braincase is drawn about (skull2.C)
 BONES = ["frontal", "parietal", "occipital", "temporal", "sphenoid", "ethmoid", "vomer", "maxilla", "zygomatic",
@@ -255,11 +255,13 @@ def paints(D, lo, h, ctx, log=print):
     put("maxilla", (-33, -42, 38), (33, -27, 50), lambda X, Y, Z: Ellipsoid((25.4, -34.6, 44.5), (5.8, 6.1, 4.5))(np.abs(X), Y, Z) < 0)
     put("maxilla", (-33, -38, 39), (33, -10, 52), lambda X, Y, Z: Ellipsoid((26.2, -24.0, 45.6), (5.7, 12.7, 5.0))(np.abs(X), Y, Z) < 0)   # the swelling above it, up the jaw's back
     # the palatine bone's level plate: the hard palate behind the suture across, as far out as the groove by the tooth-bearing process
-    hind = [(16.6, 41.2), (15.6, 43.0), (14.5, 44.2), (11.5, 45.0), (8.0, 45.3), (5.0, 44.9), (2.9, 44.2), (1.6, 43.3), (0.7, 42.5), (0.0, 42.2)]
-    poly = np.vstack([np.asarray(P["cross"], float), [(16.6, 46.3), (17.2, 43.5)], np.array(hind) - (0, 0.9), [(-0.5, 41.3), (-0.5, 56.1)]])
-    Mp = Map(-1.0, 19.0, 39.0, 58.0, 0.25); reg = Mp.region(poly)
-    put("palatine", (-19, -39.5, 39), (19, -24.0, 58), lambda X, Y, Z: inside(Mp, reg, np.abs(X), Z) & (Y < P["M"].sample(P["NF"], *np.broadcast_arrays(np.abs(X), Z)) + 0.6))
-    put("palatine", (-26, -41, 37), (26, -30, 45), lambda X, Y, Z: Ellipsoid(pterygoid.PYRAMID[0], tuple(r + 0.4 for r in pterygoid.PYRAMID[1]), sdf.rot((0, 1, 0), 28.0))(np.abs(X), Y, Z) < 0)   # pyramidal process (the wedge pterygoid.py adds)
+    hind = [p for p in palate.HIND if p[0] <= 16.6]                    # its free hind edge, from palate.py
+    poly = np.vstack([np.asarray(P["cross"], float), [(16.6, 46.3), (17.2, 43.5)], np.array(hind) - (0, 0.9), [(-0.5, hind[-1][1] - 0.9), (-0.5, P["cross"][0][1])]])
+    z0 = min(p[1] for p in hind) - 2.0
+    Mp = Map(-1.0, 19.0, z0, 58.0, 0.25); reg = Mp.region(poly)
+    put("palatine", (-19, -39.5, z0), (19, -24.0, 58), lambda X, Y, Z: inside(Mp, reg, np.abs(X), Z) & (Y < P["M"].sample(P["NF"], *np.broadcast_arrays(np.abs(X), Z)) + 0.6))
+    pyr = pterygoid.pyramid()                                          # pyramidal process (the wedge pterygoid.py adds)
+    put("palatine", (-26, -41, 32), (26, -29, 47), lambda X, Y, Z: np.minimum.reduce([pyr.segment(i, np.abs(X), Y, Z) for i in range(len(pyr.P) - 1)]) < 1.2)
     side = ctx.get("sidewall")
     if side is not None and side[1] is not None:
         Mw, xw = side

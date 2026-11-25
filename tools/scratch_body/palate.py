@@ -37,8 +37,8 @@ PNS = 35.6                                                    # where the spine'
 NECK_HALF = [3.1, 2.7, 3.7, 4.2, 4.2, 5.3, 5.3, 4.9]          # half of each tooth's thickness at the gum, lip side to tongue side (mm)
 FORAMEN = (17.7, 46.9)                                        # greater palatine foramen (x, z): inward of the third molar (Fig. 160)
 # the lesser foramina: on the base of the pyramidal process close to its union with the horizontal part (p. 168), behind the
-# greater one: Fig. 996 has them 5.7 and 7.2 mm behind it, Fig. 187 3 mm; (x, z, half-width, half-length) of each mouth
-LESSER = [(17.3, 42.7, 0.72, 1.15), (19.3, 41.4, 0.66, 0.95)]
+# greater one: Fig. 996 has them 5.7 and 7.2 mm behind it, 1.6 mm inward and 0.4 outward of it (Fig. 187: 3 mm behind); (x, z, half-width, half-length) of each mouth
+LESSER = [(16.1, 41.2, 0.72, 1.15), (18.1, 39.7, 0.66, 0.95)]
 # the suture across: from the midline outward, then back along the groove's inner side to the foramen (Fig. 996: about 3.5 mm in
 # front of the third molars' crown centres, the horizontal plates 16 mm long at the midline)
 TRANSVERSE = [(0.0, 51.6), (1.6, 51.9), (3.6, 51.5), (6.0, 51.8), (8.4, 51.4), (10.7, 51.7), (12.5, 51.3), (14.0, 50.4), (15.0, 49.6), (15.9, 48.9)]
@@ -101,7 +101,11 @@ def surface(line, table, h=0.5, log=print):
     # behind the greater palatine foramen the floor runs down into the under side of the pyramidal process (pterygoid.py), which
     # stands as low as the tooth-bearing process beside it: a slope from the foramen back, not a cliff 7 mm high at the process's front
     Ynf = ndimage.gaussian_filter(Yb, 3.0)                    # (the nose's side of the plate is counted from the floor as it was without that slope)
-    Yb = Yb - 6.5 * smoothstep((M.U - 12.6) / 4.2) * smoothstep((21.0 - M.U) / 2.5) * smoothstep((49.0 - M.V) / 4.5) * smoothstep((M.V - 39.5) / 3.0)
+    # and behind the last molar's socket the strip the teeth stand on does not run on at the gum's level: it rises into the
+    # tuberosity's rounded back (left at the gum it hung behind the tuberosity as a thin rod)
+    Yb = Yb + 5.0 * smoothstep((44.2 - M.V) / 3.5) * smoothstep((M.U - 19.0) / 2.5)
+    xm = np.interp(M.V, [38.0, 49.0], [12.8, 16.5])            # (the slope's foot runs in toward the pyramidal process, not straight back)
+    Yb = Yb - 6.5 * smoothstep((M.U - xm) / 4.2) * smoothstep((21.0 - M.U) / 2.5) * smoothstep((49.0 - M.V) / 4.5) * smoothstep((M.V - 38.0) / 3.0)
     Yb = ndimage.gaussian_filter(Yb, 3.0)
     wall = s - sb                                             # < 0: on the level strip the sockets are cut in
     dh, _ = to_line(M, hind)
