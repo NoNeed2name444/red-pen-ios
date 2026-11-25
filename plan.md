@@ -3969,6 +3969,20 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     long line on the inner face from below; the stretch behind the
     third molar is 46.6 mm (CT 33 to 44). Next: tooth widths in
     teeth.py, then both rows refitted through the packing.
+    Tooth widths (teeth.py, teeth2.py), accepted: every lower tooth
+    stood back to front (teeth.frame turned x round for the lower jaw;
+    hind cusps and root bends pointed forward), now fixed. A WIDTH
+    table scales each tooth along the row to Gray's size, built within
+    0.13 mm: upper 8.65 6.2 7.6 7.0 6.7 10.5 9.6 9.3, lower 4.9 5.75
+    6.95 7.1 7.3 10.45 9.95 10.75. A tooth's own size follows the
+    single-tooth plate (Fig. 1002) where the arch drawing disagrees,
+    so the upper row is 1.5 mm longer than Fig. 996. Contacts all on
+    the crowns' contact areas. Found: the socket targets given to both
+    row tasks were crown centres read off the plates, not sockets (the
+    supervisor's error); front crowns lean out, so sockets lie on a
+    smaller curve. Not yet done: both rows refitted with targets at the
+    crowns, and the jaws' sockets rebuilt and checked, since the lower
+    roots now bend the other way (socket walls move up to 6 mm).
     Task C, repair 1 (head and neck accepted; task closed): the ring is
     gone. Each section under the head is solved to silhouette targets
     from Fig. 176 and 177: the hind edge runs straight into the head,

@@ -16,8 +16,8 @@ def frame(s):
     t = np.array(s["along_arch"], float)
     x = t - (t @ z) * z; x /= np.linalg.norm(x)
     y = np.cross(z, x)
-    if y @ np.array(s["outward"], float) < 0:              # keep the cheek side outward
-        y = -y; x = -x
+    if y @ np.array(s["outward"], float) < 0:              # keep the cheek side outward and the distal side back: a mirror
+        y = -y                                             # (the lower left teeth; turning x round too stood them back to front)
     return np.column_stack([x, y, z]), np.array(s["position_mm"], float) + NECK_ABOVE_CREST * z
 
 

@@ -5,7 +5,7 @@ side its crowns came out as blocks on pegs. Here the outline from that side is t
 (Fig. 1002, "Permanent teeth. Right side", public domain; traced by trace_teeth.py into teeth_traced.json):
 the crown's bulge and its narrowing to the neck, the root's taper and its bend toward the back of the mouth,
 and for the lower molars the two roots and where they part. The sizes stay the textbook's (crown height, root
-length, greatest width); the shape from tongue to cheek, the cusps and the grooves stay anatomy_teeth's.
+length), the width along the arch is Gray's (WIDTH); the shape from tongue to cheek, the cusps and the grooves stay anatomy_teeth's.
 
 Same frame as anatomy_teeth: x toward the back of the arch, y toward the cheek, z toward the biting surface,
 the origin at the middle of the neck; millimetres.
@@ -17,10 +17,20 @@ from scipy import ndimage
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 import anatomy_teeth as AT
 
-ARCHES = AT.ARCHES
+# Each crown's greatest width along the arch (mm, central incisor to third molar), Gray's: the rows of Fig. 996 (upper, from
+# below) and Fig. 997 (lower, from above), each at the one scale its arch was traced at (the crowns' contacts measured along
+# the curve through their middles), held to where the same figure puts the crowns' middles and to the single teeth of
+# Fig. 1002 (one scale for all thirty-two, from their whole lengths). Where the two disagree (the upper canine, second
+# premolar, first and second molars: Fig. 996 is small and its readings scatter by 1 mm) the single tooth's plate is taken
+# for the tooth's own size, toward the usual range. The whole tooth is drawn to it along the arch (crown, neck,
+# root); its height, root and thickness stay the textbook's.
+WIDTH = {"upper": [8.65, 6.2, 7.6, 7.0, 6.7, 10.5, 9.6, 9.3],
+         "lower": [4.9, 5.75, 6.95, 7.1, 7.3, 10.45, 9.95, 10.75]}
+ARCHES = {a: [(k, n, kind, H, R, WIDTH[a][i], Wc * WIDTH[a][i] / W, B)
+              for i, (k, n, kind, H, R, W, Wc, B) in enumerate(AT.ARCHES[a])] for a in AT.ARCHES}
 _T = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "teeth_traced.json")))["teeth"]
 _P, _cache = {}, {}
-_OLD = (AT.shell, AT.root, AT.forked)
+_OLD = (AT.shell, AT.root, AT.forked, AT.ARCHES)
 
 
 def profile(arch, i):
@@ -175,7 +185,7 @@ def field(arch, i, X, Y, Z):
     """Negative inside tooth i of the arch (about the distance to its surface in mm)."""
     X, Y, Z = np.broadcast_arrays(X, Y, Z)
     _Now.P, _Now.R, _Now.two = profile(arch, i), ARCHES[arch][i][4], (arch == "upper" and i == 3)
-    AT.shell, AT.root, AT.forked = _shell, _root, _forked
+    AT.shell, AT.root, AT.forked, AT.ARCHES = _shell, _root, _forked, ARCHES
     try:
         F = _once(arch, i, X, Y, Z)
         w = np.exp(-(Z / 1.6) ** 2)                         # round the neck: the crown swells out of the root, with no ledge
@@ -184,7 +194,7 @@ def field(arch, i, X, Y, Z):
             F = F * (1 - w) + soft * w
         return F
     finally:
-        AT.shell, AT.root, AT.forked = _OLD
+        AT.shell, AT.root, AT.forked, AT.ARCHES = _OLD
 
 
 def tooth(arch, i, h=0.15, triangles=40000):
