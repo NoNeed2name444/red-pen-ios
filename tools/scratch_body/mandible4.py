@@ -229,6 +229,8 @@ def near_abs(M, pts, r):
     return np.exp(-(d / r) ** 2)
 
 
+WALL_MOLAR = 0.0                 # (Repair 1) the cheek wall's extra thickness over the first and second molars' roots (1.3 elsewhere); there the wall is 0.6 mm, 0.8 elsewhere
+
 def crest_line(S):
     """The alveolar margin's height over s (|s|, mm along the sheet): scalloped as a jaw's is. Over the middle of each socket the
     margin dips (to the crest of the tooth's own frame), between two teeth it rises into the septum's top, most between the
@@ -481,11 +483,15 @@ def maps(S, log=print):
         Pw = v @ R.T + p0
         sv, nv = S.sn(Pw[:, 0], Pw[:, 2])
         wall = 0.8 + 1.3 * smoothstep((-teeth.NECK_ABOVE_CREST - v[:, 2]) / 4.0)
+        # (Repair 1) the cheek plate over the first and second molars is thin (Fig. 997: the body slim outside the molars)
+        # (blended along the row from the second premolar's middle to the first molar's, and from the second molar's to the third's)
+        wm = smoothstep((np.abs(sv) - tn[4, 0]) / (tn[5, 0] - tn[4, 0])) * (1 - smoothstep((np.abs(sv) - tn[6, 0]) / (tn[7, 0] - tn[6, 0])))
+        wall_out = 0.8 - 0.2 * wm + (1.3 - (1.3 - WALL_MOLAR) * wm) * smoothstep((-teeth.NECK_ABOVE_CREST - v[:, 2]) / 4.0)
         for sg in (1.0, -1.0):
             i, j = M.ij(sg * sv, Pw[:, 1]); i, j = np.round(i).astype(int), np.round(j).astype(int)
             ok = (i >= 0) & (i < M.nu) & (j >= 0) & (j < M.nv)
-            np.maximum.at(need_out, (i[ok], j[ok]), (nv + wall)[ok]); np.minimum.at(need_in, (i[ok], j[ok]), (nv - wall)[ok])
-    lift = ndimage.gaussian_filter(ndimage.maximum_filter(np.maximum(need_out - outer, 0.0), 17), 5.0)   # (broad: a narrow one read as a pimple)
+            np.maximum.at(need_out, (i[ok], j[ok]), (nv + wall_out)[ok]); np.minimum.at(need_in, (i[ok], j[ok]), (nv - wall)[ok])
+    lift = ndimage.gaussian_filter(ndimage.maximum_filter(np.maximum(need_out - outer, 0.0), (21, 17)), (8.0, 5.0))   # (broad: a narrow one read as a pimple; Repair 1: longer along the row, no groove between the premolar's and the molar's swellings)   # (broad: a narrow one read as a pimple)
     sink = ndimage.gaussian_filter(ndimage.maximum_filter(np.maximum(ib - need_in, 0.0), 17), 5.0)
     log("jaw sheet: to clear the roots the cheek-side face is lifted by up to %.1f mm and the tongue-side by up to %.1f" % (lift.max(), sink.max()))
     outer = outer + 1.1 * lift

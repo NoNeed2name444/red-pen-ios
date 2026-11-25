@@ -4042,6 +4042,18 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     of a crease; palate bone thin inside the upper second premolar and
     outside the third molar. A chore: make.py line 164 still places
     sockets by the old table, up to 2 mm from the packed teeth.
+    Repair 1 (mandible2.py, mandible4.py), kept: with the jaw shut the
+    premolars and molars now meet (least gaps 0.03 to 0.12 mm, none
+    passing into another; lower P1 to M3 raised 0.2 to 1.9 mm with
+    their bone, joint and upper row untouched); the shelf above the
+    chin is gone; the body is 65.9 mm wide at the first molar; the
+    inner chin shows no crease under raking light; upper cover found
+    already sound (2.8 and 1.8 mm). Not accepted, repair 2: thinning
+    the outer plate over the molars left a groove and ripples on the
+    cheek face between the second premolar and first molar; a
+    square-edged block shows at the incisor sockets' front rim in the
+    bone-only view; the lower canine's tip stays 0.9 mm short of the
+    upper teeth.
     Task C, repair 1 (head and neck accepted; task closed): the ring is
     gone. Each section under the head is solved to silhouette targets
     from Fig. 176 and 177: the hind edge runs straight into the head,

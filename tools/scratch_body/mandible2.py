@@ -25,11 +25,14 @@ LOWER_LINE = [(0, 88.3), (10.2, 86.1), (14.8, 83.8), (18.9, 80.9), (21.9, 76.4),
 # every lower tooth stands inside its upper partner (0.4 to 3.7 mm).
 # the bone's margin at each tooth, set so that the crowns meet the upper teeth on the traced biting line
 # (from z 97, y -54.5 to z 52, y -49.6) with the front teeth behind and 1 to 2 mm above the upper ones' edges
-LOWER_T = dict(L.LOWER, **{"crest y": [-62.8, -63.2, -65.0, -62.9, -61.7, -60.2, -58.6, -57.6]})
+# (Repair 1) the premolars and molars stood up to 1.9 mm short of the upper row with the jaw shut: each is raised, with its
+# bone, until its cusps meet the upper ones (the least gap 0.0 to 0.1 mm); the canine 1.5 mm (its tip still short of
+# the upper teeth), so that the margin climbs evenly from the incisors to the premolars; the incisors as they were.
+LOWER_T = dict(L.LOWER, **{"crest y": [-62.8, -63.2, -63.5, -61.0, -61.1, -59.1, -58.1, -57.4]})
 
 # matched stations from the midline back: the middle of the tooth-bearing margin, and the lower border under it
-T = [(0, -62.8, 86.8), (5.5, -63.0, 86.0), (11.8, -64.6, 84.6), (17.4, -63.2, 81.7), (21.9, -61.9, 76.0),
-     (25.1, -60.4, 67.4), (27.0, -59.2, 58.0), (28.2, -58.0, 48.9), (29.7, -57.4, 40.2),
+T = [(0, -62.8, 86.8), (5.5, -63.0, 86.0), (11.8, -63.1, 84.6), (17.4, -61.3, 81.7), (21.9, -61.3, 76.0),
+     (25.1, -59.3, 67.4), (27.0, -58.7, 58.0), (28.2, -57.8, 48.9), (29.7, -57.4, 40.2),
      (33.5, -51.0, 31.5), (40.0, -44.0, 27.0)]                 # the last two climb the ramus
 # Seen from below the base is a V with a rounded point, not a U: from the chin's tubercles the two halves run back and outward
 # nearly straight (about 27 degrees off the midline) to the angles. Under the premolars the base lies straight under the teeth;
@@ -60,21 +63,22 @@ CONDYLE = {"centre": (50.6, -5.9, 8.9), "half": (9.0, 4.3, 4.1), "turn": -15.0} 
 
 
 SECTIONS0 = [list(q) for q in MB.SECTIONS]
-CHIN_K, CHIN_B = 2.4, 0.6
+CHIN_A, CHIN_U, CHIN_W = 2.2, -3.0, 8.0
 
 
 def use():
     """Put these lines in place of mandible.py's own."""
     MB.T, MB.B, MB.O, MB.ES, MB.ET, MB.OUTLINE, MB.CONDYLE = T, B, O, ES, sdf.unit(ET - (ET @ ES) * ES), OUTLINE, CONDYLE
     S = [list(q) for q in SECTIONS0]
-    for i, k in ((1, 1.06), (2, 1.10), (3, 1.10)):           # (T-arch-lower) canine to molars a little fuller: the wider row's roots stood
+    for i, k in ((1, 1.06), (2, 1.10), (3, 1.03)):           # (Repair 1: the molars' section 1.10 -> 1.03, slim outside the molars, Fig. 997) (T-arch-lower) canine to molars a little fuller: the wider row's roots stood
         S[i] = [(o * k, u) for o, u in S[i]]                  # 2.5 to 3 mm out of the faces before they were lifted over them
     # (T-rows-refit) the incisors stand 3 mm further back than before (the crowns on Fig. 997's places, the bite closed) while
     # the chin's front stays on Fig. 176's outline: the symphysis's cheek face is given back what the margin's move took from
     # it (most at the margin, little at the chin's base), so the bone in front of the incisors is thicker, the tongue side
-    # follows the teeth.
+    # follows the teeth. (Repair 1: given back below the margin only, most at mid height: the bone still rises to thin
+    # edges round the incisors' necks, Fig. 176, with no shelf above the chin.)
     for i, k in ((0, 1.0), (1, 0.5)):
-        S[i] = [(o + k * np.clip((o + 1.0) / 3.0, 0.0, 1.0) * (CHIN_K * (u + 15.0) / 30.0 + CHIN_B * np.exp(-((u + 9.0) / 5.0) ** 2)), u) for o, u in S[i]]
+        S[i] = [(o + k * np.clip((o + 1.0) / 3.0, 0.0, 1.0) * CHIN_A * np.exp(-((u - CHIN_U) / CHIN_W) ** 2), u) for o, u in S[i]]
     for i, k in ((5, 0.72), (6, 0.78)):                      # the two sections that climb the ramus: a ramus is 5 to 6 mm thick, not 7
         S[i] = [(o * k, u) for o, u in S[i]]
     MB.SECTIONS = S
