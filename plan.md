@@ -3927,6 +3927,15 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     the head and one long hollow in front; the hind border still shows
     a bright strip from three-quarter behind; pterygoid ridges and the
     tubercle too faint to see. Joint, sockets, outline numbers held.
+    Task C, repair 1 (head and neck accepted; task closed): the ring is
+    gone. Each section under the head is solved to silhouette targets
+    from Fig. 176 and 177: the hind edge runs straight into the head,
+    the front has one shallow hollow, the poles draw in over 6 mm. The
+    neck is 11 mm deep front to back where the CT band asked 12 to 16;
+    the plate wins (12 needs a neck deeper than the head). Open, small:
+    two soft lumps low on the neck's outer face (ridge marks, to come
+    out with the lower-arch task), the bright strip down the hind
+    border from three-quarter behind, pterygoid ridges still faint.
   - Temporal bone (temporal.py), task A round 1 (not accepted, kept): the
     mastoid is a leaning cone on Fig. 188's outline instead of a ball
     (side outline within 0.9 mm, was 2.8), the styloid a slender 25 mm

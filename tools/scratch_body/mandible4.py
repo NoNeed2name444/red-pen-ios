@@ -52,6 +52,7 @@ def _clothoid(n=4001):
 
 
 CLOTHOID = _clothoid()          # (task C)
+HIND_SPREAD = 1.0               # (repair 1) the edge's turn drawn out this many times longer (1.6 tried: a sharper tip, the strip no softer)
 HIND_TIP = (0.50, -59.5, 6.0)  # (task C) the edge's tip carried this far (mm, peak, at y, over) behind the face's own border
 # where the old marks (0.3 to 0.5 mm swellings on both faces next to the edge, now gone) had held the side outline out
 # (repair 2: OUT_L 64 to 80. The cheek-side blend's end, where its bend stops at once, lay at s 92, 10 mm in front of the hind
@@ -391,11 +392,11 @@ def maps(S, log=print):
                                      ([(34.0, -66.5), (32.5, -69.8), (31.0, -73.0)], [0.7, 0.8, 0.7], [0.0, 0.12, 0.0]))):
         orr = orr + st(pts, r, h, 0.35, 11 + k)
     # inside: the medial pterygoid's marks at the angle; the ridge from the neck down to the lingula, the temporal crest
-    for k, (pts, r, h) in enumerate((([(14.0, -58.5), (11.5, -62.5), (9.0, -66.5), (6.8, -69.8), (5.6, -71.5)], [0.8, 0.9, 1.0, 0.9, 0.8], [0.0, 0.08, 0.18, 0.26, 0.12]),
-                                     ([(20.0, -58.5), (17.0, -63.0), (14.0, -67.5), (11.5, -71.5)], [0.8, 0.9, 1.0, 0.9], [0.0, 0.10, 0.20, 0.22]),
-                                     ([(26.0, -65.5), (23.5, -69.0), (21.0, -72.5), (19.0, -75.5)], [0.8, 0.9, 1.0, 0.9], [0.0, 0.08, 0.20, 0.18]),
-                                     ([(31.0, -69.5), (29.0, -72.5), (27.0, -75.5)], [0.8, 0.9, 0.9], [0.0, 0.12, 0.15]),
-                                     ([(9.8, -72.0), (8.5, -73.6), (7.4, -75.0)], [0.8, 0.8, 0.7], [0.05, 0.18, 0.08]))):
+    for k, (pts, r, h) in enumerate((([(14.0, -58.5), (11.5, -62.5), (9.0, -66.5), (6.8, -69.8), (5.6, -71.5)], [0.8, 0.9, 1.0, 0.9, 0.8], [0.0, 0.14, 0.32, 0.46, 0.20]),
+                                     ([(20.0, -58.5), (17.0, -63.0), (14.0, -67.5), (11.5, -71.5)], [0.8, 0.9, 1.0, 0.9], [0.0, 0.18, 0.36, 0.40]),
+                                     ([(26.0, -65.5), (23.5, -69.0), (21.0, -72.5), (19.0, -75.5)], [0.8, 0.9, 1.0, 0.9], [0.0, 0.12, 0.34, 0.30]),
+                                     ([(31.0, -69.5), (29.0, -72.5), (27.0, -75.5)], [0.8, 0.9, 0.9], [0.0, 0.20, 0.27]),
+                                     ([(9.8, -72.0), (8.5, -73.6), (7.4, -75.0)], [0.8, 0.8, 0.7], [0.08, 0.32, 0.14]))):
         irr = irr - st(pts, r, h, 0.4, 31 + k)
     irr = irr - st([(9.2, -15.5), (12.8, -22.5), (17.5, -29.0), (21.8, -34.6)], [2.6, 2.6, 2.2, 1.6], [0.9, 1.0, 0.7, 0.35], 0.3, 41)     # neck to lingula
     irr = irr - st([(37.5, -10.0), (38.2, -21.0), (36.8, -32.0), (35.0, -42.0), (34.0, -50.0)], [2.0, 2.2, 2.4, 2.4, 2.2], [0.7, 1.0, 1.0, 0.8, 0.5], 0.25, 42)   # temporal crest
@@ -621,7 +622,7 @@ class Ribbon4(Ribbon):
             return rim.astype(np.float32)
         half = np.maximum(0.5 * (o - i), 0.3)
         de = d2 - HIND_TIP[0] * np.exp(-((v - HIND_TIP[1]) / HIND_TIP[2]) ** 2)   # (the side outline kept where it was)
-        g = np.interp(np.clip(-de / (CLOTHOID[2] * half), 0.0, 1.0), CLOTHOID[0], CLOTHOID[1])
+        g = np.interp(np.clip(-de / (CLOTHOID[2] * HIND_SPREAD * half), 0.0, 1.0), CLOTHOID[0], CLOTHOID[1])
         k = 0.5 * (ko + ki)
         edge = np.maximum(through + half * (1.0 - g) * k, de)
         return (rim * (1 - hw) + edge * hw).astype(np.float32)
@@ -642,19 +643,29 @@ class Ribbon4(Ribbon):
 # head CTs for its proportions, and lofted through them by a curve smooth in its second derivative (no section ends in a
 # step). Down to 20 mm under the top it meets the ramus's own sections, which are kept.
 #   (y, lateral half-length, medial half-length, forward half-depth, backward half-depth, squareness): in the head frame,
-#   millimetres from the head's centre line; under the head the outer and inner ends draw in within 4 mm (the head's
-#   underside, broadest at the inner end), the front draws back 0.6 mm under the head's front edge and then runs forward
-#   into the notch, the back runs straight down into the hind border.
-COND_KEYS = [(-7.5, 8.80, 8.20, 4.85, 5.45, 2.00), (-8.5, 8.30, 7.50, 4.70, 5.55, 2.00),
-             (-9.5, 7.40, 6.40, 4.40, 5.65, 2.00), (-10.5, 6.50, 5.50, 4.90, 5.75, 2.00), (-11.5, 6.00, 5.05, 5.60, 5.85, 2.00),
-             (-12.5, 5.80, 4.80, 5.95, 5.90, 2.00), (-14.0, 5.60, 4.60, 5.95, 6.00, 2.00), (-15.5, 5.50, 4.45, 5.95, 6.00, 2.00),
-             (-17.0, 5.35, 4.30, 6.30, 6.00, 2.00), (-18.5, 5.20, 4.10, 6.90, 5.85, 2.00)]
-COND_KEEP_TOP, COND_KEEP_LOW = (-4.5, -5.0, -5.5, -6.0, -6.5), (-19.5, -20.0, -20.5, -21.0)     # sections taken from the field as it is
-COND_HANDOVER = (-13.5, -19.5)      # from here down the drawn sections hand over to the ramus's own (no ring where they meet)
+#   millimetres from the head's centre line. (repair 1) Each key is solved so that the process's outline meets a drawn
+#   silhouette (Figs. 176, 177): from the side the hind edge runs from the back of the head straight down into the hind
+#   border, slightly convex, with no notch (its z changes one way only below y -9.5); the front edge has one long shallow
+#   hollow (1.4 mm deep at most) from the head's front lip down into the notch; under the head the neck is a little
+#   shallower from front to back than the head (10.6 against 10.9 mm). From in front the head's two poles draw in over 6
+#   mm (17.2 mm across at y -7, 11.1 at -13.5), the underside easing into the neck with no lip; the neck 13.4 mm across
+#   at y -11. (Round 1 drew them in within 3 mm and let the neck run deeper than the head below a 2 mm notch: a dome on
+#   a ring groove.) The CT helper's neck10 (jawlib: the process's front-to-back depth 10 mm under its top, in whole mm)
+#   reads 11 here, under its 12 to 16: it reaches 12 only with the neck 11.4 mm deep at y -13, deeper than the head, and
+#   then the front edge either stands 0.6 mm further forward at y -15 to -17 (outline gap to Fig. 176 there 6.60 mm) or
+#   swells again below a second hollow. The plate is followed.
+COND_KEYS = [(-8.5, 8.529, 7.809, 4.473, 6.167, 2.0), (-9.5, 8.187, 7.255, 4.521, 5.766, 2.0), (-10.5, 7.56, 6.564, 4.522, 5.651, 2.0),
+             (-11.5, 6.927, 5.96, 4.529, 5.664, 2.0), (-12.5, 6.396, 5.44, 4.701, 5.666, 2.0), (-13.5, 6.024, 5.041, 4.986, 5.657, 2.0),
+             (-14.5, 5.811, 4.733, 5.331, 5.641, 2.0), (-15.5, 5.705, 4.445, 5.746, 5.623, 2.0), (-16.5, 5.6, 4.18, 6.245, 5.603, 2.0),
+             (-17.5, 5.448, 4.032, 6.711, 5.552, 2.0), (-18.5, 5.097, 4.012, 7.234, 5.534, 2.0)]
+COND_KEEP_TOP, COND_KEEP_LOW = (-4.5, -5.0, -5.5, -6.0, -6.5, -7.0), (-19.5, -20.0, -20.5, -21.0)     # sections taken from the field as it is
+COND_HANDOVER = (-16.5, -19.5)      # from here down the drawn sections hand over to the ramus's own (no ring where they meet)
+COND_HANDOVER_TOP = (-7.0, -10.5)   # (repair 1) and from here up to the head's own: the head's sections are lens-shaped,
+#   the drawn ones ovals, and a change of shape within half a millimetre left a crease across the back of the head
 #   the marks on it, as changes of a section's radius (mm) at an angle (deg, 0 = outward along the long axis, 90 = forward),
 #   eased over an angle and a height: (amplitude, angle, angular spread, y, height spread)
 COND_MARKS = [(0.35, 12.0, 28.0, -7.6, 1.4),       # the lateral tubercle: a low swelling on the outer end, a little forward
-              (-0.85, 115.0, 22.0, -10.6, 1.6),    # the pterygoid fovea: a shallow hollow on the front of the neck, under the inner half
+              (-1.0, 115.0, 22.0, -10.8, 1.8),     # the pterygoid fovea: a shallow hollow on the front of the neck, under the inner half
               (0.22, 58.0, 16.0, -11.0, 2.4),      # the ridges from the fore part and sides of the head, either side of the fovea,
               (0.22, 158.0, 16.0, -11.0, 2.4)]     # fading down the neck
 
@@ -684,7 +695,8 @@ def condyle_sections(F, log=print):
         A = np.where(ca > 0, lat, med); B = np.where(sa > 0, fw, bk)
         return (np.abs(ca / A) ** n + np.abs(sa / B) ** n) ** (-1.0 / n)
     def handed(y, r):
-        f = smoothstep((y - COND_HANDOVER[1]) / (COND_HANDOVER[0] - COND_HANDOVER[1]))
+        f = min(smoothstep((y - COND_HANDOVER[1]) / (COND_HANDOVER[0] - COND_HANDOVER[1])),
+                smoothstep((COND_HANDOVER_TOP[0] - y) / (COND_HANDOVER_TOP[0] - COND_HANDOVER_TOP[1])))
         return r if f >= 1 else kept(y) * (1 - f) + r * f
     keys = [(y, kept(y)) for y in COND_KEEP_TOP + COND_KEEP_LOW] + [(k[0], handed(k[0], drawn(*k[1:]))) for k in COND_KEYS]
     keys.sort(key=lambda t: t[0])
