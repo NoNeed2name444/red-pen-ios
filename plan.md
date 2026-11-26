@@ -3979,6 +3979,21 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     with a different method for the shape: conform each single-bone
     build to its cut piece (joint faces from the cut, the rest of the
     surface from the single bone), instead of normalised sections.
+    Conforming the single builds (26 Nov), blocked and not kept: each
+    build was registered onto its piece (similarity plus a quadratic
+    warp), moved onto the joint faces and re-cut. Position, outline
+    and joint spaces held (whole outline 1.06, 1.09, 1.83, 2.14 mm;
+    talus on its own plates 1.1 to 1.3 mm against the piece's 1.96),
+    but wherever a build differed from its piece by more than about
+    1 mm the shift and cut left terraces, fins and flaps on every
+    bone, the builds' own rough texture came through, the calcaneus
+    got a void and a loose fragment, the cuboid's build stood 6.6 mm
+    above its piece, and the first cuneiform missed its plates (1.7 to
+    1.8 mm). Lesson: the separately built tarsals cannot be carried
+    into the assembly, as a base or as a skin. Next, a third method:
+    model each bone's free surface afresh in the assembly frame from
+    its own plates (Fig. 264 to 283), smooth by construction, keeping
+    tarsus.py's joint surfaces; talus and calcaneus first.
   - [ ] The metatarsals, phalanges; the foot together.
 - [ ] F11. 25 Nov, the owner: "switch back to the skull and mandible so we
   fix every single part of them especially the mandible and skull base";
