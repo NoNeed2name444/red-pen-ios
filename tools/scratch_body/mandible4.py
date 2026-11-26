@@ -56,6 +56,7 @@ def _clothoid(n=4001):
 CLOTHOID = _clothoid()          # (task C)
 HIND_SPREAD = 1.0               # (repair 1) the edge's turn drawn out this many times longer (1.6 tried: a sharper tip, the strip no softer)
 HIND_TIP = (0.50, -59.5, 6.0)  # (task C) the edge's tip carried this far (mm, peak, at y, over) behind the face's own border
+HIND_THIN, HIND_THIN_L = 0.15, 8.0   # (T-jaw-finish) the hind border's thinning toward its edge (fraction, over mm; 0.45 over 11 before)
 # where the old marks (0.3 to 0.5 mm swellings on both faces next to the edge, now gone) had held the side outline out
 # (repair 2: OUT_L 64 to 80. The cheek-side blend's end, where its bend stops at once, lay at s 92, 10 mm in front of the hind
 # border: on the ramus a ruled line from under the neck to mid-height. It now ends behind the border.)
@@ -336,8 +337,11 @@ def maps(S, log=print):
     from scipy.spatial import cKDTree as _KD
     hl = sdf.spline(hind, 0.25)
     dh = _KD(hl).query(np.column_stack([np.abs(M.U).ravel(), M.V.ravel()]))[0].reshape(M.U.shape)
-    th = th * (1 - 0.45 * (1 - easeout2(dh / 11.0)) * smoothstep((-18.0 - M.V) / 10.0))   # (repair 2: 55 % at the edge, over 11 mm;
+    th = th * (1 - HIND_THIN * (1 - easeout2(dh / HIND_THIN_L)) * smoothstep((-18.0 - M.V) / 10.0))   # (repair 2: 55 % at the edge, over 11 mm;
     # task C: eased so that its bend, too, fades to nothing where the thinning ends)
+    # (T-jaw-finish: at 55 % the two faces ran in as straight bevels from 9 mm in to a 1.2 mm round, 2.6 mm thick at 1 mm
+    # in: from behind and from behind-outside a flat bright strip from the neck to the angle. Gray, p. 174: the posterior
+    # border "thick, smooth, rounded". Now the border keeps most of its thickness and is turned by the clothoid round.)
     # (task C) where the hind border's rounding met the faces, its curvature fell at once from that of a 1.2 to 1.4 mm round
     # to none: from three-quarter behind the border read as a round column beside a flat plate, a line between them. Along
     # the hind border, from under the neck round the angle, the rim is drawn instead by a clothoid (Ribbon4): each face turns
@@ -389,21 +393,26 @@ def maps(S, log=print):
     # on the lower half of the field: so long low ridges 0.10 to 0.18 mm high, each rising and fading along its length at
     # its own place, and no dabs. (The medial pterygoid's on the inside likewise: low, uneven, strongest near the border and
     # fading upward.)
-    for k, (pts, r, h) in enumerate((([(13.5, -59.0), (11.5, -62.5), (9.4, -66.0), (7.5, -69.5)], [0.8, 0.9, 0.9, 0.7], [0.0, 0.16, 0.12, 0.0]),
-                                     ([(6.2, -70.8), (5.0, -72.6), (4.0, -74.2)], [0.7, 0.75, 0.6], [0.10, 0.14, 0.0]),
-                                     ([(20.5, -67.5), (18.0, -70.5), (15.5, -73.4), (13.0, -76.0)], [0.8, 0.95, 0.9, 0.7], [0.0, 0.18, 0.15, 0.0]),
-                                     ([(28.0, -71.5), (26.0, -74.2), (24.0, -76.8)], [0.7, 0.8, 0.7], [0.0, 0.13, 0.0]),
-                                     ([(23.0, -54.5), (20.5, -59.0), (18.5, -62.5), (16.5, -66.0)], [0.7, 0.85, 0.9, 0.7], [0.0, 0.10, 0.15, 0.0]),
-                                     ([(29.0, -61.0), (27.0, -65.5), (25.0, -69.5)], [0.75, 0.9, 0.8], [0.0, 0.17, 0.04]),
-                                     ([(34.0, -66.5), (32.5, -69.8), (31.0, -73.0)], [0.7, 0.8, 0.7], [0.0, 0.12, 0.0]))):
-        orr = orr + st(pts, r, h, 0.35, 11 + k)
+    # (T-jaw-finish) at 0.10 to 0.18 mm they did not show at all: now 0.25 to 0.5 mm, broader, each rising and falling twice
+    # along its length (a ridge broken in places), of unequal length and slant, none parallel to its neighbour.
+    for k, (pts, r, h) in enumerate((([(14.0, -58.0), (12.4, -60.8), (11.0, -63.4), (9.2, -66.4), (7.3, -69.6)], [0.9, 1.1, 1.1, 1.2, 0.9], [0.0, 0.30, 0.22, 0.38, 0.0]),
+                                     ([(6.4, -70.6), (5.2, -72.4), (4.1, -74.4)], [0.9, 1.0, 0.8], [0.12, 0.30, 0.0]),
+                                     ([(21.0, -66.8), (19.0, -69.6), (16.6, -72.3), (14.6, -74.4), (12.6, -76.6)], [0.9, 1.1, 1.2, 1.1, 0.8], [0.0, 0.40, 0.28, 0.34, 0.0]),
+                                     ([(28.5, -70.8), (26.8, -73.4), (24.4, -76.6)], [0.9, 1.1, 0.8], [0.0, 0.28, 0.0]),
+                                     ([(23.4, -54.0), (21.6, -57.4), (19.4, -61.0), (17.6, -64.4), (16.2, -66.8)], [0.8, 1.0, 1.1, 1.1, 0.8], [0.0, 0.22, 0.16, 0.32, 0.0]),
+                                     ([(29.5, -60.2), (27.6, -64.0), (25.6, -67.6), (24.4, -70.2)], [0.9, 1.1, 1.1, 0.8], [0.0, 0.36, 0.24, 0.0]),
+                                     ([(34.2, -66.0), (33.0, -69.0), (31.2, -72.6)], [0.8, 1.0, 0.8], [0.0, 0.26, 0.0]))):
+        orr = orr + st(pts, r, h, 0.5, 11 + k)
     # inside: the medial pterygoid's marks at the angle; the ridge from the neck down to the lingula, the temporal crest
-    for k, (pts, r, h) in enumerate((([(14.0, -58.5), (11.5, -62.5), (9.0, -66.5), (6.8, -69.8), (5.6, -71.5)], [0.8, 0.9, 1.0, 0.9, 0.8], [0.0, 0.14, 0.32, 0.46, 0.20]),
-                                     ([(20.0, -58.5), (17.0, -63.0), (14.0, -67.5), (11.5, -71.5)], [0.8, 0.9, 1.0, 0.9], [0.0, 0.18, 0.36, 0.40]),
-                                     ([(26.0, -65.5), (23.5, -69.0), (21.0, -72.5), (19.0, -75.5)], [0.8, 0.9, 1.0, 0.9], [0.0, 0.12, 0.34, 0.30]),
-                                     ([(31.0, -69.5), (29.0, -72.5), (27.0, -75.5)], [0.8, 0.9, 0.9], [0.0, 0.20, 0.27]),
-                                     ([(9.8, -72.0), (8.5, -73.6), (7.4, -75.0)], [0.8, 0.8, 0.7], [0.08, 0.32, 0.14]))):
-        irr = irr - st(pts, r, h, 0.4, 31 + k)
+    # (T-jaw-finish) laid on after the smoothing (below), so that they show: low (to 0.25 to 0.4 mm), each fading out at both
+    # ends and a little weaker somewhere along its length, running up and back from near the lower border at slants of their
+    # own, unequally spaced; the shortest at the angle itself
+    for k, (pts, r, h) in enumerate((([(15.0, -56.5), (13.0, -60.0), (10.6, -63.8), (8.4, -67.6), (6.6, -70.6)], [0.8, 1.0, 1.1, 1.0, 0.8], [0.0, 0.24, 0.36, 0.28, 0.0]),
+                                     ([(22.0, -59.4), (19.6, -62.6), (17.2, -66.4), (15.0, -70.0), (13.8, -72.4)], [0.8, 1.0, 1.1, 1.1, 0.8], [0.0, 0.30, 0.20, 0.38, 0.0]),
+                                     ([(27.4, -64.2), (25.2, -67.6), (22.2, -71.0), (20.4, -74.2)], [0.8, 1.1, 1.1, 0.8], [0.0, 0.34, 0.27, 0.0]),
+                                     ([(32.4, -69.6), (30.4, -71.8), (28.0, -74.6)], [0.8, 1.0, 0.8], [0.0, 0.22, 0.0]),
+                                     ([(11.0, -70.8), (9.4, -73.0), (8.2, -74.8)], [0.8, 1.0, 0.8], [0.0, 0.28, 0.0]))):
+        ptg = st(pts, r, h, 0.5, 31 + k) + (ptg if k else 0.0)          # (laid on below, after the face at the angle is smoothed)
     irr = irr - st([(9.2, -15.5), (12.8, -22.5), (17.5, -29.0), (21.8, -34.6)], [2.6, 2.6, 2.2, 1.6], [0.9, 1.0, 0.7, 0.35], 0.3, 41)     # neck to lingula
     irr = irr - st([(37.5, -10.0), (38.2, -21.0), (36.8, -32.0), (35.0, -42.0), (34.0, -50.0)], [2.0, 2.2, 2.4, 2.4, 2.2], [0.7, 1.0, 1.0, 0.8, 0.5], 0.25, 42)   # temporal crest
     irr = irr + 0.8 * gauss(M, zn(16.0, -66.0), (8.0, 7.0))                        # (repair 2) the medial pterygoid's field at the angle a shallow hollow, not a swelling
@@ -435,14 +444,14 @@ def maps(S, log=print):
     # (each under 1.5 mm and run into the bone round it: taller, pointed ones read as pegs on a mound)
     # (two small pointed tubercles above, a little unequal, their sides sloping out into the bone; below them a low rough
     # median ridge with a faint pair; nothing square: each a cone on a broad low skirt, the two sides drawn apart)
-    dU = lambda c, r: np.sqrt(((M.U - c[0]) / r[0]) ** 2 + ((M.V - c[1]) / r[1]) ** 2)
-    sp = 0.85 * np.exp(-dU((1.7, yc_ + 11.2), (0.9, 1.3))) + 0.7 * np.exp(-dU((-1.4, yc_ + 10.7), (0.85, 1.2)))      # (cones: no flat top)
-    sp = sp + 0.3 * np.exp(-dU((1.7, yc_ + 10.6), (2.0, 2.4)) ** 2) + 0.25 * np.exp(-dU((-1.4, yc_ + 10.2), (1.9, 2.2)) ** 2)   # their skirts
-    sp = sp + 0.32 * np.exp(-dU((0.15, yc_ + 7.4), (0.8, 2.6)) ** 1.5) + 0.18 * np.exp(-dU((1.1, yc_ + 6.2), (0.6, 0.9))) + 0.14 * np.exp(-dU((-0.9, yc_ + 6.5), (0.6, 0.9)))
-    rk = np.random.default_rng(1773)
-    for _ in range(16):
-        c0 = (rk.uniform(-2.6, 2.8), yc_ + rk.uniform(5.0, 12.5))
-        sp = sp + rk.uniform(0.06, 0.16) * np.exp(-dU(c0, (rk.uniform(0.3, 0.6), rk.uniform(0.3, 0.6))) ** 2) * np.clip(sp / 0.3, 0, 1)
+    # (T-jaw-finish) The cones, their skirts, the median ridge and sixteen knots clipped to where the cones stood made one
+    # flat-topped patch with a squared edge (5 by 6 mm, 0.3 to 0.5 mm proud, its rim a ring of knots): seen from behind a
+    # block on the symphysis's hind face. Now (Fig. 177; p. 173: "two pairs of laminated tubercles, the mental spines"):
+    # an upper pair (genioglossi) and a lower, smaller pair (geniohyoidei) a little closer together, each a low rounded bump
+    # (no cone tip, no skirt, no plateau between them), on a face otherwise smooth; their roughness is the grain's (ZONES).
+    dS = lambda c, r: ((s_ - c[0]) / r[0]) ** 2 + ((M.V - c[1]) / r[1]) ** 2       # (both sides at once: a pair across the midline)
+    sp = 0.62 * np.exp(-dS((1.55, yc_ + 10.0), (0.95, 1.35))) + 0.34 * np.exp(-dS((1.15, yc_ + 6.9), (0.8, 1.0)))
+    sp = sp + 0.18 * np.exp(-dS((0.0, yc_ + 8.4), (3.2, 4.2)))                       # the hind face swells a little round them
     ib = ib - sp
     q = np.clip((M.V - yb(M.U)) / np.maximum(yt(M.U) - yb(M.U), 1.0), 0, 1.4)
     s = np.abs(M.U)
@@ -528,8 +537,13 @@ def maps(S, log=print):
     # (T-rows-refit) the lower part of the tongue-side face smoothed again after the handover (the line seen from below)
     wq = (1 - smoothstep((qq - 0.40) / 0.25)) * smoothstep((s - 14.0) / 10.0)
     ib = ib * (1 - wq) + ndimage.gaussian_filter1d(ndimage.gaussian_filter1d(ib, 8.0, axis=1, mode="nearest"), 4.0, axis=0, mode="nearest") * wq
-    swell = (irr - target) * (1 - smoothstep((M.V - (yt(M.U) - 1.0)) / 16.0)) * smoothstep((s - (s3 - 1.0)) / 6.0) * (s >= sA)
+    # (T-jaw-finish: toward the body's face as smoothed above, not as it was before: the two differed by 0.3 to 0.4 mm low
+    # down, and where the body's face is let go behind the third molar that step stood as a vertical line on the inner face)
+    swell = (irr - ib) * (1 - smoothstep((M.V - (yt(M.U) - 1.0)) / 16.0)) * smoothstep((s - (s3 - 1.0)) / 6.0) * (s >= sA)
     irr = irr - swell
+    # (T-jaw-finish) the medial pterygoid's ridges go on now: drawn on the ramus's face before, they were lost under the low
+    # tongue-side face's smoothing (2 by 3.5 mm) and its handover (0.75 mm toward the tongue), which is the face at the angle
+    irr = irr - ptg
     away = 40.0 * (1 - smoothstep((s - 40.0) / 8.0))                                 # in front of the second molar the ramus's face is nothing
     top = M.V - (yrim(M.U) + 0.5 + 3.0 * (1 - smoothstep((s - 44.0) / 5.0)))         # (in front, the outline itself is the top)
     sunk = 30.0 * smoothstep((s - (s3 + 4.5)) / 4.0)                                 # behind the tooth the body's face is the ramus's: let it go
@@ -847,6 +861,7 @@ ZONES = [   # name, centre, radii, extra grain (mm), pits per mm2 (surface.py)
     ("masseter's and medial pterygoid's ridges at the angle", (47, -58, 20), (7, 14, 13), 0.04, -0.01),      # (no pits here: at the grid's size they came out as craters)
     ("masseter's and medial pterygoid's ridges at the angle", (-47, -58, 20), (7, 14, 13), 0.04, -0.01),
     ("chin", (0, -80, 90), (17, 11, 9), 0.02, 0.03),
+    ("mental spines", (0, -77, 79.5), (5, 6, 3.5), 0.03, 0.0),                  # (T-jaw-finish) their roughness, each side its own
     ("tooth-bearing margin", (0, -63, 68), (30, 5, 30), 0.03, 0.06),
     ("coronoid process (temporalis)", (47, -14, 40), (5, 10, 7), 0.025, 0.0),
     ("coronoid process (temporalis)", (-47, -14, 40), (5, 10, 7), 0.025, 0.0),
@@ -859,16 +874,16 @@ ZONES = [   # name, centre, radii, extra grain (mm), pits per mm2 (surface.py)
 
 def unpair_spines(D, lo, h, info):
     """The mental spines are drawn on the left half and mirrored: the two sides came out alike to the voxel. The right
-    upper spine is made a little lower and its tip set lower, the left one's tip a little higher, and the ridge below
-    a little to one side: a pair, not a copy."""
+    upper spine is made a little lower and smaller, the left one's top a little higher, and the right lower one fainter:
+    a pair, not a copy."""
     W, S = info["maps"], info["sheet"]; M = W["M"]; yc = float(W["yb"](0.0))
     def pt(s, y):
         n = float(M.sample(W["inner_body"], np.array([s], float), np.array([y], float))[0])
         return S.at(s, y, n)
     ax = [lo[k] + h * np.arange(D.shape[k]) for k in range(3)]
-    for c, amp, r in ((pt(1.7, yc + 11.2) * np.array([-1.0, 1.0, 1.0]) + np.array([0.2, 0.5, 0.0]), 0.2, 1.1),   # right: lower, shorter
-                      (pt(1.7, yc + 11.2) + np.array([0.2, 0.6, 0.0]), -0.12, 0.8),                                 # left: its tip higher
-                      (pt(0.6, yc + 7.0) * np.array([-1.0, 1.0, 1.0]), 0.1, 1.2)):                                  # the ridge below: off the midline
+    for c, amp, r in ((pt(1.55, yc + 10.0) * np.array([-1.0, 1.0, 1.0]) + np.array([0.1, 0.4, 0.0]), 0.12, 1.1),   # right upper: lower, smaller
+                      (pt(1.55, yc + 10.0) + np.array([0.1, 0.5, 0.0]), -0.08, 0.9),                                  # left upper: its top higher
+                      (pt(1.15, yc + 6.9) * np.array([-1.0, 1.0, 1.0]) + np.array([0.0, -0.3, 0.0]), 0.08, 0.9)):   # right lower: fainter (T-jaw-finish)
         i0 = [max(int((c[k] - 4 * r - lo[k]) / h), 0) for k in range(3)]; i1 = [min(int((c[k] + 4 * r - lo[k]) / h) + 1, D.shape[k]) for k in range(3)]
         X, Y, Z = np.meshgrid(*[ax[k][i0[k]:i1[k]] for k in range(3)], indexing="ij")
         g = np.exp(-((X - c[0]) ** 2 + (Y - c[1]) ** 2 + (Z - c[2]) ** 2) / r ** 2)

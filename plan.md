@@ -4160,6 +4160,17 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     two soft lumps low on the neck's outer face (ridge marks, to come
     out with the lower-arch task), the bright strip down the hind
     border from three-quarter behind, pterygoid ridges still faint.
+    Finish, attempt 1 (mandible4.py, make.py; kept, repair to follow):
+    the square block on the tongue side at the midline was the old
+    mental-spine pattern clipped flat (a 5 by 6 mm patch 0.3 to 0.5 mm
+    proud), not a seam; now two low pairs of spines (Fig. 177). The
+    hind border keeps 85% of its thickness to the edge and is round
+    (about 2.3 mm radius; Gray: thick, smooth, rounded) instead of two
+    straight bevels. Pterygoid ridges were being smoothed away; they
+    are added after the smoothing. A crease behind the third molar on
+    the inner face is gone. make.py's dental_arches reads the fitted
+    rows. Sockets, bite, chin and joint unchanged. Not accepted: the
+    masseter ridges on the angle's outer face read as lumps.
   - Temporal bone (temporal.py), task A round 1 (not accepted, kept): the
     mastoid is a leaning cone on Fig. 188's outline instead of a ball
     (side outline within 0.9 mm, was 2.8), the styloid a slender 25 mm

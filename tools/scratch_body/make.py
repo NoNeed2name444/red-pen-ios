@@ -156,12 +156,14 @@ def do_skull(out, h, draft):
                                           "sutures_mm_head_frame": getattr(skull.build, "sutures", {}),
                                           "to_do": "split into the named bones along the sutures (a partial split is in cranium_parts)"})
         split_cranium(out, F, V, h)
+        import teeth, skull2, mandible2
         man = json.load(open(os.path.join(out, "manifest.json")))
         man["dental_arches"] = {"note": "socket frames in the head frame (mm): position = middle of the socket's mouth on the alveolar margin, "
                                         "outward = toward lip or cheek, axis = the tooth's long axis from root to crown, along_arch = toward the back "
                                         "of the arch, width_mm = mesiodistal width; the crown tip is taken as position + axis x crown_mm and the root "
                                         "end as position - axis x root_mm. For the body frame divide by 1000 and add head_origin_m. No teeth are modelled.",
-                                "upper": skull.sockets(L.UPPER_ARCH, L.UPPER, True), "lower": skull.sockets(L.LOWER_ARCH, L.LOWER, False)}
+                                "upper": teeth.packed(skull2.UPPER_LINE, skull2.UPPER_T, True),           # the fitted rows (T-rows-refit),
+                                "lower": teeth.packed(mandible2.LOWER_LINE, mandible2.LOWER_T, False)}    # as the jaws are built
         json.dump(man, open(os.path.join(out, "manifest.json"), "w"), indent=1)
     return v, f
 
