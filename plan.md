@@ -4311,6 +4311,26 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     the choanae come from pterygoid.build (x 12, z 29 to 33) and the
     skull2.py Ellipsoid((19,-10.5,37.5),(8.5,5.5,5.5)) (x 10 to 20,
     z 32 to 37).
+    Tooth sockets (teeth2.py, teeth.py), accepted for the upper arch
+    and the roots: the sockets are moulds of teeth2's roots, so the
+    roots were given what Gray describes (p. 1116-17): a lean along
+    the arch growing to the tip (ROOT_LEAN), grooves down the contact
+    faces of single roots (GROOVES), a rounded vault under the lower
+    molars' fork (FURCATION). Crowns and the bite unchanged (0.06 mm).
+    Upper lateral incisor and canine sockets no longer merge (septum
+    0.93 mm; was 0, with the palatal wall broken through); upper
+    molars show three root sockets from 4 to 6 mm, first premolar two
+    at depth; the nine bone crumbs by the canines are gone (roots now
+    1.16 mm apart; teeth.loose as a guard). Lower central roots are
+    0.63 mm from the midline and clear the septum (min 0.80). Upper
+    periodontal space median 0.30 mm. Open, in mandible4.sockets: the
+    lower space is 0.45 median (gap=0.3 plus recuts; gap=0.18 gives
+    0.3, proved in a scratch build); the lower front sockets still
+    join at the crest (margin blur RIM_FRONT and the soft lip); the
+    lower molars' inter-radicular septum starts 6 mm down (molar blade
+    and blur). Two crumbs left at (8.5, 0, 77) and (47, -0.5, 12.5),
+    left side only, made in skull2.whole (probably surface.roughen,
+    whose pit draw also reshuffles every pit when the surface changes).
     Task C, repair 1 (head and neck accepted; task closed): the ring is
     gone. Each section under the head is solved to silhouette targets
     from Fig. 176 and 177: the hind edge runs straight into the head,

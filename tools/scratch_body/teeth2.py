@@ -28,6 +28,20 @@ WIDTH = {"upper": [8.65, 6.2, 7.6, 7.0, 6.7, 10.5, 9.6, 9.3],
          "lower": [4.9, 5.75, 6.95, 7.1, 7.3, 10.45, 9.95, 10.75]}
 ARCHES = {a: [(k, n, kind, H, R, WIDTH[a][i], Wc * WIDTH[a][i] / W, B)
               for i, (k, n, kind, H, R, W, Wc, B) in enumerate(AT.ARCHES[a])] for a in AT.ARCHES}
+# (T-sockets) each root's lean along the arch (mm at its tip, + toward the back of the arch), growing from nothing at the neck;
+# the crown stays where it stands. Real roots lean or curve distally (Gray p. 1116, Fig. 1002/1003: "the root's ... bend toward
+# the back of the mouth"); here it also keeps neighbouring roots apart where the jaws' axes fan them together, so the bone
+# between their sockets stands: the lower central incisors' roots came within 0.24 mm of the midline (the septum there is
+# 0.72 mm), and the upper lateral incisor's root ran into the canine's (0.47 mm apart, no septum, its crumbs loose).
+ROOT_LEAN = {("lower", 0): 0.8, ("lower", 1): 0.6, ("lower", 2): 0.4, ("upper", 1): -0.5, ("upper", 2): 1.0}
+# (T-sockets) the longitudinal grooves down a single root's two contact faces (Gray pp. 1116-1117: the lower incisors' roots
+# "slightly grooved on either side", the canine's "marked by a slight groove on each side", the premolars' "in front and
+# behind a deep groove"): (depth toward the midline side, depth on the far side, middle across (+ cheek), half-width) in mm.
+# Their sockets carry the matching ridge of bone, and where two roots stand close the bone between them has room.
+GROOVES = {("upper", 1): (0.2, 0.35, -0.8, 1.0), ("upper", 2): (0.45, 0.35, -0.5, 1.1), ("upper", 3): (0.35, 0.25, 0.0, 1.0),
+           ("upper", 4): (0.35, 0.35, 0.0, 1.0), ("lower", 0): (0.2, 0.2, 0.0, 0.9), ("lower", 1): (0.2, 0.2, 0.0, 0.9),
+           ("lower", 2): (0.3, 0.3, -0.3, 1.0), ("lower", 3): (0.3, 0.3, 0.0, 1.0), ("lower", 4): (0.35, 0.35, 0.0, 1.0)}
+FURCATION = 0.45          # (T-sockets) mm drawn back from each lower molar root's inner face under the fork (profile)
 _T = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "teeth_traced.json")))["teeth"]
 _P, _cache = {}, {}
 _OLD = (AT.shell, AT.root, AT.forked, AT.ARCHES)
@@ -75,7 +89,9 @@ def profile(arch, i):
         for k in range(kt, n):
             runs = rows[k][1]
             if k < kf:
-                gc, gw = np.polyval(mid, k - kf), w0 * (k - kt) / max(kf - kt, 1)
+                # (the run-on is a vault, round over the septum's crest, not a slit narrowing to nothing: a slit left the
+                # bone between the roots a knife-edge 4 mm below the fork; Gray (p. 1117) parts the two roots at the fork)
+                gc, gw = np.polyval(mid, k - kf), w0 * np.sqrt((k - kt) / max(kf - kt, 1))
                 runs = [(lo[k], gc - gw), (gc + gw, hi[k])]
             runs = sorted(runs, key=lambda r: -r[0])                    # the mesial root first (the drawing's right)
             for q, r in enumerate(runs[:2]):
@@ -84,9 +100,17 @@ def profile(arch, i):
                     q = 0 if (not rd or (rm and abs(rm[-1][1] - cc) < abs(rd[-1][1] - cc))) else 1
                 (rm if q == 0 else rd).append((z[k], cc, aa))
         P["roots"] = []
-        for r in (rm, rd):
+        for q, r in enumerate((rm, rd)):
             r = np.array(r)[::-1]
-            P["roots"].append({"z": r[:, 0].copy(), "c": g(r[:, 1]), "a": np.maximum(g(r[:, 2]), 0.3)})
+            c_, a_ = g(r[:, 1]), np.maximum(g(r[:, 2]), 0.3)
+            # each root's face toward the other drawn back by up to FURCATION mm just under the fork (its outer face kept): the
+            # furcation opens as a round arch with room for bone between the sockets, the inter-radicular septum, within 2 mm
+            # of the fork (the drawing's gap shows only from 2.5 to 3.7 mm lower, where the roots stop hiding each other)
+            t = P["fork"] - r[:, 0]
+            sq = FURCATION * np.clip(t / 0.8, 0, 1) * np.clip(1 - (t - 2.5) / 3.0, 0, 1)
+            sq = np.minimum(sq, np.maximum(a_ - 0.9, 0))
+            c_, a_ = c_ + (-sq / 2 if q == 0 else sq / 2), a_ - sq / 2
+            P["roots"].append({"z": r[:, 0].copy(), "c": c_, "a": a_})
     if kind == "molar" and arch == "upper":
         # three roots. From the cheek side the drawing's outline is all three together: its two sides are the two
         # cheek-side roots' outer borders, and the palate-side root stands behind the gap between them. Each cheek-side
@@ -181,9 +205,25 @@ def _once(arch, i, X, Y, Z):
     return AT.field(arch, i, X, Y, Z)
 
 
+def _smooth(t):
+    t = np.clip(t, 0, 1)
+    return t * t * (3 - 2 * t)
+
+
+def lean(arch, i, Z):
+    """How far (mm, toward the back of the arch) tooth i's root is moved at the height Z: ROOT_LEAN at the tip, nothing at the neck."""
+    L_ = ROOT_LEAN.get((arch, i), 0.0)
+    if not L_:
+        return 0.0
+    u = np.clip(-np.asarray(Z, float) / ARCHES[arch][i][4], 0, 1)
+    return L_ * u ** 1.2
+
+
 def field(arch, i, X, Y, Z):
     """Negative inside tooth i of the arch (about the distance to its surface in mm)."""
     X, Y, Z = np.broadcast_arrays(X, Y, Z)
+    if ROOT_LEAN.get((arch, i)):
+        X = X - lean(arch, i, Z)
     _Now.P, _Now.R, _Now.two = profile(arch, i), ARCHES[arch][i][4], (arch == "upper" and i == 3)
     AT.shell, AT.root, AT.forked, AT.ARCHES = _shell, _root, _forked, ARCHES
     try:
@@ -192,6 +232,14 @@ def field(arch, i, X, Y, Z):
         if (w > 0.02).any():
             soft = (_once(arch, i, X, Y, Z - 0.45) + 2 * F + _once(arch, i, X, Y, Z + 0.45)) / 4
             F = F * (1 - w) + soft * w
+        g = GROOVES.get((arch, i))
+        if g is not None:
+            P, R = _Now.P, ARCHES[arch][i][4]
+            c = np.interp(Z, P["z"], P["c"]); a = np.interp(Z, P["z"], P["a"])
+            u = np.clip(-Z / R, 0, 1)
+            on = _smooth((-Z - 0.6) / 1.4) * (1 - _smooth((u - 0.7) / 0.25))
+            face = np.exp(-((np.abs(X - c) - a) / 0.9) ** 2) * np.exp(-((Y - g[2]) / g[3]) ** 2)
+            F = F + on * face * np.where(X < c, g[0], g[1])
         return F
     finally:
         AT.shell, AT.root, AT.forked, AT.ARCHES = _OLD
@@ -205,8 +253,9 @@ def tooth(arch, i, h=0.15, triangles=40000):
     key, _, kind, H, R, W, Wc, B = ARCHES[arch][i]
     P = profile(arch, i)
     xs = [P["c"] - P["a"], P["c"] + P["a"]] + [q for r in P.get("roots", []) for q in (r["c"] - r["a"], r["c"] + r["a"])]
-    lo = np.array([min(q.min() for q in xs) - 1.6, -B / 2 - 3.6, -R - 2.6])
-    hi = np.array([max(q.max() for q in xs) + 1.6, B / 2 + 2.6, H + 1.4])
+    lm = ROOT_LEAN.get((arch, i), 0.0)
+    lo = np.array([min(q.min() for q in xs) - 1.6 + min(lm, 0), -B / 2 - 3.6, -R - 2.6])
+    hi = np.array([max(q.max() for q in xs) + 1.6 + max(lm, 0), B / 2 + 2.6, H + 1.4])
     ax = [np.arange(lo[k], hi[k] + h, h) for k in range(3)]
     X, Y, Z = np.meshgrid(*ax, indexing="ij")
     F = field(arch, i, X, Y, Z)

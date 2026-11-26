@@ -70,7 +70,32 @@ def seat(F, frames, upper, wall=1.0, gap=0.3, k=1.0, reach=None):
         F.D[sl] = smin(F.D[sl], sleeve, k)
     for sl, socket, lz, root in fields:                    # then every socket
         F.D[sl] = np.maximum(F.D[sl], -socket)
+    loose(F, [f[0] for f in fields], h)
     return F
+
+
+def loose(F, slices, h, most=3.0):
+    """(T-sockets) Specks of bone left loose between sockets (where two sockets all but meet, a sliver of the wall between
+    them is cut off) go: within the sockets' window, every piece of bone under `most` mm3 that does not reach the window's
+    edge (the jaw itself does) is made air. Returns the number taken."""
+    from scipy import ndimage
+    if not slices:
+        return 0
+    lo_ = np.min([[s_.start for s_ in sl] for sl in slices], 0); hi_ = np.max([[s_.stop for s_ in sl] for sl in slices], 0)
+    win = tuple(slice(int(a), int(b)) for a, b in zip(lo_, hi_))
+    A = F.D[win]
+    lab, n = ndimage.label(A < 0)
+    if n < 2:
+        return 0
+    size = np.bincount(lab.ravel(), minlength=n + 1)
+    edge = np.unique(np.concatenate([lab[0].ravel(), lab[-1].ravel(), lab[:, 0].ravel(), lab[:, -1].ravel(),
+                                     lab[:, :, 0].ravel(), lab[:, :, -1].ravel()]))
+    small = np.where(size * h ** 3 < most)[0]
+    small = small[(small > 0) & ~np.isin(small, edge)]
+    if len(small):
+        A[np.isin(lab, small)] = 0.5 * h
+        F.D[win] = A
+    return len(small)
 
 
 _PACKED = {}
