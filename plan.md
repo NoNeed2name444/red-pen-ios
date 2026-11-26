@@ -4449,6 +4449,17 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     apart, where Gray (p. 1118) says they are more or less united
     (task under way in teeth2.py); the foramen's upper hind edge is
     still crisp.
+    Heavy builds on GitHub's Linux machines (the owner: "use github
+    machines too to help"): .github/workflows/scratch-build.yml runs
+    one job directory (run.sh and its scripts) against a pushed
+    commit plus an uncommitted patch of tools/scratch_body, and puts
+    the pictures, numbers and log on shots/scratch-<name>. Pack with
+    tools/scratch_ci.py pack, dispatch on the working branch, bring
+    back with tools/scratch_ci.py fetch. The job that runs the code
+    holds no write credential; a second job filters the result to
+    small files of a few kinds before the push. Free runners only:
+    the paid Opus job stays unused without the owner's word. Open:
+    one small test run on GitHub before workers rely on it.
     Task C, repair 1 (head and neck accepted; task closed): the ring is
     gone. Each section under the head is solved to silhouette targets
     from Fig. 176 and 177: the hind edge runs straight into the head,

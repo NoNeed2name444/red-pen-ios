@@ -1,0 +1,243 @@
+# One heavy Python build of tools/scratch_body (the from-scratch anatomy
+# model) on a GitHub Linux runner, so the 200 to 300 s, 2.4 GB whole-skull
+# builds stop sharing one 4-core box between eight workers. It runs one "job
+# directory" (a run.sh and the scripts beside it) against a commit plus an
+# optional uncommitted patch, and returns the small results (pictures,
+# numbers, logs) on the branch shots/scratch-<name>.
+#
+# Trial code is uncommitted, so it travels in the dispatch input: `request` is
+# the base64 of a gzip tar holding an optional patch.diff (only
+# tools/scratch_body/** and tools/anatomy_teeth.py) and job/ with job/run.sh.
+# tools/scratch_ci.py builds it (pack) and unpacks it here.
+#
+# The repository is public: the request, the log and the results can be read
+# by anyone, so nothing private goes into a job. Two jobs, as in opus-job.yml:
+# "run" executes code from the request and holds no write credential (the
+# checkouts keep no token, there is no secret and the workflow token is never
+# used); "publish" is a fresh runner that executes nothing from the artifact,
+# filters it down to small regular files of a few kinds, and pushes them with
+# the workflow's token. The run is red when the job's exit code was not 0.
+#
+# Use (from the session; tools/scratch_ci.py pack --help):
+#   req=$(python3 tools/scratch_ci.py pack --sha "$(git rev-parse HEAD)" --src . --job myjob)
+#   gh workflow run scratch-build.yml --ref <working branch> \
+#     -f name=<name> -f sha=<40 hex> -f request="$req" -f minutes=45
+#   tools/ci_status.py <working branch> --wait      # or watch the run
+#   python3 tools/scratch_ci.py fetch <name> --to <dir>
+# The commit must already be pushed. A push to this file registers the
+# workflow, so it can be dispatched from a non-default branch.
+name: Scratch build
+
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: 'Build name: lowercase letters, digits and dashes (the result lands on shots/scratch-<name>)'
+        required: true
+      sha:
+        description: 'The commit to build (40 hex characters; already pushed)'
+        required: true
+      request:
+        description: 'base64 of a gzip tar: optional patch.diff and job/ with job/run.sh (tools/scratch_ci.py pack)'
+        required: true
+      minutes:
+        description: 'Time limit of run.sh, 5 to 120'
+        required: false
+        default: '45'
+  # A push of this file only registers it; the jobs run on dispatch alone.
+  push:
+    paths: ['.github/workflows/scratch-build.yml']
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash -e {0}
+
+concurrency:
+  group: scratch-build-${{ inputs.name || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  run:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    # An expression cannot add to `minutes`, so this is the most the setup
+    # and the longest run.sh (120) can need; run.sh itself is stopped by timeout.
+    timeout-minutes: 150
+    permissions:
+      contents: read
+    env:
+      NAME: ${{ inputs.name }}
+      SHA: ${{ inputs.sha }}
+      REQUEST: ${{ inputs.request }}
+      MINUTES: ${{ inputs.minutes }}
+    steps:
+      - name: Check the inputs
+        run: |
+          [[ $NAME =~ ^[a-z0-9][a-z0-9-]{0,39}$ ]] || { echo "::error::bad name"; exit 1; }
+          [[ $SHA =~ ^[0-9a-f]{40}$ ]] || { echo "::error::sha must be 40 hex characters"; exit 1; }
+          [[ $MINUTES =~ ^([5-9]|[1-9][0-9]|1[01][0-9]|120)$ ]] || { echo "::error::minutes must be 5 to 120"; exit 1; }
+          [[ $REQUEST =~ ^[A-Za-z0-9+/=]+$ ]] || { echo "::error::request is not base64"; exit 1; }
+      # the workflow's own commit: tools/scratch_ci.py and the requirements
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: ci
+          fetch-depth: 1
+          persist-credentials: false
+      # the commit to build
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha }}
+          path: src
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: ci/tools/scratch_body/requirements.txt
+      - name: Install the packages
+        run: python3 -m pip install -r ci/tools/scratch_body/requirements.txt
+      - name: Unpack the request
+        run: |
+          printf '%s' "$REQUEST" > "$RUNNER_TEMP/request.b64"
+          python3 ci/tools/scratch_ci.py unpack "$RUNNER_TEMP/request.b64" "$RUNNER_TEMP/req"
+      - name: Apply the patch
+        run: |
+          if [ -f "$RUNNER_TEMP/req/patch.diff" ]; then
+            python3 ci/tools/scratch_ci.py check-patch "$RUNNER_TEMP/req/patch.diff"
+            git -C src apply --check --whitespace=nowarn "$RUNNER_TEMP/req/patch.diff"
+            git -C src apply --whitespace=nowarn "$RUNNER_TEMP/req/patch.diff"
+            git -C src diff --stat | tail -n 5
+            echo "PATCHED=1" >> "$GITHUB_ENV"
+          else
+            echo "no patch"
+          fi
+      # The step does not fail the job: the exit code goes to OUT/exit_code and
+      # meta.json, and the publish job turns it into the run's colour.
+      - name: Run the job
+        run: |
+          out="$RUNNER_TEMP/out"; mkdir -p "$out" "$RUNNER_TEMP/build"
+          cd "$RUNNER_TEMP/req"
+          start=$(date +%s)
+          rc=0
+          env -u PYTHONPATH SRC="$GITHUB_WORKSPACE/src" SCRATCH_OUT="$RUNNER_TEMP/build" OUT="$out" \
+            timeout --kill-after=30 "${MINUTES}m" bash job/run.sh > "$out/run.log" 2>&1 || rc=$?
+          echo "$(( $(date +%s) - start ))" > "$RUNNER_TEMP/seconds"
+          echo "$rc" > "$out/exit_code"
+          # a log over 2 MB would be dropped whole by the publish job
+          if [ "$(stat -c %s "$out/run.log")" -gt 1900000 ]; then
+            { head -c 300000 "$out/run.log"; printf '\n[... log cut ...]\n'; tail -c 1500000 "$out/run.log"; } > "$out/run.log.cut"
+            mv "$out/run.log.cut" "$out/run.log"
+          fi
+          echo "exit code $rc after $(cat "$RUNNER_TEMP/seconds") s; the log's last lines:"
+          tail -n 40 "$out/run.log"
+      - name: Write meta.json
+        run: |
+          python3 - <<'PY'
+          import json, os
+          out = os.environ["RUNNER_TEMP"] + "/out"
+          mem = 0
+          with open("/proc/meminfo") as f:
+              for line in f:
+                  if line.startswith("MemTotal:"):
+                      mem = int(line.split()[1]) // 1024
+          meta = {
+              "name": os.environ["NAME"],
+              "sha": os.environ["SHA"],
+              "run_id": os.environ["GITHUB_RUN_ID"],
+              "exit_code": int(open(out + "/exit_code").read()),
+              "seconds": int(open(os.environ["RUNNER_TEMP"] + "/seconds").read()),
+              "patch_applied": os.environ.get("PATCHED") == "1",
+              "cores": os.cpu_count(),
+              "memory_mb": mem,
+          }
+          with open(out + "/meta.json", "w") as f:
+              json.dump(meta, f, indent=1)
+          print(json.dumps(meta))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: scratch-out-${{ github.run_id }}
+          path: ${{ runner.temp }}/out
+          retention-days: 1
+          if-no-files-found: error
+
+  publish:
+    needs: run
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # actions: write only to delete the artifact afterwards
+    permissions:
+      contents: write
+      actions: write
+    env:
+      NAME: ${{ inputs.name }}
+      SHA: ${{ inputs.sha }}
+    steps:
+      - name: Check the inputs
+        run: |
+          [[ $NAME =~ ^[a-z0-9][a-z0-9-]{0,39}$ ]] || { echo "::error::bad name"; exit 1; }
+          [[ $SHA =~ ^[0-9a-f]{40}$ ]] || { echo "::error::sha must be 40 hex characters"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: ci
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: scratch-out-${{ github.run_id }}
+          path: ${{ runner.temp }}/in
+      # Nothing in the artifact is run or sourced: only copied, by name and size.
+      - name: Filter the result
+        id: filter
+        run: |
+          python3 ci/tools/scratch_ci.py check-result "$RUNNER_TEMP/in" "$RUNNER_TEMP/clean" > "$RUNNER_TEMP/verdict"
+          cat "$RUNNER_TEMP/verdict"
+          grep -Eq '^exit_code=[0-9]{1,3}$' "$RUNNER_TEMP/verdict"
+          cat "$RUNNER_TEMP/verdict" >> "$GITHUB_OUTPUT"
+      - name: Push the result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CODE: ${{ steps.filter.outputs.exit_code }}
+        run: |
+          br="shots/scratch-$NAME"
+          url="https://github.com/$GITHUB_REPOSITORY.git"
+          git init -q repo
+          cd repo
+          parent=""
+          if git ls-remote --exit-code --heads "$url" "$br" >/dev/null 2>&1; then
+            git fetch -q --depth=1 "$url" "$br"
+            parent=$(git rev-parse FETCH_HEAD)
+          fi
+          # the whole content of the branch is the clean directory
+          git --work-tree="$RUNNER_TEMP/clean" add -A -f
+          tree=$(git write-tree)
+          export GIT_AUTHOR_NAME="github-actions[bot]" GIT_COMMITTER_NAME="github-actions[bot]"
+          export GIT_AUTHOR_EMAIL="41898282+github-actions[bot]@users.noreply.github.com"
+          export GIT_COMMITTER_EMAIL="41898282+github-actions[bot]@users.noreply.github.com"
+          msg="Scratch build $NAME: ${SHA:0:7}, run $GITHUB_RUN_ID, exit $CODE"
+          if [ -n "$parent" ]; then commit=$(git commit-tree "$tree" -p "$parent" -m "$msg")
+          else commit=$(git commit-tree "$tree" -m "$msg"); fi
+          git log --oneline -1 "$commit"
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          git -c http.https://github.com/.extraheader="AUTHORIZATION: basic $auth" \
+            push -q "$url" "$commit:refs/heads/$br"
+      - name: Delete the artifact
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for id in $(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" --jq '.artifacts[].id'); do
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$id"
+          done
+      - name: Colour the run
+        env:
+          CODE: ${{ steps.filter.outputs.exit_code }}
+        run: |
+          [ "$CODE" = 0 ] || { echo "::error::the job's exit code was $CODE (results are on shots/scratch-$NAME)"; exit 1; }
