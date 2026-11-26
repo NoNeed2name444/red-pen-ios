@@ -4392,6 +4392,20 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     least wall (0.72) and the sella floor (1.04) unchanged. The skull
     is now the main body plus the two old 0.1 mm3 crumbs at
     (8.5, 0, 77) and (47, -0.5, 12.5).
+    Temporal bone (temporal.py; accepted after one repair): the mastoid
+    is a loft from Fig. 188 plan outlines, blunt behind and running
+    into the occipital surface (tip 33.4 mm below Frankfurt, 15.8 mm
+    behind porion; side-outline miss 1.50/0.43 mm; no flat 4 by 4 mm
+    patch; the first attempt's fin and full-length crease from behind
+    are gone, longest crease on the outer or hind face 6.2 mm at the
+    mastoid foramen). The notch is one rounded groove, lip within 1 mm
+    of the plate. The tympanic plate's lower border is bowed by a
+    separate lip (straight run 6.3 to 5.3 mm), the supramastoid crest
+    follows the plate (straight run 15 to 17 mm, now 7 to 8). Joint
+    field unchanged (0.0005 mm), clearances as before. Open: the
+    tympanomastoid fissure is one 17 mm pressed line; two 1.6 mm sharp
+    spots in the notch; base.floor_cut refills cut bone with no blend;
+    the arch's straight borders are skull2's (task under way).
     Task C, repair 1 (head and neck accepted; task closed): the ring is
     gone. Each section under the head is solved to silhouette targets
     from Fig. 176 and 177: the hind edge runs straight into the head,

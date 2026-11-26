@@ -30,7 +30,17 @@ MASTOID_SIDE = [   # the mastoid process seen from the side, closed, running up 
     (-10.4, -29.2), (-12.5, -32.1), (-15.2, -33.3), (-18.4, -32.8),                                              # the blunt tip
     (-21.4, -30.8), (-24.0, -28.0), (-26.8, -25.2), (-30.0, -22.5), (-34.0, -20.0),                              # its hind border, rising to the occipital
     (-37.0, -14.0), (-36.0, -5.0), (-30.0, 2.0), (-18.0, 4.0)]                                                   # inside the bone
-CREST = [(14.0, 1.0), (8.0, 1.6), (2.0, 2.3), (-4.0, 3.4), (-10.0, 4.9), (-16.0, 6.8), (-22.0, 9.0), (-28.0, 11.6), (-33.0, 14.6)]
+# The supramastoid crest (Gray p. 139: "a curved line, the temporal line, or supramastoid crest, runs backward and upward across
+# its posterior part"; the arch's posterior root "runs backward above the external acoustic meatus, and is continuous with the
+# temporal line"). On Fig. 188 it leaves the root's upper border nearly level over the ear opening, bends upward behind it and
+# climbs ever more steeply to the parietal notch: no stretch of it straight. (It was a smooth line of almost even slope from
+# z 2 to -28, pressed as an even ridge: from the side one long ruled bar continuing the arch's upper border.)
+# Its lit upper edge read off the plate in the head frame: (-8.4, 5.3), (-14.8, 7.3), (-24.4, 10.3), (-32.1, 14.6); the crown
+# is half a millimetre under that.
+CREST_ROOT = [(14.0, 1.0), (8.0, 1.6), (2.0, 2.3), (-4.0, 3.4), (-10.0, 4.9), (-16.0, 6.8), (-22.0, 9.0), (-28.0, 11.6), (-33.0, 14.6)]
+# (the old line, kept as it was over the arch's root in front of porion, so nothing changes round the jaw's socket)
+CREST = [(14.0, 1.0), (8.0, 1.4), (3.0, 2.2), (-1.5, 3.3), (-5.5, 4.2), (-9.5, 5.1), (-14.0, 6.5), (-19.0, 8.0), (-24.0, 9.7),
+         (-28.0, 11.6), (-31.0, 13.6), (-34.0, 16.4)]
 # The ear opening (external acoustic meatus). Gray, p. 183: "Below the posterior root of the zygomatic arch is the elliptical
 # orifice of the external acoustic meatus, bounded in front, below, and behind by the tympanic part of the temporal bone";
 # p. 145: in section the canal "presents an oval or elliptical shape with the long axis directed downward and slightly
@@ -105,60 +115,105 @@ def outer_wall(F, M, x_out=76.0, x_in=30.0):
     return ndimage.gaussian_filter(xw[tuple(idx)], 1.5 / M.cell)
 
 
+# The mastoid process as plan outlines (x, z) at levels of height (y), read off the two plates: the front and hind borders
+# at each level from the side outline (Fig. 188, MASTOID_SIDE), the outer face from below (Fig. 187: the skull's side wall at
+# x 62 high up, narrowing to the tip), the inner face from the lateral lip of the mastoid notch (Fig. 187: the digastric's
+# outline, read at z -13, -16, -20, -24, -27: x 47.3, 49.9, 51.7, 51.9, 50.8). Each outline is given by points round it, front
+# first, then outward, back and inward. High up the outlines lie in the skull's side wall (the process runs out into it, its
+# outer face 2 to 3 mm proud); behind the ear opening their front stays a millimetre behind the tympanic part's hind border
+# (ear_hole's clearing, z -11.6 to -12.3), rounded there from the outer face to the inner, so that nothing there is planed
+# flat; below the notch's roof (y -19) the inner face is the notch's lateral wall, oblique as the plate draws the lip, and the
+# outlines shrink to a blunt rounded tip 33.4 mm below the Frankfurt plane, 15 behind the ear opening's upper edge, under the
+# process's inner half. The levels are not evenly alike: a cone, not a stack of rings. Behind, the outlines run broad and blunt
+# down into the occipital's surface (no keel standing proud of it: from behind that read as a fin with a crease beside it), and
+# outside the outer face swells gradually from the side wall above, not as an egg set on the bone.
+MASTOID_LEVELS = [
+    (4.0, [(54.0, -13.0), (57.0, -16.0), (58.6, -22.0), (58.2, -30.0), (55.5, -36.5), (49.0, -33.0), (47.5, -24.0), (50.0, -15.0)]),
+    (-1.0, [(56.5, -12.8), (57.9, -14.8), (59.6, -21.0), (59.6, -29.5), (58.0, -35.6), (55.4, -39.8), (51.0, -38.0), (48.5, -24.0), (51.5, -14.0)]),
+    (-5.0, [(57.8, -12.6), (59.2, -14.6), (60.2, -20.8), (60.4, -25.4), (59.6, -28.8), (58.8, -31.8), (57.4, -35.4), (55.4, -39.0), (51.5, -38.6), (48.5, -24.0), (52.0, -13.8)]),
+    (-9.5, [(58.6, -12.6), (60.4, -14.8), (61.0, -20.4), (60.7, -24.8), (59.4, -28.8), (58.0, -32.0), (56.4, -35.4), (53.6, -37.4), (50.0, -35.6), (48.0, -23.0), (52.5, -13.6)]),
+    (-14.0, [(58.9, -12.7), (60.8, -15.0), (61.3, -20.2), (61.0, -25.0), (59.7, -29.0), (57.8, -32.4), (55.2, -35.8), (51.8, -37.2), (48.3, -34.6), (46.8, -28.0), (47.6, -22.0), (51.5, -13.6)]),
+    (-18.0, [(58.7, -12.9), (60.4, -15.0), (60.9, -19.9), (60.5, -24.9), (59.3, -28.6), (57.4, -31.9), (54.8, -34.6), (51.2, -35.6), (47.6, -34.0), (47.0, -30.8), (48.9, -27.6), (47.9, -20.0), (48.8, -14.2), (53.5, -13.0)]),
+    (-21.0, [(57.9, -12.4), (60.0, -14.2), (60.4, -19.0), (59.0, -26.6), (57.4, -30.2), (54.6, -32.6), (50.8, -32.8), (48.0, -31.2), (49.4, -28.6), (51.6, -27.6), (51.0, -24.4), (51.5, -21.5), (49.1, -16.2), (47.7, -13.6), (52.8, -12.5)]),
+    (-24.0, [(56.7, -11.2), (59.0, -12.9), (59.8, -18.0), (58.5, -24.8), (55.6, -28.2), (52.4, -26.4), (51.5, -23.6), (52.0, -21.0), (49.5, -16.0), (48.2, -13.2), (52.6, -11.2)]),
+    (-26.8, [(55.6, -10.1), (58.4, -11.9), (59.2, -16.8), (57.6, -22.5), (54.9, -25.0), (52.4, -23.6), (51.6, -18.5), (50.4, -15.2), (50.4, -12.2), (52.6, -10.3)]),
+    (-29.3, [(54.6, -10.6), (57.2, -12.2), (57.8, -16.2), (56.4, -20.6), (54.1, -22.4), (52.2, -21.0), (51.2, -16.5), (51.6, -12.4)]),
+    (-31.3, [(54.0, -12.0), (55.8, -13.0), (56.2, -15.6), (55.4, -18.6), (53.6, -20.0), (52.2, -19.0), (51.6, -16.0), (52.3, -12.8)]),
+    (-32.6, [(53.6, -13.7), (54.8, -14.4), (55.0, -16.0), (54.4, -17.6), (53.4, -18.2), (52.6, -17.4), (52.3, -15.8), (52.7, -14.3)]),
+]
+MASTOID_TIP = (53.6, -33.45, -15.6)          # the lowest point of the blunt tip (x, y, z)
+
+
+class Loft:
+    """A solid given by plan outlines at levels of height: the outlines' signed distances (on one Map over (x, z)) are carried
+    from level to level by a monotone cubic (no overshoot between levels, no crease at them), closed above and below, and the
+    result divided by its own gradient so that it reads as a distance across sloping faces too (the tip)."""
+    def __init__(self, M, levels, tip, cell=0.25, smooth=0.5):
+        from scipy.interpolate import PchipInterpolator
+        ys = np.array([y for y, _ in levels])[::-1]                   # rising
+        S = np.stack([M.region(spline(np.array(P, float), 0.25, closed=True)) for _, P in levels][::-1])
+        # below the lowest outline the tip closes: a level 1.2 mm under it, everywhere outside by as much as the tip's last outline
+        # was inside at its centre, so the tip ends rounded at `tip`
+        it, jt = [int(round(v)) for v in M.ij(tip[0], tip[2])]
+        c = -float(S[0, it, jt])                                      # how far the lowest outline's centre lies inside it
+        dl = 1.2
+        S = np.concatenate([(S[0] + c * dl / max(ys[0] - tip[1], 0.2))[None], S])
+        ys = np.concatenate([[ys[0] - dl], ys])
+        top = S[-1] + 6.0                                             # and above the highest it ends inside the bone
+        S = np.concatenate([S, top[None]]); ys = np.concatenate([ys, [ys[-1] + 6.0]])
+        yy = np.arange(ys[0], ys[-1] + 1e-6, cell)
+        V = PchipInterpolator(ys, S, axis=0)(yy)                     # (y, x, z)
+        V = np.transpose(V, (1, 0, 2)).astype(np.float32)            # (x, y, z)
+        g = np.gradient(V, M.cell, cell, M.cell)
+        V = V / np.maximum(np.sqrt(g[0] ** 2 + g[1] ** 2 + g[2] ** 2), 0.3)
+        V = ndimage.gaussian_filter(V, (smooth / M.cell, smooth / cell, smooth / M.cell))
+        self.V, self.lo, self.st = V, np.array([M.u0, yy[0], M.v0]), np.array([M.cell, cell, M.cell])
+        hi = self.lo + self.st * (np.array(V.shape) - 1)
+        self.bounds = (self.lo, hi)
+
+    def __call__(self, X, Y, Z):
+        X, Y, Z = (np.asarray(v, np.float64) for v in np.broadcast_arrays(X, Y, Z))
+        Q = np.stack([X, Y, Z], -1)
+        lo, hi = self.bounds
+        C = np.clip(Q, lo, hi)
+        d = ndimage.map_coordinates(self.V, ((C - lo) / self.st).reshape(-1, 3).T, order=1, mode="nearest").reshape(X.shape)
+        out = np.linalg.norm(Q - C, axis=-1)
+        return (d + out).astype(np.float32)
+
+
 def mastoid(F, log=print):
-    """The mastoid process: the traced outline, with an outer face that is full in the middle and falls away to the tip,
-    and an inner face along the notch for the digastric."""
-    M = Map(-42.0, 0.0, -38.0, 10.0, 0.5)                    # u = z, v = y
-    reg = M.region(spline(np.array(MASTOID_SIDE, float), 0.5, closed=True))
-    y, z = M.V, M.U
-    xo = np.interp(y, [-34, -31, -27, -22, -16, -8, 0, 6], [54.6, 57.4, 60.0, 61.7, 62.4, 62.4, 61.4, 61.0])
-    zc = np.interp(y, [-33, -30, -22, -12, 0], [-15.5, -16.4, -17.8, -19.5, -21.0])
-    hw = np.interp(y, [-33, -30, -22, -12, 0], [6.5, 8.0, 10.5, 13.0, 15.0])
-    xo = xo - 1.2 * np.clip(np.abs(z - zc) / hw, 0.0, 1.5) ** 2                 # rounded from front to back
-    xi = np.interp(y, [-34, -30, -24, -18, -10, 10], [46.0, 45.5, 44.5, 42.5, 38.0, 38.0])
-    # where its outline lies in the bone the process has no edge: its face runs out into the side of the skull that is there
-    xw = outer_wall(F, M)
-    d, _ = along(M, INSIDE)
-    if xw is not None:
-        xo = xw + (xo - xw) * smoothstep(d / 10.0)
-    xi = np.minimum(xi, xo - 5.0)
-    # Below the digastric notch's roof the process is a stout cone flattened from side to side, not a ball (it was a slab whose
-    # faces closed on each other in quarter-rounds all round its free border: from below a sphere hung under the skull, and it
-    # overhung the notch so that the notch did not show). Gray (p. 141): the mastoid process "is conical in form"; on its medial
-    # side "is a deep groove, the mastoid notch (digastric fossa)". Fig. 187 draws the process from the skull's side wall
-    # (x 62) in to the notch's lateral lip (x 51), the notch 8 mm across, medial to it the occipital groove. So at each level
-    # the section runs from the side outline's front border to its hind border, with a lateral face that is nearly flat and a
-    # medial face (the notch's lateral wall) that is convex, the breadth from side to side shrinking to the blunt tip.
-    low = smoothstep((-16.5 - y) / 6.5)                         # 0 above the notch's roof, 1 from 23 mm below the plane down
-    inside = reg < 0
-    zf = np.where(inside, z, -99.0).max(0); zb = np.where(inside, z, 99.0).min(0)   # the outline's front and hind border at each level
-    ok = zf > zb
-    zf = np.interp(M.V[0], M.V[0][ok], zf[ok]); zb = np.interp(M.V[0], M.V[0][ok], zb[ok])
-    u = np.clip((z - zb[None, :]) / np.maximum(zf - zb, 1.0)[None, :], 0.0, 1.0)
-    wob = uneven(M, 421, 3.5); wob2 = uneven(M, 422, 1.6)      # no two millimetres of it alike, and not the other side's
-    T = np.interp(y, [-34.0, -32.0, -29.0, -26.0, -22.0, -18.0], [3.2, 5.2, 7.6, 9.4, 11.2, 13.5]) * (1.0 + 0.07 * wob)
-    g = np.maximum(np.sin(np.pi * np.clip(u ** 0.9, 0.0, 1.0)) ** 0.5, 0.42)                # thickest a little in front of the middle
-    xo_low = xo + low * (0.3 * wob2 - 0.5 * np.clip(u - 0.75, 0.0, 1.0) * 4.0 * smoothstep((-24.0 - y) / 6.0))   # the hind border turns in
-    xi = xi * (1.0 - low) + np.maximum(xi, xo_low - T * g) * low
-    xo = xo * (1.0 - low) + xo_low * low
-    xi = ndimage.gaussian_filter(xi, 1.2 / M.cell)            # (no crease where the faces' rules change)
-    # the slab ends 23.5 mm below the plane, inside the cone's upper part; the free process below is one smooth cone (a slab's outline and faces met there in
-    # ridges and corners, a keel along the bottom and a beak at the front)
-    F.add(Slab(M, (2, 1, 0), xo, np.minimum(xi, xo - 0.8), np.maximum(reg, -(y + 23.5)), round=2.0), 3.0)
-    # The cone: sections square to its axis, longer front to back than across, the outer face the flatter; its axis leans forward
-    # as it comes down, its front and hind borders on the side outline (Fig. 188), its tip 33 mm below the plane and 15 behind
-    # the ear hole; from below it runs from the side wall (x 62) in to the notch's lateral lip (x 46 in front to 51 behind, Fig. 187),
-    # its tip under the inner half, where the plate's muscle outlines hook round it (x 50, z -12). The
-    # sections' sizes do not fall evenly.
-    CONE = [(55.6, -16.0, -21.4), (55.9, -19.0, -20.9), (55.7, -22.0, -20.1), (54.8, -24.2, -18.7), (54.0, -26.0, -17.4), (53.2, -27.7, -15.8),
-            (52.5, -29.0, -14.5), (51.8, -30.2, -13.3)]
-    F.add(Tube(spline(CONE, 0.5), [(0, 9.4), (0.18, 9.2), (0.4, 8.1), (0.55, 7.1), (0.7, 6.5), (0.82, 5.6), (0.92, 4.6), (1, 3.9)],
-               [(0, 6.9), (0.18, 6.5), (0.4, 5.7), (0.55, 5.1), (0.7, 4.9), (0.82, 4.1), (0.92, 3.5), (1, 3.1)], up=(0, 0.22, 1.0)), 3.2, keep=4)
-    # where the slab runs out into the cone its front border sank in a shallow dent 23 to 25 mm below the plane: filled
-    F.add(Ellipsoid((54.6, -24.0, -14.6), (3.2, 3.6, 2.8)), 2.2, keep=4)
-    # the notch's lateral lip: Fig. 187 draws it at x 46 where the notch begins (z -14); the cone's front-inner foot is filled out
-    # toward it, low down and on the medial side only (the side outline is not touched)
-    F.add(Ellipsoid((48.9, -27.2, -14.3), (1.9, 3.4, 2.6)), 1.4, keep=4)
+    """The mastoid process: a cone pointing down and a little forward, flattened from side to side, its outline the traced one
+    from the side and from below (MASTOID_LEVELS), running out into the skull's side wall above and behind; the notch for the
+    digastric along its inner face."""
+    # (It was a slab over the side view, ruled from side to side, ending 23.5 mm below the plane in a cone hung under it: from the
+    # side a block with a flat upright front face 15 mm tall and a crease where slab met cone; from below it overhung the notch.)
+    M = Map(40.0, 68.0, -44.0, -4.0, 0.25)                    # u = x, v = z
+    # its outer face is no turned surface: low broad swellings and hollows of a few tenths of a millimetre, unevenly placed
+    rng = np.random.default_rng(433)
+    # and seen from below its outline is no egg: fuller behind and outside (the swelling over the air cells), flatter in front of
+    # that, each level a little different
+    def lump(x, y, z):
+        if x <= 56.5 or not -24.5 < y < 0.0:
+            return 0.0
+        return rng.normal(0.0, 0.5) + 1.1 * np.exp(-((z + 26.5) / 3.0) ** 2) + 0.6 * np.exp(-((z + 32.5) / 2.0) ** 2) - 0.9 * np.exp(-((z + 20.5) / 2.5) ** 2) * smoothstep((-6.0 - y) / 6.0)
+    levels = [(y, [(x + lump(x, y, z), z) for x, z in P]) for y, P in MASTOID_LEVELS]
+    L = Loft(M, levels, MASTOID_TIP)
+    F.add(L, 2.6, keep=4)
+    # the notch is a rounded groove (Fig. 187: "Mastoid notch"), its roof an arch 2.5 to 3 mm in radius running into the lateral
+    # wall (the mastoid's inner face) and the medial slope without a corner; it is deepest under the process's middle and runs
+    # out shallow in front, by the stylomastoid foramen, and opens behind onto the occipital as the process merges into it. (The loft's
+    # smooth union had filled its old arched roof flat, and a narrow tube under it left a square jog beside each wall.)
+    # (skull2 cuts its narrow slit for the muscle after this, at x 42.6 to 50.6: the groove holds that slit inside it, so the slit
+    # leaves no edge of its own; its lateral side touches the process's inner face, which therefore runs on below it as one wall)
+    # (its crown stays half a millimetre under the base's own under face, base.floor_cut, which fills back anything above it
+    # with no blend: an arch reaching higher came out flat-topped with a crease along each side)
+    ax = np.array([(44.5, -21.2, -9.5), (45.4, -22.2, -14.0), (47.9, -22.2, -20.0), (48.9, -21.1, -24.0), (49.4, -20.2, -27.8),
+                   (49.6, -19.8, -30.5), (49.3, -19.7, -33.5), (48.8, -19.6, -37.0)])
+    wid = [(0, 3.3), (0.18, 4.0), (0.42, 4.3), (0.58, 3.5), (0.72, 2.9), (0.86, 2.6), (1, 2.4)]
+    hgt = [(0, 3.2), (0.18, 4.2), (0.42, 4.2), (0.58, 3.6), (0.72, 2.9), (0.86, 2.4), (1, 2.2)]
+    F.cut(Tube(spline(ax, 0.5), hgt, wid, up=(0, 1, 0)), 0.8)
+    F.cut(Tube(spline(ax[:-3] - np.array([0.0, 3.5, 0.0]), 0.5), [(0, 3.6), (0.5, 4.5), (1, 3.4)],
+               [(0, 3.0), (0.3, 3.45), (0.6, 3.55), (0.85, 2.9), (1, 2.3)], up=(0, 1, 0)), 0.8)
     mastoid_relief(F)
     # the mastoid foramen: a small oblique canal through the bone near its hind border, in front of the occipitomastoid suture
     # (Gray, p. 141: "Near the posterior border of this region is the mastoid foramen"); it opens on the surface as an oval
@@ -172,9 +227,8 @@ def mastoid(F, log=print):
                    [(0, 1.05), (0.4, 0.85), (1, 0.7)], [(0, 0.8), (0.4, 0.65), (1, 0.55)], up=(0, 0.9, -0.44)), 0.4)
         F.cut(Tube(spline([(xc + 0.6, yc + 0.6, zc - 0.6), (xc + 0.5, yc + 2.0, zc - 2.0), (xc + 0.35, yc + 3.1, zc - 3.6)], 0.5),
                    [(0, 0.6), (1, 0.4)], [(0, 0.5), (1, 0.3)], up=(1, 0, 0)), 0.5)
-    tip = min(MASTOID_SIDE, key=lambda p: p[1])
-    log("mastoid process: tip %.1f mm below the Frankfurt plane, %.1f behind the ear hole's upper edge; a cone flattened from side to side, %.1f to %.1f mm across at 26 and 22 mm below the plane; outer face out to x %.1f"
-        % (-tip[1], -tip[0], 9.4, 11.2, float(xo[reg < 0].max())))
+    log("mastoid process: a cone from plan outlines at %d levels, its tip at (%.1f, %.1f, %.1f): %.1f mm below the Frankfurt plane, %.1f behind the ear hole's upper edge; outer face out to x %.1f"
+        % (len(MASTOID_LEVELS), MASTOID_TIP[0], MASTOID_TIP[1], MASTOID_TIP[2], -MASTOID_TIP[1], -MASTOID_TIP[2], max(x for _, P in MASTOID_LEVELS for x, _ in P)))
 
 
 def mastoid_relief(F, seed=431):
@@ -302,12 +356,23 @@ def ear_hole(F, log=print):
     # Seen from below the crest is one nearly straight, slightly bowed line (Fig. 187) that strays forward and back by 0.2 to
     # 0.4 mm at uneven spacing, with two small notches cut in it below (it was ruled straight, then an even wave); it is
     # thicker out at the canal than in at the root, where it thins and splits round the styloid (the sheath: styloid())
+    # Fig. 187 draws the border from the canal's outer end (x 50, z -1.8) in to the styloid's root (x 41.5, z -2.7) as one
+    # bow, back by a millimetre in the middle (x 47), turning forward round the root's front as its sheath at the inner end and
+    # toward the canal at the outer; it hangs lowest in the middle. (It ran level at z -2.5 from x 50 to 43: from below a
+    # ruled bar.) The bow is the lip below; the plate's body is unchanged.
     TP = [(53.4, -12.4, -3.4), (51.6, -12.7, -2.3), (49.8, -12.9, -1.55), (48.0, -13.0, -1.2), (47.1, -13.05, -1.3), (46.2, -13.1, -1.55),
           (44.4, -13.3, -1.3), (42.9, -13.5, -1.6), (41.9, -13.7, -1.15), (41.0, -13.9, -0.6), (40.1, -14.0, 0.2), (39.2, -13.9, 0.9),
-          (38.4, -13.7, 1.9), (37.6, -13.5, 2.9)]          # (and on inward toward the carotid canal, as it was)
+          (38.4, -13.7, 1.9), (37.6, -13.5, 2.9)]          # (and on inward toward the carotid canal; the plate's body as it was)
     TPa = [(0, 5.1), (0.12, 5.45), (0.24, 5.45), (0.36, 5.8), (0.46, 5.6), (0.55, 5.75), (0.67, 6.15), (0.76, 6.4), (0.83, 5.7), (0.92, 5.0), (1, 4.8)]
     TPb = [(0, 1.5), (0.12, 1.05), (0.22, 1.15), (0.34, 1.35), (0.46, 1.2), (0.58, 1.05), (0.68, 1.0), (0.77, 1.3), (0.88, 1.1), (1, 1.2)]
     F.add(Tube(spline(TP, 0.6), TPa, TPb, up=(0.0, 0.985, 0.17), taper=-0.2), 1.8, keep=4)
+    # the border's bow (above) is a lip along the plate's lower edge, set back in the middle and hanging a little lower there,
+    # so the plate's front face, which walls the jaw's socket behind, stays exactly as it was
+    xs_ = np.arange(50.6, 42.2, -0.7); u_ = (50.6 - xs_) / (50.6 - 42.2)
+    bow = np.sin(np.pi * u_) ** 1.5
+    lipP = np.column_stack([xs_, -17.6 - 0.7 * bow + 0.12 * np.sin(7.0 * u_ + 0.4), -2.0 - 1.8 * bow - 0.15 * np.sin(9.0 * u_ + 1.1)])
+    F.add(Tube(spline(lipP, 0.4), [(0, 0.9), (0.3, 1.5), (0.55, 1.3), (0.8, 1.6), (1, 1.0)],
+               [(0, 0.55), (0.25, 0.7), (0.5, 0.6), (0.75, 0.75), (1, 0.55)], up=(0.0, 1.0, 0.0)), 0.8, keep=4)
     behind_crest(F)
     # the petrotympanic fissure: a fine cleft across the fossa's back wall where the tympanic plate meets the squama, 5 to 6 mm
     # below the fossa's roof, behind the articular part. Found on the wall as it stands (the first bone met going forward at
@@ -419,8 +484,26 @@ def side_relief(seed, log=print):
     M = Map(-42.0, 30.0, -37.0, 40.0, 0.25)
     H = np.zeros(M.U.shape)
     slow = uneven(M, seed, 6.0); fine = uneven(M, seed + 1, 1.5)
-    d, t = along(M, CREST)                                   # the supramastoid crest: strongest over the ear hole, fading as it climbs
-    H += (1.15 - 0.8 * t) * (1.0 + 0.22 * slow) * np.exp(-(d / (1.6 + 0.3 * slow)) ** 2)
+    # the supramastoid crest: strongest where it is the arch's hind root over the ear hole, fainter as it climbs, its strength
+    # coming and going; steep on its lower side (the suprameatal surface falls away under it) and running out gently above; its
+    # line wanders a little (each side its own)
+    rng = np.random.default_rng(seed + 7)
+    cr = spline(np.array(CREST, float), 0.25)
+    s_ = np.concatenate([[0], np.cumsum(np.linalg.norm(np.diff(cr, axis=0), axis=1))])
+    nrm = np.gradient(cr, axis=0)[:, ::-1] * np.array([-1.0, 1.0]); nrm /= np.linalg.norm(nrm, axis=1)[:, None]
+    lam = rng.uniform(8.0, 10.5); ph = rng.uniform(0, 6.3, 3)
+    off = (0.42 * np.sin(2 * np.pi * s_ / lam + ph[0]) + 0.1 * np.sin(2 * np.pi * s_ / (0.45 * lam) + ph[1])) * smoothstep((s_ - 8.0) / 8.0)
+    cr = cr + off[:, None] * nrm
+    d, t = along(M, cr)
+    above = M.V > np.interp(M.U, cr[::-1, 0], cr[::-1, 1])
+    L = np.linalg.norm(np.diff(cr, axis=0), axis=1).sum()
+    beat = 1.0 + 0.2 * np.sin(2 * np.pi * t * L / (8.5 + 1.5 * rng.random()) + rng.uniform(0, 6.3)) + 0.05 * np.sin(2 * np.pi * t * L / 3.7 + rng.uniform(0, 6.3))
+    wide = np.where(above, 2.3 + 0.4 * slow, 1.1 + 0.15 * slow)
+    new = (1.25 - 0.85 * t) * (1.0 + 0.2 * slow) * beat * np.exp(-(d / wide) ** 2)
+    d, t = along(M, CREST_ROOT)                              # in front of porion the ridge stays exactly as it was (the joint's surroundings)
+    was = (1.15 - 0.8 * t) * (1.0 + 0.22 * slow) * np.exp(-(d / (1.6 + 0.3 * slow)) ** 2)
+    w = smoothstep(-M.U / 5.0)
+    H += w * new + (1.0 - w) * was
     H -= 0.7 * np.exp(-((M.U + 14.0) / 2.3) ** 2 - ((M.V - 1.6) / 1.8) ** 2)         # the suprameatal triangle: behind and above the opening, under the crest (p. 183)
     H += 0.45 * np.exp(-((M.U + 11.6) / 0.9) ** 2 - ((M.V - 0.3) / 0.8) ** 2)       # the small spine on its front border, at the opening's upper hind corner (p. 145: "sometimes seen")
     d, t = along(M, FISSURE)
