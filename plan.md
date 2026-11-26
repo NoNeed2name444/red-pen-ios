@@ -4378,6 +4378,20 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     masses beside the roof behind z 29 come from base relief; the juga
     are mirror copies. Built on 5d3bbef, before the tooth-root
     commits: to be confirmed on a whole build of everything together.
+    Whole build of 89235c5 (all six changes together): no measurement
+    flagged. Joint 1.33 and 1.07 mm, coronoid 2.78 and 2.83, no tooth
+    in another tooth or the other jaw, periodontal space medians 0.30
+    above and 0.27 below with no root touching bone, every interdental
+    septum at least 0.92 mm, bone in front of the upper incisors and
+    canines 2.60 to 2.75 mm, the jaw one piece. It found four loose
+    pieces of bone (3.4 mm3) inside the new sphenoidal sinus: the right
+    sinus kept a 2 to 3 mm wall off the left sinus's air, leaving a
+    sheet floating beside the septum. Fixed in sinus.py by capping
+    that wall by its distance to the septum plane, with a guard that
+    clears loose bone in the sinus's box; volumes (3.34 and 4.51 cm3),
+    least wall (0.72) and the sella floor (1.04) unchanged. The skull
+    is now the main body plus the two old 0.1 mm3 crumbs at
+    (8.5, 0, 77) and (47, -0.5, 12.5).
     Task C, repair 1 (head and neck accepted; task closed): the ring is
     gone. Each section under the head is solved to silhouette targets
     from Fig. 176 and 177: the hind edge runs straight into the head,

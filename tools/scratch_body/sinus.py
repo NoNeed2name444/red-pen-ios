@@ -418,12 +418,28 @@ def sphenoidal(G, side, log=print):
         # where a sinus runs up to the body's outer face its wall is not a level sheet: it thickens and thins in low
         # rounded swells (about 1.2 to 3 mm, 7 mm apart, three crossing waves so no line along the wall misses them all), the partial ridges of the dry bone, so no wall inside is flat where the face outside is
         w = 2.15 + 0.12 * s + sum(0.33 * np.sin((X * a + Y * b + Z * c) * 0.9 + ph) for a, b, c, ph in SWELLS[side])
-        return w - (w - FOSSA["floor_wall"]) * np.maximum(f, g)
+        w = w - (w - FOSSA["floor_wall"]) * np.maximum(f, g)
+        # the wall may not outrun the septum: the second sinus is cut after the first, and a wall 2 to 3 mm thick measured from the
+        # first sinus's air, taller than the distance from the septum to the point, left a sheet of bone floating in this
+        # sinus's cavity a little off the septum (four loose pieces, 0.1 to 2.5 mm3). Capped by the distance to the septum plane,
+        # the bone between the two sinuses is the septum and the walls that meet it, joined
+        return -smax(-w, -(np.abs(X - sphenoid_septum(Y, Z)) + 0.2), 0.4)
     L = np.array(lobes, float); lo = (L[:, :3] - 1.1 * L[:, 3:]).min(0) - 1.0; hi = (L[:, :3] + 1.1 * L[:, 3:]).max(0) + 1.0
     got = hollow(G, lo, hi, env, wall, 1.0)
     if got is None:
         return None
     G.cut(Tube(spline(np.array(APERTURE[side], float), 0.8), 1.3), 0.5)
+    sl = G.window(lo - 3.0, hi + 3.0)                         # guard: a piece of bone in the sinus's box joined to nothing is part of no wall
+    if sl is not None:
+        A = G.D[sl] < 0
+        lab, n = ndimage.label(A)
+        if n > 1:
+            edge = np.zeros(A.shape, bool); edge[0] = edge[-1] = True; edge[:, 0] = edge[:, -1] = True; edge[:, :, 0] = edge[:, :, -1] = True
+            touch = np.unique(lab[edge & A]); size = np.bincount(lab.ravel())
+            loose = np.isin(lab, [i for i in range(1, n + 1) if i not in touch and size[i] * G.h ** 3 < 60.0])
+            if loose.any():
+                G.D[sl] = np.where(loose, np.abs(G.D[sl]) + 0.01, G.D[sl])
+                log("sphenoidal sinus, %s: %.2f mm3 of loose bone removed" % ("left" if side > 0 else "right", float(loose.sum()) * G.h ** 3))
     vol, box = got
     log("sphenoidal sinus, %s: %.1f cm3; %.0f mm high, %.0f across, %.0f from front to back; opens forward by an aperture high in its front wall"
         % ("left" if side > 0 else "right", vol, box[1][1] - box[1][0], box[0][1] - box[0][0], box[2][1] - box[2][0]))
