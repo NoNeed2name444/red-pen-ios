@@ -115,7 +115,7 @@ def walls(G, cav, sl):
     return off, ndimage.gaussian_filter(off + far, 2.0)
 
 
-def thin(G, cav, lo, hi, want, log=print, name=""):
+def thin(G, cav, lo, hi, want, log=print, name="", least=None):
     """Thin the cavity's wall from within, in the block from lo to hi. want(X, Y, Z) gives (how far the wall is to be
     thinned there, 0 to 1; the thickness it is thinned toward, mm): bone is taken from the cavity's side only, the
     wall's own curve kept, and nowhere is less left than that thickness, whatever lies behind the wall."""
@@ -123,6 +123,8 @@ def thin(G, cav, lo, hi, want, log=print, name=""):
     off, T = walls(G, cav, sl)
     w, t = want(*G.coords(sl))
     take = ndimage.gaussian_filter((w * np.clip(T - t, 0.0, None)).astype(np.float32), 1.5)
+    if least is not None:                                             # (the smoothing carries the taking over onto bone thinner beside it: no less than this left)
+        take = np.minimum(take, np.clip(T - least, 0.0, None))
     wall = np.abs(off) < 0.6 * G.h
     was = float(np.median(T[wall & (w > 0.5)])) if (wall & (w > 0.5)).any() else float("nan")
     most = float(take[wall].max()) if wall.any() else 0.0
@@ -286,12 +288,21 @@ def middle_fossa(G, side, cav, log=print):
     except (ImportError, AttributeError, KeyError):
         canals = []
 
+    # The whole floor, not a round patch of it: thinned only about the two foramina, the floor was a bowl sunk 5 mm into
+    # a floor left thick, its wall round the oval foramen like a crater's. From the body's side out to the side wall,
+    # from the petrous edge forward to the great wing's front wall, fading out up the walls (above y 0 to 4) and round
+    # the ragged hole, and outward over 9 mm to the jaw's socket, whose roof is thin already and stands higher (the
+    # petrous part laid in after keeps its old height there, over the roof's gaps; taken to the socket's edge, the floor
+    # met it in a step 5 mm high).
+    E = np.array(PETROUS_EDGE)[::-1]
+
     def want(X, Y, Z):
         ax = s * X
-        r = np.sqrt(((ax - 31.5) / 13.0) ** 2 + ((Z - 20.5) / 13.5) ** 2)                 # round the two foramina, fading over 6 mm: no edge to the hollowing (not out over the jaw's socket, whose roof is thin already)
-        w = (1.0 - smoothstep((r - 0.5) / 0.5)) * smoothstep((2.0 - Y) / 4.0)
+        front = Z - np.interp(ax, E[:, 0], E[:, 1])                                          # mm in front of the petrous edge
+        w = (smoothstep((front - 1.0) / 5.0) * smoothstep((ax - 18.0) / 4.0) * smoothstep((40.0 - ax) / 9.0) * smoothstep((37.0 - Z) / 4.0)
+             * smoothstep((3.0 - Y) / 7.0) * smoothstep((np.hypot(ax - 17.0, Z - 17.0) - 5.5) / 3.0))
         return w, 3.0 + 0.3 * uneven(X, Y, Z, 97 + int(s < 0), 1.0, 11.0)
-    lo, hi = np.array([16.0, -16.0, 0.0]), np.array([56.0, 10.0, 38.0])
+    lo, hi = np.array([16.0, -18.0, -8.0]), np.array([62.0, 12.0, 40.0])
     if s < 0:
         lo, hi = np.array([-hi[0], lo[1], lo[2]]), np.array([-lo[0], hi[1], hi[2]])
     sl = G.window(lo, hi); X, Y, Z = G.coords(sl); stop = np.zeros(G.D[sl].shape, bool)
@@ -301,12 +312,12 @@ def middle_fossa(G, side, cav, log=print):
     stop &= G.D[sl] > 0; kept = G.D[sl][stop]
     G.D[sl][stop] = -0.5
     was_air = G.D[sl] > 0; was_cav = cav[sl].copy()
-    most = thin(G, cav, lo, hi, want, log, "floor of the middle hollow (%s)" % ("left" if s > 0 else "right"))
+    most = thin(G, cav, lo, hi, want, log, "floor of the middle hollow (%s)" % ("left" if s > 0 else "right"), least=2.2)
     G.D[sl][stop] = kept
     # the cavity now: what it was and the floor's bone taken away, no more (thin() lets it spread through any air within
     # reach, and where the jaw's socket opens into the middle hollow that would carry it into the air under the base)
     air = G.D[sl] > 0
-    cav[sl] = ndimage.binary_dilation(was_cav & air, iterations=int(np.ceil(most / G.h)) + 2, mask=air & (was_cav | ~was_air))
+    cav[sl] = ndimage.binary_dilation(was_cav & air, iterations=int(np.ceil(most / G.h)) + 2, mask=air & (was_cav | ~was_air)) | (air & ~was_air & ~stop)     # (all the bone taken is cavity now: a pocket of it left out was roofed over by the petrous part laid in after, a bubble under the floor)
 
 
 def squama(G, side, cav, log=print):
@@ -457,13 +468,13 @@ def petrous(G, side, cav, log=print):
     # axis along the edge), its margins smooth and rounded (p. 143), its canal narrowing a little, lateralward and a
     # little forward, ending blind about 1 cm in
     mx, mz = MEATUS_AT
-    m = hit(G, (s * mx, 24.0, mz), (s * mx, -20.0, mz), must=False)
+    m = hit(G, (s * (mx - 0.6), 24.0, mz - 0.3), (s * (mx - 0.6), -20.0, mz - 0.3), must=False)     # (the mouth's middle, seen from above, comes out a little outside and in front of the point it is cut from)
     if m is not None:
         nh = normal(G, m)[0]; u = unit(np.array([s * 1.0, -0.05, 0.45]))
         jit = np.random.default_rng(seed + 10).uniform(0.9, 1.1, 2)
-        o = unit(nh + np.array([0.0, 0.7, 0.0]))                       # (its upper margin falls back more than its lower: the hind surface leans, and the mouth is seen into from above, as on the plate)
-        P = np.array([m + 2.6 * o, m + 0.3 * nh, m + 3.0 * u, m + 6.5 * u, m + 9.5 * u])
-        G.cut(Tube(P, [(0, 2.3 * jit[0]), (0.2, 1.7 * jit[0]), (0.45, 1.4), (1, 1.15)], [(0, 3.0 * jit[1]), (0.2, 2.3 * jit[1]), (0.45, 1.8), (1, 1.35)]), 1.3)
+        o = unit(nh + np.array([0.0, 2.0, 0.0]))                       # (its upper margin falls back more than its lower: the hind surface leans, and the mouth is seen into from above, as on the plate)
+        P = np.array([m + 3.0 * o + 1.0 * nh, m + 0.2 * nh, m + 3.0 * u, m + 6.5 * u, m + 9.5 * u])
+        G.cut(Tube(P, [(0, 3.8 * jit[0]), (0.2, 2.6 * jit[0]), (0.45, 1.6), (1, 1.15)], [(0, 4.2 * jit[1]), (0.2, 3.0 * jit[1]), (0.45, 1.9), (1, 1.35)]), 1.3)
     log("  petrous part (%s): edge %.0f mm along its chord, %.1f mm above the Frankfurt plane at the arcuate eminence, %.1f at the tip; meatus at %s" % (
         "left" if side > 0 else "right", L, float(np.interp(0.38 * L, sg, hc)) + 2.0, float(np.interp(L, sg, hc)), None if m is None else np.round(m, 1).tolist()))
     return m

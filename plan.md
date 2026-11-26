@@ -4234,6 +4234,23 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     crest 3 to 4 mm off at x 55 where the model is 8 to 10 mm
     narrower than the plate. Repair to follow in inner.py and
     foramina.py together.
+    Repair 1 (inner.py, foramina.py), accepted; task closed: the
+    crater came from thinning a round patch into a thick floor; the
+    whole floor is now thinned from the petrous edge forward and
+    fades out before the jaw socket, and foramina.through's upper
+    funnel is a third of the local floor thickness. From above the
+    ovale is 8.0 by 4.2 (plate 7.6 by 4.0), the spinosum about 2.5
+    (2.0); meatus left 0.4 mm off, right 0.9, 4.4 by 2.3 and 3.7 by
+    1.7 (plate 4.2 by 3.0). No new thin bone. The lacerum's funnel is
+    kept off the sphenoid body (the pit is gone). Under face
+    unchanged. Supervisor's ruling: the upper mouths of the ovale and
+    spinosum sit 4.5 and 2 mm behind Fig. 193's because a 3 mm floor
+    cannot carry the canal that far; Fig. 187 (the firmer
+    registration) and the thin floor are kept, and Fig. 193's
+    registration in the middle fossa is to be re-checked. Open,
+    small: the meatus's short axis; a soft ramp on the floor at x 31
+    to 40; a rolled rim round the lacerum's upper mouth; thin bone
+    from sinus.air at (-17.7, -2.3, 5.4).
     Task C, repair 1 (head and neck accepted; task closed): the ring is
     gone. Each section under the head is solved to silhouette targets
     from Fig. 176 and 177: the hind edge runs straight into the head,

@@ -239,6 +239,17 @@ class _Down:
         return self.op(X, 2 * float(self.op.ys.mean()) - Y, Z)
 
 
+class _Beside:
+    """A solid for the left side kept off the sphenoid's body: nothing of it inward of |x| = x0 (eased over k mm)."""
+    def __init__(self, solid, x0, k=1.0):
+        self.solid, self.x0, self.k = solid, x0, k
+        lo, hi = solid.bounds
+        self.bounds = (np.array([max(lo[0], x0 - k), lo[1], lo[2]]), hi)
+
+    def __call__(self, X, Y, Z):
+        return sdf.smax(self.solid(X, Y, Z), (self.x0 - X).astype(np.float32), self.k)
+
+
 class _Mirror:
     """A solid drawn for the left side (x > 0) set on the right."""
     def __init__(self, solid):
@@ -398,7 +409,7 @@ def cut(F, B, log=print):
     lac_poly = jag(jag(tri, 187, 0.20, 9), 188, 0.09, 23)
     lac = opening("ragged hole (lacerum)", lac_poly, 13.0, 0.6, lip_=(0.7, 1.1), seed=187, funnel=0.5, wob=0.45, taper=0.03, side=200.0,
                   mouth=2.0, lean=(0.06, 0.12),
-                  through=dict(grow=(1.25, 1.32), ragged=0.3, hole=0.9, search_from=-4.0,
+                  through=dict(grow=(1.25, 1.32), ragged=0.3, hole=0.9, search_from=-4.0, search_to=6.0,
                   upper=[(15.6, 19.0), (17.4, 19.7), (19.6, 18.6), (20.6, 17.0), (19.9, 15.6), (17.9, 15.1), (16.0, 15.4), (15.0, 17.2)]))     # from above: part-floored, broken edged
     # the carotid canal (p. 140: "it ascends at first, and then, making a bend, runs horizontally forward and medialward"):
     # its mouth looks down: an uneven round-oval in the rough petrous bone, its edge sharper in front and eased behind, the
@@ -483,7 +494,7 @@ def through(G, log=print):
                 y0 = LIDS[o["name"]] - 2.5
                 sh = np.array(lean) * (y0 - o["ys"]); c = c + sh; poly = poly + sh      # (where the canal cut from below has got to by then: it leans)
                 # up the canal's line to the cavity: the first 2 mm of air above the lid
-                ys_ = np.arange(o.get("search_from", LIDS[o["name"]]), LIDS[o["name"]] + 28.0, 0.25)     # (the ragged hole's search starts above the carotid canal, which opens into it)
+                ys_ = np.arange(o.get("search_from", LIDS[o["name"]]), min(LIDS[o["name"]] + 28.0, o.get("search_to", 99.0)), 0.25)     # (the ragged hole's search starts above the carotid canal, which opens into it, and stops below the sphenoid's body beside it)
                 px = s * (c[0] + lean[0] * (ys_ - y0)); pz = c[1] + lean[1] * (ys_ - y0)
                 dd = sample_field(G.D, G.lo, G.h, np.column_stack([px, ys_, pz]))
                 air = dd > 0.0
@@ -498,21 +509,33 @@ def through(G, log=print):
             op = Opening(Mb_, rb_, np.full(Mb_.U.shape, y0), top, wobble=(min(0.3, 0.08 * float(np.ptp(poly, 0).min())), o["seed"] + (1 if s > 0 else 2)), lean=lean,
                          rim=None if not o.get("right_only") else lip(Mb_, o["seed"] + 9, 0.5), mouth=1.6, below=1.0)
             G.cut(op if s > 0 else _Mirror(op), o["k"])
-            # its upper mouth: the floor's edge is no punched rim but runs down into the opening, unevenly
+            # its upper mouth: the floor's edge is no punched rim but runs down into the opening, unevenly. The funnel is
+            # as deep as a third of the bone it opens through, at most 3.5 mm: on the middle hollow's floor, a plate about
+            # 3 mm thick, a millimetre (a funnel 3.5 mm deep there ran down nearly to the under face and opened the whole
+            # mouth into a crater twice the plate's size); and it widens no further above the floor's surface, so that it
+            # cuts nothing round the mouth (no step, no ring)
+            th = (yt - 1.0) - o["ys"] if not o.get("right_only") else 99.0
+            fd = float(np.clip(th / 3.0, 0.9, 3.5))
             Mf, rf = outline_map(poly + np.array(lean) * (yt - y0), margin=4.0)
-            fl = Opening(Mf, rf, np.full(Mf.U.shape, yt + 0.5), 3.5, rim=lip(Mf, o["seed"] + (3 if s > 0 else 4), 0.9), mouth=3.5, below=4.0)
-            G.cut(_Down(fl) if s > 0 else _Mirror(_Down(fl)), 0.8)
+            fl = Opening(Mf, rf, np.full(Mf.U.shape, yt + 0.5), fd, rim=lip(Mf, o["seed"] + (3 if s > 0 else 4), 0.9 * fd / 3.5), mouth=fd, below=4.0,
+                         flare=1.5 if fd >= 3.5 else 1.0)
+            dn = _Down(fl) if not o.get("search_to") else _Beside(_Down(fl), 11.0)     # (the ragged hole's funnel, widening above the floor, opened a pit in the body's side at |x| 10)
+            G.cut(dn if s > 0 else _Mirror(dn), 0.8 if fd >= 3.5 else 0.5)
             if o.get("hole"):
                 # the gap's floor (cartilage in life): a shallow broken-edged hollow over the whole gap, and only part
                 # of it open through
                 Pf = jag(c + g * (base - c), o["seed"] + (11 if s > 0 else 511), 0.3, 9) + np.array(lean) * (yt - y0)
                 Mh, rh_ = outline_map(Pf, margin=4.0)
                 hf = Opening(Mh, rh_, np.full(Mh.U.shape, yt + 0.5), 1.6, rim=lip(Mh, o["seed"] + (12 if s > 0 else 13), 0.7), mouth=1.6, below=3.0)
-                G.cut(_Down(hf) if s > 0 else _Mirror(_Down(hf)), 0.8)
+                dn = _Down(hf) if not o.get("search_to") else _Beside(_Down(hf), 11.0)
+                G.cut(dn if s > 0 else _Mirror(dn), 0.8)
             if not o.get("right_only"):
                 # and the floor's edge rounded over about a millimetre: no knife edge, no dark cut line
                 m = c + np.array(lean) * (yt - y0)
-                G.ease((s * m[0], yt - 0.5, m[1]), 3.0 + 0.5 * float(np.ptp(poly, 0).max()), min(0.9, 0.12 * float(np.ptp(poly, 0).min())))     # (gently on a small canal: smoothed as much it closed)
+                er, es = 3.0 + 0.5 * float(np.ptp(poly, 0).max()), min(0.9, 0.12 * float(np.ptp(poly, 0).min()))     # (gently on a small canal: smoothed as much it closed)
+                if fd < 3.5:                                                     # (and on a thin floor, less)
+                    es = min(es, 0.25 * fd)
+                G.ease((s * m[0], yt - 0.5, m[1]), er, es)
             found.append("%s (%s) from y %.1f up to %.1f" % (o["name"], "left" if s > 0 else "right", y0, yt))
             if o.get("spur"):
                 # the intrajugular processes (p. 131: "a bony spicule ... which projects lateralward above the hypoglossal
