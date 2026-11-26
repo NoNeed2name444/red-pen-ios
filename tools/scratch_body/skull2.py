@@ -361,6 +361,55 @@ FACE_POINTS = [  # the front surface's depth z where no traced line gives it: (x
 ]
 
 
+def front_z(F, x, ys, z0=110.0, z1=70.0):
+    """The front surface's depth z at (x, y) for each y in ys: the first bone met coming back from z0 (z1 where none is)."""
+    from scipy.ndimage import map_coordinates
+    ys = np.asarray(ys, float); zs = np.arange(z0, z1, -0.1)
+    I = [np.full((len(ys), len(zs)), (x - F.lo[0]) / F.h), np.repeat(((ys - F.lo[1]) / F.h)[:, None], len(zs), 1),
+         np.repeat(((zs - F.lo[2]) / F.h)[None, :], len(ys), 0)]
+    d = map_coordinates(F.D, I, order=1, mode="nearest")
+    hit = (d < 0).any(1); k = np.maximum(np.argmax(d < 0, axis=1), 1); j = np.arange(len(ys))
+    a, b = d[j, k - 1], d[j, k]
+    return np.where(hit, zs[k - 1] - 0.1 * np.clip(a / np.maximum(a - b, 1e-6), 0, 1), z1)
+
+
+# the ridges over the upper front teeth's roots (juga): (x of the socket, how far it stands out, how high it runs, half-width, facing)
+# and how far it leans toward the midline at its top (the roots converge a little upward; the canine's toward the opening's corner)
+JUGA = [(4.8, 0.55, -36.0, 1.9, (0.0, 0.0, 1.0), 0.4), (11.4, 0.4, -36.5, 1.7, (0.25, 0.0, 0.97), 0.6), (15.6, 1.2, -30.8, 2.2, (0.35, 0.0, 0.94), 1.6),
+        (20.4, 0.5, -35.5, 2.0, (0.6, 0.0, 0.8), 0.5)]
+INCISIVE_FOSSA = (8.4, -34.2)
+
+
+def juga(F, log=print):
+    """The front of the tooth-bearing process below the nasal opening (Gray 1918, p. 158; Figs. 157, 190): "a series of
+    eminences corresponding to the positions of the roots of the teeth. Just above those of the incisor teeth is a depression,
+    the incisive fossa". Each ridge runs up from the bone's margin over its socket (UPPER_LINE: 4.8, 11.7, 15.5 and 20.2 mm
+    out) and dies away upward; the canine's, over the longest root, stands out most and runs highest, toward the opening's
+    lower outer corner. The fossa is a shallow hollow above the incisors' ridges, between the midline and the canine's.
+    Laid on the surface as it stands after the tooth-bearing ridge: each a low swelling rounded into the face, not a rib."""
+    made = []
+    for x0, rise, top, w, n, lean in JUGA:
+        ys = np.arange(-43.6, top + 0.01, 1.0)              # (from just above the margin: lower, its round end hung over the sockets as a thin lip)
+        ys = ys[front_z(F, x0, ys) > 75.0]                  # (and only where there is bone: the margin stands higher behind the canine)
+        if len(ys) < 3:                                     # (a block of the head, build's box, without the face there)
+            continue
+        ys = ys[ys >= ys[0] + 0.6] if ys[0] > -43.0 else ys
+        n = np.asarray(n, float)
+        t = (ys - ys[0]) / (ys[-1] - ys[0])
+        xs = x0 - lean * t ** 1.5
+        zf = np.array([front_z(F, xx, [yy])[0] for xx, yy in zip(xs, ys)])
+        r = rise * np.clip(1.0 - t, 0.0, 1.0) ** 0.8                   # full at the margin, gone at the top
+        a = 1.2 + 0.2 * w
+        P = np.column_stack([xs, ys, zf]) - (a - r)[:, None] * n[None, :]
+        F.add(Tube(P, [(0, a), (1, a)], [(0, w), (0.7, 0.85 * w), (1, 0.6 * w)], up=tuple(n)), 1.5)
+        made.append("%.0f mm out %.1f proud up to y %.0f" % (x0, rise, top))
+    xf, yf = INCISIVE_FOSSA
+    zf = float(front_z(F, xf, [yf])[0])
+    if zf > 70.0:
+        F.cut(Ellipsoid((xf, yf, zf + 1.0), (3.0, 2.3, 1.8)), 1.2)
+    log("juga: " + "; ".join(made) + "; incisive fossa at x %.1f y %.1f, about 0.7 mm deep" % (xf, yf))
+
+
 def face(T, V, h, log=print):
     """The facial skeleton as one slab over the front view; returns (solid, the front surface map, the Map)."""
     M = Map(0.0, 72.0, -52.0, 58.0, 1.0)
@@ -371,7 +420,14 @@ def face(T, V, h, log=print):
         pts.append((0.0, y, z, 1.0))
     down = down[down[:, 1] < -21.4]
     for z, y in down[::3]:
-        pts.append((0.0, float(plates.subnasal(y)), z, 1.0))
+        ys = float(plates.subnasal(y))
+        # Below the nasal spine the side view's line stood 4 to 5 mm in front of the bone a few millimetres to either side (the
+        # front points over the central incisors and the arch the teeth stand on): the midline came out as a raised strip 4 mm
+        # wide with a hollow each side, which Figs. 157 and 190 do not have. There the midline is only a little forward of the
+        # bone over the central incisors' roots, as the arch's curve gives it; the side view's line is kept from the spine up.
+        t = np.clip((-32.0 - ys) / 3.5, 0.0, 1.0); t = t * t * (3 - 2 * t)
+        z = z + (float(np.interp(ys, [-46.0, -43.0, -40.0, -37.0, -35.0, -33.5, -32.0], [95.9, 95.9, 95.8, 95.8, 96.2, 97.2, 97.9])) - z) * t
+        pts.append((0.0, ys, z, 1.0))
     om = orbit_margin()
     for x, y, z in om[::2]:
         pts.append((x, y, z, 1.0))
@@ -753,13 +809,15 @@ def build(h=1.0, log=print, box=None):
     foramina.condyles(F, B, log)               # on the plate's own outline (the tubercle the pharynx hangs from is pressed in with the base's small relief)
     pro = V.on([(0, 2, -80)], 0.0)[0]; pro[0] = 0
     occiput.build(F, pro, log=log)             # the protuberance, the nuchal lines and the crest: the borders of the muscles' hollows, pressed into the surface
-    # ---- sphenoid: the pterygoid process and its outer plate
-    F.add(Ellipsoid((19, -10.5, 37.5), (8.5, 5.5, 5.5)), 4)
-    # (the two plates, the wall joining them in front and the hook are thin sheets: pterygoid.py, added after the cuts)
+    # ---- sphenoid: the pterygoid process. Its two plates, the wall joining them in front (whose hind face, sloping back toward
+    # the root, closes the top of the hollow between them), the hook and the vaginal processes are thin sheets: pterygoid.py,
+    # added after the cuts. (An ellipsoid stood here, 17 by 11 by 11 mm, from when the process was one lump: it filled the top of
+    # that hollow, but also stood inward of the inner plate over the choana as a flat-faced block, down to y -15.6.)
 
     # ---- the tooth-bearing process of the upper jaw, along the teeth's own line
     ridge, A = tooth_ridge(UPPER_LINE, UPPER_T, True, beyond=-3.0)        # its round end stops 4 mm behind the last molar (Fig. 189), clear of the outer pterygoid plate
     F.add(ridge, 3.0)
+    juga(F, log)
 
     # =========================== the hollows ===========================
     # cranial cavity: the wall is thicker on the base than over the vault, and thickest behind the orbit's roof
@@ -866,6 +924,8 @@ def build(h=1.0, log=print, box=None):
     build.midsolids = [(nose.septum(h, log), 0.8)]
     # the pterygoid process's two plates, the wall that joins them in front, the hook (thin curved sheets, none of them a bar)
     build.pterygoid = pterygoid.build(F, log)
+    if build.pterygoid["vaginal"] is not None:
+        build.midsolids.append((build.pterygoid["vaginal"], 0.8))       # the vaginal processes: thin leaves under the body, each side its own
     palate.lesser(F, log)                                   # the lesser palatine foramina, on the pyramidal process just added
     # the anterior nasal spine: the floor's crest drawn out into a point in front of the opening's lower rim (a thin spike, taller than wide)
     # (a wedge: deep where it leaves the rim, thinning evenly to a point no finer than the grid can carry, so it does not end in a bead)
@@ -877,6 +937,12 @@ def build(h=1.0, log=print, box=None):
     # the styloid process: from just in front of the stylomastoid foramen down, forward and a little inward, in its sheath (temporal.py)
     temporal.styloid(F, log)
     build.sutures = sutures(F, T, V, log)
+    # the intermaxillary suture on the face, from under the nasal spine down between the central incisors' sockets (Fig. 190): a fine
+    # wandering line, not a ridge. (Last in the list, so the lines before it keep the wander they had.)
+    ys = np.arange(-33.5, -44.01, -0.5)
+    zfront = front_z(F, 0.0, ys)
+    if (zfront > 70.0).all():
+        build.midline.append(("intermaxillary", np.column_stack([np.zeros(len(ys)), ys, zfront]), 0.45, max(0.3, 0.7 * h)))
     build.parts = dict(T=T, V=V, M=M, Zf=Zf, orbit=om, aperture=ap)
     return F, V
 

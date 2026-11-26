@@ -4347,6 +4347,22 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     low because the tooth forks only 3.85 mm down in teeth2 (a teeth
     task); from above the molar septa still read as a ridge inside one
     pit rather than two clear sockets.
+    Choanal roof and the maxilla under the nose (pterygoid.py,
+    skull2.py), accepted: the ellipsoid in skull2 that made the block
+    over each choana is gone; pterygoid.Web's sloping hind face closes
+    the top of the pterygoid fossa instead, the inner plate rises into
+    the body in a concave curve (no 1.9 mm step), and the vaginal
+    processes are thin leaves (pterygoid.Vaginal), different each
+    side. Choanae and nasal opening unchanged (0.01 mm); least wall
+    where the ellipsoid stood 1.05 mm (was 0.70). Under the nose the
+    single midline strip came from skull2.face's side-view line
+    standing 5 mm proud at x 0; it is drawn back, and skull2.juga adds
+    the root ridges (canine largest), the incisive fossa and a fine
+    intermaxillary suture. Open: the pharyngeal canal is a furrow, not
+    a canal (the palatine's sphenoidal process is not built); rounded
+    masses beside the roof behind z 29 come from base relief; the juga
+    are mirror copies. Built on 5d3bbef, before the tooth-root
+    commits: to be confirmed on a whole build of everything together.
     Task C, repair 1 (head and neck accepted; task closed): the ring is
     gone. Each section under the head is solved to silhouette targets
     from Fig. 176 and 177: the hind edge runs straight into the head,

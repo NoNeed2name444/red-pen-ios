@@ -109,22 +109,98 @@ class Wedge:
 
 
 SCAPHOID = ((15.3, -9.6, 29.6), (1.5, 3.0, 2.3))      # the small boat-shaped hollow at the inner plate's root, between the two lips of its hind border
+APEX = 6.4             # mm the hollow's floor between the plates comes back at the root (y -10): from z 40.6 below to about 34
 
 
 class Web:
     """The bone that joins the two plates in front: the front wall of the hollow between them (below, where the plates
-    part, the palatine's pyramidal process fills the cleft). Its hind face is the hollow's floor."""
+    part, the palatine's pyramidal process fills the cleft). Its hind face is the hollow's floor.
+    The plates' "upper parts ... are fused anteriorly" (p. 151): toward the root the hollow grows shallower, its floor
+    sloping back and up in one concave sweep to the small boat-shaped hollow (SCAPHOID) behind, so the fossa's top is a
+    rounded pocket, not a slit running up to the base. (This was once done by an ellipsoid in skull2.py, which also stood
+    inward of the inner plate as a flat-faced block over the choana.)"""
     def __init__(self, M, xm, xl):
         self.M, self.cm, self.cl = M, M.smooth(xm), M.smooth(xl)
-        self.bounds = (np.array([11.0, -39.0, 38.5 - BACK]), np.array([25.0, -4.0, 45.5]))
+        self.bounds = (np.array([11.0, -39.0, 32.0]), np.array([25.0, -4.0, 45.5]))
 
     def __call__(self, X, Y, Z):
         x, y, z = np.broadcast_arrays(np.abs(X), Y, Z)
         a = self.M.smooth_sample(self.cm, z, y); b = self.M.smooth_sample(self.cl, z, y)
-        zw = back(40.6 + 0.9 * smoothstep((-14.0 - y) / 20.0), y)
+        zw = back(40.6 + 0.9 * smoothstep((-14.0 - y) / 20.0), y) - APEX * smoothstep((y + 20.0) / 10.0) ** 1.4
         d = np.maximum(np.maximum(a - x, x - b), np.maximum(zw - z, z - back(44.6, y)))
         d = np.maximum(d, np.maximum(y + 5.0, -35.0 - y))
         return (0.8 * d).astype(np.float32)
+
+
+def roof_line(F, z, x, y0=-22.0, y1=-3.0):
+    """The height of the first bone met going up from y0 at each (x, z) of the half field F: the under side of the base
+    there (y1 where none is met). Read before the plates are added."""
+    from scipy.ndimage import map_coordinates
+    z = np.asarray(z, float); x = np.abs(np.asarray(x, float)) * np.ones_like(z)
+    ys = np.arange(y0, y1, 0.1)
+    P = np.stack(np.broadcast_arrays(x[:, None], ys[None, :], z[:, None]))
+    idx = [(P[k] - F.lo[k]) / F.h for k in range(3)]
+    d = map_coordinates(F.D, idx, order=1, mode="nearest")
+    inside = d < 0
+    k = np.where(inside.any(1), inside.argmax(1), len(ys) - 1)
+    k0 = np.maximum(k - 1, 0); j = np.arange(len(z))
+    a, b = d[j, k0], d[j, k]
+    y = ys[k0] + 0.1 * np.clip(a / np.where(np.abs(a - b) > 1e-6, a - b, 1.0), 0, 1)
+    return np.where(inside.any(1) & (k > 0), y, y1)
+
+
+def fillet(v, yr, R):
+    """How far a wall standing up to a roof at height yr leans out at height v so that it meets the roof tangentially in a
+    concave quarter-round of radius R: 0 below yr - R, R at the roof."""
+    R = np.maximum(R, 1e-3); t = np.clip(v - (yr - R), 0.0, None)
+    return np.where(t > 0, R - np.sqrt(np.clip(R * R - np.minimum(t, R) ** 2, 0.0, None)), 0.0)
+
+
+class Vaginal:
+    """The vaginal processes of the two inner plates (p. 151: "Superiorly the medial plate is prolonged on to the under surface
+    of the body as a thin lamina, named the vaginal process, which articulates in front with the sphenoidal process of the
+    palatine and behind this with the ala of the vomer"; "on the under surface of the vaginal process is a furrow", the
+    pharyngeal canal's floor). Fig. 187: from the plate's root a thin leaf runs inward under the body as far as the vomer's
+    wing, the pharyngeal canal opening between the two near the wing's outer edge; the pterygoid tubercle is its hind corner.
+    Each is a leaf about 1.3 mm thick at the plate, laid under the body's own under side (read from the half field before the
+    plates go in), thinning to 0.6 at its free inner border and fading forward into the roof. For the whole head: both sides, each with its own uneven edge."""
+    def __init__(self, roof, zs, xs, seed=151):
+        self.zs, self.xs = zs, xs
+        self.roof = ndimage.spline_filter(roof, order=3, mode="nearest")
+        rng = np.random.default_rng(seed)
+        self.side = []
+        for _ in range(2):
+            e = ndimage.gaussian_filter1d(rng.standard_normal(len(zs)), 4.0); e = e / max(e.std(), 1e-6)
+            self.side.append(dict(edge=0.35 * e + rng.uniform(-0.3, 0.3), zt=27.6 + rng.uniform(-0.3, 0.3), zf=36.2 + rng.uniform(-0.5, 0.5),
+                                  mid=31.6 + rng.uniform(-0.5, 0.5), furrow=rng.uniform(-0.3, 0.3), t=1.35 + rng.uniform(-0.1, 0.1)))
+        self.bounds = (np.array([-13.6, -14.0, 26.0]), np.array([13.6, -6.0, 38.5]))
+
+    def __call__(self, X, Y, Z):
+        X, Y, Z = np.broadcast_arrays(X, Y, Z)
+        out = np.full(X.shape, 100.0, np.float32)
+        for k, sgn in ((0, 1.0), (1, -1.0)):
+            m = (sgn * X) >= 0
+            if not m.any():
+                continue
+            x, y, z = (sgn * X)[m], Y[m], Z[m]
+            p = self.side[k]
+            yr = ndimage.map_coordinates(self.roof, [(x - self.xs[0]) / (self.xs[1] - self.xs[0]), (z - self.zs[0]) / (self.zs[1] - self.zs[0])],
+                                         order=3, mode="nearest", prefilter=False)
+            # seen from below a leaf: broad at the plate's root, its free inner border curving in to about 6 mm from the middle
+            # plane a little behind its middle and out again forward; its hind border running obliquely from the pterygoid
+            # tubercle inward and forward (Fig. 187)
+            edge = 6.0 + 0.16 * (z - p["mid"]) ** 2 + np.interp(z, self.zs, p["edge"])
+            hind = p["zt"] + 0.38 * (13.0 - x) + 0.03 * (13.0 - x) ** 2
+            front = smoothstep((z - (p["zf"] - 3.5)) / 3.5)                       # fading forward into the roof (the palatine's sphenoidal process goes on from there)
+            inn = smoothstep((x - edge) / 3.0)
+            t = p["t"] * (0.45 + 0.55 * inn) * (1.0 - 0.7 * front) * (0.55 + 0.45 * smoothstep((z - hind) / 1.5))
+            fx = edge + 2.0 + p["furrow"]                                           # the furrow on its under side, 2 mm in from its free border
+            t = t - 0.35 * np.exp(-((x - fx) / 0.75) ** 2) * (1.0 - front) * inn
+            r = 0.45
+            soft = lambda *v: r * np.log(sum(np.exp(np.clip(w / r, -40, 40)) for w in v))
+            d = soft(yr - np.maximum(t, 0.6) - y, y - (yr + 1.5), edge - x, x - 13.4, hind - z, z - p["zf"])
+            out[m] = 0.8 * d
+        return out
 
 
 def build(F, log=print):
@@ -132,7 +208,11 @@ def build(F, log=print):
     h = F.h
     sheet = max(1.8, 3.0 * h)
     M = Map(22.0, 54.0, -46.0, -2.0, 0.5)                    # u = z, v = y
+    # the body's under side between the plates' roots and the vomer, before the plates go in: the vaginal processes lie on it
+    vz, vx = np.arange(24.0, 40.01, 0.5), np.arange(2.0, 15.01, 0.5)
+    vroof = np.stack([roof_line(F, vz, np.full(len(vz), xx)) for xx in vx])
     out = []
+    roofs = []
     for name, outline, pts, root in (("outer", LATERAL, LATERAL_X, 1.0), ("inner", MEDIAL, MEDIAL_X, 0.7)):
         reg = M.region(spline(np.array(outline, float), 0.4, closed=True))
         xm = M.thin_plate(np.array(pts, float), weight=30.0)
@@ -140,14 +220,32 @@ def build(F, log=print):
         n = ndimage.gaussian_filter(rng.standard_normal(xm.shape), 7.0); xm = xm + 0.22 * n / n.std()
         n = ndimage.gaussian_filter(rng.standard_normal(xm.shape), 5.0); n = n / n.std()
         # a plate's free border is an edge, not a bead: thinnest at the border, its full thickness 3 to 4 mm in; stouter toward its root
-        th = (sheet - 0.45) + 0.95 * smoothstep(-reg / 3.5) * (1.0 + 0.25 * n) + root * smoothstep((M.V + 15.0) / 9.0)
+        th = (sheet - 0.45) + 0.95 * smoothstep(-reg / 3.5) * (1.0 + 0.25 * n)
+        extra = root * smoothstep((M.V + 15.0) / 9.0)
         if name == "outer":
             th = th + 0.5 * smoothstep((M.U - 40.0) / 3.5)
             # its lower front, where it meets the pyramidal process and the tuberosity, thickens into them (Fig. 189): not a free edge
             th = th + 1.4 * smoothstep((-30.0 - M.V) / 5.0) * smoothstep((M.U - 32.5) / 4.0)
-        else:                                                                                 # the inner plate's hind border is thick at its root, where it parts in two
-            th = th + 1.9 * smoothstep((M.V + 15.5) / 6.5) * smoothstep((33.5 - M.U) / 4.0)
-        F.add(Slab(M, (2, 1, 0), xm + th / 2, xm - th / 2, reg, round=min(0.5, 0.3 * sheet)), 0.9, keep=4)
+            # its outer face rises into the great wing's under (infratemporal) surface with a concave sweep, not a corner
+            yr = roof_line(F, M.U[:, 0], M.sample(xm, M.U[:, 0], np.full(M.nu, -12.0)) + 3.5)[:, None]
+            roofs.append(yr)
+            hi = xm + (th + extra) / 2 + fillet(M.V, yr, 3.0)
+            lo = xm - (th + extra) / 2
+        else:
+            # the inner plate's hind border is thick at its root, where it parts in two (the scaphoid hollow between the lips):
+            # that thickness lies mostly on its outer side. Its inner face, the choana's side wall, rises into the under side of
+            # the sphenoid's body with a concave sweep (Fig. 187: "the medial plate's root"), not standing on it as a block;
+            # the vaginal process (Vaginal) runs on from it inward under the body
+            extra = extra + 1.9 * smoothstep((M.V + 15.5) / 6.5) * smoothstep((33.5 - M.U) / 4.0)
+            yr = roof_line(F, M.U[:, 0], M.sample(xm, M.U[:, 0], np.full(M.nu, -12.0)) - 3.0)[:, None]
+            roofs.append(yr)
+            R = 2.2 * (1.0 - 0.55 * smoothstep((M.U - 33.0) / 4.0))         # in front, the choana's own rounded corner (skull2's arch) takes over
+            hi = xm + th / 2 + 0.7 * extra
+            lo = xm - th / 2 - 0.3 * extra - fillet(M.V, yr, R)
+            # and that face, bared where the old block stood, is not a plane: a gentle unevenness of a fifth of a millimetre
+            n2 = ndimage.gaussian_filter(rng.standard_normal(xm.shape), 4.0); n2 = n2 / n2.std()
+            lo = lo - 0.2 * n2 * smoothstep((M.V + 21.0) / 4.0) * smoothstep((38.5 - M.U) / 3.0)
+        F.add(Slab(M, (2, 1, 0), hi, lo, reg, round=min(0.5, 0.3 * sheet)), 0.9, keep=4)
         out.append(xm)
     xi, xo = out[1], out[0]
     F.add(Web(M, xi, xo), 1.6, keep=4)
@@ -163,4 +261,5 @@ def build(F, log=print):
     a = np.array(LATERAL); b = np.array(MEDIAL)
     log("pterygoid: outer plate %.0f mm front to back behind the wall at its root and %.0f below, turned out from %.0f to %.0f mm; inner plate %.0f mm out, its hook's tip %.0f mm below the Frankfurt plane; each %.1f mm thick"
         % (41.0 - a[:, 0].min(), 41.0 - 33.5, 22.6, 29.2, 13.8, -HAMULUS[-2][1], sheet))
-    return dict(M=M, inner=xi, outer=xo)
+    covered = (F.lo[0] <= 2.0) and (F.lo[1] <= -22.0) and (F.lo[2] <= 24.0) and (F.ax[2][-1] >= 40.0)   # (a block of the head without that place: none)
+    return dict(M=M, inner=xi, outer=xo, vaginal=Vaginal(vroof, vz, vx) if covered else None)
