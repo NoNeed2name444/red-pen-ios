@@ -9,6 +9,7 @@ import os
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from scipy import ndimage
+import surface
 
 BONE = (226, 214, 190)
 BG = (22, 24, 28)
@@ -40,64 +41,102 @@ def sample(v, f, spacing):
     return P, N / np.maximum(np.linalg.norm(N, axis=1, keepdims=True), 1e-15)
 
 
-# ---- dry bone: what makes a picture read as bone and not as clay. None of it is geometry: it is colour and the way the
-# surface takes the light, worked out at every point of the picture from the point's place on the bone (so it stays put
-# when the view turns). A dried skull is ivory, unevenly stained toward yellow-brown; its surface is matt and finely
-# grained, never polished; it is pricked with pores, more of them in patches; and dirt sits in every crease.
+# ---- dry bone: what makes a picture read as bone and not as clay. The bone's own channels (colour, roughness, how many
+# fine pores, which way its grain runs) are per vertex (surface.vertex_attrs: what the app's mesh carries too); what is finer
+# than the mesh is worked out here at every point of the picture from the point's place on the bone, as the app's shader
+# must: the fine pores (0.17 to 0.5 mm, 25 to 120 per cm2), the fibre-like grain along the bone's long way, and a broad
+# soft sheen whose width follows the roughness. All of it hashed from the place, so it stays put when the view turns.
 TEXTURE = True
-_VOL = {}
+_ATTRS = {}
+PORE_CELL = 0.7          # mm: the pores' lattice (one in four cells or fewer carries one)
 
 
-def _volume(seed, n=128):
-    if seed not in _VOL:
-        v = ndimage.gaussian_filter(np.random.default_rng(seed).standard_normal((n, n, n)).astype(np.float32), 1.0, mode="wrap")
-        v /= float(v.std())
-        _VOL[seed] = (v, [((np.roll(v, -1, k) - np.roll(v, 1, k)) * 0.5).astype(np.float32) for k in range(3)])
-    return _VOL[seed]
+def attrs(v, f):
+    """surface.vertex_attrs for a mesh, kept for the next picture of the same mesh."""
+    key = (len(v), len(f), np.asarray(v[:: max(1, len(v) // 61)], np.float32).tobytes())
+    if key not in _ATTRS:
+        if len(_ATTRS) > 6:
+            _ATTRS.clear()
+        _ATTRS[key] = surface.vertex_attrs(v, f)
+    return _ATTRS[key]
 
 
-def _turn(seed):
-    """A fixed turn of space, so that no two layers of noise repeat along the same lines."""
-    q, _ = np.linalg.qr(np.random.default_rng(1000 + seed).standard_normal((3, 3)))
-    return q.astype(np.float32)
+def pores(P, N, T, dens, s=50.0, seed=500, coh=None):
+    """How dark each point is from the fine pores round it (0..1): seeds hashed in a 3D lattice of PORE_CELL mm, each kept
+    where the surface passes within half a cell of it and the density (per cm2) asks for it. (repair 2) On flat bone a
+    pin-prick: nearly round (aspect 1 to 1.9, median about 1.2), turned any way at random, 0.10 to 0.42 mm across (lognormal,
+    median 0.18, p90 0.30), the small ones faint and only the largest tenth dark. Only where the grain's way is sure
+    (coh over 0.75: a ridge, a border) do they line up with it and draw out further (to 2.5)."""
+    c = PORE_CELL; lam = np.clip(dens, 0, None) / 100.0 * c * c            # how many a cell's slab of surface carries
+    base = np.floor(P / c).astype(np.int64)
+    dark = np.zeros(len(P))
+    md, sd, dmin, dmax = surface.PORE_D
+    ali = np.zeros(len(P)) if coh is None else surface.smoothstep((np.asarray(coh, float) - 0.75) / 0.15)
+    Bt = np.cross(N, T)
+    for ox in (-1, 0, 1):
+        for oy in (-1, 0, 1):
+            for oz in (-1, 0, 1):
+                C = base + np.array([ox, oy, oz])
+                for m in range(2):
+                    s0 = seed + 16 * m
+                    u = [surface.uniform(C[:, 0], C[:, 1], C[:, 2], s0 + k) for k in range(7)]
+                    if u[0].min() >= 0.5 * lam.max():
+                        continue
+                    q = (C + np.stack(u[1:4], 1)) * c
+                    d = P - q; dn = (d * N).sum(1)
+                    live = (u[0] < 0.5 * lam) & (np.abs(dn) < 0.5 * c)
+                    if not live.any():
+                        continue
+                    th = 2 * np.pi * u[6]
+                    Dr = (1 - ali)[:, None] * (np.cos(th)[:, None] * T + np.sin(th)[:, None] * Bt) + ali[:, None] * T
+                    Dr /= np.maximum(np.linalg.norm(Dr, axis=1, keepdims=True), 1e-9)
+                    dt = d - dn[:, None] * N; al = (dt * Dr).sum(1)
+                    e = 1.0 + (0.9 + 0.6 * ali) * u[5] ** 2                  # round to short flecks; a little longer on ridges
+                    dia = np.clip(md * np.exp(sd * np.sqrt(2) * _erfinv(2 * u[4] - 1)), dmin, dmax)
+                    rad = 0.5 * dia
+                    con = 0.17 + 0.33 * surface.smoothstep((dia - 0.24) / 0.1)         # the small ones faint (8 to 12 L*), the largest tenth dark (about 25)
+                    rho = np.sqrt(np.maximum((dt * dt).sum(1) - al * al, 0) + (al / e) ** 2)
+                    w = np.clip(1.0 - (rho / (rad + 0.25 / s)) ** 2, 0, 1) * np.minimum(1.0, (2 * rad * s) ** 2)   # a funnel, darkest at its foot
+                    dark = np.maximum(dark, np.where(live, w * con, 0.0))
+    return dark
 
 
-def noise(P, wave, seed, grad=False):
-    """Smooth noise of unit spread whose blobs are about `wave` mm across, at points P (mm); with grad, its slope per mm too."""
-    v, g = _volume(seed)
-    R = _turn(seed); cell = wave / 4.0
-    q = ((np.asarray(P, np.float32) @ R) / cell).T
-    val = ndimage.map_coordinates(v, q, order=1, mode="grid-wrap")
-    if not grad:
-        return val
-    gq = np.stack([ndimage.map_coordinates(gk, q, order=1, mode="grid-wrap") for gk in g], 1) / cell
-    return val, gq @ R.T
+def _erfinv(x):
+    a = 0.147; ln = np.log(np.maximum(1 - x * x, 1e-12)); t = 2 / (np.pi * a) + ln / 2
+    return np.sign(x) * np.sqrt(np.sqrt(t * t - ln / a) - t)
 
 
-def bone(P, N, s):
-    """Colour (0..255) and the normal as the light meets it, for dry bone at points P (mm) with smooth normals N.
-    s: pixels per mm of the picture (grain finer than a pixel is left out: it would only be speckle)."""
+def bone(P, N, s, A=None):
+    """Colour (0..255), the normal as the light meets it and the roughness, for dry bone at points P (mm) with smooth normals N
+    and the bone's per-vertex channels A there (rgb, rough, pores, tangent, coh). Without A: the channels read off the
+    place alone (surface.point_attrs: no grooves or seams), and only the colour and the normal are returned.
+    s: pixels per mm of the picture (what is finer than a pixel is left to the colour's mean: it would only be speckle)."""
     def show(wave):
         return float(np.clip((wave * s - 1.3) / 2.0, 0.0, 1.0))
-    pale = np.array([240, 231, 208], np.float32); stain = np.array([203, 176, 132], np.float32)
-    w = 0.30 + 0.20 * noise(P, 38.0, 11) + 0.11 * noise(P, 9.0, 12) + 0.06 * show(2.2) * noise(P, 2.2, 13)
-    w = np.clip(w, 0.0, 1.0)
-    col = pale + (stain - pale) * w[:, None]
+    loose = A is None
+    if loose:
+        A = surface.point_attrs(P, N)
+    col = A["rgb"].astype(np.float32)
+    T = A["tangent"]; T = T - (T * N).sum(1, keepdims=True) * N; T /= np.maximum(np.linalg.norm(T, axis=1, keepdims=True), 1e-9)
+    c = A["coh"][:, None]
     Nb = N.astype(np.float32).copy()
-    for wave, seed, amp in ((2.6, 21, 0.012), (1.0, 22, 0.014), (0.42, 23, 0.011)):        # grain: height in mm of each layer
+    smooth = np.clip((A["rough"] - 0.38) / 0.12, 0.25, 1.0)[:, None]          # the joint surfaces' grain is a quarter of the rest's
+    # the fibre-like grain: 0.01 to 0.03 mm high, 0.3 to 1 mm across, drawn out five times along the grain where its way is known
+    # (three copies drawn out along the head frame's axes, mixed by how the grain's way lies along each: no seams)
+    for wave, seed, amp in ((2.6, 21, 0.014), (1.0, 22, 0.018), (0.45, 23, 0.011)):
         k = show(wave)
         if k > 0:
-            f, g = noise(P, wave, seed, grad=True)
+            _, gi = surface.vnoise(P, wave, seed, grad=True)
+            ga = sum((T[:, j:j + 1] ** 2) * surface.vnoise(P, wave * 0.8, seed + 10 + j, stretch=(j, 5.0), grad=True)[1] for j in range(3))
+            g = (1 - c) * gi + c * ga
             g = g - (g * N).sum(1, keepdims=True) * N
-            Nb -= (k * amp) * g
-    k = show(0.42)
-    if k > 0:                                                                              # pores: dark pricks, thick in some patches and thin in others
-        f = noise(P, 0.34, 31)
-        patch = np.clip(0.45 + 0.4 * noise(P, 7.0, 32) + 0.3 * noise(P, 21.0, 33), 0.0, 1.0)      # most of the bone has few; they gather in fields
-        pore = np.clip((f - (2.75 - 1.15 * patch * patch)) / 0.4, 0.0, 1.0)
-        col *= (1.0 - 0.34 * k * pore)[:, None]
+            Nb -= (k * amp) * smooth * g
+    k = show(0.3)
+    if k > 0:
+        dk = pores(P, N, T, A["pores"], s, coh=A["coh"])
+        col *= (1.0 - k * dk)[:, None]
     Nb /= np.maximum(np.linalg.norm(Nb, axis=1, keepdims=True), 1e-9)
-    return col, Nb
+    return (col, Nb) if loose else (col, Nb, A["rough"])
 
 
 def camera(eye):
@@ -107,6 +146,7 @@ def camera(eye):
     return eye, right, np.cross(eye, right)
 
 
+LIGHT = (0.16, 0.66, 0.2, 0.55)      # ambient, key light, fill light, how far the edges fall away
 DIST = None          # the eye's distance (mm) from the middle of what is drawn; None: no perspective (parallel lines of sight)
 SUPER = int(os.environ.get("SCRATCH_SUPER", "1"))      # each picture drawn this many times larger and brought down (finer grain, cleaner edges)
                      # the fine mottling they give real bone at arm's length, instead of being left out
@@ -148,6 +188,8 @@ def picture(meshes, eye, size=760, frame=None, pad=0.05, hollow=1.0, dist=None, 
     who = np.full(size * size, -1, np.int64)             # which mesh each picture point shows,
     Pb = np.zeros((size * size, 3), np.float32)          # and the point of it that is seen there, with its normal
     Nw = np.zeros((size * size, 3), np.float32)
+    Vb = np.zeros((size * size, 3), np.int32)           # and the triangle's corners and their weights there (for the per-vertex channels)
+    Wb = np.zeros((size * size, 3), np.float32)
     light = 0.35 * right + 0.55 * up + 0.75 * eye; light /= np.linalg.norm(light)
     fill = -0.5 * right + 0.2 * up + 0.6 * eye; fill /= np.linalg.norm(fill)
     spacing = 0.8 / (s * near)
@@ -177,7 +219,8 @@ def picture(meshes, eye, size=760, frame=None, pad=0.05, hollow=1.0, dist=None, 
             g = fc[idx]
             P = (w0 * v[g[:, 0]] + w1 * v[g[:, 1]] + w2 * v[g[:, 2]]).astype(np.float32)
             N = w0 * vn[g[:, 0]] + w1 * vn[g[:, 1]] + w2 * vn[g[:, 2]]
-            del g, idx, r1, r2, w0, w1, w2
+            W = np.concatenate([w0, w1, w2], 1)
+            del idx, r1, r2, w0, w1, w2
             qx, qy, pz = proj(P)
             px = np.floor((qx - cx) * s + size / 2).astype(np.int32)
             py = np.floor(size / 2 - (qy - cy) * s).astype(np.int32)
@@ -191,7 +234,7 @@ def picture(meshes, eye, size=760, frame=None, pad=0.05, hollow=1.0, dist=None, 
                 near = pz[ok] > zb[i]
                 i = i[near]; src = order[ok][near]
                 zb[i] = pz[ok][near]                    # sorted far to near: the last written is the nearest
-                who[i] = m; Pb[i] = P[src]; Nw[i] = N[src]
+                who[i] = m; Pb[i] = P[src]; Nw[i] = N[src]; Vb[i] = g[src]; Wb[i] = W[src]
     for m, (v, f, col) in enumerate(meshes):            # only what is seen is coloured and lit
         pix = np.where(who == m)[0]
         if not len(pix):
@@ -200,15 +243,22 @@ def picture(meshes, eye, size=760, frame=None, pad=0.05, hollow=1.0, dist=None, 
         N /= np.maximum(np.linalg.norm(N, axis=1, keepdims=True), 1e-12)
         dry = TEXTURE and tuple(col) == BONE
         if dry:
-            col, N = bone(P, N, s)
-        sh = 0.16 + 0.66 * np.clip(N @ light, 0, 1) ** 1.1 + 0.2 * np.clip(N @ fill, 0, 1)
-        sh = sh * np.clip(0.55 + 0.45 * np.clip(N @ eye, 0, 1) ** 0.5, 0, 1)      # edges fall away a little
+            At = attrs(v, f); Vi, Wi = Vb[pix], Wb[pix]
+            A = {nm: sum(Wi[:, j:j + 1] * At[nm][Vi[:, j]].reshape(len(pix), -1).astype(np.float32) for j in range(3)).reshape((len(pix),) + At[nm].shape[1:])
+                 for nm in ("rgb", "rough", "pores", "tangent", "coh")}
+            col, N, rough = bone(P, N, s, A)
+        am, key, fl, edge = LIGHT
+        sh = am + key * np.clip(N @ light, 0, 1) ** 1.1 + fl * np.clip(N @ fill, 0, 1)
+        sh = sh * np.clip(edge + (1 - edge) * np.clip(N @ eye, 0, 1) ** 0.5, 0, 1)      # edges fall away a little
         img[pix] = sh[:, None] * np.asarray(col, np.float32)
         if dry:
             # dry bone is matt but not chalk: where it faces half-way between the light and the eye it gives back a faint, broad sheen,
             # and the grain breaks that sheen up. It is by this broken sheen that the eye reads a surface as bone and not as clay.
+            # How broad follows the roughness (Blinn's exponent from it): narrower and a little brighter on the smooth plates and
+            # the joint surfaces, broad and faint on the porous and rough bone.
             hv = light + eye; hv = hv / np.linalg.norm(hv)
-            img[pix] += (20.0 * np.clip(N @ hv, 0, 1) ** 14)[:, None] * np.array([1.0, 0.98, 0.93], np.float32)
+            r_ = np.asarray(rough, np.float64); ex = 4.0 / (r_ * r_) - 2.0
+            img[pix] += ((9.0 + 15.0 * np.clip(0.62 - r_, 0, None)) * np.clip(N @ hv, 0, 1) ** ex)[:, None] * np.array([1.0, 0.98, 0.94], np.float32)
         nb[pix] = np.column_stack([N @ right, N @ up, N @ eye]).astype(np.float32)
     zb = zb.reshape(size, size); img = img.reshape(size, size, 3); nb = nb.reshape(size, size, 3)
     got = np.isfinite(zb)

@@ -4480,6 +4480,42 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     least bone between the cribriform foramina and the ethmoidal
     cells not proven; the straight trough beside the olfactory
     grooves comes from skull2.py and sinus.py.
+    Bone colour and pores (surface.py, view.py; accepted after two
+    repairs; the owner: "there are wierd white spots in the color of
+    skull"): the pale patches are gone (0 counted on skull and jaw)
+    and so are the small dark stain islands (0, where the old colour
+    had 2,641 on the skull). Tone is now one broad drift of 0 to 3 L*
+    (45 and 90 mm), plus suture margins, recesses and seams. Pores on
+    flat bone are round pin-pricks turned at random (median 0.18 mm,
+    aspect about 1.2, at most 1.9; faint, the largest tenth dark);
+    they follow the grain only on ridges. Roughening is placed by a
+    hash of position, so a rebuild gives the same mesh (md5 equal).
+    Open, for the app's shader on a Mac run: whole-view lightness and
+    chroma, the vault's 8 to 20 mm variation, paleness of joints.
+    Orbit and middle fossa (skull2.py; accepted with open items after
+    two repairs): comma-shaped superior orbital fissure, the inferior
+    one a slit, the infratemporal crest, the foramen rotundum in
+    Fig. 193's place. The lacrimal fossa is a shallow hollow (0.30,
+    0.45, 0.60 mm deep from above down) between low crests (at most
+    0.55 mm) that fan apart upward, and the nasolacrimal canal has
+    its own oval mouth at the floor's front inner corner. The middle
+    fossa's front wall sits 2.2 mm further back as one even concave
+    surface (0.12 mm off a smooth fit) with the rotundum at its foot.
+    Outside the boxes nothing moved (0.004 mm); joint 1.33/1.07,
+    coronoid 2.78/2.83. Open: the canal's mouth reads as a crisp
+    round hole; the rotundum is a notch, not an oval, from steeply
+    above; the superior fissure's outer tail ends in a hairline;
+    a few one-voxel bubbles in the roughening at the lower end of
+    the posterior lacrimal crest (also there before).
+    Talus and calcaneus, two methods closed without a result (files
+    kept out of the repository): a loft through shared sections was
+    smooth but gave a boxy talus and a blobby calcaneus and broke
+    the posture (pitch 19.0 against 24.1 degrees); a visual hull of
+    each bone's four plates with locked cameras came out faceted,
+    with flat swept faces. Four near-axis outlines cannot give a
+    cross-section. The committed tarsus.py bones stay. Under way: the
+    committed bones corrected station by station from Gray's section
+    figures, with CT numbers as helpers only (tarsus_sect.py).
     Task C, repair 1 (head and neck accepted; task closed): the ring is
     gone. Each section under the head is solved to silhouette targets
     from Fig. 176 and 177: the hind edge runs straight into the head,

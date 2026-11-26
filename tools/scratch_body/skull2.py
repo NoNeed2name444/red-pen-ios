@@ -1006,9 +1006,9 @@ def build(h=1.0, log=print, box=None):
     F.ease((51.0, -0.9, 70.6), 2.4, 0.4)
     F.cut(Tube(spline([(46.1, 8.4, 64.3), (47.2, 9.0, 63.3), (48.5, 9.8, 62.3), (49.6, 10.3, 61.2), (50.6, 10.6, 59.9)], 0.8), 0.7, 0.8), 0.4)   # zygomaticotemporal canal
     F.cut(Tube(np.array([(15, 21, 44.0), (9.5, 22.5, 30)]), 2.4), 1.0)               # optic canal
-    # the two fissures at the back of the orbit: slits, the upper one between the sphenoid's wings, the lower one in the floor
-    F.cut(Tube(np.array([(21.3, 20.6, 47.5), (19.5, 20.0, 30.0)]), 5.6, 1.5, up=(0.55, 0.83, 0), taper=0.55), 0.6)
-    F.cut(Tube(np.array([(19.5, 9.5, 44.5), (26.5, 6.3, 51.5), (32.5, 3.8, 57.5)]), 4.5, [(0, 1.3), (1, 1.9)], up=(0.35, -0.94, 0)), 0.6)
+    # the passage from the orbit's floor at the back down to the pterygopalatine fossa (the medial end of the inferior orbital
+    # fissure); the fissures' own outlines, and the superior one, are cut in the whole head (orbit_marks)
+    F.cut(Tube(np.array([(19.5, 8.7, 44.5), (26.5, 5.5, 51.5), (32.5, 3.0, 57.5)]), 4.0, [(0, 1.3), (1, 1.9)], up=(0.35, -0.94, 0)), 0.6)
     sdf.ease_midline(F)                                     # the two halves meet level on the midline (no crease down the face)
     build.sockets = teeth.packed(UPPER_LINE, UPPER_T, True)           # each tooth in contact with the one before, none through another
     teeth.seat(F, build.sockets, True)
@@ -1041,6 +1041,272 @@ def build(h=1.0, log=print, box=None):
     return F, V
 
 
+# ---- the orbit's back and inner wall, the greater wing's outer face (Gray 1918 pp. 147-150, 164, 188-189; Figs. 145, 146, 190-193)
+# Outlines are the front view's (Fig. 190, the skull's right orbit, page 186 of the scan at 300 dpi, put to the head frame by
+# plates.front_mm: the registration the orbit's margin was traced on); each opening is that outline carried back through the wall.
+SOF = [(28.3, 22.1), (27.8, 22.45), (26.8, 22.65), (25.6, 22.65), (24.6, 22.35), (24.0, 21.95), (23.3, 21.35), (22.5, 20.75),
+       (21.7, 20.2), (20.9, 19.85), (20.0, 19.55), (19.2, 19.35), (18.9, 18.8), (18.75, 17.8), (18.85, 16.8), (19.2, 15.9),
+       (19.6, 15.0), (19.9, 14.2), (20.2, 13.3), (20.6, 13.8), (21.0, 14.9), (21.4, 16.0), (21.5, 17.0), (21.35, 18.0),
+       (21.45, 18.6), (22.1, 19.25), (22.9, 19.8), (23.7, 20.4), (24.5, 21.0), (25.3, 21.45), (26.2, 21.75), (27.2, 21.85), (28.0, 21.85)]
+# The superior orbital fissure (p. 152: "of a triangular form, and leads from the cavity of the cranium into that of the orbit:
+# it is bounded medially by the body; above, by the small wing; below, by the medial margin of the orbital surface of the great
+# wing"): Fig. 190 draws it as a comma, its body 2.6 mm wide and 6 high beside the optic canal, its neck and tail running up and out
+# under the small wing to 28 mm from the middle plane, 1.2 and then 0.9 mm wide.
+SOF_Z = [(18.0, 55.0, 32.4, 0.2), (21.8, 55.0, 32.6, 0.2), (23.0, 55.0, 33.4, 0.05), (25.0, 55.0, 36.0, 0.0), (30.0, 55.0, 36.5, 0.0)]   # (x, front, back, inset): front in the orbit, back in the middle fossa
+# The inferior orbital fissure (p. 184: "bounded above by the lower border of the orbital surface of the great wing ... below, by
+# the lateral border of the orbital surface of the maxilla ... laterally, by a small part of the zygomatic bone"): Fig. 190 draws
+# it from the superior fissure's lower end down and out along the floor to 39 mm from the middle plane, 0.8 mm wide behind and
+# 1.8 at its front (outer) end. Its lower and upper edge in the front view, (x, y):
+IOF_LOW = [(20.4, 12.8), (21.4, 9.9), (23.5, 8.5), (26.0, 7.2), (28.5, 5.7), (31.0, 4.6), (34.0, 3.65), (37.0, 3.25), (38.9, 3.6)]
+IOF_HIGH = [(39.3, 4.2), (38.8, 4.65), (37.0, 4.85), (34.0, 5.05), (31.0, 5.7), (28.5, 6.7), (26.0, 8.0), (23.5, 9.3), (21.9, 10.6), (21.3, 12.9)]
+# the greater wing's orbital face (z, front of the bone over the fissure) along it: the slit is cut from 2.5 mm in front of it to 3.5 behind
+IOF_FACE = [(20.0, 44.0), (22.0, 45.5), (24.0, 47.0), (26.0, 49.0), (28.0, 51.0), (30.0, 52.5), (32.0, 53.5), (34.0, 53.8), (36.0, 53.6),
+            (38.0, 54.0), (40.0, 57.0)]
+# Behind the floor's hind border the face had one wide gap down into the infratemporal fossa (7 to 11 mm across at 30 to 40 mm
+# out): the maxilla's orbital border is carried back to the wing, a thin sheet rising from the floor's hind edge (E: z, y) to the
+# fissure's lower edge at the wing's face (T: z, y), so that only the fissure is left open.
+IOF_SHELF = [(23.0, (55.6, 4.9), (46.6, 8.7)), (25.0, (54.6, 5.1), (48.3, 7.5)), (27.0, (57.6, 4.4), (50.4, 6.4)), (29.0, (58.4, 3.8), (52.0, 5.4)), (31.0, (61.0, 2.5), (53.0, 4.5)),
+             (33.0, (62.0, 0.5), (53.7, 3.9)), (35.0, (64.0, 0.5), (53.8, 3.6)), (37.0, (66.0, 0.0), (53.9, 3.45)),
+             (39.0, (68.0, 0.0), (54.6, 3.55)), (41.0, (67.0, 0.8), (57.5, 3.9))]
+# The foramen rotundum (p. 150: "At its anterior and medial part is a circular aperture, the foramen rotundum, for the
+# transmission of the maxillary nerve"; p. 151: "Below the medial end of the superior orbital fissure is a grooved surface, which
+# forms the posterior wall of the pterygopalatine fossa, and is pierced by the foramen rotundum"): a short round canal from the
+# front of the middle fossa's floor forward, a little down and out, to the pterygopalatine fossa (the medial end of the inferior
+# fissure). Where Fig. 193 has its mouth: the plate registered on this skull's oval and spinous foramina (9.5 px per mm), the
+# mouth lies 7.5 mm inside and 11 mm in front of the oval one's upper mouth.
+ROTUNDUM = [(19.0, 4.9, 30.6), (19.3, 5.1, 33.4), (19.7, 5.5, 37.0), (20.2, 6.0, 41.0), (20.7, 6.4, 44.5), (21.1, 6.6, 47.2)]
+# The middle fossa's front wall below the SOF's medial end, brought back toward where Fig. 193 has the foramen (z about 33):
+# the wall's own even, gently concave surface moved back as a whole (fossa_wall), FOSSA_SHIFT mm over x 15 to 25, fading
+# out to x 11 and 29, from the floor (y 2.5) up to y 9, and above the SOF's lower edge (y 15.5 to 19). FOSSA_FRONT is kept
+# only for its random draws.
+FOSSA_SHIFT = 2.2
+FOSSA_FRONT = [(13.8, 10.6, 37.2), (16.0, 10.6, 36.8), (20.0, 10.5, 36.7), (24.0, 10.3, 37.1), (27.5, 10.0, 37.8)]
+# The lacrimal fossa and its crests (p. 164, the lacrimal bone: "divided by a vertical ridge, the posterior lacrimal crest ... In
+# front of this crest is a longitudinal groove, the lacrimal sulcus, the inner margin of which unites with the frontal process of
+# the maxilla, and the lacrimal fossa is thus completed. The upper part of this fossa lodges the lacrimal sac, the lower part, the
+# nasolacrimal duct"; "ends below in a small, hook-like projection, the lacrimal hamulus"; p. 161, the maxilla's frontal process:
+# the anterior lacrimal crest in front of the groove; p. 188: "At its medial angle is the upper opening of the nasolacrimal canal").
+# (x on the wall, y, z): the wall stands at x 10.8 to 13 here.
+# (y, z) down the wall; x is found on the wall itself (onto_wall), and each is set that far proud of it (+) or into it (-)
+LAC_FOSSA = [(19.5, 87.25), (15.0, 87.1), (12.0, 87.0), (9.0, 86.9), (7.0, 86.8)]
+LAC_POST = [(18.2, 82.3), (15.0, 82.7), (12.0, 83.1), (9.0, 83.5), (6.6, 83.9), (5.4, 84.7)]   # the crests fan apart upward
+LAC_ANT = [(17.5, 91.6), (15.0, 91.2), (12.0, 90.7), (9.0, 90.2), (6.6, 89.7), (4.8, 89.2)]
+NASOLACRIMAL_MOUTH = [(15.8, 5.6, 87.2), (14.6, 3.8, 87.0), (13.4, 1.0, 86.4)]   # outside the slope, the mouth, the canal's top
+NASOLACRIMAL = [(12.4, 8.0, 86.8), (12.2, 4.0, 86.3), (12.4, 0.5, 85.8), (13.2, -3.0, 85.3), (13.9, -6.0, 84.9), (13.4, -8.6, 84.6)]
+# The infratemporal crest (p. 150: "The lateral surface is convex, and divided by a transverse ridge, the infratemporal crest, into
+# two portions"): where this skull's greater wing turns from its under (infratemporal) face up into its temporal face, (x, y, z),
+# with the direction it may stand out in.
+INFRATEMPORAL = [(42.0, -6.2, 26.0), (41.4, -6.0, 30.0), (41.2, -5.8, 33.0), (40.8, -5.9, 35.5)]   # ends
+# before the coronoid process's reach (its clearance stays as it was)
+
+
+class Extrusion:
+    """An outline seen from in front, (x, y), carried back along z (and a little sideways, `lean` mm per mm) between a front and a
+    back z that may change with x (tables (x, front, back[, inset])). inset: the outline drawn that much inside the traced one,
+    for the rounding of the opening's edge, which widens its mouth by about as much. sign -1: the right side's (x mirrored)."""
+    def __init__(self, outline, zs, lean=(0.0, 0.0), sign=1):
+        self.Q = np.asarray(outline, float); self.zs = np.asarray(zs, float); self.lean = np.asarray(lean, float); self.s = sign
+        zf, zb = self.zs[:, 1].max(), self.zs[:, 2].min()
+        q = self.Q; span = (zf - zb) * np.abs(self.lean)
+        x0, x1 = q[:, 0].min() - span[0], q[:, 0].max() + span[0]
+        self.bounds = (np.array([min(sign * x0, sign * x1), q[:, 1].min() - span[1], zb]), np.array([max(sign * x0, sign * x1), q[:, 1].max() + span[1], zf]))
+
+    def __call__(self, X, Y, Z):
+        X, Y, Z = np.broadcast_arrays(self.s * X, Y, Z)
+        zf = np.interp(X, self.zs[:, 0], self.zs[:, 1]); zb = np.interp(X, self.zs[:, 0], self.zs[:, 2])
+        S = X + self.lean[0] * (zf - Z); T = Y + self.lean[1] * (zf - Z)
+        ins = np.interp(X, self.zs[:, 0], self.zs[:, 3]) if self.zs.shape[1] > 3 else 0.0
+        Q = self.Q; n = len(Q)
+        d2 = np.full(S.shape, 1e18); inside = np.zeros(S.shape, bool)
+        for i in range(n):
+            a, b = Q[i], Q[(i + 1) % n]
+            ex, ey = b[0] - a[0], b[1] - a[1]
+            wx, wy = S - a[0], T - a[1]
+            t = np.clip((wx * ex + wy * ey) / max(ex * ex + ey * ey, 1e-12), 0, 1)
+            d2 = np.minimum(d2, (wx - ex * t) ** 2 + (wy - ey * t) ** 2)
+            c1 = (a[1] <= T) & (b[1] > T) & (ex * wy - ey * wx > 0)
+            c2 = (a[1] > T) & (b[1] <= T) & (ex * wy - ey * wx < 0)
+            inside ^= (c1 | c2)
+        s2 = np.where(inside, -1.0, 1.0) * np.sqrt(d2) + ins
+        return np.maximum(s2, np.maximum(Z - zf, zb - Z)).astype(np.float32)
+
+
+def uneven(P, rng, amp, closed=True, step=0.25):
+    """A traced line drawn smooth and given the fine unevenness of a real edge: moved along its normal by a few long, gentle
+    waves (amp mm, std), never more than about three times that."""
+    P = np.asarray(P, float)
+    Q = spline(np.column_stack([P, np.zeros(len(P))]), step, closed=closed)[:, :2]
+    s = np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(Q, axis=0), axis=1))]); L_ = s[-1] + (np.linalg.norm(Q[0] - Q[-1]) if closed else 0.0)
+    w = np.zeros(len(Q))
+    for k in range(4):
+        lam = rng.uniform(1.2, 4.0); w += np.sin(2 * np.pi * (s / lam if not closed else np.round(L_ / lam) * s / L_) + rng.uniform(0, 2 * np.pi)) * rng.uniform(0.5, 1.0)
+    w *= amp / max(w.std(), 1e-9)
+    t = np.gradient(Q, axis=0); t /= np.linalg.norm(t, axis=1)[:, None] + 1e-12
+    return Q + np.column_stack([t[:, 1], -t[:, 0]]) * w[:, None]
+
+
+def onto_wall(G, side, YZ, off, x0=24.0, x1=6.0):
+    """Points (y, z) of the orbit's medial wall: x found by going inward from the orbit (x0) to the first bone, then set off mm
+    proud of the wall (+, into the orbit) or into it (-). Mirrored for the right side."""
+    xs = np.arange(x0, x1, -0.05); out = []
+    for y, z in YZ:
+        P = np.column_stack([side * xs, np.full(len(xs), y), np.full(len(xs), z)])
+        d = sdf.sample_field(G.D, G.lo, G.h, P); i = int(np.argmax(d < 0))
+        xw = xs[i - 1] + (xs[i] - xs[i - 1]) * d[i - 1] / (d[i - 1] - d[i]) if i > 0 else xs[0]
+        out.append((side * (xw + off), y, z))
+    return np.array(out)
+
+
+def _wobble(rng, t, amp, waves=3):
+    """A smooth random variation along t (0..1) with standard deviation about amp."""
+    out = np.zeros_like(np.asarray(t, float))
+    for _ in range(waves):
+        out += np.sin(2 * np.pi * (rng.uniform(0.6, 2.2) * t + rng.uniform(0, 1)))
+    return amp * out / np.sqrt(waves / 2.0)
+
+
+def _bump(u):
+    """cos^2 profile: 1 at u = 0, 0 with zero slope at |u| = 1."""
+    u = np.clip(np.abs(u), 0.0, 1.0)
+    return np.cos(0.5 * np.pi * u) ** 2
+
+
+def _ramp(u):
+    """0 below 0, 1 above 1, smooth (3u^2 - 2u^3) between."""
+    u = np.clip(u, 0.0, 1.0); return u * u * (3.0 - 2.0 * u)
+
+
+def fossa_wall(G, side, rng):
+    """The middle fossa's front wall (the greater wing's cerebral surface below the SOF) moved back by FOSSA_SHIFT, as a smooth
+    shift along z of the wall the field already has (column by column), so it stays one even, gently concave surface from the SOF's
+    lower edge down into the floor: no bar or lump of its own. Fine unevenness only (a few hundredths of a mm)."""
+    sl = G.window(np.array([min(side * 10.0, side * 30.0), 1.0, 28.0]), np.array([max(side * 10.0, side * 30.0), 20.0, 44.0]))
+    X, Y, Z = G.coords(sl); xs, ys, zs = X[:, 0, 0], Y[0, :, 0], Z[0, 0, :]
+    d = G.D[sl]; neg = d < 0; has = neg.any(2); k = np.argmax(neg, 2); km = np.maximum(k - 1, 0)
+    d1 = np.take_along_axis(d, km[..., None], 2)[..., 0]; d2 = np.take_along_axis(d, k[..., None], 2)[..., 0]
+    zw = np.where(k > 0, zs[km] + G.h * d1 / np.maximum(d1 - d2, 1e-6), zs[0])     # first bone going forward
+    ax = np.abs(xs)
+    sx = _ramp((ax - 11.0) / 4.0) * _ramp((29.0 - ax) / 4.0)
+    gy = _ramp((ys - 2.5) / 6.5) * _ramp((19.0 - ys) / 3.5)
+    hm = FOSSA_SHIFT * sx[:, None] * gy[None, :] * (1.0 + _wobble(rng, (xs[:, None] - 10.0) / 20.0 + 0 * ys[None, :], 0.015)
+                                                       + _wobble(rng, (ys[None, :] - 1.0) / 19.0 + 0 * xs[:, None], 0.015))
+    hm = np.where(has & (zw > 29.0) & (zw < 40.0), hm, 0.0)
+    # bone added as a slab whose face is the old face moved back by hm in each column (so the shift is the same wherever the
+    # wall leans), 0.5 mm into the old bone (the wall can be thin behind); blended in as hm grows so the field has no seam where it starts
+    phi = np.maximum((zw - hm)[..., None] - zs[None, None, :], zs[None, None, :] - (zw[..., None] + 0.5))
+    a = _ramp(hm / 0.3)[..., None]
+    nd_ = (d * (1.0 - a) + np.minimum(d, phi) * a)
+    # the old face is now inside the bone, where the union's field still reads about 0; give the bone's inside its true depth
+    # (from 1 mm in; nearer the surface the field is kept as it is) so the later steps (inner, sinus) do not take it for a surface
+    dep = ndimage.distance_transform_edt(np.pad(nd_ < 0, 1, constant_values=False))[1:-1, 1:-1, 1:-1] * G.h   # (outside: air)
+    G.D[sl] = np.where((nd_ < 0) & (dep >= 1.0), np.minimum(nd_, -(dep - 0.25)), nd_).astype(G.D.dtype)
+
+
+def lacrimal_relief(G, side, rng):
+    """The lacrimal fossa between its two crests (Gray p.164 and Fig. 163; Fig. 192, medial wall of left orbit), pressed into the
+    medial wall as a smooth height map over (y, z) applied along x, the wall's normal: a broad shallow hollow (at most about
+    0.6 mm), widest and shallowest above, running down to the upper edge of the canal's separate mouth, and on each side of
+    it a low (under 0.6 mm), broad-shouldered crest whose height and width wander a little, the two fanning apart upward. No edge of its own: every part of it runs out with zero slope."""
+    sl = G.window(np.array([min(side * 3.0, side * 19.0), 2.0, 78.5]), np.array([max(side * 3.0, side * 19.0), 21.5, 94.5]))
+    X, Y, Z = G.coords(sl); ys, zs = Y[0, :, 0], Z[0, 0, :]
+    xs = np.arange(24.0, 4.0, -0.1); xw = np.full((len(ys), len(zs)), np.nan)
+    for i, y in enumerate(ys):
+        P = np.stack(np.broadcast_arrays(side * xs[None, :], y, zs[:, None]), -1).reshape(-1, 3)
+        d = sdf.sample_field(G.D, G.lo, G.h, P).reshape(len(zs), len(xs)); hit = (d < 0).any(1); k = np.argmax(d < 0, 1)
+        xw[i, hit] = xs[k[hit]] + 0.1 * d[hit, k[hit]] / np.maximum(d[hit, k[hit] - 1] - d[hit, k[hit]], 1e-6)
+    t = (ys - 6.5) / 13.0
+    yy = lambda T: np.array(T, float)[::-1]
+    zc = np.interp(ys, yy(LAC_FOSSA)[:, 0], yy(LAC_FOSSA)[:, 1]) + _wobble(rng, t, 0.08)
+    W = np.interp(ys, [6.5, 9.0, 12.0, 16.0, 19.0, 21.0], [2.6, 3.0, 3.4, 3.8, 4.1, 3.7]) * (1 + _wobble(rng, t, 0.05))
+    Dp = np.interp(ys, [3.0, 5.0, 6.5, 8.0, 10.0, 13.0, 16.0, 18.5, 21.0], [0.0, 0.3, 0.5, 0.55, 0.52, 0.42, 0.28, 0.12, 0.0])
+    zp = np.interp(ys, yy(LAC_POST)[:, 0], yy(LAC_POST)[:, 1]) + _wobble(rng, t, 0.1)
+    Hp = np.interp(ys, [5.4, 7.0, 9.0, 13.0, 17.0, 18.8], [0.0, 0.28, 0.38, 0.40, 0.32, 0.0]) * rng.uniform(0.8, 1.2) * (1 + _wobble(rng, t, 0.12))
+    Bp = 3.3 * (1 + _wobble(rng, t, 0.12))
+    za = np.interp(ys, yy(LAC_ANT)[:, 0], yy(LAC_ANT)[:, 1]) + _wobble(rng, t, 0.1)
+    Ha = np.interp(ys, [4.8, 6.6, 9.0, 15.0, 17.0, 18.6], [0.0, 0.32, 0.40, 0.38, 0.30, 0.0]) * rng.uniform(0.8, 1.2) * (1 + _wobble(rng, t, 0.12))
+    Ba = 3.2 * (1 + _wobble(rng, t, 0.12))
+    c = lambda v: v[:, None]
+    h = (-c(Dp) * _bump((zs[None, :] - c(zc)) / c(W)) + c(Hp) * _bump((zs[None, :] - c(zp)) / c(Bp))
+         + c(Ha) * _bump((zs[None, :] - c(za)) / c(Ba)))
+    h = np.where(np.isfinite(xw), h, 0.0) * _bump(np.clip((zs[None, :] - 92.0) / 2.0, 0.0, 1.0))
+    h = h * _bump(np.clip((np.nan_to_num(xw, nan=0.0) - 14.0) / 1.5, 0.0, 1.0))   # only the medial wall, not the floor
+    xw = np.nan_to_num(xw, nan=-99.0)
+    w = _bump(np.maximum(np.abs(np.abs(X) - xw[None, :, :]) - 1.2, 0.0) / 2.0)
+    G.D[sl] = G.D[sl] - (h[None, :, :] * w).astype(G.D.dtype)
+
+
+def crest_relief(G, side, rng):
+    """The infratemporal crest (Gray p.150; Fig. 189): a low uneven ridge along the bend between the greater wing's temporal and
+    infratemporal surfaces, its height and width wandering along it and running out to nothing at both ends."""
+    P = np.array(INFRATEMPORAL, float); P = np.vstack([P[0] + (P[0] - P[1]) * 0.6, P, P[-1] + (P[-1] - P[-2]) * 0.6])
+    Q = P * np.array([side, 1.0, 1.0])
+    for _ in range(4):                                        # onto the bone's own surface at the bend
+        d0 = sdf.sample_field(G.D, G.lo, G.h, Q)
+        g = np.stack([(sdf.sample_field(G.D, G.lo, G.h, Q + e) - sdf.sample_field(G.D, G.lo, G.h, Q - e)) / 0.4 for e in np.eye(3) * 0.2], 1)
+        Q = Q - (d0 / np.maximum(np.linalg.norm(g, axis=1), 0.3) ** 2)[:, None] * g
+    L = spline(Q, 0.1)
+    seg = np.r_[0, np.cumsum(np.linalg.norm(np.diff(L, axis=0), axis=1))]; t = seg / seg[-1]
+    nm = np.array([0.64 * side, -0.77, 0.0])
+    H = 0.85 * rng.uniform(0.85, 1.15) * np.sin(np.pi * t) ** 1.4 * (1 + _wobble(rng, t, 0.18))
+    B = 2.3 * (1 + _wobble(rng, t, 0.2)) * (0.6 + 0.4 * np.sin(np.pi * t))
+    lo_, hi_ = L.min(0) - 4.0, L.max(0) + 4.0
+    sl = G.window(lo_, hi_); X, Y, Z = G.coords(sl)
+    V = np.stack(np.broadcast_arrays(X, Y, Z), -1).reshape(-1, 3)
+    from scipy.spatial import cKDTree
+    dd, j = cKDTree(L).query(V)
+    r = V - L[j]; rn = r @ nm; rl = np.linalg.norm(r - rn[:, None] * nm, axis=1)
+    wn = np.clip((rn + 3.0) / 1.5, 0.0, 1.0) * np.clip((4.0 - rn) / 1.5, 0.0, 1.0)
+    h = H[j] * _bump(rl / B[j]) * wn
+    G.D[sl] = G.D[sl] - h.reshape(G.D[sl].shape).astype(G.D.dtype)
+
+
+def orbit_marks(G, log=print):
+    """Cut and raise, in the whole head's field, what the orbit's back and inner wall and the greater wing's outer face show on
+    Gray's plates (see SOF ... INFRATEMPORAL above): the two orbital fissures, the foramen rotundum, the lacrimal fossa with
+    its crests and the nasolacrimal canal, the infratemporal crest. Each side gets its own small unevenness (the right is not
+    the left's mirror image)."""
+    for side, seed in ((1, 1903), (-1, 1904)):
+        rng = np.random.default_rng(seed)
+        m = lambda P: np.asarray(P, float) * np.array([side, 1.0, 1.0])
+        jit = lambda P, s: m(np.asarray(P, float) + rng.normal(0.0, s, (len(P), 3)) * np.array([1.0, 1.0, 1.0]))
+        jit(FOSSA_FRONT, 0.05)                                # (draws kept, so the later parts' unevenness stays as it was)
+        fossa_wall(G, side, np.random.default_rng(seed + 10))  # the middle fossa's front wall moved back, before the openings in it
+        # superior orbital fissure: the comma carried back through the wall, its edges rounded
+        G.cut(Extrusion(uneven(SOF, rng, 0.08), SOF_Z, lean=(0.0, -0.02), sign=side), 0.45)
+        # inferior orbital fissure: first the shelf (the maxilla's orbital border carried back to the wing; a sheet 1.5 mm
+        # thick, its upper face through E and T), then the slit between it and the wing, which drops behind into the fossae below
+        P, U, A, B = [], [], [], []
+        for x, (ze, ye), (zt, yt) in IOF_SHELF:
+            E, T = np.array([x, ye, ze]), np.array([x, yt + rng.normal(0, 0.06), zt])
+            e = T - E; L_ = np.linalg.norm(e); n = np.array([0.0, e[2], -e[1]]) / L_
+            if n[1] < 0: n = -n
+            P.append(0.5 * (E + T) - 1.05 * n); U.append(n); A.append(1.05); B.append(0.5 * L_ + 0.9)
+        k = np.linspace(0, 1, len(P))
+        G.add(Tube(m(P), list(zip(k, A)), list(zip(k, B)), up=np.array(U) * np.array([side, 1.0, 1.0]), n=4.0, true=True), 0.9, keep=3)
+        f = np.array(IOF_FACE)
+        ins = np.interp(f[:, 0], [21.5, 23.5], [0.0, 0.2])
+        lo_, hi_ = uneven(IOF_LOW, rng, 0.06, closed=False), uneven(IOF_HIGH[::-1], rng, 0.06, closed=False)
+        xs = np.linspace(20.9, 38.9, 37); yl = np.interp(xs, lo_[:, 0], lo_[:, 1]); yh = np.interp(xs, hi_[:, 0], hi_[:, 1])
+        half = np.maximum(0.5 * (yh - yl) - np.interp(xs, f[:, 0], ins) + 0.1, 0.4)
+        mid = np.column_stack([side * xs, 0.5 * (yl + yh), np.interp(xs, f[:, 0], f[:, 1]) - 0.25])
+        G.cut(Tube(mid, list(zip(np.linspace(0, 1, len(xs)), half)), 2.75, up=(0.0, 1.0, 0.0)), 0.4)   # the slit: rounded, so its
+        # floor never runs flat along the shelf's top (that made a comb of slivers at 0.5 mm voxels)
+        low = uneven([p for p in IOF_LOW if p[0] >= 23.0], rng, 0.06, closed=False)                       # and, just behind the floor's
+        drop = np.concatenate([low + [0.0, 0.6], (low - [0.0, 2.3])[::-1]])                                              # hind edge, open down into the
+        G.cut(Extrusion(drop, np.column_stack([f[:, 0], f[:, 1] - 0.4, f[:, 1] - 3.0, np.zeros(len(f))]), sign=side), 0.4)  # fossae below (p.184)
+        # foramen rotundum: a short canal, a little oval (3.1 by 2.7 mm), from the front wall of the middle fossa forward to the
+        # pterygopalatine fossa; its mouth sunk in a short shallow approach on the sloping wall (from above: an oblique oval)
+        G.cut(Tube(jit(ROTUNDUM, 0.08), [(0, 1.7), (0.3, 1.55), (1, 1.6)], [(0, 1.45), (0.3, 1.35), (1, 1.4)], up=(0.0, 1.0, 0.1)), 0.9)
+        G.cut(Ellipsoid(m([(19.1 + rng.normal(0, 0.1), 4.3, 31.6)])[0], (1.9, 1.1, 1.9)), 1.0)
+        lacrimal_relief(G, side, rng)                         # the lacrimal fossa and its crests, as a smooth relief
+        # nasolacrimal canal: its own small oval mouth (about 4 by 5 mm on the slope) where the orbit's floor meets the medial
+        # wall at the front (Fig. 192), the fossa running into its upper edge; then down, a little back, to the inferior meatus
+        G.cut(Tube(jit(NASOLACRIMAL_MOUTH + NASOLACRIMAL[2:], 0.06), [(0, 1.9), (0.12, 1.7), (0.3, 1.75), (0.75, 1.75), (1, 1.65)],
+                   [(0, 2.4), (0.12, 1.9), (0.3, 1.8), (0.75, 1.75), (1, 1.65)], up=(1.0, 0.0, 0.0)), 0.8)
+        crest_relief(G, side, rng)                            # the infratemporal crest, as a smooth relief
+    log("orbit marks: superior and inferior orbital fissures (Fig. 190), foramen rotundum, lacrimal fossa and crests, nasolacrimal canal, infratemporal crest")
+
+
 def whole(F, log=print, rough=True, sinuses=True, inside=True):
     """The whole head's field from the built left half: mirrored; then what must not be the same on both sides: the
     midline's sutures, each with a wander of its own, and the bone's grain and pits (surface.py). Returns (D, lo)."""
@@ -1060,6 +1326,7 @@ def whole(F, log=print, rough=True, sinuses=True, inside=True):
             if name.endswith(", hind"):                          # one suture for bones.py: its hind part (cut with a wander of its own) and its front
                 whole.midlines[name[:-6]] = np.concatenate([Q, whole.midlines.get(name[:-6], Q[:0])])
             G.cut(Tube(Q, r), 0.4)
+    orbit_marks(G, log)                                       # the orbit's fissures, the foramen rotundum, the lacrimal fossa, the infratemporal crest
     if inside:
         whole.inner = inner.build(G, log=log)                # the cavity's own surface: ridges, fossae, the sinuses' and the arteries' grooves (inner.py)
     foramina.through(G, log)                                  # the base's canals opened into the cavity, both sides, not alike (foramina.py)
