@@ -857,12 +857,59 @@ def bone_section_field(b, r, X, Y, z):
     return np.maximum(v, max(z0 - z, z - z1))
 
 
-def loft(h=0.4, B=None, log=print, pad=4.0, which=None):
-    """M2 (repair 1): the one solid as lofted coronal sections. Returns (Grid, {bone: Grid of its own lofted part})."""
-    B = B or boxes(log=log); which = which or BONES
-    xs = np.concatenate([B[b][k][B[b]["zin"]] for b in which for k in ("xl", "xm")])
-    ys = np.concatenate([B[b][k][B[b]["zin"]] for b in which for k in ("yb", "yt")])
-    zs = np.concatenate([B[b]["z"][B[b]["zin"]] for b in which])
+def _true_distance(F, h, ease=0.9):
+    """A lofted field made a true signed distance (mm) of its own zero set, then eased."""
+    m = F < 0
+    if not m.any():
+        return np.full(F.shape, 20.0, np.float32)
+    d = ndi.distance_transform_edt(~m, sampling=h) - ndi.distance_transform_edt(m, sampling=h)
+    return ndi.gaussian_filter(np.clip(d, -12.0, 20.0), ease / h).astype(np.float32)
+
+
+LOFT_FIT = 2      # rounds of the box correction: each bone's lofted extents per z brought to its plate box (rule 1)
+
+
+def loft(h=0.4, B=None, log=print, pad=6.0, which=None):
+    """M2: the one solid as lofted coronal sections, each bone's part a true distance field. The boxes are corrected
+    LOFT_FIT times so the lofted part's own extents at each z (after easing) equal the plates' box: each bone fills
+    its plate territories up to the drawn joint lines. Returns (Grid, {bone: Grid})."""
+    import copy
+    B0 = B or boxes(log=log); which = which or BONES; B = copy.deepcopy(B0)
+    for r in range(LOFT_FIT + 1):
+        G, per = _loft(h, B, pad, which, ref=B0)
+        if r == LOFT_FIT:
+            break
+        err = []
+        for b in which:
+            m = per[b].D < 0; rb = B[b]; r0 = B0[b]
+            for k, ax_, f in (("xl", 0, min), ("xm", 0, max), ("yb", 1, min), ("yt", 1, max)):
+                got = np.full(len(rb["z"]), np.nan)
+                for i, z in enumerate(rb["z"]):
+                    if not rb["zin"][i]:
+                        continue
+                    j = int(round((z - G.lo[2]) / h))
+                    if not 0 <= j < m.shape[2]:
+                        continue
+                    sl = m[:, :, j]
+                    if not sl.any():
+                        continue
+                    a = np.where(sl.any(1 - ax_))[0]
+                    got[i] = G.lo[ax_] + h * (a.min() if f is min else a.max())
+                dlt = np.where(np.isnan(got), 0.0, r0[k] - got)
+                dlt = ndi.gaussian_filter1d(np.nan_to_num(dlt), BOX_EASE / ZSTEP, mode="nearest")
+                lim = 0.25 * np.abs(np.nan_to_num(rb["xm"] - rb["xl"] if ax_ == 0 else rb["yt"] - rb["yb"]))
+                rb[k] = rb[k] + np.clip(dlt, -lim, lim)
+                ok = ~np.isnan(got) & rb["zin"]
+                if ok.any():
+                    err.append(np.abs(r0[k] - got)[ok].mean())
+        log("  loft round %d: mean box misfit %.2f mm" % (r, np.mean(err)))
+    return G, per
+
+
+def _loft(h, B, pad, which, ref):
+    xs = np.concatenate([ref[b][k][ref[b]["zin"]] for b in which for k in ("xl", "xm")])
+    ys = np.concatenate([ref[b][k][ref[b]["zin"]] for b in which for k in ("yb", "yt")])
+    zs = np.concatenate([ref[b]["z"][ref[b]["zin"]] for b in which])
     lo = np.array([np.nanmin(xs), np.nanmin(ys), zs.min()]) - pad
     hi = np.array([np.nanmax(xs), np.nanmax(ys), zs.max()]) + pad
     n = np.ceil((hi - lo) / h).astype(int) + 1
@@ -876,7 +923,7 @@ def loft(h=0.4, B=None, log=print, pad=4.0, which=None):
                 per[b][:, :, j] = np.minimum(v, 20.0)
     sig = LOFT_EASE / h
     for b in which:
-        per[b] = ndi.gaussian_filter(per[b], sig)
+        per[b] = _true_distance(ndi.gaussian_filter(per[b], sig), h)
     D = None
     for b in which:
         D = per[b] if D is None else _smin(D, per[b], LOFT_K)
@@ -888,7 +935,7 @@ GROW, GROW_R = 3.5, 6.0    # mm: each bone grows into a neighbour within GROW_R 
 JOINT_REACH = 5.0          # mm: a joint surface acts within this of the neighbour (with its side of the crevice)
 SETBACK = 0.45             # mm: each bone set back from its joint surface (0.6 left the midfoot spaces at 2 mm once the rims were eased)
 RIM_K = 0.6                # mm: the bone's field eased by this once it is cut (its rims rounded)
-JOINT_DEG = {("calcaneus", "talus"): 3, ("navicular", "talus"): "sphere"}   # the talar head a ball in the navicular    # the talocalcaneal surface S-shaped (posterior convex, anterior concave)
+JOINT_DEG = {("calcaneus", "talus"): 3, ("navicular", "talus"): "ellipsoid"}   # the talar head: Gray "large, oval, and convex", longer across    # the talocalcaneal surface S-shaped (posterior convex, anterior concave)
 
 
 def _smax(a, b, k):
@@ -919,6 +966,21 @@ class JointSurface:
     polynomial in (e1, e2) of degree 2 (ball, saddle, near-flat) or 3. side: +1 when bone `a` lies on +n."""
     def __init__(self, a, b, pts, wa, deg=2):
         self.a, self.b, self.deg = a, b, deg
+        if deg == "ellipsoid":
+            from scipy.optimize import least_squares
+            ca = np.asarray(wa).mean(0); c0 = pts.mean(0); _, _, vt = np.linalg.svd(pts - c0, full_matrices=False)
+            n0 = vt[2] if vt[2] @ (ca - c0) > 0 else -vt[2]; e1 = vt[0]; e2 = np.cross(n0, e1)
+            self.E = np.stack([e1, e2, n0]); keep = np.ones(len(pts), bool)
+            def res(v, P):
+                c = c0 + v[0] * n0 + v[1] * e1 + v[2] * e2; q = (P - c) @ self.E.T
+                return (np.sqrt((q[:, 0] / v[3]) ** 2 + (q[:, 1] / v[4]) ** 2 + (q[:, 2] / v[4]) ** 2) - 1.0) * v[4]
+            x = np.r_[18.0, 0, 0, 22.0, 18.0]
+            for _ in range(3):
+                x = least_squares(lambda v: res(v, pts[keep]), x, bounds=([8, -8, -8, 12, 12], [40, 8, 8, 45, 40])).x
+                rr = res(x, pts); keep = np.abs(rr) < 2.5 * rr[keep].std() + 0.2
+            self.x = x; self.c = c0 + x[0] * n0 + x[1] * e1 + x[2] * e2; self.R = (x[3], x[4]); self.rms = float(rr[keep].std())
+            self.side = 1.0 if np.mean(self.signed_raw(wa)) > 0 else -1.0
+            return
         if deg == "sphere":                                  # algebraic sphere fit, then refined radius
             from scipy.optimize import least_squares
             # radius held to the talar head's own (14-24 mm: our talus build's head, talus.HEAD_R 16.6-25), the
@@ -955,6 +1017,9 @@ class JointSurface:
         return np.stack(cols, -1)
 
     def signed_raw(self, P):
+        if self.deg == "ellipsoid":
+            q = (np.asarray(P) - self.c) @ self.E.T; R1, R2 = self.R
+            return (np.sqrt((q[..., 0] / R1) ** 2 + (q[..., 1] / R2) ** 2 + (q[..., 2] / R2) ** 2) - 1.0) * R2
         if self.deg == "sphere":
             return np.linalg.norm(np.asarray(P) - self.c, axis=-1) - self.R
         q = (np.asarray(P) - self.c) @ self.E.T
@@ -970,18 +1035,57 @@ class JointSurface:
 
     def curvature(self):
         """Principal curvatures (1/mm) at the contact's middle, sign: + convex toward bone a."""
+        if self.deg == "ellipsoid":
+            return np.array([1.0 / self.R[0], 1.0 / self.R[1]])
         if self.deg == "sphere":
             return np.array([1.0, 1.0]) / self.R * (1.0 if self.side < 0 else -1.0) * (1 if self.a == "talus" else -1) * -1
         c = self.coef; Hm = np.array([[2 * c[3], c[4]], [c[4], 2 * c[5]]])
         return np.linalg.eigvalsh(Hm) * (-self.side)
 
 
-BRIDGE = 4.5      # mm: the crevice between two articulating parts closed up to this radius (the joint is cut from it)
+BRIDGE = 6.0      # mm: the crevice between two articulating parts closed up to this radius (the joint is cut from it)
 
 
 def _crop(*Ms, pad=6):
     idx = np.argwhere(np.any(np.stack(Ms), 0)); lo = np.maximum(idx.min(0) - pad, 0); hi = np.minimum(idx.max(0) + pad + 1, Ms[0].shape)
     return tuple(slice(a, b) for a, b in zip(lo, hi))
+
+
+LINE_W = 6        # the drawn joint lines' weight in a joint surface's fit (as many copies of each lifted point)
+LINE_IN = 1.0     # mm below the outer surface at which a drawn line's point is lifted into the crevice
+
+
+def lifted_lines(a, b, per):
+    """The plates' drawn joint lines between a and b lifted onto the solid: a plan's line at the solid's top (Fig.
+    268) or bottom (Fig. 269) less LINE_IN, a side plate's line at its medial (Fig. 290) or lateral (Fig. 291) side.
+    Returns (n, 3)."""
+    names = list(per); G = per[names[0]]; h = G.h
+    U = np.min(np.stack([per[k].D for k in names]), 0) < 0.5 * BRIDGE       # the crevices counted in
+    out = []
+    for fig in FIGS:
+        for p, q, kind, pts in lines()[fig]:
+            if kind != "joint" or {p, q} != {a, b}:
+                continue
+            ln = _resample(to_plane(fig, np.asarray(pts, float)), 0.8)
+            for u, z in ln:
+                k = int(round((z - G.lo[2]) / h))
+                if not 0 <= k < U.shape[2]:
+                    continue
+                if fig in PLAN:
+                    i = int(round((u - G.lo[0]) / h))
+                    if not 0 <= i < U.shape[0] or not U[i, :, k].any():
+                        continue
+                    col = np.where(U[i, :, k])[0]
+                    y = G.lo[1] + h * (col.max() if fig == "Gray268" else col.min())
+                    out.append((u, y - LINE_IN if fig == "Gray268" else y + LINE_IN, z))
+                else:
+                    j = int(round((u - G.lo[1]) / h))
+                    if not 0 <= j < U.shape[1] or not U[:, j, k].any():
+                        continue
+                    row = np.where(U[:, j, k])[0]
+                    x = G.lo[0] + h * (row.max() if fig == "Gray290" else row.min())
+                    out.append((x - LINE_IN if fig == "Gray290" else x + LINE_IN, u, z))
+    return np.array(out).reshape(-1, 3)
 
 
 def joints(per, gr=None, log=print, min_pts=40):
@@ -1009,9 +1113,13 @@ def joints(per, gr=None, log=print, min_pts=40):
             pts = pts[rng.choice(len(pts), 20000, replace=False)]
         ia = np.argwhere(ma & (db < 6.0)); wa = G.lo + (ia[rng.choice(len(ia), min(3000, len(ia)), replace=False)] + off) * h
         key = (a, b)
+        drawn = lifted_lines(a, b, per)
+        if len(drawn):
+            pts = np.concatenate([pts] + [drawn] * LINE_W)
         J = JointSurface(a, b, pts, wa, JOINT_DEG.get(tuple(sorted(key)), 2))
+        J.drawn = len(drawn)
         out[key] = J; zones[key] = (sl, zone)
-        log("  joint %-20s %6d pts  rms %.2f mm  curvature radii %s" % ("-".join(key), len(pts), J.rms,
+        log("  joint %-20s %6d pts (%d drawn)  rms %.2f mm  curvature radii %s" % ("-".join(key), len(pts), J.drawn, J.rms,
             ", ".join("%.0f" % (1 / k) if abs(k) > 1e-4 else "flat" for k in J.curvature())))
     return out, zones
 
@@ -1118,7 +1226,7 @@ def check_a1(bn, log=print):
         lab, P = visible(bn, fig)
         tl, TP = terr(fig)
         tl = ndi.zoom(tl, (P.n[0] / tl.shape[0], P.n[1] / tl.shape[1]), order=0)
-        sil = (tl >= 0) & (tl < len(BONES))
+        sil = tl >= 0                     # the tarsal silhouette (Fig. 291's sinus tarsi mouth inside it)
         mod = ndi.binary_fill_holes(ndi.binary_closing(lab >= 0, iterations=int(1.5 / P.h)))   # joint spaces closed
         d = _edge_gap(mod, sil, P.h)
         r = dict(union=float(np.nanmean(d)), bones={}, lines={})

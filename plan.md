@@ -3960,6 +3960,25 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     cuneiform) and sit 2 to 3.5 mm inside their plate territories;
     torn edges round the talonavicular joint; talus box-like; own-
     plate relief not started. Repair 2 (the last) to follow.
+    Repair 2, saved; task closed with the joint fit kept and the
+    shape not accepted: each part's field is a true distance and the
+    drawn joint lines of all four plates constrain every joint
+    surface. Whole outline 1.02 and 1.03 mm on Fig. 268 and 269, 1.89
+    on 290, 2.29 on 291 (target 2.0). No overlap; joint space median
+    1.2 to 1.44 mm at every joint; within 0.8 to 2.0 mm over 92 to 97%
+    of the talocalcaneal, calcaneocuboid and talonavicular facets and
+    80 to 89% of the six midfoot facets (the rims fall away). The
+    talonavicular joint is an ellipsoid, longer transversely, clean.
+    Pitch 22.3 deg, navicular height 30.2 mm. Open: talus still box-
+    like (normalising each section into its box flattens the dome);
+    Fig. 268's talus hind border disagrees with the side plates'
+    posterior process by 9 mm (re-read the trace); second cuneiform
+    2 to 3.3 mm off on the side plates with a fringe and a fin on its
+    faces; sinus tarsi 2.8 mm at its narrowest; no own-plate relief.
+    So the whole-first method gives fitting joints; next, a new task
+    with a different method for the shape: conform each single-bone
+    build to its cut piece (joint faces from the cut, the rest of the
+    surface from the single bone), instead of normalised sections.
   - [ ] The metatarsals, phalanges; the foot together.
 - [ ] F11. 25 Nov, the owner: "switch back to the skull and mandible so we
   fix every single part of them especially the mandible and skull base";
