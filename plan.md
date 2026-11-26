@@ -4418,6 +4418,19 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     tympanomastoid fissure is one 17 mm pressed line; two 1.6 mm sharp
     spots in the notch; base.floor_cut refills cut bone with no blend;
     the arch's straight borders are skull2's (task under way).
+    Zygomatic arch (skull2.py; accepted after one repair): both
+    borders are the lines traced from Fig. 188 (ARCH_TOP, ARCH_LOW)
+    as smooth arcs, the bar thinner from side to side, the masseter's
+    fine serration on the lower border, relief seeded per side. Miss
+    against the plate, upper border 3.55/1.08 to 2.10/0.57 mm, lower
+    3.60/0.91 to 3.20/0.51; no flat 4 by 4 mm patch (13 before); joint
+    and coronoid clearances unchanged. The first attempt added a
+    0.55 mm wave to beat a "no straight run over 8 mm" limit and read
+    as knobs: that limit was wrong, the plate's own curve is the
+    test. Open: the root's upper border stands about 2 mm high at
+    z 12 to 18 and 0.55 to 1.1 mm at z 18 to 20 (condyle lock); the
+    arch is about 1.5 mm narrower than Fig. 187 at z 30 to 33. The
+    muscles built on the older arch must be rebuilt on this one.
     Task C, repair 1 (head and neck accepted; task closed): the ring is
     gone. Each section under the head is solved to silhouette targets
     from Fig. 176 and 177: the hind edge runs straight into the head,

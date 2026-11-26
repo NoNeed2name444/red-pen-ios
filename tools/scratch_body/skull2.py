@@ -492,10 +492,24 @@ ZYG_SIDE = [   # the cheek bone with the arch behind it, seen from the side, tra
     # frontozygomatic suture came out at 27 degrees from the level between two corners: a step backward in the pillar (the
     # owner, 14 November: "fix those curves that i don't think should exist"). The same sweep is now drawn without corners,
     # nowhere flatter than 47 degrees and at most 2.7 mm from the plate's line (PILLAR_HIND, the arch upward).
-    (72.9, 27.6), (71.9, 30.3)] + PILLAR_HIND[::-1] + [(54.6, 3.7),
-    (52.0, 0.6), (49.0, -0.8), (46.4, -0.9), (40.1, 0.4), (34.8, 1.2), (28.4, 1.6), (22.0, 1.9), (15.5, 1.9), (9.2, 1.5),
-    (3.0, 1.6), (3.1, -0.4), (5.3, -0.4), (9.0, -0.8), (11.8, -2.9), (13.9, -5.7), (16.8, -7.4), (19.5, -7.5), (22.4, -6.3),
-    (25.0, -4.2), (27.5, -2.7), (31.7, -3.2), (35.8, -4.3), (39.3, -5.7), (39.9, -7.1), (44.6, -9.7), (49.2, -12.7),
+    (72.9, 27.6), (71.9, 30.3)] + PILLAR_HIND[::-1] + [(54.6, 3.7), (52.0, 0.6), (49.0, -0.8)]
+# The arch's two borders, read off Fig. 188 (porion origin, Frankfurt plane level, g-op 183.5) by the light-to-dark edge
+# every millimetre. "The superior border is long, thin, and sharp ...; the inferior, short, thick, and arched" (1918, p. 139).
+# The upper one sags gently from 1.6 mm above the Frankfurt plane over the root to 1 mm below it at the cheek bone; drawn
+# as a straight run of 22 mm before. Both borders are the plate's own lines, smooth gentle arcs; a slow waver drawn into
+# them read as a knobbly bar and is not in the plate. Their unevenness is fine-scale only, each side its own, in whole()
+# (arch_relief). The lower one rises from the tubercle to its top 2.3 mm below the plane at z 29-31 and falls in
+# one arch to the cheek bone's angle, turning down at z 40-42 where the plate draws a step under the suture (it ran down in
+# a straight 10 mm chord from z 37 to the angle).
+ARCH_TOP = [(46.4, -1.35), (44.6, -0.95), (42.4, -0.4), (40.1, 0.2), (37.6, 0.7), (35.0, 1.1), (32.2, 1.45), (29.2, 1.65),
+            (26.0, 1.7), (22.6, 1.4), (19.0, 1.3), (15.5, 1.6), (12.0, 1.5), (9.2, 1.5), (3.0, 1.6)]
+ARCH_LOW = [(3.0, 1.6), (3.1, -0.4), (5.3, -0.4), (9.0, -0.8), (11.8, -2.9), (13.9, -5.7), (16.8, -7.4), (19.5, -7.6),
+            (21.4, -7.6), (22.0, -7.2), (22.7, -5.8), (23.5, -4.5), (24.6, -3.95), (25.8, -2.85), (27.3, -2.4), (29.1, -2.12), (31.1, -2.12), (33.1, -2.4), (35.1, -2.95),
+            (37.0, -3.5), (38.8, -4.2), (40.0, -4.9), (40.9, -6.0), (41.7, -7.3), (42.8, -8.3), (44.3, -9.2), (46.0, -10.2),
+            (47.8, -11.3), (49.2, -12.6)]
+
+
+ZYG_SIDE = ZYG_SIDE + ARCH_TOP + ARCH_LOW[1:] + [
     (53.9, -15.6), (58.8, -17.6), (63.9, -18.7), (68.3, -18.3), (70.5, -17.2), (71.9, -12.2), (72.5, -6.0), (71.3, 3.9),
     (69.5, 8.2), (68.9, 11.6), (69.2, 16.2), (70.7, 19.9), (72.0, 23.7)]
 ARCH_OUT = [(2, 61.5), (10, 62.0), (15, 62.8), (20, 64.0), (25, 65.6), (30, 66.5), (35, 66.4), (40, 65.3), (45, 63.6),
@@ -525,7 +539,88 @@ def cheek(M, Zf, reg, log=print):
     miss = S.sample(Xo, pts[:, 0], pts[:, 1]) - pts[:, 2]
     log("cheek relief through %d points: off by rms %.2f, worst %.2f mm" % (len(pts), np.sqrt((miss ** 2).mean()), np.abs(miss).max()))
     t = np.interp(S.U, [0, 6, 12, 22, 44, 50, 58, 66], [14.0, 12.0, 8.0, 4.4, 4.2, 5.0, 5.5, 9.0])      # (the frontal process is a plate 5 to 6 mm thick, not 8)
+    # The bar is thin from side to side and thinnest at its upper border, where the temporal fascia holds: the inner face
+    # leans out toward the top, to under half the bar's thickness at the border (it was a rounded box, 4 mm across top and bottom)
+    top = np.array(ARCH_TOP, float)[::-1]
+    depth = np.interp(S.U, top[:, 0], top[:, 1]) - S.V                       # mm below the upper border
+    ss = lambda q: np.clip(q, 0, 1) ** 2 * (3 - 2 * np.clip(q, 0, 1))
+    on = ss((S.U - 13.0) / 5.0) * ss((47.0 - S.U) / 4.0)
+    t = t * (1.0 - 0.55 * on * (1.0 - ss((depth - 0.4) / 3.4)))
     return Slab(S, (2, 1, 0), Xo, Xo - t, S.region(ZYG_SIDE), round=1.6)
+
+
+CONDYLE_TOPS = [(51.0, -1.5, 9.0), (54.5, -1.5, 9.5)]     # the jaw's heads (left; the right one's mirror image) as seated by mandible4
+
+
+class Kept:
+    """Solid b, except near the given points, where solid a is kept unchanged (inside r0 mm; blended out to r1), and
+    behind z0 and in front of z1 (blended over 3 mm)."""
+    def __init__(self, a, b, keep, r0, r1, z0=-1e9, z1=1e9):
+        self.a, self.b, self.keep, self.r0, self.r1, self.z0, self.z1 = a, b, np.asarray(keep, float), r0, r1, z0, z1
+        self.bounds = (np.minimum(a.bounds[0], b.bounds[0]), np.maximum(a.bounds[1], b.bounds[1]))
+
+    def __call__(self, X, Y, Z):
+        d = np.min([np.sqrt((np.abs(X) - p[0]) ** 2 + (Y - p[1]) ** 2 + (Z - p[2]) ** 2) for p in self.keep], axis=0)
+        w = np.clip((d - self.r0) / (self.r1 - self.r0), 0, 1) * np.clip((Z - self.z0) / 3.0, 0, 1) * np.clip((self.z1 - Z) / 3.0, 0, 1); w = w * w * (3 - 2 * w)
+        return (self.a(X, Y, Z) * (1 - w) + self.b(X, Y, Z) * w).astype(np.float32)
+
+
+def arch_root(F):
+    """The arch's two roots over the joint. The posterior root's top stood 5.5 mm above the Frankfurt plane on its outer
+    edge, with the squama, so that from the side the arch had no upper border behind z 20 (the plate draws it at 1.3 to 1.5
+    mm, running back over the ear hole as the temporal line). Its outer half is lowered by 2.4 mm and narrowed; round the
+    jaw's heads, within 8.4 mm of their tops, the old root is kept as it was (the joint and its clearance do not move)."""
+    old = Ellipsoid((54, 1.4, 9), (10.5, 4.4, 12))
+    new = Ellipsoid((53.6, -0.5, 9), (10.6, 2.5, 12))
+    F.add(Kept(old, new, CONDYLE_TOPS, 8.4, 10.0, z0=1.0, z1=21.0), 5)      # (behind the joint, over the ear hole, it stays as it was; and in front, where it
+    # blends with the arch: lowered there it let the arch's outer face out by 0.4 mm at z 20, beyond Fig. 187)
+    F.add(Ellipsoid((52, -3.8, 18.5), (11, 3.9, 5.2), rot((0, 1, 0), -12)), 3.5)      # the anterior root and the tubercle
+
+
+ARCH_SEEDS = ((1, 1717), (-1, 1727))                        # each side's own unevenness
+ARCH_FINE = {"face": 0.08, "top": 0.05, "low": 0.10}       # std (mm) of the fine unevenness; its peaks stay near 3 times that
+
+
+def arch_relief(G, log=print, sign=1.0):
+    """Each side's arch its own fine unevenness (whole head, after the mirror): the upper border a few hundredths of a
+    millimetre at a scale of 1 to 2 mm; the lower border and the bar's under face, from the tubercle to the cheek bone's
+    angle, the masseter's fine irregular serration, 1 to 3 mm apart and under 0.3 mm high (Fig. 187: the origin's serrated
+    line). No slow waves: the borders stay the plate's smooth arcs. Nothing within 10 mm of the jaw's heads, and nothing
+    in front of z 52 (the cheek's prominence and the orbit's rim)."""
+    lo3 = np.array([55.0, -17.0, 0.0]); hi3 = np.array([72.0, 9.0, 54.0])
+    low = np.array(ARCH_LOW[8:], float)
+    for side, seed in ARCH_SEEDS:
+        a, b = lo3.copy(), hi3.copy()
+        if side < 0:
+            a[0], b[0] = -hi3[0], -lo3[0]
+        sl = G.window(a, b)
+        if sl is None:
+            continue
+        X, Y, Z = np.broadcast_arrays(*G.coords(sl))
+        D = G.D[sl].astype(np.float32)
+        rng = np.random.default_rng(seed)
+        def grain(mm):
+            n = ndimage.gaussian_filter(rng.standard_normal(D.shape), mm / G.h, mode="nearest")
+            return (n / (n.std() + 1e-9)).astype(np.float32)
+        ax = np.abs(X)
+        ss = lambda q: np.clip(q, 0, 1) ** 2 * (3 - 2 * np.clip(q, 0, 1))
+        dc = np.min([np.sqrt((ax - p[0]) ** 2 + (Y - p[1]) ** 2 + (Z - p[2]) ** 2) for p in CONDYLE_TOPS], axis=0)
+        m = ss((ax - 57.0) / 2.5) * ss((dc - 10.0) / 2.5) * ss((52.0 - Z) / 5.0) * ss((Z - 2.0) / 4.0) * ss((Y + 15.0) / 2.0) * ss((7.5 - Y) / 2.0)
+        h = ARCH_FINE["face"] * (0.7 * grain(2.0) + grain(1.0))                 # the outer face: low and fine, under 0.3 mm
+        lb = np.interp(Z, low[:, 0], low[:, 1])                                  # the lower border's height at this z
+        top = np.array(ARCH_TOP, float)[::-1]
+        near_top = ss((Y - np.interp(Z, top[:, 0], top[:, 1]) + 1.8) / 1.2) * ss((Z - 15.0) / 3.0)
+        h = h + near_top * ARCH_FINE["top"] * grain(0.6)
+        mas = ss((lb + 2.2 - Y) / 1.6) * ss((Z - 25.0) / 3.0)                    # the masseter's origin: the lower border and the under face
+        h = h + mas * ARCH_FINE["low"] * (0.6 + grain(0.5))
+        # behind z 26 the outer face of the root and the tubercle is not let out by more than 0.1 mm: seen from below the arch
+        # is already as broad there as Fig. 187 draws it, or broader
+        gx = side * np.gradient(D, G.h, axis=0)
+        h = h + 0.06 * ss((gx - 0.3) / 0.4) * ss((Z - 27.0) / 2.0) * ss((41.0 - Z) / 2.0)   # the bar's outer face at its broadest let out a little
+        h = np.where((gx > 0.5) & (Z < 26.0), np.minimum(h, 0.1), h)
+        band = 1.0 - ss((np.abs(D) - 1.5) / 1.5)
+        G.D[sl] = D - sign * h * m * band
+    log("zygomatic arches: each side's own unevenness and the masseter's roughness pressed in")
 
 
 # =================================== sutures: lines traced on the side view, laid on the surface ===================================
@@ -799,8 +894,7 @@ def build(h=1.0, log=print, box=None):
     F.cut(Ellipsoid((49.9, 14.8, 54.3), (5.1, 12.0, 5.4), np.stack([np.array([1.0, 0.0, 0.0]), u1, u2], axis=1)), 4.0)      # (it stops 2 mm short of the free border: nearer, it frayed the border's edge)
     # ---- temporal bone: the arch's root over the joint, the tubercle in front of it, the plate round the ear hole, the mastoid
     B = base.build(F, F0, log)
-    F.add(Ellipsoid((54, 1.4, 9), (10.5, 4.4, 12)), 5)
-    F.add(Ellipsoid((52, -3.8, 18.5), (11, 3.9, 5.2), rot((0, 1, 0), -12)), 3.5)
+    arch_root(F)
     F.add(Ellipsoid((46.5, -5.0, -4.4), (11.0, 7.2, 6.2), rot((0, 1, 0), -8)), 3)    # the ground the ear canal runs in (its mouth and the tympanic part round it: temporal.ear_hole)
     # the mastoid process: its outline traced on the side view (Fig. 188), full in the middle of its outer face, falling away to
     # the tip 33 mm below the Frankfurt plane; the notch for the digastric is cut on its inner side further down
@@ -972,6 +1066,7 @@ def whole(F, log=print, rough=True, sinuses=True, inside=True):
     if sinuses:
         whole.sinuses = sinus.air(G, log)                    # the air sinuses: hollowed in the whole head, the two sides not alike
     temporal.relief(G, log)                                   # the temporal bone's small relief, each side with its own unevenness
+    arch_relief(G, log)                                       # and each zygomatic arch's
     if rough:
         D0 = G.D.copy()
         G.D = surface.roughen(G.D, lo, F.h, log=log)
