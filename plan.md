@@ -4447,8 +4447,9 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     as a knife cut. Open: the lower third molar's septum is low
     because teeth2.py parts its roots 3.95 mm deep and under 1.1 mm
     apart, where Gray (p. 1118) says they are more or less united
-    (task under way in teeth2.py); the foramen's upper hind edge is
-    still crisp.
+    (the owner cancelled the reshaping on 26 Nov: "no need for teeth
+    roots to be like grey they look wierd"; the roots stay as they
+    are); the foramen's upper hind edge is still crisp.
     Heavy builds on GitHub's Linux machines (the owner: "use github
     machines too to help"): .github/workflows/scratch-build.yml runs
     one job directory (run.sh and its scripts) against a pushed
