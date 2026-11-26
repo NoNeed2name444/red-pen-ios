@@ -3945,6 +3945,21 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     gives its territory; the drawn joint lines in two or more views
     give each joint surface), cut it, and only then lay each bone's
     own-plate detail onto its piece.
+    Tarsus whole (tarsus.py, traces/tarsus_*), attempt 1, stopped by
+    the worker: each tarsal's territory and joint lines traced on Fig.
+    268, 269, 290, 291; the one solid as a top and a bottom surface
+    over one plan outline gave vertical prism walls and no overhangs.
+    Repair 1, saved, not accepted: the solid is lofted from coronal
+    sections (width, top and bottom from the four plates; the shape
+    between from the single-bone builds' normalised sections, never
+    their size or pose); no prism walls; nine joint surfaces cut it
+    into seven bones with no overlap. Calcaneal pitch 23.2 deg (plate
+    23.1), navicular height 30.8 mm (29.6). Fails: midfoot bones do
+    not fill out to their joints (spaces about 2 mm, cuneiforms 3 to
+    6 mm apart off their facets, navicular short of the first
+    cuneiform) and sit 2 to 3.5 mm inside their plate territories;
+    torn edges round the talonavicular joint; talus box-like; own-
+    plate relief not started. Repair 2 (the last) to follow.
   - [ ] The metatarsals, phalanges; the foot together.
 - [ ] F11. 25 Nov, the owner: "switch back to the skull and mandible so we
   fix every single part of them especially the mandible and skull base";
