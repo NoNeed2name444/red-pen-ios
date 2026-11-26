@@ -4331,6 +4331,22 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     and blur). Two crumbs left at (8.5, 0, 77) and (47, -0.5, 12.5),
     left side only, made in skull2.whole (probably surface.roughen,
     whose pit draw also reshuffles every pit when the surface changes).
+    Lower sockets (mandible4.sockets and the wear clip in whole),
+    accepted on the whole build: the repeated soft cuts were pushing
+    the wall out, so the cut is now square below the lip and soft only
+    within 1.5 mm of the margin (SOCKET_GAP 0.28, RIM_THIN 0.2,
+    RIM_SOFT 0.4, SOCKET_WEAR 0.02); the ease that ate the molar septa
+    is gone; the chin's marks may not grow bone into a socket.
+    Periodontal space median 0.27 to 0.28 (was 0.45), no root touching
+    bone. Septa at 1 mm below the crest: central-lateral 1.06 and 1.10
+    (were 0.12 and 0.04), canine-first premolar 1.25 (0.72), centrals
+    1.02. Inter-radicular septum's crest below the tooth's margin
+    point: first molar 2.7 to 2.95 mm, second 3.25 to 3.45, third 4.5
+    to 4.85 (were 3.4 to 5.7). Bone over the roots and the joint
+    clearance unchanged or better. Open: the third molar's septum is
+    low because the tooth forks only 3.85 mm down in teeth2 (a teeth
+    task); from above the molar septa still read as a ridge inside one
+    pit rather than two clear sockets.
     Task C, repair 1 (head and neck accepted; task closed): the ring is
     gone. Each section under the head is solved to silhouette targets
     from Fig. 176 and 177: the hind edge runs straight into the head,

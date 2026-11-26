@@ -243,6 +243,9 @@ def near_abs(M, pts, r):
 
 
 RIM_FRONT = 0.65
+SOCKET_GAP = 0.28    # (T-lower-sockets) the space round a lower root (mm; the upper arch's is 0.30), now cut square below the lip
+RIM_THIN, RIM_SOFT = 0.2, 0.4   # (T-lower-sockets) the most the margin's smoothing may take off a face; the last cut's softness at the lip
+SOCKET_WEAR, SOCKET_WEAR_FACE = 0.02, 0.12   # (T-lower-sockets) the most the grain may wear a socket's wall, and the bone's outer faces near the teeth (whole)
 LIFT_W, LIFT_S = 41, 12.0         # (Repair 2) the cheek face's lift over the roots: one long low swelling along the row
 WALL_MOLAR = 0.35                # (Repairs 1-2) the cheek wall's extra thickness over the first and second molars' roots (1.3 elsewhere); there the wall at the margin is 0.6 mm, 0.8 elsewhere
 
@@ -584,7 +587,7 @@ def maps(S, log=print):
     return dict(M=M, hw=hind_w, reg=reg, outer=outer, inner=irr, inner_body=ib, top=top, sunk=sunk, lip=lip, meet=meet, away=away, rad=rad, yb=yb, yt=yt, zs=zs, zy=zy, rim=yrim)
 
 
-def sockets(F, frames, yrim, S, wall=1.5, gap=0.3):
+def sockets(F, frames, yrim, S, wall=1.5, gap=SOCKET_GAP):
     """The sockets (teeth.seat's way: each the tooth's own shape `gap` mm larger), with the bone round them brought up to the
     scalloped margin (yrim) and not to a plane square to each tooth: teeth.seat's flat collars, one per tooth, stood above the
     body's top with square notches between them. The collars of bone run down the whole root, thinning toward its tip, and
@@ -626,14 +629,12 @@ def sockets(F, frames, yrim, S, wall=1.5, gap=0.3):
     for s in [f for f in frames if f["side"] == "L" and "molar" in f["tooth"]]:
         R, p = teeth.frame(s)
         F.add(sdf.Box(p - R[:, 2] * 9.0, (1.6, 4.0, 5.2), 1.2, R), k=0.6)
+    # (T-lower-sockets) cut again square: a soft cut where the field already is the socket's wall (the first cut) moves the wall
+    # out by a quarter of its softness, and three such cuts had made the space round a lower root 0.45 mm where the upper
+    # arch's is 0.30. The septum's crest is then the fork's own roof the space's breadth below it, a round arch under each
+    # molar 2 to 4 mm below the margin (Gray, Figs. 997 and 1003; the ease that rounded it here had eaten it down to 6 mm).
     for sl, socket, lz, root, cap in fields:
-        F.D[sl] = smax(F.D[sl], -socket, 0.5)
-    # its crest, between two sockets cut by two roots, is still thinner than the grid holds (a jagged edge): round it (the thin
-    # septa and lips of the front teeth are rounded with the whole margin, below)
-    for s in [f for f in frames if f["side"] == "L"]:
-        R, p = teeth.frame(s)
-        if "molar" in s["tooth"]:
-            F.ease(p - R[:, 2] * 4.8, 3.2, 0.75)
+        F.D[sl] = np.maximum(F.D[sl], -socket)
     # The margin as a whole: the field smoothed in a band about the crest's height (septa and lips left by separate cuts met
     # in square shoulders and read as a dark jagged line), then the sockets cut once more with a soft lip.
     from scipy import ndimage
@@ -648,9 +649,18 @@ def sockets(F, frames, yrim, S, wall=1.5, gap=0.3):
     X, Y, Z = np.broadcast_arrays(*F.coords(win))
     dy = Y - yrim(S.sn(X, Z)[0])
     wb = np.clip((dy + 4.0) / 2.0, 0, 1) * np.clip((3.0 - dy) / 1.5, 0, 1); wb = wb * wb * (3 - 2 * wb)
+    # (T-lower-sockets) the smoothing may take at most RIM_THIN off any face (a Gaussian of the field thins a plate by 0.8 of
+    # its spread from each side: the 1.0 to 1.3 mm septa between the front teeth were left 0.06 mm at 1 mm under the crest);
+    # it still rounds the septa's tops and the sockets' lips and fills the square shoulders
+    G = smin(G, A + RIM_THIN, 0.15)
     F.D[win] = np.where(np.abs(A) < 15, A * (1 - wb) + G * wb, A)
     for sl, socket, lz, root, cap in fields:
-        F.D[sl] = smax(F.D[sl], -socket, 0.4)
+        # (T-lower-sockets) the last cut soft only at the lip (a rounded mouth); below it square, so the space keeps its breadth
+        Xs, Ys, Zs = np.broadcast_arrays(*F.coords(sl))
+        k = RIM_SOFT * np.clip((Ys - yrim(S.sn(Xs, Zs)[0]) + 1.5) / 1.0, 0.0, 1.0)
+        a_, b_ = -F.D[sl], socket
+        hh = np.clip(0.5 + 0.5 * (b_ - a_) / np.maximum(k, 1e-6), 0.0, 1.0)
+        F.D[sl] = np.maximum(-(b_ + (a_ - b_) * hh - k * hh * (1.0 - hh)), np.maximum(F.D[sl], -socket)).astype(np.float32)
     # (T-jaw-shape) The two central incisors stand with their crowns in contact at the midline and their roots, which lean
     # toward it as the arch curves, within 0.24 to 0.45 mm of it: their sockets, each the root 0.3 mm larger, met across the
     # midline and left no bone between them for 10 mm (a slot in the median section, a crease inside the chin). The
@@ -978,6 +988,7 @@ def chin_marks(D, lo, h, info):
 def whole(F, info, log=print, rough=True, seed=176):
     """The whole jaw's field from its left half: mirrored, then given its grain and pits (each side its own). Returns (D, lo)."""
     D = sdf.mirror_field(F.D); lo = np.array([-float(F.ax[0][-1]), float(F.lo[1]), float(F.lo[2])])
+    Dm = D.copy() if rough else None          # (T-lower-sockets) the sockets before the chin's marks (whole: kept clear of them)
     D = chin_marks(D, lo, F.h, info)
     if not rough:
         return D, lo
@@ -990,7 +1001,17 @@ def whole(F, info, log=print, rough=True, seed=176):
         q = [p + 3.0 * a, p - a * (s["root_mm"] + 2.0)]
         sl = G.window(np.minimum(*q) - 7.0, np.maximum(*q) + 7.0)
         if sl is not None:
-            G.D[sl] = np.clip(G.D[sl], D0[sl], D0[sl] + 0.12)
+            # (T-lower-sockets) a socket's own wall a hair only (it had worn the space round the roots 0.12 mm wider); the faces
+            # outside, the rim and the bone round the sockets keep their grain
+            R, pc = teeth.frame(s)
+            X, Y, Z = np.broadcast_arrays(*G.coords(sl))
+            Q = np.stack([X - pc[0], Y - pc[1], Z - pc[2]], -1) @ R
+            tf = teeth.AT.field("lower", L.TEETH.index(s["tooth"].split(" ", 1)[1]), Q[..., 0], Q[..., 1], Q[..., 2])
+            wear = SOCKET_WEAR + (SOCKET_WEAR_FACE - SOCKET_WEAR) * smoothstep((tf - 0.5) / 1.0)
+            # and no bone grows into a socket's space from the chin's marks either (the upper left mental spine's foot reached
+            # the central incisor's apex: 0.03 mm of space left there)
+            floor = np.where((tf < 0.4) & (Dm[sl] > 0), np.maximum(D0[sl], Dm[sl]), D0[sl])
+            G.D[sl] = np.clip(G.D[sl], floor, floor + wear)
     sl = G.window(np.array([-0.9, -77.0, 81.0]), np.array([0.9, -57.0, 95.0]))    # (T-jaw-shape) the septum between the central incisors' sockets: no wear
     G.D[sl] = D0[sl]
     return G.D, lo
