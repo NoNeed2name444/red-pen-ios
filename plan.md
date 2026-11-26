@@ -4175,6 +4175,16 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     base box 0.001 mm; styloid 0.017 mm. Open, small: the lacerum from
     below is still 20 to 50% over Fig. 187; the stylomastoid foramen
     is still a plain dark pit at 0.5 mm.
+    Sella turcica, attempt 1 (sinus.py; kept, not accepted): the box
+    is replaced by a saddle: tuberculum sellae, chiasmatic groove,
+    hypophyseal fossa (10.8 mm long, plates 10.3 and 9.7; 8.0 mm deep,
+    plate 8.8), dorsum sellae with posterior clinoid processes,
+    carotid grooves. Sinus wall 1.0 mm under the fossa (Lazaridis et
+    al., Clin Anat 2010: floor 0.9 mm), thinnest 0.88. Clivus line
+    unchanged. Fails in the real build: inner.middle_fossa's cut
+    turns the body's sides into upright walls at x 8.5 (passed to the
+    inner.py task); the dorsum reads as a slab with steep straight
+    sides; the fossa's front edge is nearly straight.
     Task C, repair 1 (head and neck accepted; task closed): the ring is
     gone. Each section under the head is solved to silhouette targets
     from Fig. 176 and 177: the hind edge runs straight into the head,
