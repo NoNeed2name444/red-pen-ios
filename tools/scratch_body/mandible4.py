@@ -25,6 +25,7 @@ surface) and the text beside them (pp. 172 to 174):
 Head frame, millimetres; the left half is computed and mirrored; the grain and pits, which must not be the same on
 both sides, go on afterwards (whole).
 """
+import json, os
 import numpy as np
 from scipy import ndimage
 from scipy.spatial import cKDTree
@@ -414,31 +415,15 @@ def maps(S, log=print):
     # the angle (10 to 17 mm long, 1.2 to 1.4 mm wide), rising from nothing and fading to nothing once along its length
     # (no second peak), barely bent, of unequal length, spacing, slant and height; on each a fine unevenness of its crest
     # (12 %, knots 1 mm apart) and the angle's grain (ZONES) for its roughness.
-    rq = np.random.default_rng(176)
-    for k, (a0, a1, bend, r, h) in enumerate((((16.0, -56.0), (6.5, -70.5), 0.6, 0.65, 0.34),
-                                              ((23.5, -61.5), (14.0, -74.5), -0.5, 0.70, 0.40),
-                                              ((29.0, -67.5), (22.5, -76.0), 0.4, 0.62, 0.26),
-                                              ((33.5, -70.3), (29.8, -75.8), -0.3, 0.60, 0.20))):
-        a0, a1 = np.array(a0), np.array(a1); n = max(int(np.linalg.norm(a1 - a0) / 1.0), 6)
-        t = np.linspace(0.0, 1.0, n + 1); e = a1 - a0; nn = np.array([-e[1], e[0]]) / np.linalg.norm(e)
-        pts = a0 + np.outer(t, e) + np.outer(bend * np.sin(np.pi * t), nn)
-        prof = np.sin(np.pi * t) ** 1.4 * (1.0 + 0.12 * rq.uniform(-1, 1, n + 1)) * (0.9 + 0.2 * t)    # (a little fuller toward the angle)
-        orr = orr + st([tuple(p) for p in pts], np.full(n + 1, r), h * prof, 0.12, 11 + k)
-    # inside: the medial pterygoid's marks at the angle; the ridge from the neck down to the lingula, the temporal crest
-    # (T-jaw-finish) laid on after the smoothing (below), so that they show: low (to 0.25 to 0.4 mm), each fading out at both
-    # ends and a little weaker somewhere along its length, running up and back from near the lower border at slants of their
-    # own, unequally spaced; the shortest at the angle itself
-    for k, (pts, r, h) in enumerate((([(15.0, -56.5), (13.0, -60.0), (10.6, -63.8), (8.4, -67.6), (6.6, -70.6)], [0.8, 1.0, 1.1, 1.0, 0.8], [0.0, 0.24, 0.36, 0.28, 0.0]),
-                                     ([(22.0, -59.4), (19.6, -62.6), (17.2, -66.4), (15.0, -70.0), (13.8, -72.4)], [0.8, 1.0, 1.1, 1.1, 0.8], [0.0, 0.30, 0.20, 0.38, 0.0]),
-                                     ([(27.4, -64.2), (25.2, -67.6), (22.2, -71.0), (20.4, -74.2)], [0.8, 1.1, 1.1, 0.8], [0.0, 0.34, 0.27, 0.0]),
-                                     ([(32.4, -69.6), (30.4, -71.8), (28.0, -74.6)], [0.8, 1.0, 0.8], [0.0, 0.22, 0.0]),
-                                     ([(11.0, -70.8), (9.4, -73.0), (8.2, -74.8)], [0.8, 1.0, 0.8], [0.0, 0.28, 0.0]))):
-        ptg = st(pts, r, h, 0.5, 31 + k) + (ptg if k else 0.0)          # (laid on below, after the face at the angle is smoothed)
+    # (T-jaw-marks) The four ridges drawn here ran 33 to 38 degrees from upright; Fig. 176's strokes run 8 to 21 degrees from
+    # upright once the plate is registered on the model (down and back), and the rough area they mark has its own outline.
+    # They are now laid on the whole jaw, each side its own, from the traced plate (plate_marks).
+    # inside: the ridge from the neck down to the lingula. (T-jaw-marks) The medial pterygoid's ridges, the temporal crest and
+    # the mylohyoid groove drawn here were mirror copies on the two sides and bounded no area; they are laid on the whole jaw
+    # from Fig. 177 (plate_marks), with the grooved triangle in front of the crest that was missing.
     irr = irr - st([(9.2, -15.5), (12.8, -22.5), (17.5, -29.0), (21.8, -34.6)], [2.6, 2.6, 2.2, 1.6], [0.9, 1.0, 0.7, 0.35], 0.3, 41)     # neck to lingula
-    irr = irr - st([(37.5, -10.0), (38.2, -21.0), (36.8, -32.0), (35.0, -42.0), (34.0, -50.0)], [2.0, 2.2, 2.4, 2.4, 2.2], [0.7, 1.0, 1.0, 0.8, 0.5], 0.25, 42)   # temporal crest
     irr = irr + 0.8 * gauss(M, zn(16.0, -66.0), (8.0, 7.0))                        # (repair 2) the medial pterygoid's field at the angle a shallow hollow, not a swelling
-    irr = irr - 0.7 * gr(24.0, -46.0, 5.0)                                          # bone over the canal where it enters
-    irr = irr + st([(23.0, -45.6), (25.6, -49.6), (29.0, -54.0), (33.0, -58.4), (37.0, -62.0)], [1.0, 1.05, 1.0, 0.9, 0.8], [0.5, 0.45, 0.35, 0.2, 0.0], 0.2, 43)   # (repair 1: a fine line from the foramen's lower edge)   # mylohyoid groove (a shallow furrow)
+    irr = irr - 0.7 * gr(17.3, -49.4, 5.0)                                          # bone over the canal where it enters (T-jaw-marks: with the foramen, build)
 
     # the cheek-side face: the body's, passing into the ramus's (which reaches forward highest up: the oblique line)
     gs, gy = np.meshgrid(np.arange(74.0, 111.0, 6.0), np.arange(-92.0, 1.0, 6.0), indexing="ij")
@@ -564,9 +549,6 @@ def maps(S, log=print):
     # down, and where the body's face is let go behind the third molar that step stood as a vertical line on the inner face)
     swell = (irr - ib) * (1 - smoothstep((M.V - (yt(M.U) - 1.0)) / 16.0)) * smoothstep((s - (s3 - 1.0)) / 6.0) * (s >= sA)
     irr = irr - swell
-    # (T-jaw-finish) the medial pterygoid's ridges go on now: drawn on the ramus's face before, they were lost under the low
-    # tongue-side face's smoothing (2 by 3.5 mm) and its handover (0.75 mm toward the tongue), which is the face at the angle
-    irr = irr - ptg
     away = 40.0 * (1 - smoothstep((s - 40.0) / 8.0))                                 # in front of the second molar the ramus's face is nothing
     top = M.V - (yrim(M.U) + 0.5 + 3.0 * (1 - smoothstep((s - 44.0) / 5.0)))         # (in front, the outline itself is the top)
     sunk = 30.0 * smoothstep((s - (s3 + 4.5)) / 4.0)                                 # behind the tooth the body's face is the ramus's: let it go
@@ -857,18 +839,36 @@ def build(h=0.5, log=print, seat=True):
     # opening; behind and below, the notch from which the mylohyoid groove runs down and forward (drawn in maps).
     fz = lambda z, y, l=0.0: face(z, y, False, lift=l, raw=True)
     rng = np.random.default_rng(1771)
-    path = [fz(19.6, -37.4, 3.4), fz(20.8, -39.8, 1.8), fz(21.8, -41.9, 0.0), fz(23.1, -44.2, -1.5), fz(25.4, -48.0, -2.1)]   # (its bottom 2 mm under the face: deeper, it came through the ramus's 4.5 mm)   # (repair 1: steeper in, 45 degrees: a long slant drew the mouth out into a slit)
+    # (T-jaw-marks) Fig. 177, registered on the model (traces/mandible_marks_fig176_177.json): the foramen's mouth centred at
+    # (z, y) 23.0, -44.2, 0.38 of the ramus's breadth from its hind border; it stood at 28.9, -41.3 (0.55, in front of the
+    # middle). The funnel, the lingula and the bone over the canal are carried back 5.5 mm and down 3.1 (old outline's numbers
+    # solved for the new places: the mouth at 23.4, -44.4).
+    path = [fz(11.98, -41.68, 3.4), fz(13.47, -43.8, 1.8), fz(14.71, -45.68, 0.0), fz(16.24, -47.77, -1.5), fz(18.88, -51.3, -2.1)]   # (its bottom 2 mm under the face: deeper, it came through the ramus's 4.5 mm)   # (repair 1: steeper in, 45 degrees: a long slant drew the mouth out into a slit)
     P = np.array([p for p, w in path]); Wn = np.array([w for p, w in path])
     a = [(0, 2.4), (0.3, 2.2), (0.55, 1.8), (0.8, 1.4), (1, 1.2)]                           # across the face, and along it (b)
     b = [(0, 2.9), (0.3, 2.5), (0.55, 1.9), (0.8, 1.4), (1, 1.2)]
     a = [(t, v * rng.uniform(0.93, 1.07)) for t, v in a]; b = [(t, v * rng.uniform(0.9, 1.1)) for t, v in b]
     # the lingula: a flattened, tapering blade standing 1 to 1.5 mm proud of the face, broad at its root on the front lip
-    (l0, n0), (l1, n1), (l2, n2) = fz(25.0, -43.8, -0.6), fz(24.3, -41.6, 0.1), fz(23.5, -39.6, 0.5)   # (repair 1: short, at the mouth's front: a long blade along it read as a hooked line)
-    Lp = np.array([l0, l1, l2])
-    F.add(sdf.Tube(sdf.spline(Lp, 0.4), [(0, 0.6), (0.6, 0.5), (1, 0.4)], [(0, 2.8), (0.5, 1.8), (0.85, 0.9), (1, 0.4)], up=n1), k=1.0)   # (a thin flat tongue: 1.2 mm thick, 6 wide at its root)
-    # (the lingula first and the funnel cut after: its root, left standing inside the mouth, read as a second flap and a crack)
+    # (T-jaw-marks) Fig. 177: the spine stands on the mouth's upper front lip, its root 1.8 mm in front of the mouth's middle
+    # and 2 above, its tip 3.6 in front and 6.3 above (it was beside the mouth, its tip turned back over it)
+    # (T-jaw-marks repair 1) The spine is the mouth's front margin itself: rooted on the lower front lip, it rises up and back
+    # and its tip leans over the opening's front half (it stood 2 to 8 mm up and forward of the mouth: a peg apart from it).
+    # Placed from the mouth's middle as before the move (root 3.2 in front and 1.9 below, tip 1.7 in front and 2.3 above).
+    mz, my = 14.71, -45.68
     F.cut(sdf.Tube(sdf.spline(P, 0.5), a, b, up=Wn[2]), k=0.9)                     # (the path's slant through the face draws the mouth out)
     F.ease(P[2], 2.6, 0.5); F.ease(P[3], 2.4, 0.5)                                 # the funnel's throat smooth (no crack line where its walls met)
+    # (repair 1: the funnel cut first and the spine after, its root on the face in front of the mouth: cut after it, the
+    # funnel left only its root, a spur on the lower lip)
+    (l0, n0), (l1, n1), (l2, n2) = fz(mz + 3.6, my - 1.7, -0.5), fz(mz + 3.0, my + 0.6, 0.35), fz(mz + 1.9, my + 2.7, 0.9)
+    Lp = np.array([l0, l1, l2])
+    F.add(sdf.Tube(sdf.spline(Lp, 0.4), [(0, 0.6), (0.6, 0.45), (1, 0.35)], [(0, 2.2), (0.5, 1.5), (0.85, 0.8), (1, 0.4)], up=n1), k=0.8)   # (a thin flat tongue: 1.2 mm thick, 4.4 wide at its root)
+    # (T-jaw-marks repair 1) Gray: the hind and lower margin has no rim: the face slopes into the canal there as into a funnel.
+    # A shallow trough from 4 mm behind and below the mouth down into the throat (it starts above the face, so it begins at
+    # nothing), and that lip eased over 3 mm. The canal beyond the throat is untouched.
+    ramp = [fz(mz - 3.4, my - 2.6, 1.9)[0], fz(mz - 1.8, my - 1.4, 0.5)[0], P[3]]
+    F.cut(sdf.Tube(sdf.spline(np.array(ramp), 0.5), [(0, 1.7), (1, 1.4)], [(0, 2.4), (1, 1.6)], up=Wn[2]), k=1.4)
+    F.ease(fz(mz - 1.6, my - 1.8, 0.0)[0], 3.0, 0.9); F.ease(fz(mz - 0.4, my - 2.6, 0.0)[0], 2.4, 0.8)
+    lip = fz(mz + 1.6, my - 2.4, 0.0)[0]                                              # the lower front lip, under the spine's root: the mylohyoid groove leaves here
     canal_in = (P[-1], sdf.unit(P[-1] - P[-2]))                                                # the funnel's bottom and the way it points: the canal goes on from here (structure.py)
 
     # ---- the tongue side of the chin: the mental spines and the digastric fossae are made after the halves are joined
@@ -904,7 +904,9 @@ def build(h=0.5, log=print, seat=True):
         % (np.round(mf, 1).tolist(), float(W["yt"](sm)) - ym, ym - float(W["yb"](sm)), 2 * c["half"][0], 2 * c["half"][2], list(c["centre"])))
     canal = {"in": [np.round(canal_in[0], 2).tolist(), np.round(canal_in[1], 3).tolist()],                             # (left side; the right is its mirror)
              "out": [np.round(mf - 2.5 * e - 2.6 * deep, 2).tolist(), np.round(deep, 3).tolist()]}                      # the mental foramen's inner end and the way it runs out
-    return F, {"mental foramen": np.round(mf, 1).tolist(), "sockets": frames, "sheet": S, "maps": W, "canal": canal}
+    return F, {"mental foramen": np.round(mf, 1).tolist(), "sockets": frames, "sheet": S, "maps": W, "canal": canal,
+               "mandibular foramen": np.round(path[2][0], 2).tolist(), "lingula": np.round(Lp, 2).tolist(),        # (T-jaw-marks: left side)
+               "foramen lip": np.round(lip, 2).tolist()}
 
 
 ZONES = [   # name, centre, radii, extra grain (mm), pits per mm2 (surface.py)
@@ -985,11 +987,171 @@ def chin_marks(D, lo, h, info):
     return D
 
 
+# (T-jaw-marks) The muscles' marks on the ramus, traced from Gray's two plates of the jaw alone and laid on the whole jaw, each
+# side its own (the halves are mirrors; the marks are not). traces/mandible_marks_fig176_177.json holds each mark in the
+# plates' pixels and carried to the model's side view (z, y): Fig. 176 registered on the condyle top, gonion and pogonion,
+# Fig. 177 (mirrored) fitted to the ramus and lower border, each then warped on to the model's outline.
+#   outer face (Fig. 176; p. 173 "flat and marked by oblique ridges at its lower part", p. 174 the angle "marked by rough,
+#     oblique ridges ... for the attachment of the Masseter"): the plate's strokes, nearly upright on the plate and 8 to 21
+#     degrees from upright on the model, running down and back, of their own lengths (3 to 18 mm) and weights, and a ridge
+#     along the angle's lower lip; strongest toward the angle, fading upward;
+#   inner face (Fig. 177; p. 173 "a rough surface, for the insertion of the Pterygoideus internus"): short ridges in an arc a
+#     few mm inside the angle's border; the mylohyoid groove from the foramen's lower front lip, under the lingula, down and
+#     forward along the plate's curve, a rounded furrow running out to nothing at the plate's far end;
+#   coronoid, inner face (p. 174): "a ridge which begins near the apex of the process and runs downward and forward to the
+#     inner side of the last molar tooth. Between this ridge and the anterior border is a grooved triangular area": the
+#     crest (to 0.6 mm, rounded) from the plate, carried on from the plate's last point to behind the third molar's inner
+#     side, and a shallow groove (to 0.35 mm) down the middle of the triangle between it and the front border.
+# Ridges are low, broad and blunt (0.1 to 0.6 mm; 1.7 to 2.3 mm across at half height, the angle's margin 2.3; repair 1: at
+# 1.0 mm they read as welts), their height uneven along them; each side's every mark is moved
+# by its own few tenths of a millimetre, turned by up to 3 degrees and made 15 % higher or lower.
+MARKS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "traces", "mandible_marks_fig176_177.json")
+MARK_H = {"masseter": 0.55, "pterygoid": 0.7, "crest": 0.6, "triangle": 0.35, "mylohyoid": 0.55}
+MARK_SEEDS = ((1.0, 1761), (-1.0, 1772))
+
+
+def _line_map(Zg, Yg, pts, hts, sig, end=2.0, start=None, bump=None):
+    """A ridge (heights > 0) or groove (< 0) along the polyline pts (z, y): a Gaussian section of spread sig (at the points,
+    eased between), its height eased between the points and to nothing over `end` mm at both ends (`start` mm at the first
+    end when given; 0 keeps it full there). bump: (rng, lo, hi, every): the height made uneven along the stroke, a factor
+    from lo to hi drawn every `every` mm and eased between (repair 1: an even crest read as a welt)."""
+    pts = np.asarray(pts, float); hts = np.broadcast_to(np.asarray(hts, float), (len(pts),)); sig = np.broadcast_to(np.asarray(sig, float), (len(pts),))
+    dk = np.concatenate([[0], np.cumsum(np.linalg.norm(np.diff(pts, axis=0), axis=1))]); Lt = dk[-1]
+    t = np.arange(0.0, Lt + 1e-9, 0.1)
+    if len(pts) >= 3:                              # (repair 1: the stroke drawn through its points as a smooth curve, not a ruled polyline)
+        from scipy.interpolate import CubicSpline
+        cs = CubicSpline(dk, pts, bc_type="natural"); P = cs(t)
+    else:
+        P = np.column_stack([np.interp(t, dk, pts[:, 0]), np.interp(t, dk, pts[:, 1])])
+    end = min(end, Lt / 3.0)                      # (a short stroke keeps its length: eased over its whole length it is a round dab)
+    st = end if start is None else min(start, Lt / 3.0)
+    hh = np.interp(t, dk, hts) * (smoothstep(t / st) if st > 0 else 1.0) * smoothstep((Lt - t) / end); rr = np.interp(t, dk, sig)
+    if bump is not None:
+        brng, blo, bhi, every = bump
+        kn = np.linspace(0.0, Lt, max(2, int(np.ceil(Lt / every)) + 1))
+        hh = hh * np.interp(t, kn, brng.uniform(blo, bhi, len(kn)))
+    d, j = cKDTree(P).query(np.column_stack([Zg.ravel(), Yg.ravel()]), distance_upper_bound=4.0 * float(sig.max()))
+    out = np.zeros(Zg.size); ok = np.isfinite(d)
+    out[ok] = hh[j[ok]] * np.exp(-(d[ok] / rr[j[ok]]) ** 2)
+    return out.reshape(Zg.shape)
+
+
+def _jig(P, rng, shift=0.3, turn=2.5):
+    c = P.mean(0); a = np.radians(rng.uniform(-turn, turn))
+    return (P - c) @ np.array([[np.cos(a), np.sin(a)], [-np.sin(a), np.cos(a)]]) + c + rng.normal(0.0, shift, 2)
+
+
+def mark_maps(info, sx, seed):
+    """Side sx's marks as heights over the side view (z, y) on a 0.25 mm grid: (outer, inner, grid), heights in mm (a groove
+    negative), and their lines (for the record)."""
+    J = json.load(open(MARKS_PATH))["marks"]
+    zg = np.arange(-8.0, 62.0, 0.25); yg = np.arange(-94.0, 2.0, 0.25); Zg, Yg = np.meshgrid(zg, yg, indexing="ij")
+    rng = np.random.default_rng(seed)
+    go, gi, gn = np.zeros(Zg.shape), np.zeros(Zg.shape), np.zeros(Zg.shape)
+    lines = {}
+    for pl in J["176 masseter_ridges"]["lines_zy"]:
+        pl = np.asarray(pl, float); P = _jig(pl[:, :2], rng)
+        low = np.clip((-47.0 - P[:, 1]) / 25.0, 0.0, 1.0)                      # strongest toward the angle, fading upward
+        H = MARK_H["masseter"] * pl[:, 2] * (0.3 + 0.7 * low) * rng.uniform(0.85, 1.15)
+        # (repair 1) broad and blunt: 1.8 to 2.4 mm across at half height (it was 1.0: a sharp welt), the height uneven along
+        # it; the stroke along the angle's margin broader still (the margin's slight eversion, hatched along it in Fig. 176)
+        sg = (1.4 if abs(P[0, 0] - P[-1, 0]) > abs(P[0, 1] - P[-1, 1]) else 1.1) * rng.uniform(0.95, 1.05)
+        go = np.maximum(go, _line_map(Zg, Yg, P, H, sg, end=2.5, bump=(rng, 0.45, 1.1, 2.5))); lines.setdefault("masseter", []).append((P, H))
+    for pl in J["177 pterygoid_ridges"]["lines_zy"]:
+        pl = np.asarray(pl, float); P = _jig(pl[:, :2], rng)
+        low = np.clip((-56.0 - P[:, 1]) / 14.0, 0.0, 1.0)                      # (repair 1) strongest at the angle's margin, fading upward
+        H = MARK_H["pterygoid"] * pl[:, 2] * (0.55 + 0.45 * low) * rng.uniform(0.85, 1.15)
+        gi = np.maximum(gi, _line_map(Zg, Yg, P, H, 1.0 * rng.uniform(0.95, 1.05), end=1.5, bump=(rng, 0.7, 1.0, 2.0))); lines.setdefault("pterygoid", []).append((P, H))
+    # the temporal crest: the plate's line to its last point above the alveolar border, then on down and forward to behind
+    # the third molar's inner side (the plate's jaw has a shorter base to its coronoid: its last point lies 9 mm higher)
+    p3 = [np.array(f["position_mm"], float) for f in info["sockets"] if f["side"] == "L" and f["tooth"] == "lower third molar"][0]
+    cr = np.asarray(J["177 temporal_crest"]["lines_zy"][0], float)
+    end = np.array([p3[2] - 6.2, p3[1] + 4.0])
+    P = np.vstack([cr[:-1, :2], [0.5 * (cr[-2, 0] + end[0]) - 0.6, 0.5 * (cr[-2, 1] + end[1])], end]); P = _jig(P, rng, 0.25, 2.0)
+    H = MARK_H["crest"] * np.concatenate([cr[:-1, 2], [0.8, 0.45]]) * rng.uniform(0.9, 1.1)
+    gi = np.maximum(gi, _line_map(Zg, Yg, P, H, 0.85, end=3.0)); lines["temporal crest"] = [(P, H)]
+    # the grooved triangle: between the crest and the front border (the traced triangle's front side, carried down as the crest is)
+    tri = np.asarray(J["177 triangle"]["outline_zy"], float); fr = np.vstack([tri[1:7], [end + np.array([3.2, 1.5])]])
+    ys = np.linspace(P[:, 1].max() - 4.0, end[1] + 1.5, 14)
+    zc = np.interp(-ys, -P[:, 1], P[:, 0]); zf = np.interp(-ys, -fr[:, 1], fr[:, 0]); w = np.clip(zf - zc, 0.5, None)
+    Q = np.column_stack([0.5 * (zc + zf), ys])
+    Hg = -MARK_H["triangle"] * smoothstep((Q[0, 1] - ys) / 10.0) * rng.uniform(0.85, 1.15)
+    gn = np.minimum(gn, _line_map(Zg, Yg, Q, Hg, 0.25 * w + 0.35, end=2.5)); lines["triangle groove"] = [(Q, Hg)]
+    # (repair 1) the mylohyoid groove: a shallow rounded furrow (about 2 mm across at half depth; it was 1.0, a knife cut)
+    # leaving the foramen's lower front lip at full depth, along the plate's own curve, its depth running out to nothing
+    # at the plate's far end
+    my = np.asarray(J["177 mylohyoid_groove"]["lines_zy"][0], float); P = _jig(my[:, :2], rng, 0.15, 1.5)
+    lip = np.array(info["foramen lip"], float)[[2, 1]]
+    P = np.vstack([lip, P[np.linalg.norm(P - lip, axis=1) > 2.0]])
+    dk = np.concatenate([[0], np.cumsum(np.linalg.norm(np.diff(P, axis=0), axis=1))])
+    Hm = -MARK_H["mylohyoid"] * rng.uniform(0.9, 1.0) * (1.0 - dk / dk[-1]) ** 1.2
+    gn = np.minimum(gn, _line_map(Zg, Yg, P, Hm, 1.2, end=1.5, start=0.0)); lines["mylohyoid groove"] = [(P, Hm)]
+    return go, gi + gn, (zg, yg), lines
+
+
+def plate_marks(D, lo, h, info, log=print):
+    """Lay each side's marks (mark_maps) on the whole jaw's field: on the face the ramus turns to that side (outer) or to the
+    midline (inner), as first met along x, where the surface faces that way; never within 2 mm of a lower molar's socket
+    nor within 9 mm of a joint head's top."""
+    from scipy.ndimage import map_coordinates
+    info["marks"] = {}
+    for sx, seed in MARK_SEEDS:
+        go, gi, (zg, yg), lines = mark_maps(info, sx, seed)
+        a, b = sorted((sx * 18.0, sx * 66.0))
+        i0 = max(int(np.floor((a - lo[0]) / h)), 0); i1 = min(int(np.ceil((b - lo[0]) / h)) + 1, D.shape[0])
+        j0 = max(int(np.floor((-94.0 - lo[1]) / h)), 0); j1 = min(int(np.ceil((2.0 - lo[1]) / h)) + 1, D.shape[1])
+        k0 = max(int(np.floor((-8.0 - lo[2]) / h)), 0); k1 = min(int(np.ceil((62.0 - lo[2]) / h)) + 1, D.shape[2])
+        sl = (slice(i0, i1), slice(j0, j1), slice(k0, k1)); Dw = D[sl].astype(np.float32)
+        xs = lo[0] + h * np.arange(i0, i1); ys = lo[1] + h * np.arange(j0, j1); zs = lo[2] + h * np.arange(k0, k1)
+        Y2, Z2 = np.meshgrid(ys, zs, indexing="ij")
+        cz = ((Z2 - zg[0]) / 0.25).ravel(); cy = ((Y2 - yg[0]) / 0.25).ravel()
+        Go = map_coordinates(go, (cz, cy), order=1, cval=0.0).reshape(Y2.shape)[None]
+        Gi = map_coordinates(gi, (cz, cy), order=1, cval=0.0).reshape(Y2.shape)[None]
+        g = np.gradient(Dw, h); nx = g[0] / np.maximum(np.sqrt(g[0] ** 2 + g[1] ** 2 + g[2] ** 2), 1e-6); del g
+        def first(A, xv):                                # x of the first crossing into bone along x (nan where none, or bone at the start)
+            ins = A < 0; k = np.argmax(ins, axis=0); has = ins.any(0) & ~ins[0]
+            kk = np.clip(k, 1, len(xv) - 1); a0 = np.take_along_axis(A, (kk - 1)[None], 0)[0]; a1 = np.take_along_axis(A, kk[None], 0)[0]
+            x = xv[kk - 1] + (xv[kk] - xv[kk - 1]) * a0 / np.maximum(a0 - a1, 1e-6)
+            return np.where(has, x, np.nan)
+        order = slice(None) if sx > 0 else slice(None, None, -1)        # from the midline outward
+        x_in = first(Dw[order], xs[order]); x_out = first(Dw[order][::-1], xs[order][::-1])
+        X = xs[:, None, None]
+        w_in = np.nan_to_num(np.exp(-((X - x_in[None]) / 1.3) ** 2)) * smoothstep((-sx * nx - 0.15) / 0.35)   # (repair 1: the inner face turns at the angle's margin: from 0.3 the pterygoid's ridges faded there)
+        w_out = np.nan_to_num(np.exp(-((X - x_out[None]) / 1.3) ** 2)) * smoothstep((sx * nx - 0.3) / 0.4)
+        safe = np.ones(Dw.shape, np.float32)
+        Xf, Yf, Zf = np.broadcast_arrays(X, ys[None, :, None], zs[None, None, :])
+        top = np.array([sx * 52.5, -1.3, 9.5])
+        safe *= smoothstep((np.sqrt((Xf - top[0]) ** 2 + (Yf - top[1]) ** 2 + (Zf - top[2]) ** 2) - 9.0) / 2.0)
+        for f in info["sockets"]:
+            if f["side"] != "L" or "molar" not in f["tooth"] or "premolar" in f["tooth"]:
+                continue
+            R, pc = teeth.frame(f)
+            if sx < 0:
+                R = R * np.array([[-1.0], [1.0], [1.0]]); pc = pc * np.array([-1.0, 1.0, 1.0])
+            near = (np.abs(Xf - pc[0]) < 12) & (np.abs(Yf - pc[1]) < 16) & (np.abs(Zf - pc[2]) < 12)
+            Qt = np.stack([Xf[near] - pc[0], Yf[near] - pc[1], Zf[near] - pc[2]], -1) @ R
+            tf = teeth.AT.field("lower", L.TEETH.index(f["tooth"].split(" ", 1)[1]), Qt[:, 0], Qt[:, 1], Qt[:, 2])
+            safe[near] *= smoothstep((tf - 2.0) / 1.5).astype(np.float32)
+        dD = (Go * w_out + Gi * w_in) * safe
+        D[sl] = (Dw - dD).astype(D.dtype)
+        info["marks"]["L" if sx > 0 else "R"] = {k: [(np.round(P, 2).tolist(), np.round(H, 3).tolist()) for P, H in v] for k, v in lines.items()}
+        log("jaw marks, %s side: ridges up to %.2f mm outside and %.2f inside, grooves to %.2f; the field moved by %.2f to %.2f"
+            % ("left" if sx > 0 else "right", go.max(), gi.max(), -gi.min(), float(-dD.max()), float(-dD.min())))
+    # (repair 1) the groove leaves the foramen's lip where the funnel's wall is thin: a speck of bone cut loose there goes
+    lab, n = ndimage.label(D < 0)
+    if n > 1:
+        big = int(np.argmax(ndimage.sum(np.ones_like(lab), lab, np.arange(1, n + 1)))) + 1
+        loose = (lab > 0) & (lab != big); D[loose] = np.float32(0.5 * h)
+        log("jaw marks: %d loose voxel(s) of bone removed" % int(loose.sum()))
+    return D
+
+
 def whole(F, info, log=print, rough=True, seed=176):
     """The whole jaw's field from its left half: mirrored, then given its grain and pits (each side its own). Returns (D, lo)."""
     D = sdf.mirror_field(F.D); lo = np.array([-float(F.ax[0][-1]), float(F.lo[1]), float(F.lo[2])])
     Dm = D.copy() if rough else None          # (T-lower-sockets) the sockets before the chin's marks (whole: kept clear of them)
     D = chin_marks(D, lo, F.h, info)
+    D = plate_marks(D, lo, F.h, info, log)
     if not rough:
         return D, lo
     D0 = D.copy()

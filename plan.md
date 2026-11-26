@@ -4431,6 +4431,24 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     z 12 to 18 and 0.55 to 1.1 mm at z 18 to 20 (condyle lock); the
     arch is about 1.5 mm narrower than Fig. 187 at z 30 to 33. The
     muscles built on the older arch must be rebuilt on this one.
+    Jaw marks for the muscles (mandible4.py, new trace
+    traces/mandible_marks_fig176_177.json; accepted after one repair):
+    the masseter's and medial pterygoid's rough areas are the strokes
+    traced from Figs. 176 and 177, each at its plate length, blunt and
+    uneven (0.1 to 0.5 mm), seeded per side; the temporal crest and
+    the grooved triangle in front of it; the mylohyoid groove a
+    rounded 2 mm furrow from the foramen's lip that fades out. The
+    mandibular foramen moved back and down to the plate's place
+    (44.1, -44.4, 21.9), a rimless funnel behind with the lingula as
+    a spine on its front lip; the canal's path beyond the mouth did
+    not move and keeps 1.5 mm of bone round it. Condyle change 0,
+    joint 1.33/1.07, coronoid to arch 2.78/2.83, sockets unchanged.
+    The first attempt drew the ridges as thin welts and the groove
+    as a knife cut. Open: the lower third molar's septum is low
+    because teeth2.py parts its roots 3.95 mm deep and under 1.1 mm
+    apart, where Gray (p. 1118) says they are more or less united
+    (task under way in teeth2.py); the foramen's upper hind edge is
+    still crisp.
     Task C, repair 1 (head and neck accepted; task closed): the ring is
     gone. Each section under the head is solved to silhouette targets
     from Fig. 176 and 177: the hind edge runs straight into the head,
