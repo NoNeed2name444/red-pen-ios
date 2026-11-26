@@ -3994,6 +3994,18 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     model each bone's free surface afresh in the assembly frame from
     its own plates (Fig. 264 to 283), smooth by construction, keeping
     tarsus.py's joint surfaces; talus and calcaneus first.
+    Sculpting afresh (26 Nov), blocked and not kept: talus and
+    calcaneus modelled from primitives in the assembly frame and
+    outline-fitted (own plates 0.9 to 1.5 mm against the pieces' 1.3
+    to 2.9; joints 1.20; sinus tarsi 3.2 mm). It failed on shape: the
+    joint and guard cuts on a free surface that does not reach the
+    joint left fins, flaps and torn rims, the talus stayed boxy with a
+    crease at the trochlea, outline moves ribbed the calcaneus, whole
+    outline Fig. 291 went 2.29 to 2.45 and navicular height 30.2 to
+    29.0. Lesson: any cut applied after the free surface is made
+    leaves slivers. Next, a fourth method: no cuts; talus and
+    calcaneus lofted together from shared cross-sections, the joint
+    space drawn into each section.
   - [ ] The metatarsals, phalanges; the foot together.
 - [ ] F11. 25 Nov, the owner: "switch back to the skull and mandible so we
   fix every single part of them especially the mandible and skull base";
