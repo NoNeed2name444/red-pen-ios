@@ -4151,6 +4151,15 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     bone on the right, internal acoustic meatus about 5 mm behind
     Fig. 193, ruled creases on the petrous crest, middle fossa floor
     13 to 17 mm thick at the ovale), sinus.py (sella a hard box).
+    Repair 1 (foramina.py), accepted; task closed: the spine of the
+    sphenoid is a flattened pointed blade grown from the wing's hind
+    angle with a wide root, the two sides different; the carotid and
+    stylomastoid mouths are uneven ovals, sharp on one side with a
+    soft slope on the other; the ovale's inner ledge is gone (upper
+    and lower bores matched); the clivus notch is eased. Outside the
+    base box 0.001 mm; styloid 0.017 mm. Open, small: the lacerum from
+    below is still 20 to 50% over Fig. 187; the stylomastoid foramen
+    is still a plain dark pit at 0.5 mm.
     Task C, repair 1 (head and neck accepted; task closed): the ring is
     gone. Each section under the head is solved to silhouette targets
     from Fig. 176 and 177: the hind edge runs straight into the head,

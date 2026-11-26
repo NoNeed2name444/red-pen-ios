@@ -11,6 +11,7 @@ parts (great opening, condyles, the hollow behind them) are fitted to this skull
 come from the sagittal section; the temporal and sphenoid openings stand where the plate has them. Where the
 plate is too small to give an outline (the small round holes) one is drawn here to the usual size, and said so.
 """
+import copy
 import numpy as np
 from scipy import ndimage
 from scipy.spatial import cKDTree
@@ -111,9 +112,11 @@ class Opening:
       lean   (dx, dz) per mm of height: the canal does not run straight up
       wobble (amp, seed): the bore is no cylinder: its wall bulges and draws in by up to amp mm, differently at every
              height (two noise maps turned into each other over a few mm of the run)
-      lid    no higher than this (absolute y): a canal left shut over its top until through() opens it"""
-    def __init__(self, M, reg, ys, top, rim=None, mouth=1.8, taper=0.0, dome=None, lean=(0.0, 0.0), below=5.0, wobble=None, lid=None):
-        self.M, self.c, self.ys, self.top, self.rim, self.mouth = M, M.smooth(reg), ys, top, rim, mouth
+      lid    no higher than this (absolute y): a canal left shut over its top until through() opens it
+      flare  under the surface the funnel goes on widening, up to this factor (1: no more than at the surface, for a
+             wide funnel beside bone that hangs lower than the map's surface, as the mastoid does)"""
+    def __init__(self, M, reg, ys, top, rim=None, mouth=1.8, taper=0.0, dome=None, lean=(0.0, 0.0), below=5.0, wobble=None, lid=None, flare=1.5):
+        self.M, self.c, self.ys, self.top, self.rim, self.mouth, self.flare = M, M.smooth(reg), ys, top, rim, mouth, flare
         self.taper, self.dome, self.lean, self.lid = taper, dome, lean, lid
         self.wob = None
         if wobble is not None and wobble[0] > 0:
@@ -140,7 +143,7 @@ class Opening:
             t = run / 2.6 + ph
             d = d - amp * (self.M.smooth_sample(A, uu, vv) * np.cos(t) + self.M.smooth_sample(Bn, uu, vv) * np.sin(t))
         if self.rim is not None:
-            d = d - self.M.sample(self.rim, u, v) * np.clip(1.0 - up / self.mouth, 0.0, 1.5) ** 2
+            d = d - self.M.sample(self.rim, u, v) * np.clip(1.0 - up / self.mouth, 0.0, self.flare) ** 2
         d = np.maximum(d, up - self.top)
         if self.lid is not None:
             d = np.maximum(d, y - self.lid)
@@ -262,12 +265,12 @@ def cut(F, B, log=print):
     Returns the outlines, for press() to sink each mouth's lip a little. What through() needs is kept on cut.through."""
     Mb, Yb = B["M"], B["Yb"]
     mouths = {}
-    cut.through = []; cut.sides = []
+    cut.through = []; cut.sides = []; cut.extra = []
 
     def opening(name, poly, top, k, lip_=None, seed=0, funnel=0.6, wob=0.3, through=None, front_sharp=False, side=None, mouth=1.6, **kw):
         poly = np.asarray(poly, float)
         lean = kw.get("lean", (0.0, 0.0))
-        M, reg = outline_map(poly, margin=4.0 + top * max(abs(lean[0]), abs(lean[1])))
+        M, reg = outline_map(poly, margin=4.0 + top * max(abs(lean[0]), abs(lean[1])) + max(0.0, 3.4 * funnel - 2.6))     # (a wide funnel needs its map wider than it: past the map's edge the funnel's width is held and the edge cut a line)
         ys = Mb.sample(Yb, M.U, M.V)
         rim = lip(M, seed + 7, funnel)
         if front_sharp:                                   # the edge sharp in front, the funnel wide behind
@@ -282,6 +285,8 @@ def cut(F, B, log=print):
         for sd, sds in (((1, 600), (-1, 700)) if name not in ("jugular hollow", "stylomastoid foramen") else ()):     # (not beside the styloid's root)
             Mv, rv = outline_map(jag(poly, seed + sds, 0.08, 9), margin=3.0)
             a_ = np.random.default_rng(seed + sds).uniform(0, 2 * np.pi); cc = poly.mean(0)        # (its lip rolls in on one side, a side of its own: no ring)
+            if name == "carotid canal":
+                a_ = np.radians(side) + 0.5 * (a_ / np.pi - 1.0)            # (on the funnel's side, so the hind edge stays sharp)
             pr = ((Mv.U - cc[0]) * np.cos(a_) + (Mv.V - cc[1]) * np.sin(a_)) / (0.5 * float(np.ptp(poly, 0).max()))
             rv_ = lip(Mv, seed + sds + 1, min(0.3, 0.1 * float(np.ptp(poly, 0).min()))) * (0.1 + 1.4 * smoothstep(0.5 + 0.5 * pr) ** 1.5)
             cut.sides.append((sd, Opening(Mv, rv, Mb.sample(Yb, Mv.U, Mv.V), 1.6, rim=rv_,
@@ -335,6 +340,7 @@ def cut(F, B, log=print):
     # basilar part's cut ends blunt), not the wedge the underside and the clivus met in: the field is eased over it.
     for p_, r_ in (((0.0, -21.8, zf + 0.6), 4.2), ((4.2, -21.9, zf - 0.1), 3.6), ((7.8, -22.4, zf - 2.0), 3.0)):
         F.ease(p_, r_, 1.0)
+    F.ease((0.0, -2.2, 9.9), 2.6, 1.0)                   # (where the passage's top meets the sphenoid's clivus: no notch across the midline)
     mouths["great opening"] = (g, 0.5, 1.6)
     i = int(np.argmax(g[:, 0])); front = g[g[:, 1] > g[:, 1].max() - 13.0]
     log("opening: great opening %.1f mm long, %.1f wide (widest at z %.1f), %.1f wide 6 mm behind its front" % (
@@ -346,16 +352,28 @@ def cut(F, B, log=print):
     co = fair(mm(OVALE)).mean(0); ua = np.radians(-55.0); tt = np.linspace(0, 2 * np.pi, 14, endpoint=False)
     ov = co + np.outer(3.9 * np.cos(tt) * (1 + 0.08 * np.cos(tt)), [np.sin(ua), np.cos(ua)]) + np.outer(2.2 * np.sin(tt), [np.cos(ua), -np.sin(ua)])
     opening("oval foramen", jag(ov, 41, 0.07, 10), 17.0, 0.6, lip_=(0.35, 1.0), seed=41, funnel=0.6,
-            lean=(0.05, 0.08), through=dict(grow=(1.0, 1.15)))      # (it climbs a little forward and outward: Fig. 193 has its upper mouth 3 to 4 mm ahead of the lower)
+            lean=(0.05, 0.08), taper=0.06, through=dict(grow=(1.0, 1.15), bore=(1.06, 1.0)))      # (the bore carried up a little wider than the one from below, which narrows into it: no ledge seen inside the mouth)      # (it climbs a little forward and outward: Fig. 193 has its upper mouth 3 to 4 mm ahead of the lower)
     # the spine of the sphenoid (p. 149: "the angular spine ... projects downward", the sphenomandibular ligament's
     # attachment): a short blunt point hanging from the wing's hind corner, behind and outside the spinous foramen, at
     # the plate's red-marked tip (Fig. 187, page 790, 1993: x 35.4, z 8.9); it stands inside the jaw's socket's inner
     # edge. Its length (3 mm) is ours.
+    # It grows out of the bone: a root as broad as the wing's hind angle (5 to 7 mm from front to back) drawn down into a
+    # flattened point, thin from side to side, its front edge longer than its back one and a low ridge down its back
+    # (it read as a round peg 3 mm proud with parallel sides and a domed tip). The right one is not the left: through()
+    # gives it a tip of its own.
     sp0, sp1 = np.array([34.0, 12.4]), np.array([35.3, 9.3])
     y0_, y1_ = (float(Mb.sample(Yb, [q[0]], [q[1]])[0]) for q in (sp0, sp1))
-    F.add(Tube(sdf.spline(np.array([(sp0[0] - 0.3, y0_ + 1.5, sp0[1] + 0.8), (sp0[0], y0_ - 0.3, sp0[1]), (0.5 * (sp0[0] + sp1[0]) + 0.3, 0.5 * (y0_ + y1_) - 1.3, 0.5 * (sp0[1] + sp1[1]) - 0.2),
-                                     (sp1[0] + 0.2, y1_ - 2.2, sp1[1])]), 0.5), [(0, 2.0), (0.35, 1.8), (0.75, 1.35), (1, 1.05)], [(0, 3.3), (0.35, 2.7), (0.75, 1.9), (1, 1.3)],
-               up=(0.35, 0.0, -0.94)), 2.0)          # (a blade more than a cone: flattened across, its tip blunt, run into the wing)
+    blade = sdf.spline(np.array([(sp0[0] - 0.2, y0_ + 2.4, sp0[1] + 0.4), (sp0[0] + 0.1, y0_ - 0.1, sp0[1] + 0.3),
+                                 (0.5 * (sp0[0] + sp1[0]) + 0.5, 0.5 * (y0_ + y1_) - 1.0, 0.5 * (sp0[1] + sp1[1]) - 0.1),
+                                 (sp1[0] + 0.4, y1_ - 2.3, sp1[1] - 0.3)]), 0.4)
+    F.add(Tube(blade, [(0, 3.5), (0.3, 2.6), (0.62, 1.45), (0.85, 0.75), (1, 0.28)], [(0, 2.4), (0.3, 1.5), (0.62, 0.8), (0.85, 0.45), (1, 0.2)],
+               up=(0.35, 0.0, -0.94)), 3.0)          # (a = front to back, b = side to side)
+    F.add(Tube(np.array([(sp0[0] + 1.2, y0_ + 0.6, sp0[1] - 1.2), (sp0[0] + 1.3, y0_ - 0.8, sp0[1] - 1.9), (sp1[0] + 0.7, y1_ - 1.3, sp1[1] - 0.6)]),
+               [(0, 1.2), (0.6, 0.7), (1, 0.3)], [(0, 0.9), (0.6, 0.5), (1, 0.25)], up=(0.35, 0.0, -0.94)), 1.4)     # a low ridge down its hind and outer face (away from the spinous foramen)
+    tip = np.array([sp1[0] + 0.4, y1_ - 2.3, sp1[1] - 0.3])
+    cut.extra = [(-1, "add", Tube(np.array([tip + (-0.3, 1.4, 0.6), tip + (0.15, -0.5, -0.5)]), [(0, 0.9), (1, 0.3)], [(0, 0.55), (1, 0.2)],
+                                  up=(0.35, 0.0, -0.94)), 0.8),                  # the right tip a little longer, bent back
+                 (1, "cut", Tube(np.array([tip + (0.9, 2.2, 1.3), tip + (0.9, 1.0, 0.2)]), 0.55), 0.5)]     # the left one nicked behind its tip
     # the spinous foramen at the spine's root, behind and outside the oval one: small and "sometimes double" (p. 147), its
     # outline a little egg (Fig. 187: 2.0 by 1.8 mm inside the ring the engraver drew round it; Fig. 193, from above, the
     # same), no ring: its edge is thin and sharp in front and on the inner side and the canal leans up, forward and
@@ -391,9 +409,12 @@ def cut(F, B, log=print):
     # only a little, to the petrous apex, where it opens into the upper part of the ragged hole from behind and outside,
     # above the gap's floor (Fig. 193: "Orifice of carotid canal", beside the sphenoid's body).
     c0 = mm([CAROTID])[0]
-    car = jag(c0 + np.array(ROUNDISH) * np.array([3.3, 2.9]), 7, 0.14, 11)
+    # (it read as a round drilled pit: now an uneven oval drawn out forward and inward, the way the canal goes on, its
+    # hind and outer edge sharp and the funnel a long soft slope on the front and inner side only, no even sunk ring)
+    ua = np.radians(135.0); tt = np.linspace(0, 2 * np.pi, 13, endpoint=False)
+    car = jag(c0 + np.array([0.3, -0.4]) + np.outer(3.4 * np.cos(tt) * (1 + 0.12 * np.cos(tt)), [np.cos(ua), np.sin(ua)]) + np.outer(2.0 * np.sin(tt), [-np.sin(ua), np.cos(ua)]), 7, 0.16, 9)
     y = float(Mb.sample(Yb, [c0[0]], [c0[1]])[0])
-    c = opening("carotid canal", car, 7.5, 0.7, lip_=(0.3, 0.8), seed=7, funnel=0.5, wob=0.4, taper=0.03, lean=(-0.03, 0.05), side=135.0)     # (its hind edge, the ridge against the jugular hollow, sharp; the funnel in front and inside, where the canal goes on)
+    c = opening("carotid canal", car, 7.5, 0.7, lip_=(0.12, 0.6), seed=7, funnel=1.1, wob=0.2, taper=0.03, lean=(-0.03, 0.05), side=135.0, mouth=3.0, flare=1.0)     # (its hind edge, the ridge against the jugular hollow, sharp; the funnel in front and inside, where the canal goes on)
     yl = float(Mb.sample(Yb, [lac[0]], [lac[1]])[0])
     to = np.array([lac[0] + 1.6, yl + 4.0, lac[1] - 0.6])                     # its inner orifice, in the ragged hole's hind and outer wall
     bend = sdf.spline(np.array([(c[0] - 0.1, y + 3.0, c[1] + 0.2), (c[0] - 0.3, y + 6.0, c[1] + 0.6), (c[0] - 1.0, y + 8.2, c[1] + 1.6),
@@ -415,8 +436,12 @@ def cut(F, B, log=print):
     # the stylomastoid foramen (p. 181: "at the base of this process"), between the styloid and the mastoid: small, a
     # little drawn out toward the mastoid, its lip thin in front and rounded behind; the facial canal climbs from it
     c = mm([STYLOMASTOID])[0]
-    opening("stylomastoid foramen", jag(c + 1.2 * np.array(ROUNDISH)[::-1] * np.array([1.15, -0.95]), 61, 0.16, 8), 9.0, 0.9,
-            seed=61, funnel=0.4, side=-70.0, mouth=1.5, wob=0.2, lean=(0.06, -0.08))      # (its funnel was a countersunk ring 2.4 mm deep)      # (Fig. 187: a dark disc 2.7 by 2.4)
+    # (it read as a round drilled pit: now an uneven oval drawn out toward the mastoid, its edge sharp on the styloid's
+    # side and a soft slope behind it, toward the mastoid notch (turned back so it stays off the mastoid itself))
+    ua = np.radians(-70.0); tt = np.linspace(0, 2 * np.pi, 11, endpoint=False)
+    sm = c + np.outer(1.6 * np.cos(tt) * (1 + 0.12 * np.cos(tt)), [np.cos(ua), np.sin(ua)]) + np.outer(1.1 * np.sin(tt), [-np.sin(ua), np.cos(ua)])
+    opening("stylomastoid foramen", jag(sm, 61, 0.18, 7), 9.0, 0.9,
+            seed=61, funnel=0.85, side=-95.0, mouth=2.8, wob=0.15, lean=(0.06, -0.08), flare=1.0)      # (its funnel was a countersunk ring 2.4 mm deep)      # (Fig. 187: a dark disc 2.7 by 2.4)
     # the canal in the hollow behind the condyle (p. 131: the fossa "is sometimes perforated by the condyloid canal"; p.
     # 181: "on one or both sides"): small here; through() makes the right one the larger (the hollow is pressed in: press)
     c = mm([CONDYLAR], True)[0]
@@ -466,8 +491,12 @@ def through(G, log=print):
                 yt = float(ys_[int(np.argmax(run))]) + 1.0 if run.any() else float(ys_[-1])
                 top = yt - y0 + 1.0
             M, reg = outline_map(poly, margin=4.0 + top * max(abs(lean[0]), abs(lean[1])))
-            op = Opening(M, reg, np.full(M.U.shape, y0), top, wobble=(min(0.3, 0.08 * float(np.ptp(poly, 0).min())), o["seed"] + (1 if s > 0 else 2)), lean=lean,
-                         rim=None if not o.get("right_only") else lip(M, o["seed"] + 9, 0.5), mouth=1.6, below=1.0)
+            if o.get("bore"):
+                Mb_, rb_ = outline_map(c + o["bore"][0 if s > 0 else 1] * (poly - c), margin=4.0 + top * max(abs(lean[0]), abs(lean[1])))
+            else:
+                Mb_, rb_ = M, reg
+            op = Opening(Mb_, rb_, np.full(Mb_.U.shape, y0), top, wobble=(min(0.3, 0.08 * float(np.ptp(poly, 0).min())), o["seed"] + (1 if s > 0 else 2)), lean=lean,
+                         rim=None if not o.get("right_only") else lip(Mb_, o["seed"] + 9, 0.5), mouth=1.6, below=1.0)
             G.cut(op if s > 0 else _Mirror(op), o["k"])
             # its upper mouth: the floor's edge is no punched rim but runs down into the opening, unevenly
             Mf, rf = outline_map(poly + np.array(lean) * (yt - y0), margin=4.0)
@@ -498,6 +527,11 @@ def through(G, log=print):
                     G.add(Tube(P, r_), 0.6, keep=3)
     for sd, op, k in getattr(cut, "sides", []):
         G.cut(op if sd > 0 else _Mirror(op), k)
+    for sd, how, prim, k in getattr(cut, "extra", []):                # what is not the same on both sides (the spine's tip)
+        if sd < 0:                                                      # (a Tube is set on the right by turning its own line over)
+            prim = copy.copy(prim); prim.P = prim.P * np.array([-1.0, 1.0, 1.0]); prim.up = prim.up * np.array([-1.0, 1.0, 1.0])
+            lo, hi = prim.P.min(0), prim.P.max(0); r = np.maximum(prim.a, prim.b).max(); prim.bounds = (lo - r, hi + r)
+        getattr(G, how)(prim, k)
     log("base openings carried through into the cavity: " + "; ".join(found) + "; %d mouths given a lip of their own side" % len(getattr(cut, "sides", [])))
 
 
