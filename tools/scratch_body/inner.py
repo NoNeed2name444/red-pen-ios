@@ -240,15 +240,73 @@ def frame(n):
     return np.stack([t, np.cross(n, t), n], axis=1)
 
 
+class _Beside:
+    """The middle hollow kept clear of the sphenoid's body: the solid cut no nearer the middle line than about 15 mm,
+    and further off lower down, so that the body's own side (the carotid groove along it) slopes out into the floor
+    with no upright wall where the hollow met it (the hollow alone reached in to 9 mm and cut the body's sides beside
+    the saddle sheer from y 14 down to 2)."""
+    def __init__(self, e, s):
+        self.e, self.s = e, s
+        lo, hi = e.bounds; lo, hi = lo.copy(), hi.copy()
+        if s > 0:
+            lo[0] = max(lo[0], 11.0)
+        else:
+            hi[0] = min(hi[0], -11.0)
+        self.bounds = (lo, hi)
+
+    def __call__(self, X, Y, Z):
+        x0 = 15.0 + 0.3 * np.clip(6.0 - Y, -4.0, 12.0)
+        return sdf.smax(self.e(X, Y, Z), x0 - self.s * X, 3.0)
+
+
 # ---- the middle hollow and the side wall -------------------------------------------------------------------------------
 def middle_fossa(G, side, cav, log=print):
     """The middle hollow's floor stood level with the saddle's floor; in the skull it lies lower at either side of the
     sphenoid's body ("deeper than the preceding, is narrow in the middle, and wide at the sides of the skull", p. 190),
     the oval and spinous foramina opening in its floor (foramina.py carries them up through it). Hollowed here beside
     the body, deepest inward and forward."""
-    s = float(side); e = Ellipsoid((s * 31.0, 8.5, 21.0), (22.0, 11.5, 15.0))
+    s = float(side); e = _Beside(Ellipsoid((s * 31.0, 8.5, 21.0), (22.0, 11.5, 15.0)), s)
     G.cut(e, 5.0)
     refresh(G, cav, G.window(e.bounds[0] - 8.0, e.bounds[1] + 8.0), 9.0)
+    # and its floor brought down to the thickness it has: beside the oval and spinous foramina the greater wing is a
+    # plate a few millimetres thick over the infratemporal surface, so those canals are short. Measured (full width at
+    # half height, along the upright, on the Visible Human male's CT, 1 mm slices) on the floor round the oval
+    # foramen: 1.6 to 3.7 mm, most 2 to 3. The floor stood 8 to 15 mm thick there. Thinned from within to 3.0 mm
+    # (uneven). The two canals are cut from below only as far as a lid under the floor (foramina.py) and opened through
+    # it later: while the floor is thinned they are stopped with bone, so that it is thinned toward the under face as
+    # everywhere else (no collar round them) and the cavity cannot run down them (the petrous part laid in the cavity
+    # would then fill the air under the base); after, they are opened again, a millimetre or so under the new floor.
+    canals = []
+    try:
+        import foramina
+        for o in getattr(foramina.cut, "through", []):
+            if o["name"] in ("oval foramen", "spinous foramen"):
+                c = np.asarray(o["poly"], float); m = c.mean(0)
+                canals.append((m, np.asarray(o["lean"], float), float(o["ys"]), float(np.linalg.norm(c - m, axis=1).max()) + 1.5, foramina.LIDS[o["name"]]))
+    except (ImportError, AttributeError, KeyError):
+        canals = []
+
+    def want(X, Y, Z):
+        ax = s * X
+        r = np.sqrt(((ax - 31.5) / 13.0) ** 2 + ((Z - 20.5) / 13.5) ** 2)                 # round the two foramina, fading over 6 mm: no edge to the hollowing (not out over the jaw's socket, whose roof is thin already)
+        w = (1.0 - smoothstep((r - 0.5) / 0.5)) * smoothstep((2.0 - Y) / 4.0)
+        return w, 3.0 + 0.3 * uneven(X, Y, Z, 97 + int(s < 0), 1.0, 11.0)
+    lo, hi = np.array([16.0, -16.0, 0.0]), np.array([56.0, 10.0, 38.0])
+    if s < 0:
+        lo, hi = np.array([-hi[0], lo[1], lo[2]]), np.array([-lo[0], hi[1], hi[2]])
+    sl = G.window(lo, hi); X, Y, Z = G.coords(sl); stop = np.zeros(G.D[sl].shape, bool)
+    for m, lean, ys, r, lid in canals:
+        cx = s * (m[0] + lean[0] * (Y - ys)); cz = m[1] + lean[1] * (Y - ys)
+        stop |= ((X - cx) ** 2 + (Z - cz) ** 2 < r * r) & (Y > lid - 2.0) & (Y < lid + 1.0)          # (its top 2 mm: the floor is thinned toward what is left under that, as toward the under face beside it)
+    stop &= G.D[sl] > 0; kept = G.D[sl][stop]
+    G.D[sl][stop] = -0.5
+    was_air = G.D[sl] > 0; was_cav = cav[sl].copy()
+    most = thin(G, cav, lo, hi, want, log, "floor of the middle hollow (%s)" % ("left" if s > 0 else "right"))
+    G.D[sl][stop] = kept
+    # the cavity now: what it was and the floor's bone taken away, no more (thin() lets it spread through any air within
+    # reach, and where the jaw's socket opens into the middle hollow that would carry it into the air under the base)
+    air = G.D[sl] > 0
+    cav[sl] = ndimage.binary_dilation(was_cav & air, iterations=int(np.ceil(most / G.h)) + 2, mask=air & (was_cav | ~was_air))
 
 
 def squama(G, side, cav, log=print):
@@ -267,9 +325,18 @@ def squama(G, side, cav, log=print):
 
 
 # ---- the petrous part ------------------------------------------------------------------------------------------------
-PETROUS_BASE = (58.0, -18.0)        # (x, z): where its upper edge leaves the side wall, behind the ear hole (the edge then stands 52 degrees off the middle plane)
+PETROUS_BASE = (58.0, -18.0)        # (x, z): the line occipital() bounds the hind fossae by (where the upper edge leaves the side wall, behind the ear hole)
 PETROUS_APEX = (14.0, 17.0)         # its tip, at the ragged hole beside the sphenoid's body
-PETROUS_CREST = [(-0.15, 11.0), (0.0, 12.0), (0.36, 14.0), (0.55, 11.8), (0.78, 8.4), (1.0, 5.0), (1.1, 1.0)]   # (fraction of the edge from the wall, height above the Frankfurt plane); ours
+# The upper edge as Fig. 193 draws it, seen from above ((|x|, z), mm; traced on the 300-dpi page at 10.2 px/mm, the
+# plate registered on the basion and the opisthion): from the tip out to x 50 as drawn. Further out the plate's skull
+# is wider than this one (its side wall stands about 68 mm off the middle line behind the ear where this one's stands
+# 56 to 60), so the edge is carried on, bending back as the plate's does, to meet this skull's side wall over the top of
+# the sigmoid groove, where the superior petrosal sinus runs into the transverse. Its first point lies in the wall.
+PETROUS_EDGE = [(60.5, -21.0), (58.0, -16.5), (55.5, -12.3), (53.0, -8.7), (50.0, -5.5), (46.4, -3.2), (40.5, -0.2), (34.1, 3.2),
+                (28.2, 6.6), (23.8, 8.9), (18.8, 10.9), (15.8, 13.7), (14.0, 17.0)]
+PETROUS_CREST = [(-0.1, 11.0), (0.0, 11.5), (0.13, 12.3), (0.38, 14.0), (0.58, 11.8), (0.79, 8.4), (0.93, 5.4), (1.0, 4.0), (1.1, 1.0)]   # (fraction of the edge's chord from its outer end, height above the Frankfurt plane); ours
+MEATUS_AT = (29.7, 2.2)             # the internal acoustic meatus's mouth seen from above, Fig. 193 (|x|, z)
+HIATUS = [(42.4, 9.1), (40.0, 10.2), (37.5, 11.3), (34.0, 13.0)]   # the hiatus of the facial canal and the groove that leads from it toward the ragged hole, Fig. 193 ("Hiatus can. fac.")
 
 
 class _Side:
@@ -283,51 +350,122 @@ class _Side:
         return self.solid(self.s * X, Y, Z)
 
 
-def petrous(G, side, cav, log=print):
-    """The petrous pyramid of one side raised from the floor: its upper edge, the gently sloping front surface (the
-    middle hollow's hind floor) with the arcuate eminence, the steep hind surface (the hind hollow's front wall) with
-    the internal acoustic meatus, the groove along the edge and the trigeminal notch at its tip. Nothing of it is ruled:
-    the edge bends and rises and falls, the surfaces swell and sink, and the two sides are not alike. Returns the
-    meatus's mouth."""
-    s = float(side); A = np.array(PETROUS_BASE); Pp = np.array(PETROUS_APEX)
-    e = unit(Pp - A); nf = np.array([-e[1], e[0]]); nf = nf if nf[1] > 0 else -nf      # along the edge; square to it, forward
+def _wander(n, step, wave, amp, seed):
+    """A slow unevenness along a line of n points `step` mm apart: chance smoothed over `wave` mm, at most `amp`."""
+    w = ndimage.gaussian_filter1d(np.random.default_rng(seed).normal(size=n), max(wave / step, 1.0), mode="nearest")
+    return amp * w / (np.abs(w).max() + 1e-9)
+
+
+def _patch(shape, wave, cell, seed):
+    """An unevenness over a map with no beat in it: chance smoothed over `wave` mm; spread 1."""
+    a = ndimage.gaussian_filter(np.random.default_rng(seed).normal(size=shape), wave / cell, mode="nearest")
+    return a / (a.std() + 1e-9)
+
+
+def _petrous_top_before(M, side):
+    """The petrous part's height over the map as it was drawn before it followed Fig. 193 (a straight edge from
+    PETROUS_BASE to PETROUS_APEX): kept only where what lies under it is seen from below (over the jaw's socket)."""
+    A = np.array(PETROUS_BASE); Pp = np.array(PETROUS_APEX)
+    e = unit(Pp - A); nf = np.array([-e[1], e[0]]); nf = nf if nf[1] > 0 else -nf
     L = float(np.linalg.norm(Pp - A))
-    M = Map(4.0, 70.0, -30.0, 40.0, 0.5)                                # u = |x|, v = z
     dx, dz = M.U - A[0], M.V - A[1]
     sa = dx * e[0] + dz * e[1]; q = dx * nf[0] + dz * nf[1]
     seed = 310 if side > 0 else 311; rng = np.random.default_rng(seed); ph = rng.uniform(0, 2 * np.pi, 6)
-    q = q - (2.0 * np.sin(np.pi * sa / L * 1.25 + ph[0]) + 0.9 * np.sin(2 * np.pi * sa / 17.0 + ph[1])) * smoothstep(sa / 10.0) * smoothstep((L - sa) / 10.0)   # the edge is no ruled line (its two ends stay where they are)
-    c = np.array(PETROUS_CREST)
+    q = q - (2.0 * np.sin(np.pi * sa / L * 1.25 + ph[0]) + 0.9 * np.sin(2 * np.pi * sa / 17.0 + ph[1])) * smoothstep(sa / 10.0) * smoothstep((L - sa) / 10.0)
+    c = np.array([(-0.15, 11.0), (0.0, 12.0), (0.36, 14.0), (0.55, 11.8), (0.78, 8.4), (1.0, 5.0), (1.1, 1.0)])
     yc = np.interp(sa, c[:, 0] * L, c[:, 1]) + 0.7 * np.sin(2 * np.pi * sa / 21.0 + ph[2]) + 0.4 * np.sin(2 * np.pi * sa / 9.0 + ph[3])
-    steep = 1.9 + 0.35 * np.sin(2 * np.pi * sa / 26.0 + ph[4])                           # the hind surface stands steeper here, flatter there
+    steep = 1.9 + 0.35 * np.sin(2 * np.pi * sa / 26.0 + ph[4])
     top = np.where(q < 0, yc + steep * q + 0.03 * q * q, yc - 0.30 * q - q * q / 45.0)
-    top = top + 1.8 * np.exp(-((sa - 0.4 * L) / 5.5) ** 2 - ((q - 5.0) / 4.0) ** 2)     # the arcuate eminence, near the middle of the front surface
-    top = top - 0.8 * np.exp(-((sa - 0.24 * L) / 5.0) ** 2 - ((q - 10.0) / 4.5) ** 2)   # the hollow over the drum's cavity, in front of and outside it
-    top = top - 1.3 * np.exp(-((sa - L + 8.0) / 4.5) ** 2 - ((q - 1.0) / 4.5) ** 2)     # the notch the trigeminal nerve lies in, at the tip
-    top = top - 1.0 * np.exp(-((sa - 0.36 * L) / 2.6) ** 2 - ((q + 2.6) / 2.2) ** 2)    # the small pit under the edge behind (the subarcuate fossa)
+    top = top + 1.8 * np.exp(-((sa - 0.4 * L) / 5.5) ** 2 - ((q - 5.0) / 4.0) ** 2) - 0.8 * np.exp(-((sa - 0.24 * L) / 5.0) ** 2 - ((q - 10.0) / 4.5) ** 2)
     top = top + uneven(M.U, 0.0 * M.U, M.V, seed, 0.8, 13.0) + uneven(M.U, 0.0 * M.U, M.V, seed + 5, 0.3, 5.0)
-    top = ndimage.gaussian_filter(top, 3.0)                                               # (its edge is rounded: 1.5 mm)
+    return ndimage.gaussian_filter(top, 3.0)
+
+
+def petrous(G, side, cav, log=print):
+    """The petrous pyramid of one side raised from the floor (Gray pp. 142-144; Fig. 193 for where it lies). Its upper
+    edge (the superior angle) is a blunt, uneven ridge that runs as the plate draws it, rising and falling along its
+    length, grooved along its hind lip for the superior petrosal sinus and notched near the tip where the trigeminal
+    nerve crosses it. The front surface slopes down into the middle hollow: the arcuate eminence near its middle,
+    outside that the tegmen tympani, a thin smooth plate, a little hollowed; the hiatus of the facial canal and its
+    small groove toward the ragged hole; the trigeminal impression near the tip. The hind surface stands steeply over the
+    hind hollow, with the internal acoustic meatus (an oval mouth with smooth rounded margins and a canal about 1 cm
+    long, lateralward) and the small subarcuate pit above and outside it. All is drawn as one height over the floor,
+    measured from the edge's own line, so nothing in it is ruled; the two sides are not alike. Returns the meatus's mouth."""
+    s = float(side); E = np.array(PETROUS_EDGE); A = E[0]; Pp = E[-1]
+    e = unit(Pp - A); nf = np.array([-e[1], e[0]]); nf = nf if nf[1] > 0 else -nf      # along the edge's chord; square to it, forward
+    L = float(np.linalg.norm(Pp - A))
+    chord = lambda u, v: ((u - A[0]) * e[0] + (v - A[1]) * e[1], (u - A[0]) * nf[0] + (v - A[1]) * nf[1])
     xz = lambda a, b: (A[0] + a * e[0] + b * nf[0], A[1] + a * e[1] + b * nf[1])
-    reg = M.region(np.array([xz(-10, -15), xz(L + 2, -10), xz(L + 5, 0), xz(L + 3, 8), xz(30, 23), xz(-10, 25)]))
+    seed = 310 if side > 0 else 311
+    sg = np.arange(-20.0, L + 15.0, 0.5)                                                 # along the chord
+    es, eq = chord(E[:, 0], E[:, 1])
+    qc = np.interp(sg, es, eq) + _wander(sg.size, 0.5, 5.0, 0.45, seed)                    # the edge's own line, from the plate, wavering a little
+    hc = np.interp(sg, np.array(PETROUS_CREST)[:, 0] * L, np.array(PETROUS_CREST)[:, 1]) + _wander(sg.size, 0.5, 7.0, 0.9, seed + 1) + _wander(sg.size, 0.5, 2.5, 0.3, seed + 2)
+    st = 1.9 + _wander(sg.size, 0.5, 12.0, 0.35, seed + 3)                                 # the hind surface stands steeper here, flatter there
+    M = Map(4.0, 72.0, -32.0, 40.0, 0.5)                                                 # u = |x|, v = z
+    sa, q0 = chord(M.U, M.V)
+    q = q0 - np.interp(sa, sg, qc)                                                       # mm in front of the edge (behind it: < 0)
+    yc = np.interp(sa, sg, hc); steep = np.interp(sa, sg, st)
+    r = 1.3                                                                              # the edge is blunt: rounded over a millimetre or so, no knife
+    al, be = 0.5 * (0.30 + steep), 0.5 * (0.30 - steep)
+    top = yc - (al * (np.sqrt(q * q + r * r) - r) + be * q)                               # 0.3 mm down per mm in front, `steep` behind
+    top = top + np.where(q < 0, 0.03 * q * q - 0.25 * np.clip(-q - 12.0, 0.0, None) ** 2, -q * q / 14.0)   # the front surface bends down into the middle hollow; the hind one runs down out of sight
+    bump = lambda a, b, h, ra, rb: h * np.exp(-((sa - a) / ra) ** 2 - ((q - b) / rb) ** 2)
+    top = top + bump(0.38 * L, 5.5, 2.0, 3.8, 5.0)                                        # the arcuate eminence, across the front surface, near its middle
+    teg = np.exp(-((sa - 0.22 * L) / 6.0) ** 2 - ((q - 10.0) / 5.5) ** 2)
+    top = top - 0.6 * teg                                                                # the tegmen tympani outside it, a little hollowed
+    top = top + bump(L - 8.5, 2.5, -1.6, 3.2, 3.0)                                        # the trigeminal impression near the tip, notching the edge
+    top = top + bump(0.43 * L, -3.0, -0.9, 2.4, 1.8)                                      # the subarcuate pit under the edge behind, above and outside the meatus
+    rough = 0.45 * _patch(M.U.shape, 4.0, 0.5, seed + 4) + 0.15 * _patch(M.U.shape, 1.5, 0.5, seed + 5)
+    top = top + rough * (1.0 - 0.7 * teg)                                                 # (the tegmen smooth)
+    # the hiatus of the facial canal and the small groove from it, medially and forward
+    H = sdf.spline(np.array(HIATUS) + _wander(len(HIATUS), 3.0, 3.0, 0.3, seed + 6)[:, None], 0.25)
+    from scipy.spatial import cKDTree
+    dh, ih = cKDTree(H).query(np.column_stack([M.U.ravel(), M.V.ravel()]))
+    dh = dh.reshape(M.U.shape); fh = (ih.reshape(M.U.shape) / (len(H) - 1.0))
+    top = top - 0.45 * np.exp(-(dh / 0.75) ** 2) * (1.0 - 0.8 * fh) - 0.8 * np.exp(-((M.U - H[0, 0]) ** 2 + (M.V - H[0, 1]) ** 2) / 0.9 ** 2)
+    top = ndimage.gaussian_filter(top, 1.6)                                               # (0.8 mm)
+    # over the jaw's socket the floor is open below in places (the socket's roof is thin and broken through), and at
+    # the tip the ragged hole opens up under it: there the front surface's foot comes down no lower than it always
+    # stood, so that nothing seen from below through those gaps changes (only its foot, under 1 mm above the
+    # Frankfurt plane, out of sight from above: no edge is drawn on the surface)
+    before = _petrous_top_before(M, side)
+    jaw = smoothstep((M.U - 36.5) / 3.0) * smoothstep((M.V - 5.0) / 4.0)
+    tip = 1.0 - smoothstep((np.hypot(M.U - 18.5, M.V - 19.0) - 4.5) / 3.0)
+    top = top + jaw * np.maximum(np.minimum(before, 1.0) - top, 0.0)
+    top = top + tip * np.maximum(before - top, 0.0)
+    # the groove for the superior petrosal sinus, along the edge's hind lip: shallow, uneven, fading at the tip
+    qg = np.interp(sa, sg, -0.9 + _wander(sg.size, 0.5, 5.0, 0.35, seed + 7))
+    dg = np.interp(sa, sg, 0.6 + _wander(sg.size, 0.5, 6.0, 0.25, seed + 8)) * smoothstep((sa + 2.0) / 6.0) * smoothstep((L - 9.0 - sa) / 6.0)
+    wg = np.interp(sa, sg, 1.15 + _wander(sg.size, 0.5, 8.0, 0.2, seed + 9))
+    top = top - dg * np.exp(-((q - qg) / wg) ** 2)
+    # its outline (in front far enough that the front surface has gone under the floor; at the tip no further than the
+    # ragged hole's edge)
+    A0, B0 = np.array(PETROUS_BASE), np.array(PETROUS_APEX); e0 = unit(B0 - A0); n0 = np.array([-e0[1], e0[0]]); n0 = n0 if n0[1] > 0 else -n0
+    L0 = float(np.linalg.norm(B0 - A0))
+    reg = M.region(np.array([A0 + a * e0 + b * n0 for a, b in ((-10, -15), (L0 + 2, -10), (L0 + 5, 0), (L0 + 3, 8), (30, 23), (-10, 25))]))   # (the outline it always had, on the line from PETROUS_BASE to PETROUS_APEX: what is laid under the floor where that is open, over the jaw's socket and the canals, stays as it was)
     sol = Slab(M, (0, 2, 1), top, np.full_like(top, -34.0), reg, round=2.5, mirror=False)
     sl, d = G.dist(_Side(sol, s), 6.0)
     if sl is not None:                                                                    # bone is laid in the cavity only: no canal or hollow under its floor is filled
         c_ = cav[sl]; out = (ndimage.distance_transform_edt(~c_) - ndimage.distance_transform_edt(c_)) * G.h
-        G.D[sl] = sdf.smin(G.D[sl], np.maximum(d, out.astype(np.float32) - 1.0), 2.5)
+        was = G.D[sl].copy()
+        G.D[sl] = sdf.smin(was, np.maximum(d, out.astype(np.float32) - 1.0), 2.5)
+        X, Y, Z = G.coords(sl)
+        G.D[sl] = np.where((was > 0) & (out > 0.4) & (np.abs(X) < 24.0) & (Z > 0.0) & (Y > -8.0), was, G.D[sl])   # (nor, by the tip, a pocket of air beside the cavity half filled: it was left as a block of fog. Out over the jaw's socket and the styloid the old reach of 1 mm past the cavity stands: the under face there was made with it)
         refresh(G, cav, sl)
-    at = lambda a, b: np.array([s * xz(a, b)[0], float(M.sample(top, [xz(a, b)[0]], [xz(a, b)[1]])[0]), xz(a, b)[1]])
-    # the groove for the superior petrosal sinus, along the edge
-    P, N = line(G, [(at(a, 0.0) + (0, 12.0, 0), at(a, 0.0)) for a in np.arange(5.0, L - 6.0, 3.0)], wave=0.6, seed=seed)
-    groove(G, P, N, 2.4, 0.7, k=0.6)
-    # the internal acoustic meatus, on the hind surface near its middle: its mouth 5 mm across, its canal 1 cm long, lateralward
-    a_ = 0.54 * L; yc_ = float(np.interp(a_, c[:, 0] * L, c[:, 1]))
-    o_ = np.array([s * xz(a_, -15.0)[0], yc_ - 4.5, xz(a_, -15.0)[1]]); t_ = np.array([s * xz(a_, -3.2)[0], yc_ - 6.2, xz(a_, -3.2)[1]])
-    m = hit(G, o_, t_, must=False)
+    # the internal acoustic meatus, where the plate has it: an oval mouth on the hind surface (4.6 by 3.4 mm, its long
+    # axis along the edge), its margins smooth and rounded (p. 143), its canal narrowing a little, lateralward and a
+    # little forward, ending blind about 1 cm in
+    mx, mz = MEATUS_AT
+    m = hit(G, (s * mx, 24.0, mz), (s * mx, -20.0, mz), must=False)
     if m is not None:
-        u = unit(np.array([s * 1.0, -0.08, 0.24]))
-        G.cut(Tube(np.array([m - 2.5 * u, m, m + 3.0 * u, m + 10.0 * u]), [(0, 3.2), (0.16, 2.6), (0.4, 2.1), (1, 1.7)], [(0, 2.7), (0.16, 2.2), (0.4, 1.9), (1, 1.5)]), 1.2)
-    log("  petrous part (%s): edge %.0f mm long, %.1f mm above the Frankfurt plane at the arcuate eminence, %.1f at the tip; meatus at %s" % (
-        "left" if side > 0 else "right", L, float(at(0.4 * L, 5.0)[1]), float(at(L, 0.0)[1]), None if m is None else np.round(m, 1).tolist()))
+        nh = normal(G, m)[0]; u = unit(np.array([s * 1.0, -0.05, 0.45]))
+        jit = np.random.default_rng(seed + 10).uniform(0.9, 1.1, 2)
+        o = unit(nh + np.array([0.0, 0.7, 0.0]))                       # (its upper margin falls back more than its lower: the hind surface leans, and the mouth is seen into from above, as on the plate)
+        P = np.array([m + 2.6 * o, m + 0.3 * nh, m + 3.0 * u, m + 6.5 * u, m + 9.5 * u])
+        G.cut(Tube(P, [(0, 2.3 * jit[0]), (0.2, 1.7 * jit[0]), (0.45, 1.4), (1, 1.15)], [(0, 3.0 * jit[1]), (0.2, 2.3 * jit[1]), (0.45, 1.8), (1, 1.35)]), 1.3)
+    log("  petrous part (%s): edge %.0f mm along its chord, %.1f mm above the Frankfurt plane at the arcuate eminence, %.1f at the tip; meatus at %s" % (
+        "left" if side > 0 else "right", L, float(np.interp(0.38 * L, sg, hc)) + 2.0, float(np.interp(L, sg, hc)), None if m is None else np.round(m, 1).tolist()))
     return m
 
 
@@ -395,6 +533,9 @@ def occipital(G, cav, inion_y, log=print):
     return iop
 
 
+IPS_LINE = [(15.4, 14.0), (16.2, 10.5), (17.2, 7.0), (18.6, 3.6), (20.3, 0.6), (22.0, -2.5)]   # (|x|, z): the petro-occipital line, Fig. 193, where the groove is looked for
+
+
 def jugular(G, side, cav, log=print):
     """Beside the front half of the great opening. The jugular tubercle (p. 131: "The upper surface of the lateral
     part presents an oval eminence, the jugular tubercle, which overlies the hypoglossal canal"), set over the canal's
@@ -410,10 +551,30 @@ def jugular(G, side, cav, log=print):
     sl = G.window(p - 12.0, p + 12.0); before = G.D[sl].copy()
     G.add(Ellipsoid(p - n * 0.9, (4.6, 3.4, 2.9), Rm), 2.5, keep=4)
     G.D[sl] = np.where((before > 0) & ~cav[sl], before, G.D[sl])       # (it is set on the cavity's floor: the canal under it stays open)
-    o = np.array([s * 6.0, 14.0, -6.0])
-    way = [(12.0, 2.2, 16.0), (12.2, -0.2, 12.0), (14.5, -2.5, 8.0), (18.5, -2.5, 4.5), (21.5, -3.5, 1.5)]
-    P, N = line(G, [(o, np.array(w) * (s, 1.0, 1.0)) for w in way], step=1.2, wave=0.5, seed=81 if s > 0 else 82)
-    deep = groove(G, P, N, varied(P, [(0, 2.6), (1, 3.4)], 83 if s > 0 else 84), varied(P, [(0, 0.5), (1, 0.9)], 85 if s > 0 else 86, 0.2), k=1.2)
+    # the groove: in the low line where the petrous part's hind slope meets the basilar part (the petro-occipital
+    # line, Fig. 193), found as the lowest point of the floor seen from above across that line at each step, so that
+    # it lies in the open and nowhere under an overhang; down to the jugular foramen's front, where the floor gives out
+    P = []
+    for z in np.arange(14.0, -3.0, -1.0):
+        x0 = float(np.interp(-z, -np.array(IPS_LINE)[:, 1], np.array(IPS_LINE)[:, 0]))
+        best = None
+        for ax in np.arange(x0 - 2.5, x0 + 2.51, 0.5):
+            ys = np.arange(16.0, -24.0, -0.1); v = sample_field(G.D, G.lo, G.h, np.column_stack([np.full_like(ys, s * ax), ys, np.full_like(ys, z)]))
+            if not (v < 0).any() or v[0] < 0:
+                continue
+            y = float(ys[int(np.argmax(v < 0))])
+            if y > 3.0 or y < -12.0:                                   # the petrous part's top, or down a hole
+                continue
+            if best is None or y < best[1] - 0.2 or (abs(y - best[1]) <= 0.2 and abs(ax - x0) < abs(best[0] - x0)):
+                best = (ax, y)
+        if best is None:
+            if len(P) > 4:
+                break                                                  # the jugular foramen: the floor gives out
+            continue
+        P.append((s * best[0], best[1], z))
+    P = np.array(P); P[:, 0] = ndimage.gaussian_filter1d(P[:, 0], 1.5, mode="nearest")    # (it wanders as the valley does, no zigzag)
+    P, N = settle(G, sdf.spline(P[:-1] if len(P) > 6 else P, 1.0))
+    deep = groove(G, P, N, varied(P, [(0, 2.6), (1, 3.4)], 83 if s > 0 else 84), varied(P, [(0, 0.5), (1, 0.7)], 85 if s > 0 else 86, 0.2), k=1.0, leave=2.0)
     canal = float(sample_field(G.D, G.lo, G.h, np.array([[s * 11.6, -14.2, -2.4]]))[0])
     log("  jugular tubercle (%s) at %s, 2 mm proud; hypoglossal canal under it %s; inferior petrosal groove %.0f mm long, %.1f deep" % (
         "left" if s > 0 else "right", np.round(p, 1).tolist(), "open" if canal > 0 else "SHUT", np.linalg.norm(np.diff(P, axis=0), axis=1).sum(), deep))

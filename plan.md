@@ -4204,6 +4204,23 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     turns the body's sides into upright walls at x 8.5 (passed to the
     inner.py task); the dorsum reads as a slab with steep straight
     sides; the fossa's front edge is nearly straight.
+    Inside of the base, attempt 1 (inner.py; saved, not accepted),
+    against Fig. 193: the petrous top is rebuilt as a height field
+    over the plate's crest (blunt uneven ridge, superior petrosal
+    groove, arcuate eminence, tegmen, trigeminal impression); the
+    ruled creases are gone. Internal acoustic meatus moved to the
+    plate's place as an oval funnel (left 1.1 mm off, right 2.0 and
+    too small). Inferior petrosal groove open on both sides, the
+    sealed slit gone. Middle fossa floor thinned from 4 to 7 mm to
+    about 3 mm at the ovale (CT beside the ovale 2 to 3 mm). The
+    middle fossa hollow kept off the sphenoid body. Fails: on the
+    thin floor foramina.through's upper funnel and lip make the ovale
+    and spinosum read as craters from above (ovale 14 by 13 against
+    the plate's 6 by 4) with a squared notch; the sella still reads
+    as a box from above; right meatus; a few new thin spots; the
+    crest 3 to 4 mm off at x 55 where the model is 8 to 10 mm
+    narrower than the plate. Repair to follow in inner.py and
+    foramina.py together.
     Task C, repair 1 (head and neck accepted; task closed): the ring is
     gone. Each section under the head is solved to silhouette targets
     from Fig. 176 and 177: the hind edge runs straight into the head,
