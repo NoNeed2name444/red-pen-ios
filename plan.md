@@ -4297,6 +4297,20 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     tip in teeth.py would cure it); coronoid tip 2.75 mm from the
     infratemporal surface and its front border 2.1 mm from the maxilla
     behind the third molar; re-check the joint if the socket changes.
+    Sphenoidal sinus (sinus.py), accepted on the whole build: the box
+    is replaced by two unequal cavities of rounded lobes with a bent,
+    off-centre septum and a crescent partial septum each side (Gray p.
+    149); left 3.4 cm3, right 4.5; openings forward kept. Sella
+    unchanged (within 0.01 mm); wall under the fossa 1.04 mm on the
+    midline; least wall 0.72 mm (as before); longest straight run of
+    wall 7.3 mm (was 16.7). Two audit items closed as not real: the
+    "crease" down the dorsum and clivus is the septum inside the body,
+    not the surface (surface slope across the midline under 0.1), and
+    the "bar" under the basisphenoid is the smooth rise set by
+    base.HEIGHTS. To do, found by switching parts off: the lumps over
+    the choanae come from pterygoid.build (x 12, z 29 to 33) and the
+    skull2.py Ellipsoid((19,-10.5,37.5),(8.5,5.5,5.5)) (x 10 to 20,
+    z 32 to 37).
     Task C, repair 1 (head and neck accepted; task closed): the ring is
     gone. Each section under the head is solved to silhouette targets
     from Fig. 176 and 177: the hind edge runs straight into the head,

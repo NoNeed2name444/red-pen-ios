@@ -356,26 +356,71 @@ APERTURE = {1: [(3.6, 10.2, 40.5), (3.0, 10.8, 44.5), (2.5, 11.4, 48.6)],       
             -1: [(-3.9, 9.4, 40.5), (-3.1, 10.4, 44.5), (-2.6, 11.2, 48.6)]}       # forward into the recess above the nose's back
 
 
+# Gray (p. 149): "two large, irregular cavities hollowed out of the interior of the body of the bone, and separated from
+# one another by a bony septum, which is commonly bent to one or the other side. They vary considerably in form and size,
+# are seldom symmetrical, and are often partially subdivided by irregular bony laminae"; closed in front and below by the
+# sphenoidal conchae, "leaving ... a round opening at the upper part of each sinus". Each sinus is a few rounded lobes run
+# together (x, y, z, half-breadth, half-height, half-depth), not a block: the main chamber, a lobe up and forward under the
+# planum, one out and down toward the roots of the pterygoid process, one back under the hypophyseal fossa. The two are
+# not alike: the septum bows to the left, the right sinus is the larger and runs further back under the fossa (Fig. 194
+# shows the cavity reaching back under the whole fossa), the left one further out and down. A lobe: (x, y, z, radius); the
+# lobes are nearly round, so no wall runs straight, and where two meet a low rounded ridge is left between them.
+SPHENOID_LOBES = {
+    1: [(5.0, 2.5, 37.0, 5.8), (12.0, -2.0, 37.5, 5.2), (4.5, 10.0, 37.5, 5.2), (4.0, -2.0, 31.5, 5.2), (4.0, -1.5, 22.5, 5.8),
+        (9.0, -4.0, 19.5, 4.0), (10.5, -4.0, 26.0, 3.4), (6.5, 16.0, 39.5, 3.4), (5.0, 6.0, 23.0, 3.4), (10.0, -3.5, 32.0, 3.4),
+        (10.5, 3.5, 39.5, 3.4), (3.5, 7.0, 19.0, 3.4), (7.0, -4.0, 36.0, 3.4), (3.0, 3.0, 27.5, 3.4), (3.0, 7.0, 32.5, 3.4)],
+    -1: [(-4.0, 3.5, 36.0, 5.8), (-2.5, -1.0, 27.5, 5.8), (-2.0, 3.5, 21.5, 5.8), (-2.5, 10.5, 37.0, 5.8), (-10.5, -2.5, 37.0, 5.2),
+         (-6.0, -2.5, 21.5, 5.2), (-0.5, 7.0, 30.5, 5.8), (-1.0, -3.0, 34.5, 4.6), (-1.2, 5.8, 23.2, 4.2), (-6.4, 4.2, 26.0, 3.4)]}
+# irregular bony laminae: each a fin rising from the wall, crescent-shaped (a plate cut by a ball round a point outside
+# the cavity), (a point on its plane, its plane's normal, the ball's centre, the ball's radius)
+SPHENOID_LAMINAE = {
+    1: [((7.4, 9.0, 27.6), (0.25, -0.35, 1.0), (11.6, 13.4, 26.6), 7.4)],
+    -1: [((-6.0, -3.0, 28.6), (0.3, 0.15, 1.0), (-11.2, -8.0, 28.2), 8.2)]}
+
+
+SWELLS = {1: [(0.80, 0.53, 0.27, 0.3), (-0.27, 0.80, 0.53, 1.9), (0.53, -0.27, 0.80, 4.1)],          # the wall's swells: direction, phase
+          -1: [(0.27, 0.80, -0.53, 2.2), (0.80, -0.27, 0.53, 0.7), (-0.53, 0.53, 0.66, 3.4)]}
+
+
 def sphenoid_septum(Y, Z):
-    """Where the partition between the two sphenoidal sinuses stands (x): to the left of the middle plane, so the right
-    sinus is the larger, and bent."""
-    return 1.7 + 0.08 * (Z - 30.0) + 0.9 * np.sin((Z - 20.0) / 5.0) + 0.6 * np.sin((Y - 2.0) / 4.4)
+    """Where the partition between the two sphenoidal sinuses stands (x): on the sphenoidal crest in front (the middle
+    plane), then bowed well to the left, bellied to the left again half-way up, leaning a little and waved (no part of it
+    flat), so the right sinus is the larger and the middle plane behind the front wall lies in it (as Fig. 194 has it)."""
+    return (0.3 + 2.0 * smoothstep((44.0 - Z) / 8.0) + 0.6 * np.exp(-((Y - 5.0) / 7.0) ** 2) * smoothstep((44.0 - Z) / 8.0)
+            + 0.03 * (Y - 4.0) + 0.45 * np.sin(0.85 * Z + 0.2 * Y + 0.4) + 0.4 * np.sin(0.85 * Y + 0.3 * Z + 1.3) + 0.3 * np.sin(0.65 * (Y + Z) + 2.0))
+
+
+def _lobes(X, Y, Z, lobes, k=0.8):
+    d = None
+    for x, y, z, r in lobes:
+        v = np.sqrt((X - x) ** 2 + ((Y - y) / 1.08) ** 2 + (Z - z) ** 2) - r
+        d = v if d is None else -smax(-d, -v, k)      # run together, rounded where they meet
+    return d
 
 
 def sphenoidal(G, side, log=print):
     s = float(side)
-    hull = Hull([((0, 18.5, 30.0), (0, 1, 0), 60.0), ((0, -8.5, 30.0), (0, -1, 0), 40.0),
-                 ((s * 10.5, 5.0, 30.0), (s, 0, 0), 26.0),
-                 ((0, 6.0, 43.6), (0, 0, 1), 34.0), ((0, 4.0, 17.0), (0, 0, -1), 30.0)], 3.0)
+    lobes = SPHENOID_LOBES[side]; fins = SPHENOID_LAMINAE[side]
     seed = 180 if side > 0 else 181
 
     def env(X, Y, Z):
-        return smax(hull(X, Y, Z) + uneven(X, Y, Z, seed, 0.45, 7.0), 0.8 - s * (X - sphenoid_septum(Y, Z)), 1.0)
+        d = _lobes(X, Y, Z, lobes) + uneven(X, Y, Z, seed, 0.3, 8.0)
+        for c, n, q, R in fins:
+            n = unit(n); c = np.asarray(c, float); q = np.asarray(q, float)
+            plate = np.abs((X - c[0]) * n[0] + (Y - c[1]) * n[1] + (Z - c[2]) * n[2]) - 0.85
+            ball = np.sqrt((X - q[0]) ** 2 + (Y - q[1]) ** 2 + (Z - q[2]) ** 2) - R
+            d = smax(d, -smax(plate, ball, 1.6), 0.9)
+        return smax(d, 0.6 - s * (X - sphenoid_septum(Y, Z)), 0.8)
     def wall(X, Y, Z):      # 1.6 mm, but 1 under the fossa's floor and front wall (cadaver series: floor 0.9 +- 0.4 mm, front wall 0.8 +- 0.3;
         a, b = FOSSA["z"]  # Lazaridis et al., Clin Anat 2010, doi 10.1002/ca.20984; Fig. 194 draws the floor as a single thin line)
         f = (1.0 - smoothstep((np.abs(X) - FOSSA["half"]) / 2.0)) * smoothstep((Z - a) / 1.5) * (1.0 - smoothstep((Z - b) / 1.5)) * smoothstep((Y - 6.0) / 2.0)
-        return 1.6 - (1.6 - FOSSA["floor_wall"]) * f
-    got = hollow(G, (min(s * 10.5, 2.5 * s), -8.5, 17.0), (max(s * 10.5, 2.5 * s), 18.5, 43.6), env, wall, 1.0)
+        g = 1.0 - smoothstep((np.abs(X - sphenoid_septum(Y, Z)) - 1.4) / 1.0)      # the septum: its own thickness (1.2 mm), not two walls
+        # where a sinus runs up to the body's outer face its wall is not a level sheet: it thickens and thins in low
+        # rounded swells (about 1.2 to 3 mm, 7 mm apart, three crossing waves so no line along the wall misses them all), the partial ridges of the dry bone, so no wall inside is flat where the face outside is
+        w = 2.15 + 0.12 * s + sum(0.33 * np.sin((X * a + Y * b + Z * c) * 0.9 + ph) for a, b, c, ph in SWELLS[side])
+        return w - (w - FOSSA["floor_wall"]) * np.maximum(f, g)
+    L = np.array(lobes, float); lo = (L[:, :3] - 1.1 * L[:, 3:]).min(0) - 1.0; hi = (L[:, :3] + 1.1 * L[:, 3:]).max(0) + 1.0
+    got = hollow(G, lo, hi, env, wall, 1.0)
     if got is None:
         return None
     G.cut(Tube(spline(np.array(APERTURE[side], float), 0.8), 1.3), 0.5)
