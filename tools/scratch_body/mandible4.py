@@ -64,6 +64,8 @@ LEAN = 0.060                                   # the ramus plane's lean outward 
 ES4 = sdf.unit((-0.31, 0.0, 0.95))             # the ramus plane's run seen from above: its front a little nearer the midline
 O4 = np.array([52.2, -12.0, 10.5])            # a point of the ramus plane (at the neck)
 HEAD = {"centre": (51.5, -5.9, 9.5), "half": (9.0, 4.3, 3.9), "turn": -15.0}     # in the skull's socket, 1.5 to 2 mm clear of it all round
+MEDIAL_SHAVE = 1.0      # (T-jaw-shape) mm off the upper face of the head's inner half (build): the socket's roof was 0.1 to 0.4 mm from it
+SEPTUM_HALF = 0.36      # (T-jaw-shape) half the bony septum between the two central incisors' sockets (sockets)
 
 
 # The ramus and the lower border redrawn from Gray's own plate of the jaw (Fig. 176), laid on this jaw by its tooth row and
@@ -104,15 +106,25 @@ BORDER_Y_A = [-88.8, -89.4, -89.7, -88.5, -86.3, -83.7, -81.0, -80.8, -83.4, -81
 # edge hollow, running into a notch deepest nearer the condyle; the front border stands over the third molar's hind end
 # and meets the margin behind that tooth. Near the joint the plate is carried by its condyle's offset from this one
 # (4.8 mm forward, 5.6 up), fading over 12 to 34 mm along the line from the condyle's top, so the head and neck stay.
-FRONT = [(41.6, -53.6), (39.4, -51.0), (38.8, -47.0), (39.0, -43.0), (39.5, -39.0), (40.4, -35.3), (41.4, -31.6), (42.0, -28.0),
-         (42.0, -24.6), (41.7, -20.9), (41.1, -17.1), (40.5, -13.8), (37.6, -10.6), (35.3, -12.0), (34.8, -15.6), (32.8, -19.2),
-         (29.8, -21.9), (26.5, -23.9), (23.0, -24.2), (19.8, -22.5), (17.2, -19.3), (15.6, -14.6), (13.9, -9.4), (12.6, -4.6)]   # (repair 2: the neck narrows under the head)
-HIND = [(5.5, -6.0), (5.0, -9.2), (4.6, -13.8), (4.9, -18.6), (5.3, -24.3), (5.9, -30.3), (7.2, -36.1), (8.5, -41.9), (9.2, -47.9),
-        (9.6, -53.7), (8.4, -59.4), (9.3, -65.2), (10.6, -71.0), (14.3, -74.9)]
-BORDER_Y = [-85.4, -85.4, -85.0, -84.1, -82.1, -79.7, -78.0, -79.4, -78.7, -77.2, -74.8]      # the lower border's height at M2.B's points (the plate's)
+# (T-jaw-shape) The side outline laid on Fig. 176 again, now registered on the three points a side view of the jaw alone fixes
+# (condyle top, gonion, pogonion; 4.7 px/mm of the 600 px plate) and traced from the plate's ink with its lettering taken out
+# (the words "Mandibular Notch" had been read as bone: the notch came out 6 mm too deep and narrow). Against that plate the
+# coronoid stood 5.7 mm too far back and 3 mm too low, a finger 6 mm broad 5 mm under its tip where the plate draws a
+# triangle 7.4 mm broad; the notch's deepest point 1.7 mm too low and 2.5 mm too far back, its floor a narrow U where the plate
+# draws a wide shallow sigmoid; the hind border's middle 2 to 3 mm too far back (the plate hollows it) and its lower end and
+# the angle's lower border 1 to 4 mm too low: an angle of 101 degrees by the tangents, a square corner. Now the front border
+# runs forward and up into a broad coronoid whose tip stands 5.6 mm under the condyle's top; its hind edge falls evenly into
+# a wide notch whose floor is lowest a third of the way from the condyle; the hind border is hollow at mid height and the
+# angle opens (to 104 to 108 degrees) and rounds. The joint head, its neck's upper part and the tooth row stay.
+FRONT = [(42.4, -53.4), (41.4, -50.6), (41.4, -46.8), (41.8, -42.6), (42.6, -38.6), (43.8, -34.6), (45.4, -30.6), (46.9, -26.6),
+         (47.3, -22.4), (46.9, -18.2), (46.4, -14.0), (45.9, -10.4), (43.4, -7.2), (41.0, -8.0), (39.2, -10.8), (37.0, -14.0),
+         (34.2, -17.2), (31.6, -19.8), (27.4, -22.6), (23.2, -21.8), (20.6, -20.0), (18.4, -17.8), (15.8, -12.6), (12.6, -4.6)]
+HIND = [(5.5, -6.0), (5.0, -9.2), (4.6, -13.8), (5.4, -18.6), (7.6, -24.3), (9.6, -30.3), (11.2, -36.1), (11.6, -41.9), (11.2, -47.9),
+        (9.9, -53.7), (9.8, -59.4), (10.4, -65.2), (11.5, -71.0), (14.8, -74.1)]
+BORDER_Y = [-86.2, -86.2, -85.8, -84.7, -82.2, -79.3, -76.9, -76.6, -75.6, -75.0, -73.4]      # the lower border's height at M2.B's points (the plate's)
 REGRID_PAIRS = (list(zip(FRONT_A, FRONT)) + list(zip(HIND_A, HIND))
-                + [((z, a), (z, b)) for z, a, b in ((16.5, -81.6, -77.2), (22.0, -83.4, -78.7), (31.0, -80.8, -79.4), (42.0, -81.0, -78.0),
-                                                     (54.0, -83.7, -79.7), (64.5, -86.3, -82.1))]
+                + [((z, a), (z, b)) for z, a, b in ((16.5, -81.6, -75.0), (22.0, -83.4, -75.6), (31.0, -80.8, -76.6), (42.0, -81.0, -76.9),
+                                                     (54.0, -83.7, -79.3), (64.5, -86.3, -82.2))]
                 + [((p[0], p[1]), (p[0], p[1])) for p in ((9.5, -5.9), (11.5, -5.0), (11.0, -1.5), (55.0, -60.0), (58.0, -72.0), (74.0, -80.0))])
 _REGRID = {}
 
@@ -328,7 +340,7 @@ def maps(S, log=print):
     # thin middle: from behind it read as a rod with a crease along its front. The fall is spread over 8 to 10 mm (points on
     # this outline, 5 to 6 mm in front of the hind border).
     zn = lambda z, y: tuple(sy(ramus3(z, y))[0])
-    TH_B = [(11.0, -22.0, 5.2), (13.4, -32.0, 4.6), (15.3, -42.0, 4.6), (16.0, -52.0, 4.5), (16.0, -61.0, 4.2), (17.5, -68.0, 3.9)]
+    TH_B = [(12.0, -22.0, 5.2), (15.6, -32.0, 4.6), (17.8, -42.0, 4.6), (17.0, -52.0, 4.5), (16.6, -61.0, 4.2), (18.2, -68.0, 3.9)]   # (T-jaw-shape: carried with the hollowed hind border)
     th = M.thin_plate(np.array([(*zy(z, y), t) for z, y, t in TH] + [(*zn(z, y), t) for z, y, t in TH_B]), weight=20.0, tension=0.05)
     th = np.clip(th, 2.0, 8.0)
     # (repair 1) Toward its edge the hind border thins (to 62 % at the edge, over 9 mm), below the neck: at an even thickness to
@@ -354,7 +366,7 @@ def maps(S, log=print):
     # plane's own lean: 20 mm of the side stood exactly upright. Now the side keeps the plane's lean all the way down (in by
     # 1 mm for every 8 of height, 121 mm across the joint heads to 98 across the angles), a little hollow under the neck and
     # a little full over the masseter's ridges, and turns in to the lower border round the angle.
-    mid = mid - 1.0 * g(40.0, -8.0, 9.0)                                     # the coronoid tip held in a little (curved out, it stood out from above as a spur)
+    mid = mid - 0.5 * g(40.0, -8.0, 9.0)                                     # the coronoid tip held in a little (curved out, it stood out from above as a spur; T-jaw-shape: 1.0 to 0.5, the broader tip 2.6 mm under the skull's infratemporal surface)
     mid = mid - 2.0 * gauss(M, zn(41.0, -22.0), (5.0, 10.0)) + 0.5 * gauss(M, zn(32.0, -20.0), (5.0, 9.0))                   # (repair 1: the coronoid's base held in a little: with the front border
                                                                              # traced back to the plate's, it stood out of the plan view's line as a corner)
     mid = mid - 0.15 * g(17.0, -38.0, 12.0) + 0.6 * g(11.0, -24.0, 9.0) + 0.3 * g(17.0, -55.0, 9.0)   # (task B: gentler; the hind border read as a rod)
@@ -456,8 +468,10 @@ def maps(S, log=print):
     # an upper pair (genioglossi) and a lower, smaller pair (geniohyoidei) a little closer together, each a low rounded bump
     # (no cone tip, no skirt, no plateau between them), on a face otherwise smooth; their roughness is the grain's (ZONES).
     dS = lambda c, r: ((s_ - c[0]) / r[0]) ** 2 + ((M.V - c[1]) / r[1]) ** 2       # (both sides at once: a pair across the midline)
-    sp = 0.62 * np.exp(-dS((1.55, yc_ + 10.0), (0.95, 1.35))) + 0.34 * np.exp(-dS((1.15, yc_ + 6.9), (0.8, 1.0)))
-    sp = sp + 0.18 * np.exp(-dS((0.0, yc_ + 8.4), (3.2, 4.2)))                       # the hind face swells a little round them
+    # (T-jaw-shape) Drawn on the map at its 0.5 mm grid, the four bumps came out as two flat squarish pads (seen from behind
+    # and below). The spines are now made in the solid (chin_marks, after the halves are joined, each its own); here only
+    # the low swelling of the hind face round them.
+    sp = 0.14 * np.exp(-dS((0.0, yc_ + 8.8), (3.6, 4.6)))                       # the hind face swells a little round them
     ib = ib - sp
     q = np.clip((M.V - yb(M.U)) / np.maximum(yt(M.U) - yb(M.U), 1.0), 0, 1.4)
     s = np.abs(M.U)
@@ -603,6 +617,7 @@ def sockets(F, frames, yrim, S, wall=1.5, gap=0.3):
         wd = np.clip((depth - 4.0) / 3.0, 0.0, 1.0)
         sleeve = np.maximum(sleeve, F.D[sl] - 0.2 - 30.0 * (1.0 - wd))
         F.D[sl] = smin(F.D[sl], sleeve, 1.6)
+    pre0 = F.D[fields[0][0]].copy()          # (the bone round the central incisor before any socket is cut: the septum's envelope)
     for sl, socket, lz, root, cap in fields:
         F.D[sl] = smax(F.D[sl], -socket, 0.5)
     # The septum between a molar's two roots: left to what the two roots' sockets spared, it was a low knife-edge 3.5 mm below
@@ -636,6 +651,16 @@ def sockets(F, frames, yrim, S, wall=1.5, gap=0.3):
     F.D[win] = np.where(np.abs(A) < 15, A * (1 - wb) + G * wb, A)
     for sl, socket, lz, root, cap in fields:
         F.D[sl] = smax(F.D[sl], -socket, 0.4)
+    # (T-jaw-shape) The two central incisors stand with their crowns in contact at the midline and their roots, which lean
+    # toward it as the arch curves, within 0.24 to 0.45 mm of it: their sockets, each the root 0.3 mm larger, met across the
+    # midline and left no bone between them for 10 mm (a slot in the median section, a crease inside the chin). The
+    # interdental septum is put back: a plate of bone 0.72 mm thick on the midline, inside the bone that stood round the
+    # sockets before they were cut, up to the scalloped margin, its edges blended into the sockets' walls. The roots keep
+    # their places; where one comes nearer the midline than the septum's half (by 0.12 mm at most) the socket's wall
+    # touches it there.
+    sl0 = fields[0][0]
+    X0 = np.broadcast_arrays(*F.coords(sl0))[0]
+    F.D[sl0] = smin(F.D[sl0], smax(np.abs(X0) - SEPTUM_HALF, pre0, 0.3), 0.3).astype(np.float32)
     return F
 
 
@@ -698,9 +723,12 @@ class Ribbon4(Ribbon):
 #   then the front edge either stands 0.6 mm further forward at y -15 to -17 (outline gap to Fig. 176 there 6.60 mm) or
 #   swells again below a second hollow. The plate is followed.
 COND_KEYS = [(-8.5, 8.529, 7.809, 4.473, 6.167, 2.0), (-9.5, 8.187, 7.255, 4.521, 5.766, 2.0), (-10.5, 7.56, 6.564, 4.522, 5.651, 2.0),
-             (-11.5, 6.927, 5.96, 4.529, 5.664, 2.0), (-12.5, 6.396, 5.44, 4.701, 5.666, 2.0), (-13.5, 6.024, 5.041, 4.986, 5.657, 2.0),
-             (-14.5, 5.811, 4.733, 5.331, 5.641, 2.0), (-15.5, 5.705, 4.445, 5.746, 5.623, 2.0), (-16.5, 5.6, 4.18, 6.245, 5.603, 2.0),
-             (-17.5, 5.448, 4.032, 6.711, 5.552, 2.0), (-18.5, 5.097, 4.012, 7.234, 5.534, 2.0)]
+             (-11.5, 6.927, 5.96, 4.529, 5.664, 2.0), (-12.5, 6.396, 5.44, 4.775, 5.666, 2.0), (-13.5, 6.024, 5.041, 5.298, 5.657, 2.0),
+             (-14.5, 5.811, 4.733, 5.96, 5.641, 2.0), (-15.5, 5.705, 4.445, 6.766, 5.623, 2.0), (-16.5, 5.6, 4.18, 7.618, 5.603, 2.0),
+             (-17.5, 5.448, 4.032, 8.468, 5.552, 2.0), (-18.5, 5.097, 4.012, 9.426, 5.534, 2.0)]
+# (T-jaw-shape) the neck's front edge below y -12 carried forward (its forward half-depths, the fourth column, re-solved): the
+# notch's floor now lies 2 mm higher and 2.5 further forward, and the front edge sweeps down and forward into it in one
+# hollow curve (Fig. 176) instead of standing upright to y -18 and turning there.
 COND_KEEP_TOP, COND_KEEP_LOW = (-4.5, -5.0, -5.5, -6.0, -6.5, -7.0), (-19.5, -20.0, -20.5, -21.0)     # sections taken from the field as it is
 COND_HANDOVER = (-16.5, -19.5)      # from here down the drawn sections hand over to the ramus's own (no ring where they meet)
 COND_HANDOVER_TOP = (-7.0, -10.5)   # (repair 1) and from here up to the head's own: the head's sections are lens-shaped,
@@ -801,6 +829,14 @@ def build(h=0.5, log=print, seat=True):
     F.add(sdf.Tube(P, [(0, 2.4), (0.35, 3.0), (0.7, 4.7), (0.88, 6.8), (1, 8.0)], [(0, 3.4), (0.35, 3.3), (0.7, 3.3), (1, 3.4)], up=axis), k=5.0)                                     # (k 5: at 3.2 its edge read as a crease down the ramus)
     F.add(sdf.Ellipsoid(ctr, c["half"], R), k=1.6)                                                    # the head: convex from before backward and from side to side
     F.add(sdf.Ellipsoid(ctr + R @ np.array([1.5, 0.35, -0.4]), (6.0, 4.0, 3.5), R), k=1.2)          # (its top a little fuller toward the outer end: oblong, not a lens)
+    # (T-jaw-shape) The head's inner half drawn lower: its upper face falls away toward the medial pole, by up to 1 mm on
+    # the pole's upper slope (y above -5, u under -4), nothing on the lateral half or the top. The head stood 0.1 to 0.4 mm
+    # from the socket's roof there (the roof comes down lowest over the inner half, 2 to 3 mm in from the pole); the
+    # condyle's medial pole in an adult is the lower one, its upper surface sloping down and in from the crest.
+    sl = F.window(ctr - np.array([14.0, 9.0, 10.0]), ctr + np.array([4.0, 6.0, 10.0]))
+    Xh, Yh, Zh = (np.asarray(a, float) for a in F.coords(sl))
+    Uh = (Xh - ctr[0]) * np.cos(np.radians(-c["turn"])) + (Zh - ctr[2]) * np.sin(np.radians(-c["turn"]))
+    F.D[sl] = (F.D[sl] + MEDIAL_SHAVE * smoothstep((-Uh - 0.3) / 3.5) * smoothstep((Yh + 7.2) / 2.4)).astype(np.float32)
     # (task C) the tubercle's ball, the three ridge tubes and the fovea's cut are gone: under the joint surface the process
     # is drawn by its sections, with those marks on them (COND_MARKS)
     condyle_sections(F, log)
@@ -825,10 +861,8 @@ def build(h=0.5, log=print, seat=True):
     F.ease(P[2], 2.6, 0.5); F.ease(P[3], 2.4, 0.5)                                 # the funnel's throat smooth (no crack line where its walls met)
     canal_in = (P[-1], sdf.unit(P[-1] - P[-2]))                                                # the funnel's bottom and the way it points: the canal goes on from here (structure.py)
 
-    # ---- the tongue side of the chin: the mental spines (a pair above, a low ridge below) and the digastric fossae
-    yc = float(W["yb"](0.0))
-    p, w = face(0, yc + 1.8, False, s=9.0)
-    F.cut(sdf.Ellipsoid(p - 0.9 * w + np.array([0.0, -2.0, 0.0]), (6.2, 1.8, 3.0), sdf.rot((0, 1, 0), 18.0)), k=2.4)   # digastric fossa: an oval on the base's underside, behind
+    # ---- the tongue side of the chin: the mental spines and the digastric fossae are made after the halves are joined
+    # (chin_marks), each side its own (T-jaw-shape: the fossa cut here, 1.8 mm across under a 2.4 mm blend, did not show)
     sdf.ease_midline(F)
     frames = teeth.packed(M2.LOWER_LINE, M2.LOWER_T, False)
     if seat:
@@ -878,30 +912,73 @@ ZONES = [   # name, centre, radii, extra grain (mm), pits per mm2 (surface.py)
 ]
 
 
-def unpair_spines(D, lo, h, info):
-    """The mental spines are drawn on the left half and mirrored: the two sides came out alike to the voxel. The right
-    upper spine is made a little lower and smaller, the left one's top a little higher, and the right lower one fainter:
-    a pair, not a copy."""
-    W, S = info["maps"], info["sheet"]; M = W["M"]; yc = float(W["yb"](0.0))
-    def pt(s, y):
-        n = float(M.sample(W["inner_body"], np.array([s], float), np.array([y], float))[0])
-        return S.at(s, y, n)
-    ax = [lo[k] + h * np.arange(D.shape[k]) for k in range(3)]
-    for c, amp, r in ((pt(1.55, yc + 10.0) * np.array([-1.0, 1.0, 1.0]) + np.array([0.1, 0.4, 0.0]), 0.12, 1.1),   # right upper: lower, smaller
-                      (pt(1.55, yc + 10.0) + np.array([0.1, 0.5, 0.0]), -0.08, 0.9),                                  # left upper: its top higher
-                      (pt(1.15, yc + 6.9) * np.array([-1.0, 1.0, 1.0]) + np.array([0.0, -0.3, 0.0]), 0.08, 0.9)):   # right lower: fainter (T-jaw-finish)
-        i0 = [max(int((c[k] - 4 * r - lo[k]) / h), 0) for k in range(3)]; i1 = [min(int((c[k] + 4 * r - lo[k]) / h) + 1, D.shape[k]) for k in range(3)]
-        X, Y, Z = np.meshgrid(*[ax[k][i0[k]:i1[k]] for k in range(3)], indexing="ij")
-        g = np.exp(-((X - c[0]) ** 2 + (Y - c[1]) ** 2 + (Z - c[2]) ** 2) / r ** 2)
-        sl = tuple(slice(i0[k], i1[k]) for k in range(3))
-        D[sl] = (D[sl] + amp * g).astype(D.dtype)
+def _ray(D, lo, h, p, d, step=0.1, far=25.0):
+    """The first place the field turns from bone to air going from p (inside the bone) along d, and the surface's
+    outward normal there."""
+    from scipy.ndimage import map_coordinates
+    d = sdf.unit(d); t = np.arange(0.0, far, step); P = np.asarray(p, float) + np.outer(t, d)
+    v = map_coordinates(D, ((P - lo) / h).T, order=1, mode="nearest")
+    k = int(np.argmax(v > 0)); q = P[k - 1] + (P[k] - P[k - 1]) * (-v[k - 1]) / max(v[k] - v[k - 1], 1e-6)
+    e = 0.4; g = np.array([map_coordinates(D, (((q + e * u) - lo) / h)[:, None], order=1)[0] - map_coordinates(D, (((q - e * u) - lo) / h)[:, None], order=1)[0]
+                           for u in np.eye(3)])
+    return q, sdf.unit(g)
+
+
+def _box(D, lo, h, c, r):
+    i0 = [max(int((c[k] - r - lo[k]) / h), 0) for k in range(3)]; i1 = [min(int((c[k] + r - lo[k]) / h) + 1, D.shape[k]) for k in range(3)]
+    sl = tuple(slice(i0[k], i1[k]) for k in range(3))
+    X, Y, Z = np.meshgrid(*[lo[k] + h * np.arange(i0[k], i1[k]) for k in range(3)], indexing="ij")
+    return sl, np.stack([X, Y, Z], -1)
+
+
+CHIN_SPINES = [   # (x, height over the lower border, height mm, base half-width across, up and down, lean down, tip round): Fig. 177 and p. 173
+    (1.9, 11.4, 1.15, 2.3, 2.8, 0.35, 0.18),        # upper left (genioglossus)
+    (-1.5, 10.6, 0.95, 2.1, 2.5, 0.25, 0.20),       # upper right: a little lower and smaller
+    (1.0, 7.3, 0.60, 1.6, 1.8, 0.15, 0.20),         # lower left (geniohyoid), nearer the midline
+    (-1.1, 6.8, 0.50, 1.5, 1.7, 0.10, 0.22)]        # lower right: fainter
+DIGASTRIC = [     # (x, z of its middle on the base, depth mm, half-length along the border, half-breadth): one each side
+    (10.4, 82.6, 1.55, 6.6, 3.4),
+    (-9.8, 82.0, 1.40, 6.2, 3.6)]
+
+
+def chin_marks(D, lo, h, info):
+    """The tongue side of the chin, on the whole jaw (so the two sides are not alike): the mental spines and the digastric
+    fossae. (T-jaw-shape) Drawn on the unrolled sheet the spines came out as two flat squarish pads, and the fossae, a
+    1.8 mm ellipsoid cut under a 2.4 mm blend, did not show at all. Gray (p. 173, Fig. 177): "on either side of the
+    symphysis, near its lower part, two pairs of laminated tubercles, the mental spines"; "below the mental spines, on
+    either side of the middle line, an oval depression for the attachment of the Digastricus". So each spine is a small
+    pointed tubercle standing up to 1 mm off the hind face of the symphysis, its flanks hollow-sided and running out into
+    the face over 1.1 to 2 mm, its tip leaning a little down; the upper pair larger and further apart than the lower; and
+    each fossa a shallow oval hollow (1.1 to 1.25 mm, 10 to 11 mm long) on the base's hind lip either side of the midline,
+    facing down and back. Every one has its own size and place."""
+    yc = float(info["maps"]["yb"](0.0))
+    for x, dy, H, ra, rb, lean, rt in CHIN_SPINES:
+        p, n = _ray(D, lo, h, (x, yc + dy, 88.0), (0.0, 0.0, -1.0))
+        t = sdf.unit(n + np.array([0.0, -lean, 0.0]))                        # the tip's way: back, a little down
+        up = sdf.unit(np.array([0.0, 1.0, 0.0]) - (np.array([0.0, 1.0, 0.0]) @ t) * t); ac = np.cross(up, t)
+        sl, P = _box(D, lo, h, p, 4.5)
+        Q = P - p; a = Q @ t; r = np.sqrt((Q @ ac / ra) ** 2 + (Q @ up / rb) ** 2)
+        r = np.sqrt(r * r + (rt / max(ra, rb)) ** 2) - rt / max(ra, rb)          # (the tip rounded, not a needle)
+        g = H * np.clip(1.0 - r, 0.0, 1.0) ** 2.4                                # hollow-sided: a point, its flanks running out over a broad foot
+        w = 1.0 - smoothstep((np.abs(a) - 2.0) / 2.0)
+        D[sl] = (D[sl] - g * w).astype(D.dtype)
+    from scipy.ndimage import map_coordinates
+    for x, zc, dep, al, ab in DIGASTRIC:
+        sx = np.sign(x); ys = lo[1] + h * np.arange(D.shape[1])
+        col = map_coordinates(D, np.vstack([np.full(len(ys), (x - lo[0]) / h), (ys - lo[1]) / h, np.full(len(ys), (zc - lo[2]) / h)]), order=1)
+        p, n = _ray(D, lo, h, (x, ys[col < 0].min() + 3.0, zc), (0.0, -1.0, -0.25))   # (from 3 mm inside the base, down: the base's underside)
+        e1 = sdf.unit(np.array([1.0, 0.0, -0.32 * sx])); e1 = sdf.unit(e1 - (e1 @ n) * n); e2 = np.cross(n, e1)
+        sl, P = _box(D, lo, h, p, 10.0)
+        Q = P - p
+        g = dep * np.exp(-((Q @ e1 / al) ** 2 + (Q @ e2 / ab) ** 2 + (Q @ n / 3.5) ** 2))
+        D[sl] = (D[sl] + g).astype(D.dtype)
     return D
 
 
 def whole(F, info, log=print, rough=True, seed=176):
     """The whole jaw's field from its left half: mirrored, then given its grain and pits (each side its own). Returns (D, lo)."""
     D = sdf.mirror_field(F.D); lo = np.array([-float(F.ax[0][-1]), float(F.lo[1]), float(F.lo[2])])
-    D = unpair_spines(D, lo, F.h, info)
+    D = chin_marks(D, lo, F.h, info)
     if not rough:
         return D, lo
     D0 = D.copy()
@@ -914,4 +991,6 @@ def whole(F, info, log=print, rough=True, seed=176):
         sl = G.window(np.minimum(*q) - 7.0, np.maximum(*q) + 7.0)
         if sl is not None:
             G.D[sl] = np.clip(G.D[sl], D0[sl], D0[sl] + 0.12)
+    sl = G.window(np.array([-0.9, -77.0, 81.0]), np.array([0.9, -57.0, 95.0]))    # (T-jaw-shape) the septum between the central incisors' sockets: no wear
+    G.D[sl] = D0[sl]
     return G.D, lo

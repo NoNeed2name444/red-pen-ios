@@ -4280,6 +4280,23 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     half depth. Open: the lambdoid's lobes are rounded and of similar
     size where Gray draws deep loops (limit of the 0.5 mm grid);
     bones.py not rerun with the new "<name>, left/right" midline keys.
+    Jaw shape (mandible4.py, traces/mandible_fig176_outline.json),
+    accepted on the whole build: the side outline is refitted to Fig.
+    176 (registered on condyle top, gonion, pogonion; the plate's
+    lettering taken out of the trace). Coronoid tip 0.4 mm from the
+    plate (was 3.1 low, 5.7 back) and 8.25 mm broad 5 mm below the tip
+    (plate 7.45); notch a wide sigmoid, lowest point 0.8 mm off; angle
+    106 degrees (was 101; plate 105); mean outline miss 0.66 mm (was
+    1.62). A 0.76 mm septum parts the lower central sockets (they had
+    merged for 10 mm). The head's medial pole is shaved 1 mm on its
+    upper face: at least 1.07 mm to the socket roof (was 0.14); the
+    condyle top and the socket are not moved. Mental spines are four
+    small unequal tubercles, digastric fossae two shallow ovals
+    (chin_marks). Open: the septum touches the central roots (0.12 mm)
+    because the roots lean to the midline (teeth.packed; a distal root
+    tip in teeth.py would cure it); coronoid tip 2.75 mm from the
+    infratemporal surface and its front border 2.1 mm from the maxilla
+    behind the third molar; re-check the joint if the socket changes.
     Task C, repair 1 (head and neck accepted; task closed): the ring is
     gone. Each section under the head is solved to silhouette targets
     from Fig. 176 and 177: the hind edge runs straight into the head,
