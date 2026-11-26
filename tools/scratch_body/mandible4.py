@@ -393,16 +393,22 @@ def maps(S, log=print):
     # on the lower half of the field: so long low ridges 0.10 to 0.18 mm high, each rising and fading along its length at
     # its own place, and no dabs. (The medial pterygoid's on the inside likewise: low, uneven, strongest near the border and
     # fading upward.)
-    # (T-jaw-finish) at 0.10 to 0.18 mm they did not show at all: now 0.25 to 0.5 mm, broader, each rising and falling twice
-    # along its length (a ridge broken in places), of unequal length and slant, none parallel to its neighbour.
-    for k, (pts, r, h) in enumerate((([(14.0, -58.0), (12.4, -60.8), (11.0, -63.4), (9.2, -66.4), (7.3, -69.6)], [0.9, 1.1, 1.1, 1.2, 0.9], [0.0, 0.30, 0.22, 0.38, 0.0]),
-                                     ([(6.4, -70.6), (5.2, -72.4), (4.1, -74.4)], [0.9, 1.0, 0.8], [0.12, 0.30, 0.0]),
-                                     ([(21.0, -66.8), (19.0, -69.6), (16.6, -72.3), (14.6, -74.4), (12.6, -76.6)], [0.9, 1.1, 1.2, 1.1, 0.8], [0.0, 0.40, 0.28, 0.34, 0.0]),
-                                     ([(28.5, -70.8), (26.8, -73.4), (24.4, -76.6)], [0.9, 1.1, 0.8], [0.0, 0.28, 0.0]),
-                                     ([(23.4, -54.0), (21.6, -57.4), (19.4, -61.0), (17.6, -64.4), (16.2, -66.8)], [0.8, 1.0, 1.1, 1.1, 0.8], [0.0, 0.22, 0.16, 0.32, 0.0]),
-                                     ([(29.5, -60.2), (27.6, -64.0), (25.6, -67.6), (24.4, -70.2)], [0.9, 1.1, 1.1, 0.8], [0.0, 0.36, 0.24, 0.0]),
-                                     ([(34.2, -66.0), (33.0, -69.0), (31.2, -72.6)], [0.8, 1.0, 0.8], [0.0, 0.26, 0.0]))):
-        orr = orr + st(pts, r, h, 0.5, 11 + k)
+    # (T-jaw-finish, repair 1) Drawn as short strokes of several knots each, rising and falling twice and wandering 0.5 mm,
+    # they read as clusters of round lumps 3 to 5 mm across. Fig. 176 and p. 174: the lower hind part of the outer face is
+    # marked by oblique ridges for the masseter. Now four ridges, each one long narrow crest running down and back toward
+    # the angle (10 to 17 mm long, 1.2 to 1.4 mm wide), rising from nothing and fading to nothing once along its length
+    # (no second peak), barely bent, of unequal length, spacing, slant and height; on each a fine unevenness of its crest
+    # (12 %, knots 1 mm apart) and the angle's grain (ZONES) for its roughness.
+    rq = np.random.default_rng(176)
+    for k, (a0, a1, bend, r, h) in enumerate((((16.0, -56.0), (6.5, -70.5), 0.6, 0.65, 0.34),
+                                              ((23.5, -61.5), (14.0, -74.5), -0.5, 0.70, 0.40),
+                                              ((29.0, -67.5), (22.5, -76.0), 0.4, 0.62, 0.26),
+                                              ((33.5, -70.3), (29.8, -75.8), -0.3, 0.60, 0.20))):
+        a0, a1 = np.array(a0), np.array(a1); n = max(int(np.linalg.norm(a1 - a0) / 1.0), 6)
+        t = np.linspace(0.0, 1.0, n + 1); e = a1 - a0; nn = np.array([-e[1], e[0]]) / np.linalg.norm(e)
+        pts = a0 + np.outer(t, e) + np.outer(bend * np.sin(np.pi * t), nn)
+        prof = np.sin(np.pi * t) ** 1.4 * (1.0 + 0.12 * rq.uniform(-1, 1, n + 1)) * (0.9 + 0.2 * t)    # (a little fuller toward the angle)
+        orr = orr + st([tuple(p) for p in pts], np.full(n + 1, r), h * prof, 0.12, 11 + k)
     # inside: the medial pterygoid's marks at the angle; the ridge from the neck down to the lingula, the temporal crest
     # (T-jaw-finish) laid on after the smoothing (below), so that they show: low (to 0.25 to 0.4 mm), each fading out at both
     # ends and a little weaker somewhere along its length, running up and back from near the lower border at slants of their

@@ -4180,6 +4180,13 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     the inner face is gone. make.py's dental_arches reads the fitted
     rows. Sockets, bite, chin and joint unchanged. Not accepted: the
     masseter ridges on the angle's outer face read as lumps.
+    Repair 1 (mandible4.py), accepted; task closed: four oblique
+    masseter ridges running down and back to the angle, each one
+    narrow crest 6 to 17 mm long, unequal, fading at both ends (Fig.
+    176). The band down the hind border is the lit round edge, not a
+    facet (curvature continuous round the border). Fixed values
+    unchanged. Open, small: a few soft low swellings in the angle's
+    outer face come from the body face's smooth fit.
   - Temporal bone (temporal.py), task A round 1 (not accepted, kept): the
     mastoid is a leaning cone on Fig. 188's outline instead of a ball
     (side outline within 0.9 mm, was 2.8), the styloid a slender 25 mm
