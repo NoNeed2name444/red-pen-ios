@@ -1,0 +1,1 @@
+probe 42 numpy 2.5.3 scipy 1.18.1 skimage 0.26.0 cores 4 filter 0.8 s

@@ -1,0 +1,10 @@
+{
+ "name": "probe",
+ "sha": "4fb65b3408ee42c35164f0b4ca2de06b8328e96e",
+ "run_id": "45863788960",
+ "exit_code": 0,
+ "seconds": 1,
+ "patch_applied": true,
+ "cores": 4,
+ "memory_mb": 15983
+}
