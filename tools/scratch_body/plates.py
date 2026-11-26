@@ -110,16 +110,36 @@ SUTURES_SIDE = {
     "occipitomastoid": [(1790, 2020), (1787, 2047), (1772, 2082), (1750, 2113), (1737, 2153), (1722, 2180), (1722, 2205), (1702, 2240),
                         (1690, 2268), (1670, 2307)],
 }
-# how far each wanders from side to side (mm): the toothed ones a millimetre or more, the scale-like ones hardly at all
-SUTURE_WAVE = {"coronal": 1.1, "sagittal": 1.1, "lambdoid": 1.9, "squamosal": 0.25, "parietomastoid": 0.7, "occipitomastoid": 0.6,
-               "sphenoparietal": 0.3, "sphenofrontal": 0.4, "sphenosquamosal": 0.3}
 # The parietal's toothed borders, in Gray's words (1918): the frontal border "is deeply serrated" and the occipital "deeply
-# denticulated" (p. 134); the sagittal suture is "deeply serrated in its anterior two-thirds" (p. 177). The teeth of those three
-# are longer than the rest's (lengths in mm that a groove a millimetre wide can still show apart on a half-millimetre grid);
-# the sagittal's reach 2 to 3 mm to either side in front and about half of that in its hind third, and the whole line strays
-# from the middle plane by about a millimetre: no real one is ruled (the owner, 14 November: "bones don't normally look
-# perfectly straight like that").
-TOOTHED = (5.3, 3.4, 8.9, 2.6)
+# denticulated" (p. 134); the sagittal suture is "deeply serrated in its anterior two-thirds" (p. 177). A true suture is
+# "a series of processes and indentations interlocked together" (p. 284): the line is the gap between tongues of bone of
+# irregular length, breadth and lean, not a wave. The squamosal is a false suture, "the overlapping of contiguous bones by
+# broad bevelled margins" (p. 284): a smooth edge with no teeth. Each suture's teeth (skull2.denticulate): how far a tongue
+# reaches to either side of the line at most (mm), the narrowest and widest tongue along it (mm; two walls of a tongue must
+# stay 1.6 mm apart for a groove of a millimetre to show them apart on a half-millimetre grid), and how deep the teeth are
+# along it as [(mm from its start, share of the reach)], a negative distance counted back from its end. A plain number for
+# the reach and no teeth: a smooth, slightly uneven line that strays by that much (the squamosal).
+SUTURE_TEETH = {
+    # Fig. 188 draws loops of 2 mm and more from bregma down to page row 1400 (CORONAL_FINE_BELOW) and a fine wavering line
+    # from there to the pterion; near bregma the suture is simpler (its first 8 mm)
+    "coronal": (1.15, 2.2, 5.2, [(0, 0.0), (2, 0.5), (10, 1.0)]),
+    # strongest of all (Fig. 188: interlocking loops of 3 to 4 mm from tip to tip all down its length); a little simpler at
+    # both ends, where it meets the sagittal at lambda and the two mastoid sutures at the asterion
+    "lambdoid": (2.1, 2.4, 5.8, [(0, 0.0), (3, 0.6), (10, 1.0), (-22, 1.0), (-8, 0.55), (-3, 0.4), (0, 0.0)]),
+    # deep in its front two-thirds, simpler for its first centimetre at bregma and in its hind third (SAGITTAL["hind"])
+    "sagittal": (1.8, 2.2, 5.0, [(0, 0.0), (3, 0.4), (12, 1.0)]),
+    "squamosal": 0.35,                 # (the spread of its stray, mm)
+    # "serrated for articulation with the mastoid portion of the temporal" (p. 134)
+    "parietomastoid": (0.7, 2.2, 5.0, [(0, 0.0), (3, 1.0), (-3, 1.0), (0, 0.0)]),
+    "occipitomastoid": (0.6, 2.2, 5.0, [(0, 0.0), (3, 1.0), (-3, 1.0), (0, 0.0)]),
+    # the great wing's borders: "serrated" (p. 150), finely; a short fine line on the plate
+    "sphenoparietal": (0.5, 2.2, 5.0, [(0, 0.0), (3, 1.0), (-3, 1.0), (0, 0.0)]),
+    "sphenofrontal": (0.5, 2.2, 5.0, [(0, 0.0), (3, 1.0), (-3, 1.0), (0, 0.0)]),
+    "sphenosquamosal": (0.5, 2.2, 5.0, [(0, 0.0), (3, 1.0), (-3, 1.0), (0, 0.0)]),
+}
+# the sagittal's teeth in its hind third as a share of its front's; how far the whole line strays from the middle plane
+# (mm, over lengths of 4 to 7 cm; skull2.whole) and that stray's waves: no real suture is ruled (the owner, 14 November:
+# "bones don't normally look perfectly straight like that")
 SAGITTAL = dict(teeth=1.8, hind=0.55, drift=1.3, wave=(6.1, 4.3, 9.7, 3.1))
 # The coronal suture's teeth are long only in its upper half: the plate draws loops of 2 mm and more down to page row 1400
 # (61 mm above the Frankfurt plane) and a fine wavering line of a third of a millimetre from there to the pterion.

@@ -4251,6 +4251,35 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     small: the meatus's short axis; a soft ramp on the floor at x 31
     to 40; a rolled rim round the lacerum's upper mouth; thin bone
     from sinus.air at (-17.7, -2.3, 5.4).
+    Whole-skull check (26 Nov, bf6fa85): the whole skull with the jaw
+    seated builds at 0.5 mm in under 3 minutes and 2.3 GB (skull2.build
+    on the full box, skull2.whole, mandible4.build seat=True; needs
+    tools/anatomy_teeth.py on the path). Every skull check from here is
+    on the whole build: the regional scripts swallowed two exceptions
+    (inner.sagittal, inner.front) and cut the sinuses short (maxillary
+    1 cm3 against 15 to 16). The audit's 25 faults, to work through:
+    lower central incisor sockets merge (no septum for 10 mm); coronoid
+    9.5 mm low and thin, angle about 101 degrees; condyle's medial pole
+    0.1 to 0.4 mm from the socket roof; ruled crease down the dorsum
+    sellae and clivus (sinus.body mirrored half); boxy sphenoidal sinus;
+    two flat lumps over the choanae and a bar under the basisphenoid;
+    sockets read as drilled holes, 11 loose bone crumbs by the canine
+    sockets; straight edges under the tympanic plate and along the arch;
+    blocky mastoid; meatus and jugular openings too round; no foramen
+    rotundum; straight olfactory grooves; one midline strip on the
+    maxilla under the nose; digastric fossae not visible. make.py's
+    do_skull still builds the old skull.py and mandible.py.
+    Sutures (skull2.sutures, plates.SUTURE_TEETH), accepted: each side
+    is cut after mirroring with its own teeth (left against mirrored
+    right correlates under 0.25; before, exact copies); the teeth are
+    interlocking tongues of uneven breadth, reach and lean (Gray p. 134,
+    177, 284), the squamosal smooth; courses are draped every 0.1 mm on
+    the real surface, so the coronal and lambdoid leave bregma and
+    lambda without a straight chord or corner (coronal on Fig. 188
+    within 0.3 mm, lambdoid 0.8). Groove 0.4 mm deep, 1.0 mm wide at
+    half depth. Open: the lambdoid's lobes are rounded and of similar
+    size where Gray draws deep loops (limit of the 0.5 mm grid);
+    bones.py not rerun with the new "<name>, left/right" midline keys.
     Task C, repair 1 (head and neck accepted; task closed): the ring is
     gone. Each section under the head is solved to silhouette targets
     from Fig. 176 and 177: the hind edge runs straight into the head,

@@ -488,79 +488,229 @@ def drape(F, zy):
     return out
 
 
-def wander(P, amp, seed, snap=None, wave=plates.TOOTHED, depth=None):
-    """A line on the braincase made to wander from side to side as a toothed suture does (mm), its ends kept.
-    depth(P): how deep the teeth are at each point of the line (1 = amp). (The waves were once as short as 1.4 mm: on a line
-    kept every half millimetre and a half-millimetre grid those came out as a row of pits, not as teeth.)"""
-    P = spline(np.asarray(P, float), 0.5)
-    if snap is not None:
-        P = snap(P)
-    s = np.concatenate([[0], np.cumsum(np.linalg.norm(np.diff(P, axis=0), axis=1))])
-    t = np.gradient(P, axis=0); t /= np.linalg.norm(t, axis=1, keepdims=True)
-    n = P - C; n /= np.linalg.norm(n, axis=1, keepdims=True)
+def normals(F, P, smooth=4.0):
+    """The bone's outward normal at points P (mm) of the half field F (x mirrored for the right side), smoothed along the line."""
+    P = np.asarray(P, float); A = P.copy(); sx = np.where(A[:, 0] < 0, -1.0, 1.0); A[:, 0] = np.abs(A[:, 0])
+    e = 0.5 * F.h
+    fld = lambda q: sdf.sample_field(F.D, F.lo, F.h, np.column_stack([np.abs(q[:, 0]), q[:, 1:]]))
+    g = np.column_stack([fld(A + d) - fld(A - d) for d in np.eye(3) * e])
+    g[:, 0] *= sx
+    g = ndimage.gaussian_filter1d(g, smooth, axis=0, mode="nearest")
+    return g / np.maximum(np.linalg.norm(g, axis=1, keepdims=True), 1e-9)
+
+
+def onto(F, P, reach=2.5):
+    """Each point moved along the bone's normal on to the nearest outer surface of the half field F (either side of the head)."""
+    P = np.asarray(P, float); g = normals(F, P)
+    t = np.arange(-reach, reach + 1e-9, 0.05)
+    S = P[:, None, :] + t[None, :, None] * g[:, None, :]
+    S[..., 0] = np.abs(S[..., 0])
+    d = sdf.sample_field(F.D, F.lo, F.h, S.reshape(-1, 3)).reshape(len(P), len(t))
+    out = P.copy()
+    for k in range(len(P)):
+        i = np.where((d[k, :-1] < 0) & (d[k, 1:] >= 0))[0]           # inside to outside, going outward
+        if len(i):
+            j = i[np.argmin(np.abs(t[i]))]
+            a, b = d[k, j], d[k, j + 1]
+            out[k] = P[k] + (t[j] + (t[j + 1] - t[j]) * a / (a - b)) * g[k]
+    return out, g
+
+
+def arclen(P):
+    return np.concatenate([[0], np.cumsum(np.linalg.norm(np.diff(P, axis=0), axis=1))])
+
+
+def with_end(P, step):
+    """P resampled every `step` mm, its last point kept."""
+    Q = resample(P, step)
+    if np.linalg.norm(Q[-1] - P[-1]) < 0.3 * step:
+        Q = Q[:-1]
+    return np.vstack([Q, P[-1:]])
+
+
+def smooth_line(P, sigma, step=0.5):
+    """A line resampled every `step` mm and smoothed over `sigma` mm, its two ends kept where they are."""
+    P = with_end(np.asarray(P, float), step)
+    s = arclen(P); lin = P[0] + (P[-1] - P[0]) * (s / s[-1])[:, None]
+    R = P - lin; n = min(len(R) - 1, int(4 * sigma / step) + 1)
+    pad = np.concatenate([-R[n:0:-1], R, -R[-2:-n - 2:-1]])       # odd about each end: the ends stay put and are not pulled in
+    R = ndimage.gaussian_filter1d(pad, sigma / step, axis=0, mode="nearest")[n:n + len(P)]
+    return lin + R
+
+
+def envelope(spec, s):
+    """A suture's tooth depth along it: spec [(mm from start, or from the end if negative), share]; s its arc lengths."""
+    L = s[-1]
+    x = np.array([L + a if (a < 0 or (a == 0 and k > 0 and spec[k - 1][0] < 0)) else a for k, (a, _) in enumerate(spec)], float)
+    y = np.array([v for _, v in spec], float)
+    o = np.argsort(x, kind="stable")
+    e = np.interp(s, x[o], y[o])
+    return e
+
+
+def denticulate(length, depth, rng, reach, w0, w1, gap=1.6):
+    """A toothed suture's run beside its course, in the course's own frame: (u along it, v to the side), mm, from (0, 0) to
+    (length, 0). The course is broken into tongues of bone of irregular breadth (w0 to w1 mm, drawn anew for each), each
+    reaching out to one side by its own length (up to reach x depth(u)), leaning forward or back by its own amount, squared
+    or rounded at its tip, sometimes broader at its tip than at its neck, now and then cleft; the next one the other
+    bone's, on the other side, and a quarter of them mere stubs. No two parts of the line come closer than `gap` mm (a tongue that would is shortened
+    and straightened). (The old line was a sum of sine waves: a zip, every tooth like the next.)"""
+    ws = []
+    while sum(ws) < length:
+        w = w0 + (w1 - w0) * rng.beta(0.6, 1.5)
+        ws.append(w * 1.5 if rng.random() < 0.22 else w)           # now and then a broad one
+    ws = np.array(ws) * length / sum(ws)
+    a = np.concatenate([[0], np.cumsum(ws)])
+    n = len(ws)
+    side = rng.choice([-1.0, 1.0]) * (-1.0) ** np.arange(n)          # each tongue the other bone's: the sides take turns
+    small = rng.random(n) < 0.25                                     # but a quarter of them are short
+    reachk = reach * np.where(small, rng.uniform(0.28, 0.45, n), rng.uniform(0.5, 1.0, n))
+    lean = rng.uniform(-0.55, 0.55, n)
+    sq = rng.uniform(0.4, 0.9, n)                         # small: square-ended; near 1: rounded
+    bulb = rng.uniform(0.1, 0.7, n) * (rng.random(n) < 0.65)
+    cleft = rng.uniform(0.25, 0.45, n) * ((rng.random(n) < 0.18) | (ws > 0.55 * (w0 + w1)))    # a broad tongue is lobed at its tip
+    shrink = np.ones(n)
+
+    def path():
+        U, V, K = [np.zeros(1)], [np.zeros(1)], [np.full(1, -1)]
+        for k in range(n):
+            m = max(int(ws[k] / 0.08), 12)
+            t = np.linspace(0, 1, m + 1)[1:]
+            mid = 0.5 * (a[k] + a[k + 1])
+            L = reachk[k] * shrink[k] * float(np.interp(mid, s_mid, dep))
+            h = np.sin(np.pi * t) ** sq[k]
+            h = h * (1 - cleft[k] * shrink[k] * np.exp(-((t - 0.5) / 0.11) ** 2))
+            u = a[k] + ws[k] * (t + bulb[k] * shrink[k] * (t - 0.5) * h ** 4) + lean[k] * shrink[k] * L * h ** 2
+            U.append(u); V.append(side[k] * L * h); K.append(np.full(len(t), k))
+        return np.concatenate(U), np.concatenate(V), np.concatenate(K)
+
+    s_mid, dep = depth
+    from scipy.spatial import cKDTree
+    for _ in range(12):
+        u, v, kk = path()
+        Q = np.column_stack([u, v]); s = arclen(Q)
+        pairs = cKDTree(Q).query_pairs(gap, output_type="ndarray")
+        bad = pairs[np.abs(s[pairs[:, 0]] - s[pairs[:, 1]]) > 2.2 * gap] if len(pairs) else pairs
+        if not len(bad):
+            break
+        for k in np.unique(np.concatenate([kk[bad[:, 0]], kk[bad[:, 1]]])):
+            if k >= 0:
+                shrink[k] *= 0.8
+    return np.column_stack([u, v]), dict(breadth=ws, reach=reachk * shrink, side=side)
+
+
+def wander(P, F, rng, spec, step=0.25):
+    """A suture's line on the bone about its course P (on the surface, mm): toothed after spec (plates.SUTURE_TEETH), or a
+    smooth line straying a little to either side if spec is a number. Returns (line on the surface, its outward normals,
+    its run beside the course as (u, v))."""
+    P = with_end(P, 0.25)
+    s = arclen(P); t = np.gradient(P, s, axis=0); t /= np.linalg.norm(t, axis=1, keepdims=True)
+    n = normals(F, P)
     b = np.cross(t, n); b /= np.maximum(np.linalg.norm(b, axis=1, keepdims=True), 1e-9)
-    r = np.random.default_rng(seed).uniform(0, 2 * np.pi, 4)
-    if depth is None:
-        w = sum(a * np.sin(2 * np.pi * s / q + f) for a, q, f in zip((1.0, 0.7, 0.6, 0.4), wave, r))
+    if np.isscalar(spec):                                   # a smooth, uneven edge: noise smoothed over 1 to 2 mm, no wave length of its own
+        u = np.arange(0, s[-1], step); u = np.append(u, s[-1])
+        w = ndimage.gaussian_filter1d(rng.standard_normal(len(u) + 80), 1.3 / step, mode="wrap")[40:-40]
+        w += 0.6 * ndimage.gaussian_filter1d(rng.standard_normal(len(u) + 80), 0.8 / step, mode="wrap")[40:-40]
+        w = spec * w / w.std() * np.clip(np.minimum(u, u[-1] - u) / 1.5, 0, 1)
+        uv = np.column_stack([u, w])
     else:
-        w = 2.5 * surface.teeth(s, wave, r, np.random.default_rng(seed + 100).uniform(0, 2 * np.pi, 4)) * depth(P)
-    fade = np.clip(np.minimum(s, s[-1] - s) / 3.0, 0, 1)
-    Q = P + (amp * 0.5 * w * fade)[:, None] * b
-    Q[:, 0] = np.maximum(Q[:, 0], 0.0)
-    return Q, n
+        reach, w0, w1, prof = spec
+        sm = np.linspace(0, s[-1], 400)
+        uv, _ = denticulate(s[-1], (sm, envelope(prof, sm)), rng, reach, w0, w1)
+        uv = with_end(uv, step)
+    u = np.clip(uv[:, 0], 0, s[-1])
+    Pu = np.column_stack([np.interp(u, s, P[:, k]) for k in range(3)])
+    bu = np.column_stack([np.interp(u, s, b[:, k]) for k in range(3)])
+    Q, nq = onto(F, Pu + uv[:, 1:2] * bu)
+    return Q, nq, uv
+
+
+def side_likeness(uvl, uvr):
+    """How alike two sides' teeth are, seen in a mirror: the correlation of the left's run beside its course with the right's
+    (the right's sideways direction turns over in the mirror)."""
+    g = np.linspace(0, min(uvl[-1, 0], uvr[-1, 0]), 2000)
+    return float(np.corrcoef(np.interp(g, uvl[:, 0], uvl[:, 1]), -np.interp(g, uvr[:, 0], uvr[:, 1]))[0, 1])
 
 
 MASTOID = ((54.2, -12.6, -17.0), (7.4, 17.6, 12.4))          # the mastoid process: middle and half-lengths (x, y, z) of the solid it is made from
+GROOVE = (0.55, 0.08)        # a suture's groove: the radius of the tube cut along it and how far its axis stands out of the surface (mm)
 
 
 def sutures(F, T, V, log=print):
-    """Cut the braincase's sutures as fine grooves; returns each one's line on the surface (mm), for splitting the bones later."""
-    out = {}
-    lines = {k: drape(F, spline(np.column_stack([T.F.mm(np.array(v, float)), np.zeros(len(v))]), 2.0)[:, :2]) for k, v in plates.SUTURES_SIDE.items()}
+    """Lay out the braincase's sutures on the surface, each side with teeth of its own, to be cut in the whole head after the
+    halves are joined (whole(), through build.midline): left and right are not copies. Returns each one's line on the left
+    side (mm), for splitting the bones later; build.suture_lines keeps both sides' lines and courses."""
+    out, keep = {}, {}
+    # the courses: each line the plate draws, laid on the bone from the side point by point every tenth of a millimetre and
+    # smoothed over 2 mm in space. (It was laid every 2 mm and joined to bregma and lambda by straight chords: near the crown,
+    # where the vault is level from side to side, one step down the plate is 30 mm across the head, and the coronal ran dead
+    # straight over the top and turned down at a corner.)
+    lines = {}
+    for k, v in plates.SUTURES_SIDE.items():
+        zy = spline(np.column_stack([T.F.mm(np.array(v, float)), np.zeros(len(v))]), 0.1)[:, :2]
+        lines[k] = drape(F, zy)
     b, l = T.mark["bregma"], T.mark["lambda"]
     a0, a1 = np.arctan2(b[1] - C[1], b[0] - C[2]), np.arctan2(l[1] - C[1], l[0] - C[2])
-    ang = np.linspace(a0, a1 if a1 > a0 else a1 + 2 * np.pi, 40)
-    lines["sagittal"] = V.on(np.column_stack([np.zeros(len(ang)), C[1] + 50 * np.sin(ang), C[2] + 50 * np.cos(ang)]))
-    # The coronal and lambdoid sutures begin on the midline, at the sagittal's two ends (bregma and lambda). The vault is nearly
-    # level from side to side there, so the lines draped from the side view began 12 and 18 mm out and the three never met.
+    ang = np.linspace(a0, a1 if a1 > a0 else a1 + 2 * np.pi, 400)
+    lines["sagittal"] = onto(F, V.on(np.column_stack([np.zeros(len(ang)), C[1] + 50 * np.sin(ang), C[2] + 50 * np.cos(ang)])))[0]
+    # The coronal and lambdoid sutures begin on the midline, at the sagittal's two ends (bregma and lambda).
     for name, end in (("coronal", 0), ("lambdoid", -1)):
         P = lines[name]
         lines[name] = np.vstack([lines["sagittal"][end], P[P[:, 0] > 0.0]])
-    for seed, (name, P) in enumerate(sorted(lines.items())):
+    stops = {}
+    for name in sorted(lines):
+        P = lines[name]
         P = P[(P[:, 0] > 0.0) | (name == "sagittal") | (np.arange(len(P)) == 0)]
         if name == "occipitomastoid":                      # it runs behind and inward of the mastoid process, never on to it
             P = P[(((P - np.array(MASTOID[0])) / (np.array(MASTOID[1]) + 2.5)) ** 2).sum(1) > 1.0]
-        stop = None
         if name == "sphenofrontal":                        # its groove ends in the fossa, at the back of the cheek bone's frontal process: draped
-            up_ = np.where(np.diff(P[:, 0]) > 2.0)[0]      # from the side its last points climb the process's hind edge, and the groove cut a pit in it.
-            up_ = up_[up_ > len(P) // 2]                   # (The line itself is kept whole: the bones are parted along it, out to the process's edge.)
-            if len(up_):
-                stop = P[up_[0]]
+            i0 = len(P) // 2 + int(np.argmin(P[len(P) // 2:, 0]))      # from the side its last points climb the process's hind edge (from where the line
+            if P[-1, 0] - P[i0, 0] > 2.0:                  # comes nearest the middle plane), and the groove cut a pit in it. (The line itself is
+                stops[name] = P[i0 + 1:]                   # kept whole: the bones are parted along it, out to the process's edge.)
+                P = P[:i0 + 1]
         if len(P) < 3:
             continue
-        toothed = name in ("coronal", "lambdoid")
-        deep = None
+        lines[name] = onto(F, smooth_line(P, 2.0))[0]
+    seeds = {k: 7 + 13 * i for i, k in enumerate(sorted(lines))}
+    r, off = GROOVE
+    for name in sorted(lines, key=lambda k: k != "sagittal"):          # the sagittal first: whole() gives it its stray from the same draws as before
+        P = lines[name]
+        if len(P) < 3:
+            continue
+        spec = plates.SUTURE_TEETH[name]
         if name == "coronal":                              # long teeth above, a fine wavering line below (plates.CORONAL_FINE_BELOW)
             y0 = float(T.F.mm(np.array([plates.CORONAL_FINE_BELOW], float))[0][1])
-            deep = lambda q: 0.3 + 0.7 * np.clip((q[:, 1] - y0 + 4.0) / 8.0, 0, 1)
-        elif name == "lambdoid":
-            deep = lambda q: np.ones(len(q))
-        Q, n = wander(P, 0.0 if name == "sagittal" else plates.SUTURE_WAVE[name], seed,
-                      snap=(lambda q: V.on(q, 0.0)) if toothed else None, depth=deep)
-        if name == "sagittal":                             # on the midline: cut after the halves are joined, with a wander of its own (whole())
-            build.midline.append((name, Q + 0.15 * n, plates.SAGITTAL["teeth"], 0.65))      # a narrower groove: its teeth stay apart
-            out[name] = np.round(Q[::4], 2).tolist()
-            continue
-        k = len(Q) if stop is None else int(np.argmin(((Q - stop) ** 2).sum(1))) + 1
-        lift = np.zeros(len(Q))
-        if stop is not None:                               # It ends 3 mm short of the process's hind face and runs out to nothing over its last
-            run = np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(Q[:k], axis=0), axis=1))])      # 6 mm: carried to the foot of that steep face at
-            k = int(np.searchsorted(run, run[-1] - 3.0)) + 1                                             # full depth, its end bit a round pit into it.
-            t_ = np.clip((run[:k] - (run[k - 1] - 6.0)) / 6.0, 0, 1)
-            lift[:k] = t_ * t_ * (3 - 2 * t_)
-        F.cut(Tube((Q + (0.35 + lift)[:, None] * n)[:k], 0.85), 0.5)
-        out[name] = np.round(Q[::2 if toothed else 4], 2).tolist()      # (the toothed ones kept every millimetre: the bones part along the teeth)
-    log("sutures cut: " + ", ".join(sorted(out)))
+            s = arclen(P); s0 = float(np.interp(-y0, -P[:, 1], s))
+            spec = spec[:3] + (list(spec[3]) + [(s0 - 4.0, 1.0), (s0 + 4.0, 0.55), (-1.5, 0.55), (0, 0.0)],)
+        if name == "sagittal":                             # Gray: "deeply serrated in its anterior two-thirds"
+            s = arclen(P); h = plates.SAGITTAL["hind"]
+            spec = spec[:3] + (list(spec[3]) + [(0.6 * s[-1], 1.0), (0.72 * s[-1], h), (-3.0, h), (0, 0.0)],)
+        keep[name] = dict(course=P)
+        for side, sx in (("left", 1.0), ("right", -1.0)):
+            Pc = P * np.array([sx, 1.0, 1.0])
+            for j in range(20):                            # each side its own teeth: on a short line two draws can come out alike by chance,
+                rng = np.random.default_rng(seeds[name] + (0 if side == "left" else 1000 + j))      # so the right takes the first draw
+                Q, nq, uv = wander(Pc, F, rng, spec)                                                 # that is unlike the left (seen in a mirror)
+                if side == "left" or name == "sagittal" or abs(side_likeness(keep[name]["left uv"], uv)) < 0.25:
+                    break
+            keep[name][side] = Q; keep[name][side + " uv"] = uv
+            lift = np.zeros(len(Q)); kq = len(Q)
+            if name in stops:                              # It ends 3 mm short of the process's hind face and runs out to nothing over its last
+                run = arclen(Q)                                                                               # 6 mm: carried to the foot of that steep face at
+                kq = int(np.searchsorted(run, run[-1] - 3.0)) + 1
+                t_ = np.clip((run[:kq] - (run[kq - 1] - 6.0)) / 6.0, 0, 1)
+                lift[:kq] = t_ * t_ * (3 - 2 * t_)
+            cut = (Q + (off + lift)[:, None] * nq)[:kq]
+            if name == "sagittal":                         # on the midline: one line for both sides, given its slow stray in whole()
+                build.midline.append(("sagittal", cut, 0.0, r))
+                break
+            build.midline.append(("%s, %s" % (name, side), cut, 0.0, r))
+        line = keep[name]["left"][::4]                     # every millimetre: the bones part along the teeth
+        if name in stops:                                  # and the sphenofrontal on out to the process's edge
+            line = np.vstack([line, stops[name][::10]])
+        out[name] = np.round(line, 2).tolist()
+    build.suture_lines = keep
+    log("sutures laid out, each side with its own teeth, to be cut in the whole head: " + ", ".join(sorted(out)))
     return out
 
 
