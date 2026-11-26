@@ -250,6 +250,17 @@ class _Beside:
         return sdf.smax(self.solid(X, Y, Z), (self.x0 - X).astype(np.float32), self.k)
 
 
+class _Under:
+    """A solid with nothing of it above y = y1 (eased over k mm)."""
+    def __init__(self, solid, y1, k=0.6):
+        self.solid, self.y1, self.k = solid, y1, k
+        lo, hi = solid.bounds
+        self.bounds = (lo, np.array([hi[0], min(hi[1], y1 + k), hi[2]]))
+
+    def __call__(self, X, Y, Z):
+        return sdf.smax(self.solid(X, Y, Z), (Y - self.y1).astype(np.float32), self.k)
+
+
 class _Mirror:
     """A solid drawn for the left side (x > 0) set on the right."""
     def __init__(self, solid):
@@ -443,7 +454,7 @@ def cut(F, B, log=print):
     s0 = mm(JUGULAR_SLOT); s0 = s0.mean(0) + np.array([1.4, 1.0]) * (s0 - s0.mean(0))      # (half as large again across, not forward: in front of it the ridge to the carotid canal)
     jf = jag(np.vstack([s0[:6], [(26.4, -3.8), (28.0, -1.6), (27.6, 1.6), (25.4, 2.6)]]), 52, 0.12, 13)
     opening("jugular foramen", jf, 17.0, 0.9, lip_=(0.5, 1.0), seed=52, funnel=0.5, wob=0.45, lean=(-0.30, -0.25),
-            through=dict(grow=(1.0, 1.22), spur=True))
+            through=dict(grow=(1.0, 1.22), cap=-14.0))     # (carried up only to within the bone: its upper mouth is jugular_upper's)
     # the stylomastoid foramen (p. 181: "at the base of this process"), between the styloid and the mastoid: small, a
     # little drawn out toward the mastoid, its lip thin in front and rounded behind; the facial canal climbs from it
     c = mm([STYLOMASTOID])[0]
@@ -470,6 +481,56 @@ def cut(F, B, log=print):
             c = mm([at])[0]; y = float(Mb.sample(Yb, [c[0]], [c[1]])[0])
             F.cut(Tube(np.array([np.array([c[0], y - 1.0, c[1]]), np.array([c[0], y + 0.5, c[1]]) + 4.0 * np.array(d)]), r), 0.4)
     return mouths
+
+
+# the jugular foramen's upper mouth as Fig. 193 draws it (right side, |x| and z in mm by the plate's registration on the
+# basion and opisthion: px = 707 + |x| * 10.2, py = 1490 + (4.2 - z) * 10.2), its outline traced at the plate's dark
+# (threshold 175) and smoothed: a bent gap, the larger hind and outer (sigmoid) part and the smaller front and inner
+# (petrosal) part, 28 mm2. The two intrajugular processes are put in as low blunt points from its two margins where the
+# parts meet (p. 131, p. 144), not met
+JUGULAR_UPPER = [(31.7, -8.3), (31.3, -9.2), (30.3, -9.5), (29.3, -9.5), (28.3, -9.2), (27.4, -8.8), (26.4, -8.7),
+                 (25.9, -8.1), (25.5, -8.3), (24.8, -7.5), (24.1, -6.7), (23.5, -5.8), (23.1, -4.9), (22.7, -4.0),
+                 (22.3, -3.0), (21.7, -2.2), (22.5, -1.7), (23.4, -1.9), (24.3, -2.5), (24.7, -3.4), (24.7, -4.5),
+                 (24.7, -5.5), (25.2, -6.3), (25.6, -5.9), (26.6, -5.8), (27.6, -5.8), (28.6, -5.9), (29.6, -6.1),
+                 (30.6, -6.5), (31.2, -7.3)]
+JUGULAR_GROW = (0.95, 1.03)          # (left, right) about its middle: the right the larger (p. 181)
+
+
+def jugular_upper(G, s, log=print):
+    """The jugular foramen's upper mouth: one opening, the plate's outline cut from within the bone (where
+    the canal from the jugular hollow has got to, y -14.5) up through the floor and the petrous part's hind edge over it; its
+    hind part joined down and forward to the hollow's roof; its margins rounded. Returns the log line."""
+    P = np.array(JUGULAR_UPPER); c = P.mean(0); g = JUGULAR_GROW[0 if s > 0 else 1]
+    poly = jag(c + g * (P - c), 960 + (0 if s > 0 else 1), 0.05, 13)
+    y0, yt = -14.5, 0.5
+    M, reg = outline_map(poly, margin=4.0)
+    op = Opening(M, reg, np.full(M.U.shape, y0), yt - y0, wobble=(0.1, 962 + (0 if s > 0 else 1)), below=1.0)
+    G.cut(op if s > 0 else _Mirror(op), 0.6)
+    # under the floor the way is wider than the mouth (the mouth alone, 4 mm across, left a throat of 1.4 mm free radius)
+    Mw, rw = outline_map(c + 1.2 * g * (P - c), margin=4.0)
+    ow = Opening(Mw, rw, np.full(Mw.U.shape, y0), 1.0, wobble=(0.1, 964 + (0 if s > 0 else 1)), below=1.0)
+    G.cut(ow if s > 0 else _Mirror(ow), 0.8)
+    # down and forward into the hollow's roof under its hind part
+    G.cut(Tube(np.array([(s * 29.2, -12.8, -2.4), (s * 28.6, -13.0, -5.0), (s * 28.0, -12.4, -7.4)]), [(0, 2.0), (1, 1.9)], [(0, 3.2), (1, 2.9)], up=(0, 1, 0)), 1.0)      # (flat and wide: deeper, it left the under face thin)
+    # the margins rounded where the floor meets the cut, all round
+    L = np.r_[0, np.cumsum(np.linalg.norm(np.diff(np.vstack([poly, poly[:1]]), axis=0), axis=1))]
+    n_ = 0
+    for t in np.arange(0.0, L[-1], 1.6):
+        q = np.array([np.interp(t, L, np.r_[poly[:, k], poly[0, k]]) for k in range(2)])
+        q = q + 0.6 * (q - c) / (np.linalg.norm(q - c) + 1e-9)                   # (just outside the edge)
+        ys_ = np.arange(6.0, -20.0, -0.25)
+        d = sample_field(G.D, G.lo, G.h, np.column_stack([np.full(ys_.size, s * q[0]), ys_, np.full(ys_.size, q[1])]))
+        if (d < 0).any():
+            G.ease((s * q[0], float(ys_[int(np.argmax(d < 0))]) - 0.3, q[1]), 1.6, 0.45); n_ += 1
+    # no crumb of bone left loose between the canal and the mouth
+    sl = G.window(np.array([s * 18.0 if s > 0 else -36.0, -22.0, -14.0]), np.array([36.0 if s > 0 else -18.0, 4.0, 4.0]))
+    if sl is not None:
+        Dw = G.D[sl]; lab, n = ndimage.label(Dw < 0); sz = np.bincount(lab.ravel())
+        edge = set(np.unique(np.concatenate([lab[0].ravel(), lab[-1].ravel(), lab[:, 0].ravel(), lab[:, -1].ravel(), lab[:, :, 0].ravel(), lab[:, :, -1].ravel()])))
+        loose = [i for i in range(1, n + 1) if i not in edge and sz[i] < 40]
+        if loose:
+            G.D[sl] = np.where(np.isin(lab, loose), np.abs(Dw) + 0.1, Dw)
+    return "jugular foramen (%s): upper mouth the plate's outline x%.2f, from y %.1f up to %.1f, %d points of its margin rounded" % ("left" if s > 0 else "right", g, y0, yt, n_)
 
 
 def through(G, log=print):
@@ -508,7 +569,12 @@ def through(G, log=print):
                 Mb_, rb_ = M, reg
             op = Opening(Mb_, rb_, np.full(Mb_.U.shape, y0), top, wobble=(min(0.3, 0.08 * float(np.ptp(poly, 0).min())), o["seed"] + (1 if s > 0 else 2)), lean=lean,
                          rim=None if not o.get("right_only") else lip(Mb_, o["seed"] + 9, 0.5), mouth=1.6, below=1.0)
+            if o.get("cap") is not None:                                 # (the canal as it always was below, stopped within the bone)
+                op = _Under(op, o["cap"] + 1.0)
             G.cut(op if s > 0 else _Mirror(op), o["k"])
+            if o.get("cap") is not None:
+                found.append(jugular_upper(G, s, log))
+                continue
             # its upper mouth: the floor's edge is no punched rim but runs down into the opening, unevenly. The funnel is
             # as deep as a third of the bone it opens through, at most 3.5 mm: on the middle hollow's floor, a plate about
             # 3 mm thick, a millimetre (a funnel 3.5 mm deep there ran down nearly to the under face and opened the whole

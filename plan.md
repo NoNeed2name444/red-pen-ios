@@ -4459,8 +4459,27 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     back with tools/scratch_ci.py fetch. The job that runs the code
     holds no write credential; a second job filters the result to
     small files of a few kinds before the push. Free runners only:
-    the paid Opus job stays unused without the owner's word. Open:
-    one small test run on GitHub before workers rely on it.
+    the paid Opus job stays unused without the owner's word. Tested
+    on 26 Nov (shots/scratch-probe: patch applied, results back).
+    Skull's inner surface, second pass (inner.py, foramina.py;
+    accepted with open items after two repairs): the jugular foramen
+    is one opening on Fig. 193's outline, the larger hind part and
+    the smaller front part with blunt intrajugular points, the right
+    side the larger (Gray p. 181), and the sigmoid groove ends in
+    its hind part; the internal acoustic meatus is a canal about
+    1 cm long; each side of the crista galli is a real cribriform
+    plate with 18 or 19 scattered foramina, each proven through,
+    the crista unchanged. Lacerum, ovale, spinosum, carotid canal
+    and the under face outside the jugular boxes unchanged; pieces
+    and voids no worse (4, 6). Open: the meatus mouth still reads
+    round with a crisp hind rim (5.0 x 2.2 and 5.6 x 2.4 against
+    the plate's 4.3 x 2.7); the jugular throat's free radius is
+    1.24 / 1.47 mm (1.74 / 2.40 before) and four places in its walls
+    are under 0.6 mm; the petrous crest's sagitta on the left
+    (1.92 against 2.63); the lacerum's lip (7 to 8 rays, as before);
+    least bone between the cribriform foramina and the ethmoidal
+    cells not proven; the straight trough beside the olfactory
+    grooves comes from skull2.py and sinus.py.
     Task C, repair 1 (head and neck accepted; task closed): the ring is
     gone. Each section under the head is solved to silhouette targets
     from Fig. 176 and 177: the hind edge runs straight into the head,
