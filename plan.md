@@ -4204,6 +4204,19 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     turns the body's sides into upright walls at x 8.5 (passed to the
     inner.py task); the dorsum reads as a slab with steep straight
     sides; the fossa's front edge is nearly straight.
+    Repair 1 (sinus.py), accepted; task closed: the fossa is a
+    rounded oval wider than long (half-width 7.0), concave both ways,
+    open at the sides, its front wall a curved slope from the
+    tuberculum; the dorsum is narrower above than at its root, with
+    a notch for the abducent nerve on each side, the posterior
+    clinoids as knobs and its back hollowed across into the clivus
+    (clivus margins up to 0.25 mm, midline unchanged); the body's
+    sides slope into the carotid groove. Length 11.0 mm (plates 10.3,
+    9.7), depth 7.9 (8.8); floor over the sinus 1.05 mm. Open: a
+    small pit on the body's side near (10, 7, 20) cut by the foramen
+    lacerum's upper funnel in foramina.through (passed to that
+    task); the dorsum's back with the clivus top reads as a broad
+    trapezoid (Gray calls it a square plate).
     Inside of the base, attempt 1 (inner.py; saved, not accepted),
     against Fig. 193: the petrous top is rebuilt as a height field
     over the plate's crest (blunt uneven ridge, superior petrosal

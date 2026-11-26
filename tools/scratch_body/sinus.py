@@ -138,57 +138,67 @@ def cleft(F, log=print):
 SELLA = [   # the sphenoid's body from the side, its upper surface in the middle plane: (z, y)
     (6.0, -14.0), (9.0, -5.0), (11.0, 1.5), (13.0, 9.0), (14.6, 15.5),              # the clivus, sloping up and forward to the dorsum's back (foramina.py runs the great opening's front wall up it)
     (15.6, 18.6), (16.6, 19.7), (17.6, 19.6),                                       # the dorsum sellae: a thin plate leaning up from the clivus, its top rounded
-    (18.4, 17.9), (19.3, 15.5), (20.4, 12.9), (21.8, 11.1), (23.2, 10.4),           # the fossa for the hypophysis: the dorsum's front face curving down into its floor
-    (24.4, 10.5), (25.6, 11.4), (26.7, 13.2), (27.6, 15.5), (28.3, 17.2),           # (deepest a little behind its middle) and up its front wall
-    (28.9, 17.9),                                                                   # the tuberculum sellae, a low transverse ridge
-    (29.6, 17.8), (30.6, 17.2), (31.6, 16.9), (32.6, 17.0), (33.6, 17.6),           # the chiasmatic groove, running out at either end to the optic canal
+    (29.2, 17.8),                                                                   # the tuberculum sellae, a low transverse ridge (between the two: the fossa, FOSSA)
+    (30.2, 17.4), (31.4, 16.9), (32.6, 17.0), (33.6, 17.6),                         # the chiasmatic groove, running out at either end to the optic canal
     (34.8, 18.6), (36.0, 19.3), (38.0, 19.8), (40.0, 20.3), (43.0, 20.5),           # its front border and the level part in front (the jugum)
 ]
-# Across the body: (z, half-width at which its upper face turns down its side, the width over which the side falls to the
-# middle fossa's floor). Along the fossa the side falls broad and shallow (the carotid groove lies on it); beside the dorsum
-# it is the plate's edge; in front the face widens to the optic canals at the chiasmatic groove's ends.
-SADDLE = [(12.0, 6.0, 3.5), (13.4, 6.2, 4.4), (14.6, 6.4, 5.4), (16.6, 6.8, 5.8), (18.4, 7.0, 6.0), (20.6, 7.4, 6.4), (23.5, 7.6, 7.0),
-          (26.0, 7.5, 6.6), (27.6, 7.4, 5.4), (29.2, 7.5, 4.4), (30.4, 7.8, 3.6), (31.6, 8.6, 3.2), (33.0, 9.2, 3.0),
+# The hypophyseal fossa: a bowl, oval in plan and wider than long, sunk into the rim the dorsum and the tuberculum stand on.
+# Its floor is curved both ways (no level part); its walls steepen toward the rim, the dorsum's front face more than the
+# front wall, which slopes down from the tuberculum. floor: the deepest point (y); half: half-width; front, back: half-lengths
+# in front of and behind the deepest point (z centre); bend, steep: how the floor rises, as floor + bend*r^2 + steep*r^4 at
+# r (1 on the oval's edge). wall: the sinus's wall under the floor and front wall (mm), over |x| < 6 and z 18.5 to 28.5.
+FOSSA = dict(floor=10.1, centre=23.2, half=7.0, front=4.9, back=4.7, bend=3.4, steep=4.0, lip=4.6, z=(18.5, 28.5), floor_wall=1.0)
+# Across the body: (z, half-width at which its upper face turns down its side, the width the side falls over to the middle
+# fossa's floor). The dorsum is narrower at its top than at its root; along the fossa the side falls broad and shallow (the
+# carotid groove lies on it); in front the face widens to the optic canals at the chiasmatic groove's ends.
+SADDLE = [(12.0, 6.0, 3.5), (13.4, 6.0, 5.0), (14.6, 6.0, 6.5), (16.6, 4.6, 7.0), (17.8, 5.2, 7.4), (19.5, 7.0, 8.4),
+          (23.5, 7.6, 8.6), (27.0, 7.4, 7.6), (29.2, 7.5, 5.0), (30.4, 7.8, 3.6), (31.6, 8.6, 3.2), (33.0, 9.2, 3.0),
           (34.5, 9.5, 3.0), (36.0, 9.8, 3.0), (38.0, 10.0, 3.0), (44.0, 10.0, 3.0)]
-CAROTID_GROOVE = [(14.0, 11.4, 0.0), (17.0, 11.2, 0.6), (20.0, 10.8, 0.9), (23.0, 10.6, 1.0), (26.0, 10.5, 0.9), (29.0, 10.2, 0.7),
-                  (31.0, 10.4, 0.3), (33.0, 10.8, 0.0)]     # its course along the body's side, f-wise: (z, x of its bottom, depth below the side's slope)
-FOSSA = dict(z=(18.5, 28.5), half=6.0, floor_wall=1.0,       # where the fossa's floor and front wall are thin over the sinus (mm)
-             centre=23.6, plan=(7.4,), lip=4.6)              # its half-width; its sides' lip this much under the rim's line
+CAROTID_GROOVE = [(14.0, 3.6, 0.0), (17.0, 3.8, 1.2), (20.0, 3.6, 1.6), (23.0, 3.0, 1.0), (26.0, 3.0, 0.9), (29.0, 2.8, 0.7),
+                  (31.0, 2.4, 0.3), (33.0, 2.4, 0.0)]       # its course down the body's side, f-wise: (z, how far out of the side's top edge its bottom lies, depth under the slope)
+
+
+def _smin(a, b, k):
+    h = np.clip(k - np.abs(a - b), 0.0, None) / k
+    return np.minimum(a, b) - h * h * k / 4.0
+
+
+def _smax(a, b, k):
+    return -_smin(-a, -b, k)
 
 
 def saddle(x, z):
-    """The upper face of the sphenoid's body (y, mm) over x >= 0 and z. A rim surface first: the midline profile (SELLA)
-    with the fossa bridged from the dorsum's front edge to the tuberculum, sagging at either side of the fossa (a saddle:
-    high in front and behind, low at the sides, where it opens toward the carotid grooves), and falling away down the
-    body's side. Then the fossa sunk into it, oval in plan, deepest in the middle and running out to nothing at its rim,
-    so its walls curve round in plan as Fig. 193 draws them. Last the clinoid processes and the carotid groove."""
+    """The upper face of the sphenoid's body (y, mm) over x >= 0 and z. A rim first: the midline profile (SELLA), bridged
+    from the dorsum's top to the tuberculum across the fossa, sagging at the fossa's sides (a saddle: high in front and
+    behind, low at the sides, where it opens toward the carotid grooves), and falling away down the body's side, concave
+    (steep under the top edge, then easing out into the floor). Into it the fossa is sunk as an oval bowl. Then the
+    dorsum's own form (its upper border notched in the middle, its back hollowed across where it runs into the clivus, its
+    upper angles the posterior clinoid processes, knobs leaning forward and outward over the notch below them), the middle
+    clinoid processes and the carotid groove."""
     from scipy.interpolate import PchipInterpolator as P
-    S = np.array(SELLA, float); T = np.array(SADDLE, float); C = np.array(CAROTID_GROOVE, float)
+    S = np.array(SELLA, float); T = np.array(SADDLE, float); C = np.array(CAROTID_GROOVE, float); f = FOSSA
     zs = np.clip(z, S[0, 0], S[-1, 0]); tc = np.clip(z, T[0, 0], T[-1, 0]); cc = np.clip(z, C[0, 0], C[-1, 0])
     m = P(S[:, 0], S[:, 1])(zs)
-    k0 = int(np.argmin(np.abs(S[:, 0] - 18.4))); k1 = int(np.argmin(np.abs(S[:, 0] - 28.9)))     # the dorsum's front edge, the tuberculum
-    (z0, y0), (z1, y1) = S[k0], S[k1]
-    line = lambda q: y0 + (y1 - y0) * np.clip((q - z0) / (z1 - z0), 0.0, 1.0)       # the rim's line across the fossa
-    rim = np.where((z > z0) & (z < z1), line(z), m)
-    zc = FOSSA["centre"]; a = FOSSA["plan"][0]
+    (z0, y0), (z1, y1) = S[7], S[8]                                    # the dorsum's top in front, the tuberculum
+    rim = np.where((z > z0) & (z < z1), y0 + (y1 - y0) * (z - z0) / (z1 - z0), m)
     xs, wd = (P(T[:, 0], T[:, k])(tc) for k in (1, 2))
-    # the rim across: sagging at the fossa's sides; rising a little to the posterior clinoid processes behind; the dorsum's
-    # back (the clivus's upper end) a shallow trough across
-    sag = FOSSA["lip"] * np.exp(-((z - zc) / 3.4) ** 2) - 0.7 * np.exp(-((z - 16.8) / 1.3) ** 2)
-    rim = rim - sag * smoothstep(x / xs) - 0.5 * np.exp(-(x / 3.5) ** 2) * np.exp(-((z - 14.6) / 1.0) ** 2)
-    # the chiasmatic groove's ends rise out to the optic canals' floor (19.4 mm up, 9 to 10 out)
-    rim = rim + np.maximum(19.4 - m, 0.0) * smoothstep(x / 9.0) * smoothstep((z - 29.4) / 1.2) * (1.0 - smoothstep((z - 34.4) / 1.4))
+    rim = rim - f["lip"] * np.exp(-((z - f["centre"]) / 3.4) ** 2) * smoothstep(x / xs)
+    rim = rim - 0.6 * np.exp(-(x / 1.8) ** 2 - ((z - 16.9) / 1.4) ** 2)                 # the dorsum's upper border, notched in the middle
+    rim = rim - 2.0 * np.exp(-(x / 3.6) ** 2 - ((z - 15.0) / 1.1) ** 2)                 # its back hollowed across, running into the clivus
+    rim = rim + np.maximum(18.6 - m, 0.0) * smoothstep(x / 9.0) * smoothstep((z - 29.4) / 1.2) * (1.0 - smoothstep((z - 34.4) / 1.4))   # the chiasmatic groove's ends rise toward the optic canals
     s = np.clip((x - xs) / wd, 0.0, 1.0)
-    rim = np.where(x > xs, rim - (rim + 2.5) * smoothstep(s), rim)    # down the side, past the middle fossa's floor
-    # the fossa: an oval sunk into the rim, its depth taken from the midline profile at the same fraction of its length
-    # (away from the middle the fossa's profile is the midline's drawn together toward its centre: the walls curve round)
-    zq = np.clip(zc + (z - zc) * (1.0 + 1.3 * (x / a) ** 2), z0, z1)
-    dq = np.maximum(line(zq) - P(S[:, 0], S[:, 1])(zq), 0.0)
-    y = rim - dq * np.clip(1.0 - (x / a) ** 2, 0.0, 1.0) ** 1.5
-    xg, dg = P(C[:, 0], C[:, 1])(cc), P(C[:, 0], C[:, 2])(cc) * (z > C[0, 0]) * (z < C[-1, 0])
+    c = 1.0 - smoothstep((z - 17.6) / 2.0)                            # down the side, past the middle fossa's floor: concave beside the dorsum
+    y = np.where(x > xs, -2.5 + (rim + 2.5) * (1.0 - (c * (1.0 - (1.0 - s) ** 2) + (1.0 - c) * smoothstep(s))), rim)      # (the notch under the clinoid process), a long slope beside the fossa
+    b = f["back"] + (f["front"] - f["back"]) * smoothstep((z - f["centre"]) / 2.0 + 0.5)
+    r2 = (x / f["half"]) ** 2 + ((z - f["centre"]) / b) ** 2
+    y = _smin(y, f["floor"] + f["bend"] * r2 + f["steep"] * r2 * r2, 1.4)              # the fossa
+    xg, dg = xs + P(C[:, 0], C[:, 1])(cc), P(C[:, 0], C[:, 2])(cc) * (z > C[0, 0]) * (z < C[-1, 0])
     y = y - dg * np.exp(-((x - xg) / 2.0) ** 2)                       # the carotid groove: broad and shallow
-    y = y + 1.3 * np.exp(-((x - 6.0) / 1.3) ** 2 - ((z - 16.7) / 1.15) ** 2)       # the posterior clinoid process at the dorsum's upper angle
-    y = y + 1.1 * np.exp(-((x - 7.3) / 1.1) ** 2 - ((z - 27.6) / 1.0) ** 2)        # the middle clinoid process, at the tuberculum's end
+    y = y - 3.0 * np.exp(-((x - 11.0) / 1.7) ** 2 - ((z - 19.8) / 1.9) ** 2)      # where it begins, over the foramen lacerum's upper mouth (foramina.through opens it here)
+    y = y - 2.2 * np.exp(-((x - 6.6) / 1.3) ** 2 - ((z - 15.6) / 1.2) ** 2)            # the abducent notch: the dorsum's side hollowed below the clinoid process
+    u, v = ((x - 6.0) + (z - 17.3)) / np.sqrt(2.0), ((x - 6.0) - (z - 17.3)) / np.sqrt(2.0)
+    y = _smax(y, 21.2 - 2.6 * ((u / 1.7) ** 2 + (v / 1.15) ** 2), 0.7)  # the posterior clinoid process: a knob at the upper angle, leaning forward and outward
+    y = y + 1.0 * np.exp(-((x - 7.2) / 1.1) ** 2 - ((z - 27.8) / 1.0) ** 2)            # the middle clinoid process, at the tuberculum's end
     return y
 
 
@@ -230,10 +240,13 @@ def body(F, log=print):
     Its form from the plates (Gray 1918, 300 dpi scan): from above (Fig. 193, 10.3 px/mm on the oval foramen's distance from
     the midline) the fossa runs 10.3 mm from the tuberculum's edge to the dorsum's front edge, its lip some 7 mm out from the
     middle, the carotid groove beside it 10 to 12; in the sagittal section (Fig. 194, 6.85 px/mm on the skull's length) it is
-    9.7 mm long, 6.4 mm deep under the tuberculum and 8.8 under the line from the tuberculum to the dorsum's top. Built: 10.8
-    long, 7.1 and 8.0 deep. It was a box (a level floor, square ends, straight sides); now every part of it is rounded. The
-    clivus behind z 13.4 is the old profile's (foramina.py runs the great opening's front wall up it); the body's sides are
-    cut afterwards by the middle fossa's hollow (inner.middle_fossa), which still leaves them upright beside the saddle."""
+    9.7 mm long, 6.4 mm deep under the tuberculum and 8.8 under the line from the tuberculum to the dorsum's top. Built: 11.0
+    long, 7.3 and 7.9 deep; an oval wider than long, its floor concave both ways. It was a box (a level floor, square ends,
+    straight sides); now every part of it is rounded. The clivus behind z 13.4 is the old profile's (foramina.py runs the
+    great opening's front wall up it), its midline unchanged and its margins raised a little (at most 0.25 mm), so that the
+    dorsum's back runs down into it hollowed across. Fig. 145 and the text have the dorsum a square plate, its sides
+    hollowed below the clinoid processes. The pit on the dorsum's side over the foramen lacerum is foramina.through's
+    funnel, not this."""
     M = Map(0.0, 16.0, 4.0, 45.0, 0.5)                       # u = x, v = z
     P = np.array(SELLA[:8] + [(18.3, 17.2), (19.8, 13.2), (22.0, 11.4), (24.5, 11.0), (27.0, 12.0), (29.3, 15.2), (31.3, 18.3),
                               (33.5, 17.6), (36.0, 19.0), (40.0, 19.8), (43.0, 20.0)], float)     # the profile the box was built on (kept for the clivus)
@@ -242,12 +255,14 @@ def body(F, log=print):
     w0 = 6.5 + 3.5 * smoothstep((M.V - 30.0) / 5.0) + 2.5 * smoothstep((14.0 - M.V) / 6.0)
     fall = 1.0 - smoothstep((M.U - w0 + 1.0) / 7.0)
     knob = 0.9 * np.exp(-((M.U - 6.3) / 1.6) ** 2 - ((M.V - 17.0) / 1.5) ** 2)
-    old = -6.0 + (mid + knob + 6.0) * fall                   # the clivus and the level part in front stay as they were
-    new = ndimage.gaussian_filter(saddle(M.U, M.V), 0.7 / M.cell, mode="nearest")      # (no crease left where the parts meet)
+    old = -6.0 + (mid + knob + 6.0) * fall                   # the clivus and the level part in front stay as they were,
+    old = old + 0.9 * (1.0 - np.exp(-(M.U / 3.5) ** 2)) * (1.0 - smoothstep((M.U - 5.5) / 2.0)) * smoothstep((M.V - 8.5) / 2.0)   # but for a hollow across
+    # the clivus's upper part (its margins raised, its middle line where it was), carried up the dorsum's back
+    new = ndimage.gaussian_filter(saddle(M.U, M.V), 0.8 / M.cell, mode="nearest")      # (no crease left where the parts meet)
     w = smoothstep((M.V - 13.4) / 1.2) * (1.0 - smoothstep((M.V - 35.5) / 2.0))
     a, b = np.array([9.5, 30.0]), np.array([15.0, 44.0]); u = (b - a) / np.linalg.norm(b - a)          # the optic canal (skull2) seen from above:
-    t = np.clip((M.U - a[0]) * u[0] + (M.V - a[1]) * u[1], -3.0, np.linalg.norm(b - a))             # round its mouth the floor stays as it was
-    w = w * smoothstep((np.hypot(M.U - a[0] - t * u[0], M.V - a[1] - t * u[1]) - 3.0) / 2.0)
+    t = np.clip((M.U - a[0]) * u[0] + (M.V - a[1]) * u[1], -0.5, np.linalg.norm(b - a))             # under it the floor stays as it was
+    w = w * smoothstep((np.hypot(M.U - a[0] - t * u[0], M.V - a[1] - t * u[1]) - 2.4) / 1.2)
     top = old + w * (new - old)
     reg = M.region(np.array([(-1.0, 5.0), (10.5, 5.0), (15.0, 12.0), (15.0, 44.0), (-1.0, 44.0)], float))
     # (under the saddle the slab stops at the old cranial floor, 1 mm above the Frankfurt plane: its distance is scaled by the
