@@ -4537,6 +4537,22 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     crest. Flesh is darker than bone in the same light and the
     tendon is not pure white. Under way in muscles.py (masseter and
     temporalis), not yet accepted.
+    Muscles, state on 27 Nov (muscles.py, MUSCLES.md; built on the
+    bone of 11c34da; not wired into the app). Temporalis accepted:
+    it covers 99.7% of this skull's fossa up to the temporal line
+    (gap median 0.35 mm, worst 1.67 mm at the hind low corner by the
+    supramastoid crest), fibres converge on a pale tendon under the
+    arch to the coronoid and the ramus's front border, bundles of
+    unequal width. Flesh L* 41 against bone 55; tendon 60. Masseter
+    not accepted: four-sided with four tendon tongues a side and its
+    attachments taken from the built arch and jaw, but the deep part
+    shows as a smooth fibreless blob at the lower back, folds and
+    dark slivers remain under the arch's hind end, outline stairs
+    are 0.13 to 0.24 mm (wanted under 0.1), its gloss is 0.21%
+    (wanted 0.5 to 2), and the temporalis clears the left arch by
+    only 0.27 mm. The insertion no longer matches Fig. 176 to 1.1 mm
+    (2.7 to 2.8) because it follows the built jaw; that is intended.
+    Next: a masseter task on the GitHub machines, then pterygoids.
     Task C, repair 1 (head and neck accepted; task closed): the ring is
     gone. Each section under the head is solved to silhouette targets
     from Fig. 176 and 177: the hind edge runs straight into the head,
