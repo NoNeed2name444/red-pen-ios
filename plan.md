@@ -4516,6 +4516,27 @@ Free-for-commercial-use sources only, as everywhere in the atlas.
     cross-section. The committed tarsus.py bones stay. Under way: the
     committed bones corrected station by station from Gray's section
     figures, with CT numbers as helpers only (tarsus_sect.py).
+    That third method was closed too (27 Nov): nudging the old bones
+    left a boxy talus, and a talus composed from its named parts
+    passed every number but read as balls of clay. Four views of an
+    irregular bone do not fix the surface between them. The owner's
+    decision for these two bones only ("let it guide"): the Visible
+    Human CT may guide the surface, placed in the foot's pose,
+    corrected toward Gray's plates by at most 2 mm, joints fitted to
+    the neighbours; a small encoded shape goes in the repository,
+    no scan data. Everywhere else CT stays a helper for measurements.
+    Under way as tarsus_ct.py.
+    Muscles, the owner's rule (27 Nov): "the temporalis doesn't cover
+    the entire temporal fossa as it should. for muscles u should make
+    them according to their features not just a traced shape from a
+    book. also the muscles look a bit tooo bright compared to the
+    bones." So every muscle is built from its origin and insertion
+    areas on the built bone, its route and its fibre directions; the
+    plate is a likeness check. The temporalis fills the whole fossa
+    to the temporal line, the orbit's outer rim and the supramastoid
+    crest. Flesh is darker than bone in the same light and the
+    tendon is not pure white. Under way in muscles.py (masseter and
+    temporalis), not yet accepted.
     Task C, repair 1 (head and neck accepted; task closed): the ring is
     gone. Each section under the head is solved to silhouette targets
     from Fig. 176 and 177: the hind edge runs straight into the head,
